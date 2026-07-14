@@ -231,7 +231,7 @@ export function PhotoDetail() {
             <p className="mt-3 text-center text-xs text-[#8a8f89]">Instant download · Royalty-free after purchase</p>
 
             <Link to={`/photographer/${photo.photographerId}`} className="mt-6 flex items-center gap-3 border-t border-[#ececec] pt-5 hover:opacity-80">
-              <img src={photo.image} alt={photo.photographer} className="size-10 rounded-full object-cover" />
+              <div className="grid size-10 place-items-center rounded-full bg-[#dce8df] text-xs font-semibold text-[#1e4a3f]">{photo.photographer.charAt(0)}</div>
               <div className="text-xs">
                 <p className="font-semibold">{photo.photographer}</p>
                 <p className="text-[#6b716d]">{photo.location}</p>

@@ -242,7 +242,7 @@ export function Home() {
           </div>
           <div className="flex gap-4">
             <Link to="/pricing"><Button variant="light">See pricing</Button></Link>
-            <Link to="/search"><button className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#1e4a3f] transition hover:-translate-y-0.5 ns-shadow-sm">Explore the library</button></Link>
+            <Link to="/search"><Button variant="light">Explore the library</Button></Link>
           </div>
         </div>
       </section>

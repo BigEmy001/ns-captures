@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import {
   LayoutDashboard, Users, Image as ImageIcon, ShieldAlert, DollarSign, FileBarChart,
   Check, X, MoreHorizontal, Search, Filter, Trash2, Settings, Logs, Building2, UserCheck, UserX,
-  Download, Eye, Edit, ChevronDown,
+  Download, Eye, Edit, ChevronDown, ArrowUpRight,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -718,5 +718,3 @@ function Toggle({ label, description, checked, onChange }: { label: string; desc
     </label>
   );
 }
-
-import { ArrowUpRight } from "lucide-react";

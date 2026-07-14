@@ -4,7 +4,7 @@ import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Be
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
-import { currentUser, userPurchases, userCollections, getPhoto, photos } from "../data/photos";
+import { currentUser, userPurchases, userCollections, getPhoto, photos, mockLicenses, mockActivity } from "../data/photos";
 import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
 
