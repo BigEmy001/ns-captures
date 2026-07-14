@@ -1,0 +1,919 @@
+import { useState, useEffect } from "react";
+import {
+  LayoutGrid, Image as ImageIcon, TrendingUp, Wallet, Users, Inbox, Settings, Upload, ArrowUpRight,
+  Plus, Trash2, Check, X, Camera, Aperture, AlertCircle, FileText, ChevronRight, Loader2, CheckCircle2,
+} from "lucide-react";
+import {
+  AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
+} from "recharts";
+import { Eyebrow, Badge } from "../components/ui";
+import { SideNav } from "../components/SideNav";
+import { photos, briefs, Photo, License, Orientation } from "../data/photos";
+import { toast } from "sonner";
+
+const nav = [
+  { id: "overview", label: "Overview", icon: LayoutGrid },
+  { id: "portfolio", label: "Portfolio", icon: ImageIcon },
+  { id: "analytics", label: "Analytics", icon: TrendingUp },
+  { id: "requests", label: "Requests", icon: Inbox },
+  { id: "payouts", label: "Payouts", icon: Wallet },
+  { id: "followers", label: "Followers", icon: Users },
+  { id: "settings", label: "Settings", icon: Settings },
+];
+
+const revenue = [
+  { m: "Jan", v: 2100 }, { m: "Feb", v: 2600 }, { m: "Mar", v: 2400 },
+  { m: "Apr", v: 3200 }, { m: "May", v: 3900 }, { m: "Jun", v: 3600 },
+  { m: "Jul", v: 4800 },
+];
+
+const downloads = [
+  { m: "Mon", v: 120 }, { m: "Tue", v: 180 }, { m: "Wed", v: 140 },
+  { m: "Thu", v: 220 }, { m: "Fri", v: 260 }, { m: "Sat", v: 190 }, { m: "Sun", v: 150 },
+];
+
+const stats = [
+  { label: "REVENUE (MTD)", value: "$4,820", delta: "+18%" },
+  { label: "DOWNLOADS", value: "1,264", delta: "+9%" },
+  { label: "FOLLOWERS", value: "24,110", delta: "+312" },
+  { label: "PORTFOLIO", value: "412", delta: "+6 new" },
+];
+
+const mockFollowers = [
+  { name: "Sarah Jenkins", role: "Creative Director @ Pentagram", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop" },
+  { name: "David Kojo", role: "Art Buyer @ Ogilvy", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop" },
+  { name: "Elena Rostova", role: "Lead Designer @ Vaynermedia", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" },
+  { name: "Marcus Tunde", role: "Publisher @ Mainland Press", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop" },
+];
+
+const mockPayouts = [
+  { id: "PAY-9041", date: "Jul 01, 2026", method: "Zenith Bank Transfer", amount: "$3,600", status: "SUCCESSFUL" },
+  { id: "PAY-8038", date: "Jun 01, 2026", method: "Zenith Bank Transfer", amount: "$2,850", status: "SUCCESSFUL" },
+  { id: "PAY-7033", date: "May 01, 2026", method: "Zenith Bank Transfer", amount: "$3,120", status: "SUCCESSFUL" },
+];
+
+const CustomTooltip = ({ active, payload, label, prefix = "" }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-[#12231f]/95 p-3 text-white shadow-xl backdrop-blur-md">
+        <p className="font-mono text-[9px] tracking-wider text-white/50">{label}</p>
+        <p className="mt-1 font-serif text-sm font-semibold">
+          {prefix}{payload[0].value.toLocaleString()}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+export function Dashboard() {
+  const [active, setActive] = useState("overview");
+
+  // Dynamic Portfolio state (starts with some of our mock photos)
+  const [portfolioPhotos, setPortfolioPhotos] = useState<Photo[]>([
+    photos[8], // Lagos skyline
+    photos[9], // Lagos daytime
+    photos[10], // Lagos bw skyline
+    photos[11], // Rooftop city
+  ]);
+
+  // Upload wizard states
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadStep, setUploadStep] = useState<1 | 2 | 3>(1);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Form states for upload metadata
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [uploadCategory, setUploadCategory] = useState("Portrait");
+  const [uploadLocation, setUploadLocation] = useState("Lagos, Nigeria");
+  const [uploadPrice, setUploadPrice] = useState("250");
+  const [uploadFileName, setUploadFileName] = useState("");
+
+  // Accept brief state
+  const [acceptedBriefs, setAcceptedBriefs] = useState<Record<string, boolean>>({});
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+
+  // Photographer profile inputs
+  const [specialty, setSpecialty] = useState("Editorial");
+  const [location, setLocation] = useState("Lagos, Nigeria");
+  const [bio, setBio] = useState("Editorial and documentary photographer based in Lagos, drawn to unhurried portraits of everyday life across West Africa.");
+
+  const handleDeletePhoto = (id: string) => {
+    setPortfolioPhotos((prev) => prev.filter((p) => p.id !== id));
+    toast.error("Photo removed", {
+      description: "The asset was successfully deleted from your public archive.",
+    });
+  };
+
+  const handleSimulatedFileDrop = () => {
+    setUploadFileName("NS_RAW_BATCH_7912.cr3");
+    setUploadProgress(0);
+    setUploadStep(1);
+    
+    // Simulate parsing file EXIF data
+    const interval = setInterval(() => {
+      setUploadProgress((p) => {
+        if (p >= 100) {
+          clearInterval(interval);
+          setTimeout(() => setUploadStep(2), 200);
+          return 100;
+        }
+        return p + 25;
+      });
+    }, 150);
+  };
+
+  const handlePublishPhoto = (e: React.FormEvent) => {
+    e.preventDefault();
+    setUploadStep(3);
+    
+    const newPhotoId = "upload-" + Date.now();
+    const newPhotoItem: Photo = {
+      id: newPhotoId,
+      title: uploadTitle || "Untitled Frame",
+      photographerId: "namnso",
+      photographer: "Namnso Ukpanah",
+      license: "COMMERCIAL",
+      category: uploadCategory,
+      location: uploadLocation || "Lagos, Nigeria",
+      color: "#9a6b3f",
+      orientation: "portrait",
+      ratio: "aspect-[4/5]",
+      price: Number(uploadPrice) || 250,
+      downloads: 0,
+      views: 0,
+      likes: 0,
+      camera: "Canon EOS R5",
+      lens: "85mm f/1.4",
+      iso: 100,
+      keywords: ["portrait", "studio", "new-release"],
+      // Sourced from Unsplash as standard mock
+      image: "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
+    };
+
+    setPortfolioPhotos((prev) => [newPhotoItem, ...prev]);
+    toast.success("Photo published!", {
+      description: `"${uploadTitle || "Untitled Frame"}" is now visible under your portfolio.`,
+    });
+  };
+
+  const handleAcceptBrief = (briefId: string) => {
+    setAcceptingId(briefId);
+    setTimeout(() => {
+      setAcceptedBriefs((prev) => ({ ...prev, [briefId]: true }));
+      setAcceptingId(null);
+      toast.success("Brief Accepted!", {
+        description: "You have been matched. Review the onboarding files sent to your email.",
+      });
+    }, 1200);
+  };
+
+  const resetUploadWizard = () => {
+    setUploadTitle("");
+    setUploadCategory("Portrait");
+    setUploadLocation("Lagos, Nigeria");
+    setUploadPrice("250");
+    setUploadFileName("");
+    setUploadProgress(0);
+    setUploadStep(1);
+    setUploadOpen(false);
+  };
+
+  return (
+    <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
+      <div className="mx-auto flex max-w-[1440px] gap-8 px-5 sm:px-8 lg:px-12">
+        <SideNav
+          items={nav}
+          active={active}
+          onSelect={setActive}
+          header={() => (
+            <div className="flex min-w-0 items-center gap-3">
+              <img src={photos[8].image} alt="" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">Namnso Ukpanah</p>
+                <p className="text-xs text-[#6b716d]">Verified · Lagos</p>
+              </div>
+            </div>
+          )}
+        />
+
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <Eyebrow>PHOTOGRAPHER DASHBOARD</Eyebrow>
+              <h1 className="mt-2 font-serif text-3xl sm:text-4xl tracking-tight text-[#18211f]">
+                {active === "overview" && "Good morning, Namnso."}
+                {active === "portfolio" && "My Portfolio"}
+                {active === "analytics" && "Earnings & Metrics"}
+                {active === "requests" && "Creative Briefs"}
+                {active === "payouts" && "Payout Settings"}
+                {active === "followers" && "Audience"}
+                {active === "settings" && "Profile settings"}
+              </h1>
+            </div>
+            <button
+              onClick={() => {
+                setUploadStep(1);
+                setUploadOpen(true);
+              }}
+              className="flex items-center gap-2 bg-[#1e4a3f] hover:bg-[#123b31] px-5 py-2.5 text-sm font-semibold text-white rounded-full ns-shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+            >
+              <Upload className="size-4" /> Upload work
+            </button>
+          </div>
+
+          {/* Mobile nav */}
+          <div className="mt-6 flex gap-2 overflow-x-auto pb-2 md:hidden">
+            {nav.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => setActive(n.id)}
+                className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                  active === n.id
+                    ? "border-[#1e4a3f] bg-[#1e4a3f] text-white"
+                    : "border-[#ececec] bg-white text-[#6b716d]"
+                }`}
+              >
+                {n.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 1. OVERVIEW VIEW */}
+          {active === "overview" && (
+            <div className="space-y-6">
+              {/* Stat cards */}
+              <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {stats.map((s) => (
+                  <div
+                    key={s.label}
+                    className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300"
+                  >
+                    <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{s.label}</p>
+                    <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">{s.value}</p>
+                    <div className="mt-3">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-[#dce8df] px-2 py-0.5 font-mono text-[10px] font-semibold text-[#1e7a4f]">
+                        <ArrowUpRight className="size-3" /> {s.delta}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Charts */}
+              <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
+                  <div className="mb-6 flex items-center justify-between">
+                    <h3 className="font-serif text-lg text-[#18211f]">Revenue</h3>
+                    <Badge>2026</Badge>
+                  </div>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <AreaChart data={revenue}>
+                      <defs>
+                        <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#1e4a3f" stopOpacity={0.25} />
+                          <stop offset="100%" stopColor="#1e4a3f" stopOpacity={0.01} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
+                      <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip prefix="$" />} cursor={{ stroke: "#1e4a3f", strokeWidth: 1 }} />
+                      <Area type="monotone" dataKey="v" stroke="#1e4a3f" strokeWidth={2.5} fill="url(#rev)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
+                  <h3 className="mb-6 font-serif text-lg text-[#18211f]">Downloads this week</h3>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={downloads}>
+                      <defs>
+                        <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#1e4a3f" />
+                          <stop offset="100%" stopColor="#2e6a5b" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
+                      <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f0f2eb", opacity: 0.5 }} />
+                      <Bar dataKey="v" fill="url(#barGrad)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Top performing + requests */}
+              <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
+                  <h3 className="mb-4 font-serif text-lg text-[#18211f]">Top performing</h3>
+                  <div className="space-y-2">
+                    {photos.slice(0, 4).map((p, i) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center gap-4 hover:bg-[#FAF9F5] p-2.5 -mx-2.5 rounded-xl transition-all duration-200 group"
+                      >
+                        <span className="font-mono text-xs text-[#8a8f89]">0{i + 1}</span>
+                        <img src={p.image} alt="" className="size-12 object-cover rounded-lg group-hover:scale-[1.03] transition-all duration-200 shadow-sm" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-[#18211f]">{p.title}</p>
+                          <p className="text-xs text-[#6b716d]">{p.downloads.toLocaleString()} downloads</p>
+                        </div>
+                        <span className="font-serif text-base text-[#1e4a3f] font-semibold">${(p.downloads * p.price / 100).toFixed(0)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
+                  <h3 className="mb-4 font-serif text-lg text-[#18211f]">Incoming requests</h3>
+                  <div className="space-y-3">
+                    {briefs.map((b) => (
+                      <div
+                        key={b.id}
+                        className="border-l-4 border-l-[#1e4a3f] border border-[#ececec]/60 rounded-xl bg-white p-4 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-[#18211f] truncate">{b.title}</p>
+                          <Badge tone={b.status === "DELIVERED" ? "muted" : "green"}>{b.status}</Badge>
+                        </div>
+                        <p className="mt-2 text-xs text-[#6b716d] font-mono">${b.budget} · {b.delivery}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 2. PORTFOLIO VIEW */}
+          {active === "portfolio" && (
+            <div className="mt-8">
+              {portfolioPhotos.length === 0 ? (
+                <div className="border border-dashed border-[#ececec] rounded-2xl py-24 text-center bg-white">
+                  <ImageIcon className="size-12 mx-auto text-[#758078] mb-4 opacity-55" />
+                  <p className="font-serif text-2xl text-[#18211f]">No assets uploaded yet</p>
+                  <p className="mt-2 text-sm text-[#6b716d] max-w-sm mx-auto">
+                    Publish raw, premium editorial photographs to build your public licensing collection.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setUploadStep(1);
+                      setUploadOpen(true);
+                    }}
+                    className="mt-6 inline-flex items-center gap-2 bg-[#1e4a3f] px-5 py-2.5 text-xs font-semibold text-white rounded-full hover:bg-[#123b31] transition duration-200 cursor-pointer"
+                  >
+                    <Plus className="size-3.5" /> Upload First Image
+                  </button>
+                </div>
+              ) : (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {portfolioPhotos.map((p) => (
+                    <div
+                      key={p.id}
+                      className="group relative flex flex-col bg-white border border-[#ececec]/80 rounded-2xl overflow-hidden shadow-sm hover:border-[#1e4a3f]/25 transition duration-300"
+                    >
+                      <div className="aspect-[4/5] relative overflow-hidden bg-[#d7d8d2] shrink-0">
+                        <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover:scale-102 transition duration-300" />
+                        
+                        {/* Overlay tools */}
+                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition duration-200">
+                          <button
+                            onClick={() => handleDeletePhoto(p.id)}
+                            className="p-2 bg-white/90 backdrop-blur-sm text-[#d4183d] rounded-full hover:bg-white transition shadow cursor-pointer"
+                            aria-label="Remove work"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
+
+                        <div className="absolute bottom-3 left-3">
+                          <span className="bg-black/55 backdrop-blur-sm text-[8px] font-mono font-bold text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            {p.category}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h3 className="font-serif text-base text-[#18211f] font-semibold truncate leading-snug">{p.title}</h3>
+                          <p className="text-xs text-[#6b716d] flex items-center gap-1 mt-1">
+                            <Camera className="size-3" /> {p.camera} · {p.lens}
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between pt-3 border-t border-[#ececec]/40 text-xs font-mono text-[#758078]">
+                          <span>${p.price} License</span>
+                          <span className="text-[#1e7a4f] bg-[#dce8df] px-2 py-0.5 rounded font-semibold uppercase text-[9px]">
+                            Approved
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 3. ANALYTICS VIEW */}
+          {active === "analytics" && (
+            <div className="mt-8 space-y-6">
+              <div className="grid gap-6 lg:grid-cols-3">
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Conversion Rate</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">1.82%</p>
+                  <p className="text-xs text-[#1e7a4f] mt-1.5 flex items-center gap-1"><ArrowUpRight className="size-3" /> +0.2% vs last month</p>
+                </div>
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Average License Fee</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">$240.00</p>
+                  <p className="text-xs text-[#758078] mt-1.5 font-mono">Based on MTD downloads</p>
+                </div>
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Total Audience views</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">88,200</p>
+                  <p className="text-xs text-[#1e7a4f] mt-1.5 flex items-center gap-1"><ArrowUpRight className="size-3" /> +12% search impressions</p>
+                </div>
+              </div>
+
+              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                <h3 className="mb-6 font-serif text-lg text-[#18211f]">Detailed Revenue History</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={revenue}>
+                    <defs>
+                      <linearGradient id="revFull" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#1e4a3f" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#1e4a3f" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
+                    <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<CustomTooltip prefix="$" />} cursor={{ stroke: "#1e4a3f" }} />
+                    <Area type="monotone" dataKey="v" stroke="#1e4a3f" strokeWidth={3} fill="url(#revFull)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <h3 className="font-serif text-base text-[#18211f] mb-4">Top Licensing Categories</h3>
+                  <div className="space-y-3 font-mono text-xs">
+                    {[
+                      { name: "Portrait Study", pct: "42%" },
+                      { name: "Lagos Architecture", pct: "30%" },
+                      { name: "Fashion & Editorial", pct: "18%" },
+                      { name: "Lifestyle & Culture", pct: "10%" },
+                    ].map((c) => (
+                      <div key={c.name} className="flex items-center justify-between border-b border-[#ececec]/50 pb-2">
+                        <span className="text-[#4a534e]">{c.name}</span>
+                        <span className="font-semibold text-[#1e4a3f]">{c.pct}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <h3 className="font-serif text-base text-[#18211f] mb-4">Key Client Accounts</h3>
+                  <div className="space-y-3 font-mono text-xs">
+                    {[
+                      { name: "Mainland Studio", views: 24, downloads: 8 },
+                      { name: "Vaynermedia EMEA", views: 18, downloads: 3 },
+                      { name: "Pentagram London", views: 12, downloads: 2 },
+                      { name: "Ogilvy West Africa", views: 9, downloads: 2 },
+                    ].map((c) => (
+                      <div key={c.name} className="flex items-center justify-between border-b border-[#ececec]/50 pb-2">
+                        <span className="text-[#4a534e]">{c.name}</span>
+                        <span className="text-[#6d746e]">{c.downloads} dl / {c.views} views</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. CREATIVE BRIEFS / REQUESTS VIEW */}
+          {active === "requests" && (
+            <div className="mt-8 space-y-4">
+              {briefs.map((b) => (
+                <div
+                  key={b.id}
+                  className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/25 transition duration-300"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h2 className="font-serif text-xl text-[#18211f] font-semibold">{b.title}</h2>
+                        <Badge tone={b.status === "DELIVERED" ? "muted" : "green"}>{b.status}</Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-[#6b716d]">{b.location} · {b.description}</p>
+                    </div>
+                    <div className="font-mono text-right text-sm">
+                      <p className="text-xs text-[#758078]">BUDGET</p>
+                      <p className="font-serif text-2xl font-bold text-[#1e4a3f]">${b.budget}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-[#ececec]/60 flex flex-wrap items-center justify-between gap-4 text-xs font-mono">
+                    <div className="flex gap-4 text-[#758078]">
+                      <span>LICENSE: <strong className="text-[#18211f]">{b.license}</strong></span>
+                      <span>DELIVERY: <strong className="text-[#18211f]">{b.delivery}</strong></span>
+                    </div>
+
+                    <div>
+                      {acceptedBriefs[b.id] ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-[#1e7a4f] bg-[#dce8df] px-4 py-2 rounded-full font-semibold">
+                          <Check className="size-4" /> Accepted & Active
+                        </span>
+                      ) : b.status === "DELIVERED" ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-[#758078] bg-[#ece9df] px-4 py-2 rounded-full font-semibold">
+                          Closed
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleAcceptBrief(b.id)}
+                          disabled={acceptingId === b.id}
+                          className="flex items-center gap-1.5 bg-[#1e4a3f] hover:bg-[#123b31] px-5 py-2 text-white font-semibold rounded-full transition-colors cursor-pointer"
+                        >
+                          {acceptingId === b.id ? (
+                            <>
+                              <Loader2 className="size-3.5 animate-spin" /> Accepting...
+                            </>
+                          ) : (
+                            <>
+                              Accept Brief <ChevronRight className="size-3.5" />
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 5. PAYOUTS VIEW */}
+          {active === "payouts" && (
+            <div className="mt-8 space-y-6">
+              <div className="grid gap-6 sm:grid-cols-3">
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Pending Payout</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">$1,220.00</p>
+                  <p className="text-xs text-[#6d746e] mt-1.5">Scheduled for Aug 1st</p>
+                </div>
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Gross Lifetime Sales</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">$48,200.00</p>
+                  <p className="text-xs text-[#1e7a4f] mt-1.5">70% average royalties</p>
+                </div>
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Last Payout Amount</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">$3,600.00</p>
+                  <p className="text-xs text-[#1e7a4f] mt-1.5 font-mono">Paid Jul 01, 2026</p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-serif text-lg text-[#18211f] mb-4">Payout Ledger</h3>
+                <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase border-b border-[#ececec]">
+                      <tr>
+                        <th className="px-6 py-4">Transaction ID</th>
+                        <th className="px-6 py-4">Payment Date</th>
+                        <th className="px-6 py-4">Routing / Method</th>
+                        <th className="px-6 py-4">Amount</th>
+                        <th className="px-6 py-4 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#ececec]/60 font-mono text-xs">
+                      {mockPayouts.map((p) => (
+                        <tr key={p.id} className="hover:bg-[#FAF9F5] transition duration-150">
+                          <td className="px-6 py-4 font-semibold text-[#18211f]">{p.id}</td>
+                          <td className="px-6 py-4 text-[#6b716d]">{p.date}</td>
+                          <td className="px-6 py-4 text-[#6b716d]">{p.method}</td>
+                          <td className="px-6 py-4 text-[#18211f] font-semibold">{p.amount}</td>
+                          <td className="px-6 py-4 text-right">
+                            <span className="bg-[#dce8df] text-[#1e7a4f] px-2 py-0.5 rounded-full font-bold text-[9px]">
+                              {p.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
+                <h3 className="font-serif text-base text-[#18211f] mb-4">Bank & Routing Coordinates</h3>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <p className="font-mono text-[9px] text-[#758078] uppercase">Bank Account Name</p>
+                    <p className="text-sm font-semibold text-[#18211f]">Namnso Ukpanah Studios</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-mono text-[9px] text-[#758078] uppercase">Zenith Bank account</p>
+                    <p className="text-sm font-semibold text-[#18211f]">**** 7891 (Nigeria)</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 6. FOLLOWERS VIEW */}
+          {active === "followers" && (
+            <div className="mt-8">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                {mockFollowers.map((f) => (
+                  <div
+                    key={f.name}
+                    className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm text-center flex flex-col items-center space-y-4 hover:border-[#1e4a3f]/25 transition duration-300"
+                  >
+                    <img src={f.avatar} alt={f.name} className="size-16 rounded-full object-cover border border-[#ececec]/80" />
+                    <div>
+                      <h3 className="font-serif text-base text-[#18211f] font-semibold leading-tight">{f.name}</h3>
+                      <p className="text-xs text-[#6b716d] mt-1 font-mono">{f.role}</p>
+                    </div>
+                    <button
+                      onClick={() => toast.success(`Viewing profile of ${f.name}`)}
+                      className="text-xs font-semibold text-[#1e4a3f] bg-[#dce8df] px-4 py-1.5 rounded-full hover:bg-[#dce8df]/85 transition duration-200 cursor-pointer"
+                    >
+                      View Profile
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 7. SETTINGS VIEW */}
+          {active === "settings" && (
+            <div className="mt-8 border border-[#ececec]/80 bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
+              <h3 className="font-serif text-xl text-[#18211f] mb-6">Profile Settings</h3>
+              <div className="space-y-6">
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Location</span>
+                    <input
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Primary specialty</span>
+                    <select
+                      value={specialty}
+                      onChange={(e) => setSpecialty(e.target.value)}
+                      className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                    >
+                      <option value="Editorial">Editorial</option>
+                      <option value="Portrait">Portrait Study</option>
+                      <option value="Lifestyle">Lifestyle</option>
+                      <option value="Fashion">Fashion & Street</option>
+                      <option value="Architecture">Architecture</option>
+                      <option value="Culture">Culture & Heritage</option>
+                    </select>
+                  </label>
+                </div>
+                <label className="block">
+                  <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Biography</span>
+                  <textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    rows={4}
+                    className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm resize-none"
+                  />
+                </label>
+                <div className="flex justify-end pt-4">
+                  <button
+                    onClick={() => toast.success("Settings saved successfully!")}
+                    className="bg-[#1e4a3f] hover:bg-[#123b31] px-6 py-3 text-sm font-semibold text-white rounded-full transition-all duration-200 cursor-pointer shadow-md"
+                  >
+                    Save modifications
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Picture Upload Wizard Modal */}
+      {uploadOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => uploadStep !== 1 && resetUploadWizard()}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between border-b border-[#ececec] px-6 py-4">
+                <div className="flex items-center gap-2">
+                  <Camera className="size-5 text-[#1e4a3f]" />
+                  <h2 className="font-serif text-lg font-semibold text-[#18211f]">Upload new work</h2>
+                </div>
+                {uploadStep !== 1 && (
+                  <button onClick={resetUploadWizard} className="p-1 hover:bg-[#FAF9F5] rounded-full transition-colors cursor-pointer">
+                    <X className="size-5 text-[#6b716d]" />
+                  </button>
+                )}
+              </div>
+
+              {/* Steps indicators */}
+              <div className="bg-[#FAF9F5] px-6 py-3 border-b border-[#ececec] flex items-center justify-between text-xs font-mono text-[#758078]">
+                <div className="flex gap-4">
+                  <span className={uploadStep === 1 ? "text-[#1e4a3f] font-bold" : "opacity-60"}>1. FILE</span>
+                  <span>/</span>
+                  <span className={uploadStep === 2 ? "text-[#1e4a3f] font-bold" : "opacity-60"}>2. METADATA</span>
+                  <span>/</span>
+                  <span className={uploadStep === 3 ? "text-[#1e4a3f] font-bold" : "opacity-60"}>3. COMPLETE</span>
+                </div>
+                <span>Step {uploadStep} of 3</span>
+              </div>
+
+              {/* Steps content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {uploadStep === 1 && (
+                  <div className="space-y-4">
+                    <div
+                      onClick={handleSimulatedFileDrop}
+                      className="border-2 border-dashed border-[#ececec] hover:border-[#1e4a3f]/40 bg-[#FAF9F5]/50 hover:bg-[#FAF9F5] rounded-2xl py-12 text-center transition-all duration-300 cursor-pointer flex flex-col items-center justify-center group"
+                    >
+                      {uploadProgress > 0 ? (
+                        <div className="space-y-3 flex flex-col items-center">
+                          <Loader2 className="size-10 text-[#1e4a3f] animate-spin" />
+                          <p className="text-sm font-semibold text-[#18211f]">Uploading & parsing EXIF data...</p>
+                          <div className="w-48 bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
+                            <div className="bg-[#1e4a3f] h-1.5 rounded-full transition-all duration-150" style={{ width: `${uploadProgress}%` }}></div>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid size-12 place-items-center rounded-full bg-[#dce8df]/60 text-[#1e4a3f] group-hover:scale-105 transition-transform duration-200 mb-3">
+                            <Upload className="size-6" />
+                          </div>
+                          <p className="text-sm font-semibold text-[#18211f]">Drag & drop camera RAW or High-Res JPEG</p>
+                          <p className="text-xs text-[#6b716d] mt-1">Accepts CR3, ARW, NEF, or TIFF up to 100MB</p>
+                          <span className="mt-4 inline-flex text-xs font-semibold text-[#1e4a3f] bg-[#dce8df] px-3.5 py-1.5 rounded-full">
+                            Select local file
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-start gap-3 bg-[#FAF9F5] p-4 rounded-xl border border-[#ececec]/60">
+                      <AlertCircle className="size-5 text-[#1e4a3f] shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-semibold text-[#18211f]">Quality checklist for the Archive</p>
+                        <p className="text-[11px] text-[#6d746e] mt-1 leading-normal">
+                          Only license single exposures. No compositing, digital canvas manipulations, or synthetic AI generations (AI slop) allowed. Keep the photograph honest.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {uploadStep === 2 && (
+                  <form onSubmit={handlePublishPhoto} className="space-y-5">
+                    <div className="flex items-center gap-4 bg-[#FAF9F5] p-3 rounded-xl border border-[#ececec]/60">
+                      <img
+                        src="https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150&h=150"
+                        alt="Preview"
+                        className="size-16 object-cover rounded-lg shadow"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-[#18211f] truncate">{uploadFileName}</p>
+                        <p className="text-[10px] text-[#758078] font-mono mt-0.5">54.2 MB · RAW file</p>
+                        <div className="flex gap-2 mt-1.5 font-mono text-[9px] text-[#1e7a4f] bg-[#dce8df] px-2 py-0.5 rounded-full w-fit font-bold">
+                          <Check className="size-3" /> EXIF data read successful
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="block">
+                        <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Photograph Title</span>
+                        <input
+                          required
+                          value={uploadTitle}
+                          onChange={(e) => setUploadTitle(e.target.value)}
+                          placeholder="e.g. Bloom study, no. 12"
+                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                        />
+                      </label>
+
+                      <div className="grid gap-4 grid-cols-2">
+                        <label className="block">
+                          <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Category</span>
+                          <select
+                            value={uploadCategory}
+                            onChange={(e) => setUploadCategory(e.target.value)}
+                            className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                          >
+                            <option value="Portrait">Portrait</option>
+                            <option value="Lifestyle">Lifestyle</option>
+                            <option value="Fashion">Fashion</option>
+                            <option value="Architecture">Architecture</option>
+                            <option value="Culture">Culture</option>
+                            <option value="Documentary">Documentary</option>
+                          </select>
+                        </label>
+                        <label className="block">
+                          <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Single License price ($)</span>
+                          <input
+                            required
+                            type="number"
+                            value={uploadPrice}
+                            onChange={(e) => setUploadPrice(e.target.value)}
+                            className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                          />
+                        </label>
+                      </div>
+
+                      <label className="block">
+                        <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Shooting Location</span>
+                        <input
+                          value={uploadLocation}
+                          onChange={(e) => setUploadLocation(e.target.value)}
+                          placeholder="e.g. Kano, Nigeria"
+                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                        />
+                      </label>
+
+                      {/* Decoded EXIF read-only visual */}
+                      <div className="border border-[#ececec] bg-[#FAF9F5] rounded-xl p-4 space-y-2">
+                        <p className="font-mono text-[9px] text-[#758078] uppercase tracking-wider">EXIF Metadata (Embedded)</p>
+                        <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
+                          <div className="flex items-center gap-1.5 text-[#4a534e]">
+                            <Camera className="size-3.5 text-[#1e4a3f]" />
+                            <span>Canon EOS R5</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[#4a534e]">
+                            <Aperture className="size-3.5 text-[#1e4a3f]" />
+                            <span>85mm f/1.4</span>
+                          </div>
+                          <div className="text-[#4a534e] font-mono text-[11px]">
+                            ISO 100 · f/2.0 · 1/250s
+                          </div>
+                          <div className="text-[#4a534e] font-mono text-[11px]">
+                            Color: sRGB · 45.0 Megapixel
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4 border-t border-[#ececec]">
+                      <button
+                        type="submit"
+                        className="bg-[#1e4a3f] hover:bg-[#123b31] px-6 py-2.5 text-sm font-semibold text-white rounded-full transition-all duration-200 cursor-pointer shadow-md"
+                      >
+                        Publish to Archive
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {uploadStep === 3 && (
+                  <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
+                    <CheckCircle2 className="size-16 text-[#1e7a4f] animate-bounce" />
+                    <div>
+                      <p className="font-serif text-2xl text-[#18211f]">Photograph Published</p>
+                      <p className="text-xs text-[#6d746e] mt-1.5 max-w-xs mx-auto">
+                        Your image has been published successfully. Our editors will review it for quality standards shortly.
+                      </p>
+                    </div>
+                    <div className="pt-6 flex gap-4 w-full justify-center">
+                      <button
+                        onClick={() => {
+                          resetUploadWizard();
+                          setActive("portfolio");
+                        }}
+                        className="bg-[#1e4a3f] hover:bg-[#123b31] text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow transition-colors cursor-pointer"
+                      >
+                        View in Portfolio
+                      </button>
+                      <button
+                        onClick={() => {
+                          setUploadStep(1);
+                          setUploadProgress(0);
+                          setUploadFileName("");
+                          setUploadTitle("");
+                        }}
+                        className="border border-[#ececec] hover:border-[#1e4a3f] text-[#4a534e] hover:text-[#1e4a3f] bg-white px-5 py-2.5 rounded-full text-xs font-semibold transition-colors cursor-pointer"
+                      >
+                        Upload Another
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
