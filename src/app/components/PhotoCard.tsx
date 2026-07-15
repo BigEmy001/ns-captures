@@ -4,6 +4,10 @@ import { toast } from "sonner";
 import { Photo } from "../data/photos";
 
 export function PhotoCard({ item }: { item: Photo }) {
+  const photographerHref = item.id.startsWith("unsplash-")
+    ? `https://unsplash.com/@${item.photographerId}`
+    : `/photographer/${item.photographerId}`;
+
   return (
     <article className="group">
       <div className={`relative overflow-hidden bg-[#d7d8d2] ${item.ratio}`}>
@@ -32,9 +36,15 @@ export function PhotoCard({ item }: { item: Photo }) {
           <Link to={`/photo/${item.id}`} className="font-serif text-lg leading-none hover:underline">
             {item.title}
           </Link>
-          <Link to={`/photographer/${item.photographerId}`} className="mt-1.5 block text-xs text-[#6b716d] hover:text-[#1e4a3f]">
-            by {item.photographer}
-          </Link>
+          {item.id.startsWith("unsplash-") ? (
+            <a href={photographerHref} target="_blank" rel="noreferrer" className="mt-1.5 block text-xs text-[#6b716d] hover:text-[#1e4a3f]">
+              by {item.photographer}
+            </a>
+          ) : (
+            <Link to={photographerHref} className="mt-1.5 block text-xs text-[#6b716d] hover:text-[#1e4a3f]">
+              by {item.photographer}
+            </Link>
+          )}
         </div>
         <span className="pt-1 font-mono text-[9px] tracking-[0.1em] text-[#637167]">
           ${item.price}

@@ -199,6 +199,12 @@ export function Navbar() {
 
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
+    if (!isAuthenticated) {
+      toast.error("Sign in to complete checkout");
+      setCartOpen(false);
+      navigate("/signin", { state: { from: "/account" } });
+      return;
+    }
     setCheckoutStatus("loading");
     setTimeout(() => {
       setCheckoutStatus("success");

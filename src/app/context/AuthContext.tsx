@@ -102,6 +102,17 @@ const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
   },
 };
 
+const userRoles: UserRole[] = ["Buyer", "Photographer", "Enterprise", "Admin", "Guest"];
+
+function isAuthUser(value: unknown): value is AuthUser {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<AuthUser>;
+  return typeof candidate.id === "string" &&
+    typeof candidate.name === "string" &&
+    typeof candidate.email === "string" &&
+    userRoles.includes(candidate.role as UserRole);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -109,17 +120,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
-    const stored = localStorage.getItem("ns-auth");
-    if (stored) {
+    const storedEntries = [
+      [localStorage, localStorage.getItem("ns-auth")],
+      [sessionStorage, sessionStorage.getItem("ns-auth")],
+    ] as const;
+
+    for (const [storage, stored] of storedEntries) {
+      if (!stored) continue;
       try {
         const parsed = JSON.parse(stored);
         if (parsed.expires && Date.now() > parsed.expires) {
-          localStorage.removeItem("ns-auth");
-        } else {
+          storage.removeItem("ns-auth");
+          continue;
+        }
+        if (isAuthUser(parsed.user)) {
           setUser(parsed.user);
+          break;
         }
       } catch {
-        localStorage.removeItem("ns-auth");
+        storage.removeItem("ns-auth");
       }
     }
     setIsLoading(false);
@@ -130,7 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: u,
       expires: remember ? Date.now() + 30 * 24 * 60 * 60 * 1000 : null,
     };
-    localStorage.setItem("ns-auth", JSON.stringify(payload));
+    const storage = remember ? localStorage : sessionStorage;
+    const otherStorage = remember ? sessionStorage : localStorage;
+    storage.setItem("ns-auth", JSON.stringify(payload));
+    otherStorage.removeItem("ns-auth");
     setUser(u);
   }, []);
 
@@ -176,6 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem("ns-auth");
+    sessionStorage.removeItem("ns-auth");
     setUser(null);
     toast("Signed out");
     navigate("/signin", { replace: true });
@@ -183,11 +206,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = useCallback((data: Partial<AuthUser>) => {
     if (!user) return;
-    const updated = { ...user, ...data };
-    if (user.email) {
-      MOCK_USERS[user.email].user = updated;
+    const { id: _id, role: _role, ...editableData } = data;
+    const normalizedEmail = editableData.email?.toLowerCase().trim() || user.email;
+    const updated: AuthUser = { ...user, ...editableData, email: normalizedEmail, id: user.id, role: user.role };
+    const record = MOCK_USERS[user.email];
+    if (record) {
+      if (normalizedEmail !== user.email) delete MOCK_USERS[user.email];
+      MOCK_USERS[normalizedEmail] = { ...record, user: updated };
     }
-    persist(updated, true);
+    const remember = localStorage.getItem("ns-auth") !== null;
+    persist(updated, remember);
     toast.success("Profile saved");
   }, [user, persist]);
 

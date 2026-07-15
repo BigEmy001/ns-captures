@@ -24,6 +24,7 @@ export interface Photo {
   iso: number;
   keywords: string[];
   image: string;
+  createdAt?: string;
 }
 
 const u = (id: string, w = 1080) =>
@@ -405,6 +406,8 @@ const initialPhotos: Photo[] = [
     camera: "Nikon Z7 II",
     lens: "50mm f/2.8 Macro",
     iso: 64,
+    keywords: ["plant", "leaf", "ficus", "botanical", "macro"],
+    image: u("1497250681960-ef046c08a56e"),
   },
 ];
 

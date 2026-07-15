@@ -101,6 +101,11 @@ export function PhotoDetail() {
 
   const current = options.find((o) => o.id === selected)!;
   const related = photos.filter((p) => p.id !== photo.id && (p.category === photo.category || p.photographerId === photo.photographerId)).slice(0, 4);
+  const isUnsplashPhoto = photo.id.startsWith("unsplash-");
+  const categoryHref = photo.category === "Unsplash" ? "/search" : `/search?cat=${encodeURIComponent(photo.category)}`;
+  const photographerHref = isUnsplashPhoto
+    ? `https://unsplash.com/@${photo.photographerId}`
+    : `/photographer/${photo.photographerId}`;
 
   // Robust image display with URL parsing
   let imageSrc = photo.image || "";
@@ -122,7 +127,7 @@ export function PhotoDetail() {
       <nav className="mb-6 flex items-center gap-2 text-xs text-[#6b716d]">
         <Link to="/search" className="hover:text-[#1e4a3f]">Library</Link>
         <span>/</span>
-        <Link to={`/search?cat=${photo.category}`} className="hover:text-[#1e4a3f]">{photo.category}</Link>
+        <Link to={categoryHref} className="hover:text-[#1e4a3f]">{photo.category}</Link>
         <span>/</span>
         <span className="text-[#18211f] truncate max-w-[200px] inline-block align-bottom">{photo.title}</span>
       </nav>
@@ -138,7 +143,11 @@ export function PhotoDetail() {
             <div>
               <h1 className="font-serif text-3xl leading-snug sm:text-4xl">{photo.title}</h1>
               <p className="mt-2 text-sm text-[#6b716d]">
-                by <Link to={`/photographer/${photo.photographerId}`} className="font-semibold text-[#1e4a3f] hover:underline">{photo.photographer}</Link>
+                by {isUnsplashPhoto ? (
+                  <a href={photographerHref} target="_blank" rel="noreferrer" className="font-semibold text-[#1e4a3f] hover:underline">{photo.photographer}</a>
+                ) : (
+                  <Link to={photographerHref} className="font-semibold text-[#1e4a3f] hover:underline">{photo.photographer}</Link>
+                )}
               </p>
             </div>
             <div className="flex gap-2">
@@ -243,14 +252,25 @@ export function PhotoDetail() {
             </Button>
             <p className="mt-3 text-center text-xs text-[#8a8f89]">Instant download · Royalty-free after purchase</p>
 
-            <Link to={`/photographer/${photo.photographerId}`} className="mt-6 flex items-center gap-3 border-t border-[#ececec] pt-5 hover:opacity-80">
+            {isUnsplashPhoto ? (
+              <a href={photographerHref} target="_blank" rel="noreferrer" className="mt-6 flex items-center gap-3 border-t border-[#ececec] pt-5 hover:opacity-80">
+                <div className="grid size-10 place-items-center rounded-full bg-[#dce8df] text-xs font-semibold text-[#1e4a3f]">{photo.photographer.charAt(0)}</div>
+                <div className="text-xs">
+                  <p className="font-semibold">{photo.photographer}</p>
+                  <p className="text-[#6b716d]">{photo.location}</p>
+                </div>
+                <Badge tone="muted">UNSPLASH</Badge>
+              </a>
+            ) : (
+              <Link to={photographerHref} className="mt-6 flex items-center gap-3 border-t border-[#ececec] pt-5 hover:opacity-80">
               <div className="grid size-10 place-items-center rounded-full bg-[#dce8df] text-xs font-semibold text-[#1e4a3f]">{photo.photographer.charAt(0)}</div>
               <div className="text-xs">
                 <p className="font-semibold">{photo.photographer}</p>
                 <p className="text-[#6b716d]">{photo.location}</p>
               </div>
               <Badge tone="muted">VERIFIED</Badge>
-            </Link>
+              </Link>
+            )}
           </div>
         </div>
       </div>

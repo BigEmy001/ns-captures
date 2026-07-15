@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router";
 import {
   LayoutGrid, Image as ImageIcon, TrendingUp, Wallet, Users, Inbox, Settings, Upload, ArrowUpRight,
   Plus, Trash2, Check, X, Camera, Aperture, AlertCircle, FileText, ChevronRight, Loader2, CheckCircle2,
@@ -67,7 +68,15 @@ const CustomTooltip = ({ active, payload, label, prefix = "" }: any) => {
 };
 
 export function Dashboard() {
-  const [active, setActive] = useState("overview");
+  const [params, setParams] = useSearchParams();
+  const requestedTab = params.get("tab");
+  const active = nav.some((item) => item.id === requestedTab) ? requestedTab! : "overview";
+  const setActive = (id: string) => {
+    const next = new URLSearchParams(params);
+    if (id === "overview") next.delete("tab");
+    else next.set("tab", id);
+    setParams(next);
+  };
 
   // Dynamic Portfolio state (starts with some of our mock photos)
   const [portfolioPhotos, setPortfolioPhotos] = useState<Photo[]>(() =>
@@ -82,11 +91,28 @@ export function Dashboard() {
   // Refs for cleanup
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const uploadIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const uploadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearPendingUploadWork = () => {
+    if (xhrRef.current) {
+      xhrRef.current.abort();
+      xhrRef.current = null;
+    }
+    if (uploadIntervalRef.current) {
+      clearInterval(uploadIntervalRef.current);
+      uploadIntervalRef.current = null;
+    }
+    if (uploadTimeoutRef.current) {
+      clearTimeout(uploadTimeoutRef.current);
+      uploadTimeoutRef.current = null;
+    }
+  };
 
   useEffect(() => {
     return () => {
+      clearPendingUploadWork();
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-      if (xhrRef.current) xhrRef.current.abort();
     };
   }, []);
 
@@ -131,13 +157,10 @@ export function Dashboard() {
   };
 
   const processFile = (file: File) => {
+    clearPendingUploadWork();
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
-    }
-    if (xhrRef.current) {
-      xhrRef.current.abort();
-      xhrRef.current = null;
     }
 
     setUploadFile(file);
@@ -165,11 +188,28 @@ export function Dashboard() {
 
       xhr.onreadystatechange = () => {
         if (xhr.readyState === 4) {
+          if (xhrRef.current !== xhr) return;
+          xhrRef.current = null;
           if (xhr.status === 200) {
-            const response = JSON.parse(xhr.responseText);
-            setUploadedImageUrl(response.secure_url);
-            setUploadProgress(100);
-            setTimeout(() => setUploadStep(2), 300);
+            try {
+              const response = JSON.parse(xhr.responseText);
+              setUploadedImageUrl(response.secure_url);
+              setUploadProgress(100);
+              uploadTimeoutRef.current = setTimeout(() => {
+                uploadTimeoutRef.current = null;
+                setUploadStep(2);
+              }, 300);
+            } catch {
+              toast.error("Upload response was invalid. Falling back to local preview.");
+              const objUrl = URL.createObjectURL(file);
+              objectUrlRef.current = objUrl;
+              setUploadedImageUrl(objUrl);
+              setUploadProgress(100);
+              uploadTimeoutRef.current = setTimeout(() => {
+                uploadTimeoutRef.current = null;
+                setUploadStep(2);
+              }, 300);
+            }
           } else {
             console.error("Cloudinary upload failed", xhr.responseText);
             toast.error("Cloudinary upload failed. Falling back to local preview.");
@@ -177,7 +217,10 @@ export function Dashboard() {
             objectUrlRef.current = objUrl;
             setUploadedImageUrl(objUrl);
             setUploadProgress(100);
-            setTimeout(() => setUploadStep(2), 300);
+            uploadTimeoutRef.current = setTimeout(() => {
+              uploadTimeoutRef.current = null;
+              setUploadStep(2);
+            }, 300);
           }
         }
       };
@@ -189,11 +232,17 @@ export function Dashboard() {
       const objUrl = URL.createObjectURL(file);
       objectUrlRef.current = objUrl;
       setUploadedImageUrl(objUrl);
-      const interval = setInterval(() => {
+      uploadIntervalRef.current = setInterval(() => {
         setUploadProgress((p) => {
           if (p >= 100) {
-            clearInterval(interval);
-            setTimeout(() => setUploadStep(2), 200);
+            if (uploadIntervalRef.current) {
+              clearInterval(uploadIntervalRef.current);
+              uploadIntervalRef.current = null;
+            }
+            uploadTimeoutRef.current = setTimeout(() => {
+              uploadTimeoutRef.current = null;
+              setUploadStep(2);
+            }, 200);
             return 100;
           }
           return p + 20;
@@ -205,6 +254,9 @@ export function Dashboard() {
   const handlePublishPhoto = (e: React.FormEvent) => {
     e.preventDefault();
     setUploadStep(3);
+
+    const imageUrl = uploadedImageUrl || "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080";
+    if (objectUrlRef.current === imageUrl) objectUrlRef.current = null;
     
     const newPhotoId = "upload-" + Date.now();
     const newPhotoItem: Photo = {
@@ -226,7 +278,7 @@ export function Dashboard() {
       lens: "85mm f/1.4",
       iso: 100,
       keywords: ["portrait", "studio", "new-release"],
-      image: uploadedImageUrl || "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
+      image: imageUrl,
     };
 
     setPortfolioPhotos((prev) => [newPhotoItem, ...prev]);
@@ -247,6 +299,11 @@ export function Dashboard() {
   };
 
   const resetUploadWizard = () => {
+    clearPendingUploadWork();
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
     setUploadTitle("");
     setUploadCategory("Portrait");
     setUploadLocation("Lagos, Nigeria");

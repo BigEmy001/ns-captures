@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import {
   FolderKanban, Library, FileText, ShieldCheck, ArrowRight, CheckCircle2,
 } from "lucide-react";
@@ -20,7 +21,14 @@ const projects = [
 ];
 
 export function Enterprise() {
-  const [tab, setTab] = useState<"overview" | "portal">("overview");
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") === "portal" ? "portal" : "overview";
+  const setTab = (nextTab: "overview" | "portal") => {
+    const next = new URLSearchParams(params);
+    if (nextTab === "overview") next.delete("tab");
+    else next.set("tab", nextTab);
+    setParams(next);
+  };
   const openRequest = useRequest();
 
   return (

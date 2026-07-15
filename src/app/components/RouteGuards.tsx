@@ -1,11 +1,12 @@
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuth } from "../context/AuthContext";
 
 export function AuthRoute() {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) return null;
-  if (!user) return <Navigate to="/signin" replace />;
+  if (!user) return <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />;
 
   return <Outlet />;
 }
@@ -28,27 +29,36 @@ export function GuestRoute() {
 
 export function AdminRoute() {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) return null;
-  if (!user || user.role !== "Admin") return <Navigate to="/signin" replace />;
+  if (!user || user.role !== "Admin") {
+    return <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />;
+  }
 
   return <Outlet />;
 }
 
 export function PhotographerRoute() {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) return null;
-  if (!user || (user.role !== "Photographer" && user.role !== "Admin")) return <Navigate to="/signin" replace />;
+  if (!user || (user.role !== "Photographer" && user.role !== "Admin")) {
+    return <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />;
+  }
 
   return <Outlet />;
 }
 
 export function EnterpriseRoute() {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) return null;
-  if (!user || (user.role !== "Enterprise" && user.role !== "Admin")) return <Navigate to="/signin" replace />;
+  if (!user || (user.role !== "Enterprise" && user.role !== "Admin")) {
+    return <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />;
+  }
 
   return <Outlet />;
 }

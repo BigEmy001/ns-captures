@@ -59,6 +59,7 @@ export function SearchPage() {
             downloads: item.likes * 12,
             views: item.likes * 240,
             likes: item.likes,
+            createdAt: item.created_at || item.updated_at,
             camera: "Professional Body",
             lens: "Prime Focal Lens",
             iso: 100,
@@ -87,11 +88,15 @@ export function SearchPage() {
   const results = useMemo(() => {
     if (source === "unsplash") {
       let list = [...unsplashResults];
+      if (activeLicenses.length > 0) {
+        list = list.filter((p) => activeLicenses.includes(p.license));
+      }
       if (orientation) {
         list = list.filter((p) => p.orientation === orientation);
       }
+      list = list.filter((p) => p.price <= maxPrice);
       if (sort === "priceLow") list.sort((a, b) => a.price - b.price);
-      if (sort === "new") list.sort((a, b) => b.id.localeCompare(a.id));
+      if (sort === "new") list.sort((a, b) => (b.createdAt || b.id).localeCompare(a.createdAt || a.id));
       if (sort === "popular") list.sort((a, b) => b.downloads - a.downloads);
       return list;
     }
@@ -117,10 +122,12 @@ export function SearchPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    setParams((prev) => {
-      prev.set("q", query);
-      return prev;
-    });
+    const next = new URLSearchParams(params);
+    if (query) next.set("q", query);
+    else next.delete("q");
+    if (category === "All") next.delete("cat");
+    else next.set("cat", category);
+    setParams(next);
   };
 
   const clearAll = () => {
@@ -128,6 +135,9 @@ export function SearchPage() {
     setOrientation(null);
     setMaxPrice(1000);
     setCategory("All");
+    const next = new URLSearchParams(params);
+    next.delete("cat");
+    setParams(next);
   };
 
   const filtersContent = (
@@ -207,7 +217,13 @@ export function SearchPage() {
         {categories.map((c) => (
           <button
             key={c}
-            onClick={() => setCategory(c)}
+            onClick={() => {
+              setCategory(c);
+              const next = new URLSearchParams(params);
+              if (c === "All") next.delete("cat");
+              else next.set("cat", c);
+              setParams(next);
+            }}
             className={`shrink-0 rounded-full border px-4 py-1.5 text-sm transition ${
               category === c ? "border-[#1e4a3f] bg-[#1e4a3f] text-white ns-shadow-sm" : "border-[#ececec] bg-white/50 text-[#4a534e] hover:border-[#1e4a3f]"
             }`}

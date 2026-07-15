@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import {
   LayoutDashboard, Users, Image as ImageIcon, ShieldAlert, DollarSign, FileBarChart,
   Check, X, MoreHorizontal, Search, Filter, Trash2, Settings, Logs, Building2, UserCheck, UserX,
@@ -82,7 +82,15 @@ const siteSettings = {
 };
 
 export function Admin() {
-  const [active, setActive] = useState("dashboard");
+  const [params, setParams] = useSearchParams();
+  const requestedTab = params.get("tab");
+  const active = nav.some((item) => item.id === requestedTab) ? requestedTab! : "dashboard";
+  const setActive = (id: string) => {
+    const next = new URLSearchParams(params);
+    if (id === "dashboard") next.delete("tab");
+    else next.set("tab", id);
+    setParams(next);
+  };
   const [queue, setQueue] = useState(moderationQueue);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
@@ -90,6 +98,8 @@ export function Admin() {
   const [assetSearch, setAssetSearch] = useState("");
   const [logFilter, setLogFilter] = useState<string>("all");
   const [siteSettingsState, setSiteSettingsState] = useState(siteSettings);
+  const [adminUsersList, setAdminUsersList] = useState(adminUsers);
+  const [assetsList, setAssetsList] = useState(photos);
 
   const resolve = (id: string, approve: boolean) => {
     setQueue((q) => q.filter((m) => m.id !== id));
@@ -113,9 +123,6 @@ export function Admin() {
   const filteredLogs = logFilter === "all"
     ? mockLogs
     : mockLogs.filter((l) => l.level === logFilter);
-
-  const [adminUsersList, setAdminUsersList] = useState(adminUsers);
-  const [assetsList, setAssetsList] = useState(photos);
 
   const changeUserRole = useCallback((userId: string, newRole: AdminUser["role"]) => {
     setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));

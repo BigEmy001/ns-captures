@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Bell, Shield, FileText, TrendingUp, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
@@ -20,12 +20,19 @@ const nav = [
 
 export function Account() {
   const { user, updateProfile, changePassword, isAuthenticated, logout } = useAuth();
-  const [active, setActive] = useState("overview");
+  const [params, setParams] = useSearchParams();
+  const requestedTab = params.get("tab");
+  const active = nav.some((item) => item.id === requestedTab) ? requestedTab! : "overview";
+  const setActive = (id: string) => {
+    const next = new URLSearchParams(params);
+    if (id === "overview") next.delete("tab");
+    else next.set("tab", id);
+    setParams(next);
+  };
   const [profileData, setProfileData] = useState({
     name: user?.name || currentUser.name,
     email: user?.email || currentUser.email,
     company: user?.company || currentUser.company,
-    role: user?.role || currentUser.role,
   });
   const [passwordData, setPasswordData] = useState({ current: "", next: "", confirm: "" });
   const liked = photos.slice(0, 6);
@@ -191,7 +198,12 @@ export function Account() {
                   <Field label="Full name" value={profileData.name} onChange={(e) => setProfileData({ ...profileData, name: e.target.value })} />
                   <Field label="Email" value={profileData.email} onChange={(e) => setProfileData({ ...profileData, email: e.target.value })} />
                   <Field label="Company" value={profileData.company} onChange={(e) => setProfileData({ ...profileData, company: e.target.value })} />
-                  <Field label="Role" value={profileData.role} onChange={(e) => setProfileData({ ...profileData, role: e.target.value })} />
+                   <div className="block">
+                     <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Role</span>
+                     <p className="mt-2 rounded-xl border border-[#ececec] bg-[#f7f7f7] px-4 py-3 text-sm text-[#6b716d]">
+                       {user?.role || currentUser.role}
+                     </p>
+                   </div>
                 </div>
                 <div className="mt-8 flex justify-end">
                   <Button onClick={handleProfileSave}>Save changes</Button>
