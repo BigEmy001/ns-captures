@@ -1,11 +1,10 @@
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AuthLayout, AuthField, SocialButtons } from "./AuthLayout";
 import { useAuth } from "../../context/AuthContext";
 
 export function SignUp() {
-  const navigate = useNavigate();
   const { signup } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");

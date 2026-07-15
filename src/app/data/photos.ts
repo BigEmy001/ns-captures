@@ -661,7 +661,7 @@ export const userCollections = [
 ];
 
 // Account page extended mock data
-export interface License {
+export interface LicenseRecord {
   id: string;
   photoId: string;
   title: string;
@@ -672,7 +672,7 @@ export interface License {
   downloads: number;
 }
 
-export const mockLicenses: License[] = [
+export const mockLicenses: LicenseRecord[] = [
   { id: "LIC-001", photoId: "lagos-skyline", title: "Light on Lagos", license: "COMMERCIAL", price: 190, date: "Jul 09, 2026", expires: "Perpetual", downloads: 3 },
   { id: "LIC-002", photoId: "smiling-black-top", title: "The in-between", license: "EXTENDED", price: 768, date: "Jul 02, 2026", expires: "Perpetual", downloads: 1 },
   { id: "LIC-003", photoId: "orange-headdress", title: "Ceremony", license: "EDITORIAL", price: 476, date: "Jun 21, 2026", expires: "Perpetual", downloads: 2 },

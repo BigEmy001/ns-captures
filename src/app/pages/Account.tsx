@@ -19,7 +19,7 @@ const nav = [
 ];
 
 export function Account() {
-  const { user, updateProfile, changePassword, isAuthenticated } = useAuth();
+  const { user, updateProfile, changePassword, isAuthenticated, logout } = useAuth();
   const [active, setActive] = useState("overview");
   const [profileData, setProfileData] = useState({
     name: user?.name || currentUser.name,
@@ -78,7 +78,7 @@ export function Account() {
           )}
           footer={(collapsed) => (
             <button
-              onClick={() => toast("Signed out")}
+              onClick={() => { logout(); toast.success("Signed out"); }}
               title={collapsed ? "Sign out" : undefined}
               className={`flex w-full items-center rounded-lg py-2.5 text-sm text-[#4a534e] transition hover:bg-[#eef1ec] ${collapsed ? "justify-center px-0" : "gap-3 px-3"}`}
             >

@@ -5,6 +5,7 @@ import { AuthLayout, AuthField } from "./AuthLayout";
 
 export function ForgotPassword() {
   const [sent, setSent] = useState(false);
+  const [email, setEmail] = useState("");
 
   return (
     <AuthLayout
@@ -42,7 +43,13 @@ export function ForgotPassword() {
           }}
           className="space-y-4"
         >
-          <AuthField label="Email" type="email" placeholder="you@studio.com" />
+          <AuthField
+            label="Email"
+            type="email"
+            placeholder="you@studio.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
           <button
             type="submit"
             className="w-full rounded-full bg-[#1e4a3f] py-3 text-sm font-semibold text-white transition hover:bg-[#123b31]"

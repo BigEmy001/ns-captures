@@ -62,8 +62,9 @@ export function PhotoDetail() {
           setLoading(false);
         })
         .catch((err) => {
-          console.error(err);
-          setPhoto(null);
+          console.warn("Unsplash API unavailable, falling back to local archive", err);
+          const localPhoto = getPhoto(id);
+          setPhoto(localPhoto || null);
           setLoading(false);
         });
     } else {
@@ -101,8 +102,20 @@ export function PhotoDetail() {
   const current = options.find((o) => o.id === selected)!;
   const related = photos.filter((p) => p.id !== photo.id && (p.category === photo.category || p.photographerId === photo.photographerId)).slice(0, 4);
 
-  // Safe image display
-  const imageSrc = photo.image ? (photo.image.includes("w=1080") ? photo.image.replace("w=1080", "w=1600") : photo.image) : "";
+  // Robust image display with URL parsing
+  let imageSrc = photo.image || "";
+  try {
+    if (imageSrc && imageSrc.startsWith("http")) {
+      const url = new URL(imageSrc);
+      if (url.searchParams.has("w")) {
+        url.searchParams.set("w", "1600");
+        url.searchParams.set("q", "90");
+        imageSrc = url.toString();
+      }
+    }
+  } catch (e) {
+    // Ignore invalid URLs
+  }
 
   return (
     <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-12 min-h-screen">

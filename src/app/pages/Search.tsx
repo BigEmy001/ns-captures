@@ -15,6 +15,11 @@ export function SearchPage() {
 
   const [query, setQuery] = useState(q);
   const [category, setCategory] = useState(params.get("cat") ?? "All");
+
+  useEffect(() => {
+    setQuery(params.get("q") ?? "");
+    setCategory(params.get("cat") ?? "All");
+  }, [params]);
   const [activeLicenses, setActiveLicenses] = useState<License[]>([]);
   const [orientation, setOrientation] = useState<Orientation | null>(null);
   const [maxPrice, setMaxPrice] = useState(1000);
@@ -86,7 +91,7 @@ export function SearchPage() {
         list = list.filter((p) => p.orientation === orientation);
       }
       if (sort === "priceLow") list.sort((a, b) => a.price - b.price);
-      if (sort === "new") list.reverse();
+      if (sort === "new") list.sort((a, b) => b.id.localeCompare(a.id));
       if (sort === "popular") list.sort((a, b) => b.downloads - a.downloads);
       return list;
     }
@@ -105,7 +110,7 @@ export function SearchPage() {
       return matchesQ && matchesCat && matchesLicense && matchesOrient && matchesPrice;
     });
     if (sort === "priceLow") list = [...list].sort((a, b) => a.price - b.price);
-    if (sort === "new") list = [...list].reverse();
+    if (sort === "new") list = [...list].sort((a, b) => b.id.localeCompare(a.id));
     if (sort === "popular") list = [...list].sort((a, b) => b.downloads - a.downloads);
     return list;
   }, [query, category, activeLicenses, orientation, maxPrice, sort, source, unsplashResults]);
@@ -125,7 +130,7 @@ export function SearchPage() {
     setCategory("All");
   };
 
-  const Filters = () => (
+  const filtersContent = (
     <div className="space-y-8">
       <div>
         <p className="mb-3 font-mono text-[10px] tracking-[0.14em] text-[#758078]">LICENSE</p>
@@ -216,7 +221,7 @@ export function SearchPage() {
         {/* Sidebar filters (desktop) */}
         <aside className="hidden w-56 shrink-0 lg:block">
           <div className="sticky top-24">
-            <Filters />
+            {filtersContent}
           </div>
         </aside>
 
@@ -304,7 +309,7 @@ export function SearchPage() {
               <h3 className="font-serif text-2xl">Filters</h3>
               <button onClick={() => setDrawer(false)}><X /></button>
             </div>
-            <Filters />
+            {filtersContent}
           </div>
         </div>
       )}

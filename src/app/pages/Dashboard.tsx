@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   LayoutGrid, Image as ImageIcon, TrendingUp, Wallet, Users, Inbox, Settings, Upload, ArrowUpRight,
   Plus, Trash2, Check, X, Camera, Aperture, AlertCircle, FileText, ChevronRight, Loader2, CheckCircle2,
@@ -70,17 +70,25 @@ export function Dashboard() {
   const [active, setActive] = useState("overview");
 
   // Dynamic Portfolio state (starts with some of our mock photos)
-  const [portfolioPhotos, setPortfolioPhotos] = useState<Photo[]>([
-    photos[8], // Lagos skyline
-    photos[9], // Lagos daytime
-    photos[10], // Lagos bw skyline
-    photos[11], // Rooftop city
-  ]);
+  const [portfolioPhotos, setPortfolioPhotos] = useState<Photo[]>(() =>
+    photos.slice(8, 12)
+  );
 
   // Upload wizard states
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadStep, setUploadStep] = useState<1 | 2 | 3>(1);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Refs for cleanup
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      if (xhrRef.current) xhrRef.current.abort();
+    };
+  }, []);
 
   // Form states for upload metadata
   const [uploadTitle, setUploadTitle] = useState("");
@@ -88,6 +96,8 @@ export function Dashboard() {
   const [uploadLocation, setUploadLocation] = useState("Lagos, Nigeria");
   const [uploadPrice, setUploadPrice] = useState("250");
   const [uploadFileName, setUploadFileName] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
 
   // Accept brief state
   const [acceptedBriefs, setAcceptedBriefs] = useState<Record<string, boolean>>({});
@@ -105,22 +115,91 @@ export function Dashboard() {
     });
   };
 
-  const handleSimulatedFileDrop = () => {
-    setUploadFileName("NS_RAW_BATCH_7912.cr3");
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      processFile(file);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processFile(file);
+  };
+
+  const processFile = (file: File) => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    if (xhrRef.current) {
+      xhrRef.current.abort();
+      xhrRef.current = null;
+    }
+
+    setUploadFile(file);
+    setUploadFileName(file.name);
     setUploadProgress(0);
     setUploadStep(1);
-    
-    // Simulate parsing file EXIF data
-    const interval = setInterval(() => {
-      setUploadProgress((p) => {
-        if (p >= 100) {
-          clearInterval(interval);
-          setTimeout(() => setUploadStep(2), 200);
-          return 100;
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    if (cloudName && uploadPreset) {
+      const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+      const xhr = new XMLHttpRequest();
+      xhrRef.current = xhr;
+      const fd = new FormData();
+      
+      xhr.open("POST", url, true);
+      
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded * 100) / e.total);
+          setUploadProgress(percent);
         }
-        return p + 25;
       });
-    }, 150);
+
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            setUploadedImageUrl(response.secure_url);
+            setUploadProgress(100);
+            setTimeout(() => setUploadStep(2), 300);
+          } else {
+            console.error("Cloudinary upload failed", xhr.responseText);
+            toast.error("Cloudinary upload failed. Falling back to local preview.");
+            const objUrl = URL.createObjectURL(file);
+            objectUrlRef.current = objUrl;
+            setUploadedImageUrl(objUrl);
+            setUploadProgress(100);
+            setTimeout(() => setUploadStep(2), 300);
+          }
+        }
+      };
+
+      fd.append("upload_preset", uploadPreset);
+      fd.append("file", file);
+      xhr.send(fd);
+    } else {
+      const objUrl = URL.createObjectURL(file);
+      objectUrlRef.current = objUrl;
+      setUploadedImageUrl(objUrl);
+      const interval = setInterval(() => {
+        setUploadProgress((p) => {
+          if (p >= 100) {
+            clearInterval(interval);
+            setTimeout(() => setUploadStep(2), 200);
+            return 100;
+          }
+          return p + 20;
+        });
+      }, 150);
+    }
   };
 
   const handlePublishPhoto = (e: React.FormEvent) => {
@@ -147,8 +226,7 @@ export function Dashboard() {
       lens: "85mm f/1.4",
       iso: 100,
       keywords: ["portrait", "studio", "new-release"],
-      // Sourced from Unsplash as standard mock
-      image: "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
+      image: uploadedImageUrl || "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
     };
 
     setPortfolioPhotos((prev) => [newPhotoItem, ...prev]);
@@ -175,6 +253,8 @@ export function Dashboard() {
     setUploadPrice("250");
     setUploadFileName("");
     setUploadProgress(0);
+    setUploadFile(null);
+    setUploadedImageUrl("");
     setUploadStep(1);
     setUploadOpen(false);
   };
@@ -188,7 +268,7 @@ export function Dashboard() {
           onSelect={setActive}
           header={() => (
             <div className="flex min-w-0 items-center gap-3">
-              <img src={photos[8].image} alt="" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
+              <img src={photos[8]?.image || ""} alt="" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">Namnso Ukpanah</p>
                 <p className="text-xs text-[#6b716d]">Verified · Lagos</p>
@@ -203,7 +283,10 @@ export function Dashboard() {
             <div>
               <Eyebrow>PHOTOGRAPHER DASHBOARD</Eyebrow>
               <h1 className="mt-2 font-serif text-3xl sm:text-4xl tracking-tight text-[#18211f]">
-                {active === "overview" && "Good morning, Namnso."}
+                {active === "overview" && (() => {
+                  const h = new Date().getHours();
+                  return `${h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"}, Namnso.`;
+                })()}
                 {active === "portfolio" && "My Portfolio"}
                 {active === "analytics" && "Earnings & Metrics"}
                 {active === "requests" && "Creative Briefs"}
@@ -532,8 +615,8 @@ export function Dashboard() {
                       ) : (
                         <button
                           onClick={() => handleAcceptBrief(b.id)}
-                          disabled={acceptingId === b.id}
-                          className="flex items-center gap-1.5 bg-[#1e4a3f] hover:bg-[#123b31] px-5 py-2 text-white font-semibold rounded-full transition-colors cursor-pointer"
+                          disabled={!!acceptingId}
+                          className="flex items-center gap-1.5 bg-[#1e4a3f] hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 text-white font-semibold rounded-full transition-colors cursor-pointer"
                         >
                           {acceptingId === b.id ? (
                             <>
@@ -706,7 +789,7 @@ export function Dashboard() {
         <>
           <div
             className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm transition-opacity duration-300"
-            onClick={() => uploadStep !== 1 && resetUploadWizard()}
+            onClick={resetUploadWizard}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
@@ -716,11 +799,9 @@ export function Dashboard() {
                   <Camera className="size-5 text-[#1e4a3f]" />
                   <h2 className="font-serif text-lg font-semibold text-[#18211f]">Upload new work</h2>
                 </div>
-                {uploadStep !== 1 && (
-                  <button onClick={resetUploadWizard} className="p-1 hover:bg-[#FAF9F5] rounded-full transition-colors cursor-pointer">
+                <button onClick={resetUploadWizard} className="p-1 hover:bg-[#FAF9F5] rounded-full transition-colors cursor-pointer">
                     <X className="size-5 text-[#6b716d]" />
                   </button>
-                )}
               </div>
 
               {/* Steps indicators */}
@@ -739,9 +820,26 @@ export function Dashboard() {
               <div className="flex-1 overflow-y-auto p-6">
                 {uploadStep === 1 && (
                   <div className="space-y-4">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id="file-upload-input"
+                      onChange={handleFileSelect}
+                    />
                     <div
-                      onClick={handleSimulatedFileDrop}
-                      className="border-2 border-dashed border-[#ececec] hover:border-[#1e4a3f]/40 bg-[#FAF9F5]/50 hover:bg-[#FAF9F5] rounded-2xl py-12 text-center transition-all duration-300 cursor-pointer flex flex-col items-center justify-center group"
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          document.getElementById("file-upload-input")?.click();
+                        }
+                      }}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={handleFileDrop}
+                      onClick={() => document.getElementById("file-upload-input")?.click()}
+                      className="border-2 border-dashed border-[#ececec] hover:border-[#1e4a3f]/40 bg-[#FAF9F5]/50 hover:bg-[#FAF9F5] focus:outline-none focus:ring-2 focus:ring-[#1e4a3f] rounded-2xl py-12 text-center transition-all duration-300 cursor-pointer flex flex-col items-center justify-center group"
                     >
                       {uploadProgress > 0 ? (
                         <div className="space-y-3 flex flex-col items-center">
@@ -780,7 +878,7 @@ export function Dashboard() {
                   <form onSubmit={handlePublishPhoto} className="space-y-5">
                     <div className="flex items-center gap-4 bg-[#FAF9F5] p-3 rounded-xl border border-[#ececec]/60">
                       <img
-                        src="https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150&h=150"
+                        src={uploadedImageUrl || "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150&h=150"}
                         alt="Preview"
                         className="size-16 object-cover rounded-lg shadow"
                       />
@@ -901,6 +999,8 @@ export function Dashboard() {
                           setUploadProgress(0);
                           setUploadFileName("");
                           setUploadTitle("");
+                          setUploadFile(null);
+                          setUploadedImageUrl("");
                         }}
                         className="border border-[#ececec] hover:border-[#1e4a3f] text-[#4a534e] hover:text-[#1e4a3f] bg-white px-5 py-2.5 rounded-full text-xs font-semibold transition-colors cursor-pointer"
                       >

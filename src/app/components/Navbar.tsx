@@ -174,11 +174,19 @@ export function Navbar() {
   useEffect(() => {
     setCartItems(getCart());
     const handleUpdate = () => setCartItems(getCart());
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "ns-cart") {
+        setCartItems(getCart());
+      }
+    };
     const handleOpen = () => setCartOpen(true);
+    
     window.addEventListener("cart-updated", handleUpdate);
+    window.addEventListener("storage", handleStorage);
     window.addEventListener("cart-open", handleOpen);
     return () => {
       window.removeEventListener("cart-updated", handleUpdate);
+      window.removeEventListener("storage", handleStorage);
       window.removeEventListener("cart-open", handleOpen);
     };
   }, []);
@@ -409,14 +417,9 @@ export function Navbar() {
                         )}
                       </>
                     ) : (
-                      <>
-                        <Link to="/account" onClick={() => setMenu(false)} className="hover:text-white">
-                          My Account
-                        </Link>
-                        <Link to="/dashboard" onClick={() => setMenu(false)} className="hover:text-white">
-                          Photographer Dashboard
-                        </Link>
-                      </>
+                      <Link to="/signin" onClick={() => setMenu(false)} className="hover:text-white">
+                        Sign In / Join
+                      </Link>
                     )}
                   </div>
                   <div className="space-y-3 flex flex-col">
@@ -566,7 +569,7 @@ export function Navbar() {
             <div className="space-y-2 text-sm text-[#6b716d]">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="text-[#18211f] font-semibold">${subtotal}</span>
+                <span className="text-[#18211f] font-semibold">${subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span>Licensing fees</span>
@@ -574,7 +577,7 @@ export function Navbar() {
               </div>
               <div className="flex justify-between border-t border-[#ececec]/60 pt-3 text-base text-[#18211f]">
                 <span className="font-serif">Total Due</span>
-                <span className="font-serif font-bold text-lg">${subtotal}</span>
+                <span className="font-serif font-bold text-lg">${subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
 

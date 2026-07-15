@@ -27,6 +27,14 @@ export function PhotographerProfile() {
   const totalViews = shots.reduce((s, p) => s + p.views, 0);
   const followerCount = 551;
   const followingCount = 34;
+  const mockFollowersData = [
+    { name: "Sarah Jenkins", role: "Creative Director", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop" },
+    { name: "David Kojo", role: "Art Buyer", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop" },
+    { name: "Elena Rostova", role: "Lead Designer", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" },
+    { name: "Marcus Tunde", role: "Publisher", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop" },
+    { name: "Amara Okafor", role: "Photographer", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop" },
+    { name: "Chen Wei", role: "Editor", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop" },
+  ];
 
   const sorted = [...shots].sort((a, b) => (sort === "popular" ? b.downloads - a.downloads : 0));
 
@@ -179,19 +187,23 @@ export function PhotographerProfile() {
 
         {(tab === "followers" || tab === "following") && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {shots.slice(0, 6).map((p, i) => (
-              <div key={p.id} className="flex items-center gap-3 border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4">
-                <img src={p.image} alt="" className="size-11 rounded-full object-cover" />
+            {(tab === "followers" ? mockFollowersData : []).map((f, i) => (
+              <div key={f.name} className="flex items-center gap-3 border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4">
+                <img src={f.avatar} alt={f.name} className="size-11 rounded-full object-cover" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{p.photographer}</p>
-                  <p className="text-xs text-[#6b716d]">{p.location}</p>
+                  <p className="truncate text-sm font-semibold">{f.name}</p>
+                  <p className="text-xs text-[#6b716d]">{f.role}</p>
                 </div>
-                <button onClick={() => toast("Following")} className="text-xs font-semibold text-[#1e4a3f]">
+                <button onClick={() => toast(tab === "following" ? "Unfollowed" : `Following ${f.name}`)} className="text-xs font-semibold text-[#1e4a3f]">
                   {tab === "following" ? "Following" : "Follow"}
                 </button>
               </div>
-            )).concat(
-              <p key="more" className="text-sm text-[#8a8f89]">…and many more.</p>
+            ))}
+            {tab === "following" && (
+              <p key="more" className="text-sm text-[#8a8f89] col-span-full">…and {followingCount} more.</p>
+            )}
+            {tab === "followers" && (
+              <p key="more" className="text-sm text-[#8a8f89] col-span-full">…and {followerCount} more.</p>
             )}
           </div>
         )}

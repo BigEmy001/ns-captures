@@ -8,7 +8,7 @@ const publicGroups = [
     links: [
       { to: "/search", label: "Library" },
       { to: "/collections", label: "Collections" },
-      { to: "/search?cat=Editorial", label: "Editorial" },
+      { to: "/search?cat=Documentary", label: "Documentary" },
       { to: "/search?cat=Architecture", label: "Architecture" },
     ],
   },
@@ -45,9 +45,9 @@ const buyerGroups = [
     title: "Account",
     links: [
       { to: "/account", label: "My Account" },
-      { to: "/account?tab=downloads", label: "Downloads" },
-      { to: "/account?tab=licenses", label: "Licenses" },
-      { to: "/account?tab=billing", label: "Billing" },
+      { to: "/account", label: "Downloads" },
+      { to: "/account", label: "Licenses" },
+      { to: "/account", label: "Billing" },
     ],
   },
   {
@@ -72,9 +72,9 @@ const photographerGroups = [
     title: "Photographer",
     links: [
       { to: "/dashboard", label: "Dashboard" },
-      { to: "/dashboard?tab=portfolio", label: "Portfolio" },
-      { to: "/dashboard?tab=analytics", label: "Analytics" },
-      { to: "/dashboard?tab=payouts", label: "Payouts" },
+      { to: "/dashboard", label: "Portfolio" },
+      { to: "/dashboard", label: "Analytics" },
+      { to: "/dashboard", label: "Payouts" },
     ],
   },
   {
@@ -100,9 +100,9 @@ const enterpriseGroups = [
     title: "Enterprise",
     links: [
       { to: "/enterprise", label: "Workspace" },
-      { to: "/enterprise?tab=team", label: "Team Management" },
-      { to: "/enterprise?tab=usage", label: "Usage Reports" },
-      { to: "/enterprise?tab=billing", label: "Billing" },
+      { to: "/enterprise", label: "Team Management" },
+      { to: "/enterprise", label: "Usage Reports" },
+      { to: "/enterprise", label: "Billing" },
     ],
   },
   {
@@ -119,18 +119,18 @@ const adminGroups = [
     title: "Admin",
     links: [
       { to: "/admin", label: "Dashboard" },
-      { to: "/admin?tab=users", label: "Users" },
-      { to: "/admin?tab=moderation", label: "Moderation" },
-      { to: "/admin?tab=assets", label: "Assets" },
-      { to: "/admin?tab=settings", label: "Settings" },
+      { to: "/admin", label: "Users" },
+      { to: "/admin", label: "Moderation" },
+      { to: "/admin", label: "Assets" },
+      { to: "/admin", label: "Settings" },
     ],
   },
   {
     title: "Platform",
     links: [
       { to: "/search", label: "Library" },
-      { to: "/admin?tab=reports", label: "Reports" },
-      { to: "/admin?tab=logs", label: "System Logs" },
+      { to: "/admin", label: "Reports" },
+      { to: "/admin", label: "System Logs" },
     ],
   },
 ];

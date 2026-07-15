@@ -21,10 +21,11 @@ function RequestModal({ onClose }: { onClose: () => void }) {
   const [license, setLicense] = useState(licenses[0]);
   const [licenseOpen, setLicenseOpen] = useState(false);
   const [budget, setBudget] = useState(600);
+  const [brief, setBrief] = useState("");
 
   const submit = () => {
     toast.success("Brief submitted", {
-      description: "We will match you with photographers within 24 hours.",
+      description: brief ? `Your brief: "${brief.slice(0, 60)}${brief.length > 60 ? "..." : ""}"` : "We will match you with photographers within 24 hours.",
     });
     onClose();
   };
@@ -51,6 +52,8 @@ function RequestModal({ onClose }: { onClose: () => void }) {
           Put a brief in front of our vetted photographer network. We will match you with the right eye.
         </p>
         <textarea
+          value={brief}
+          onChange={(e) => setBrief(e.target.value)}
           placeholder="e.g. Traditional fishermen in Lagos at dawn"
           className="mt-6 h-28 w-full resize-none border border-[#ececec] bg-[#f8f6f0] p-3 text-sm outline-none focus:border-[#1e4a3f]"
         />

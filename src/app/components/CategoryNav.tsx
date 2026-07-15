@@ -3,8 +3,8 @@ import { ChevronDown } from "lucide-react";
 
 const items = [
   { label: "All", to: "/search" },
-  { label: "Editorial", to: "/search?cat=Documentary" },
-  { label: "Portraits", to: "/search?cat=Portrait" },
+  { label: "Documentary", to: "/search?cat=Documentary" },
+  { label: "Portrait", to: "/search?cat=Portrait" },
   { label: "Architecture", to: "/search?cat=Architecture" },
   { label: "Culture", to: "/search?cat=Culture" },
   { label: "Fashion", to: "/search?cat=Fashion" },

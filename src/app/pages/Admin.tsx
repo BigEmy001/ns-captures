@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link } from "react-router";
 import {
   LayoutDashboard, Users, Image as ImageIcon, ShieldAlert, DollarSign, FileBarChart,
@@ -96,7 +96,7 @@ export function Admin() {
     toast[approve ? "success" : "error"](approve ? "Asset approved" : "Asset rejected");
   };
 
-  const filteredUsers = adminUsers.filter((u) => {
+  const filteredUsers = adminUsersList.filter((u) => {
     const matchesSearch = u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
       u.email.toLowerCase().includes(userSearch.toLowerCase());
     const matchesRole = userRoleFilter === "all" || u.role === userRoleFilter;
@@ -104,7 +104,7 @@ export function Admin() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const filteredAssets = photos.filter((p) =>
+  const filteredAssets = assetsList.filter((p) =>
     p.title.toLowerCase().includes(assetSearch.toLowerCase()) ||
     p.photographer.toLowerCase().includes(assetSearch.toLowerCase()) ||
     p.category.toLowerCase().includes(assetSearch.toLowerCase())
@@ -114,30 +114,27 @@ export function Admin() {
     ? mockLogs
     : mockLogs.filter((l) => l.level === logFilter);
 
-  const changeUserRole = (userId: string, newRole: AdminUser["role"]) => {
-    const user = adminUsers.find(u => u.id === userId);
-    if (user) {
-      user.role = newRole;
-      toast.success(`Role updated to ${newRole}`);
-    }
-  };
+  const [adminUsersList, setAdminUsersList] = useState(adminUsers);
+  const [assetsList, setAssetsList] = useState(photos);
 
-  const changeUserStatus = (userId: string, newStatus: AdminUser["status"]) => {
-    const user = adminUsers.find(u => u.id === userId);
-    if (user) {
-      user.status = newStatus;
-      toast.success(`Status updated to ${newStatus}`);
-    }
-  };
+  const changeUserRole = useCallback((userId: string, newRole: AdminUser["role"]) => {
+    setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
+    toast.success(`Role updated to ${newRole}`);
+  }, []);
+
+  const changeUserStatus = useCallback((userId: string, newStatus: AdminUser["status"]) => {
+    setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, status: newStatus } : u));
+    toast.success(`Status updated to ${newStatus}`);
+  }, []);
 
   const deleteAsset = (photoId: string) => {
     if (confirm("Delete this asset permanently?")) {
+      setAssetsList((prev) => prev.filter((p) => p.id !== photoId));
       toast.success("Asset deleted");
     }
   };
 
   const handleSettingsSave = () => {
-    Object.assign(siteSettings, siteSettingsState);
     toast.success("Settings saved");
   };
 

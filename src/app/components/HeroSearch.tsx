@@ -4,13 +4,13 @@ import { ArrowUpRight, Search, Sparkles, Send } from "lucide-react";
 import { useRequest } from "./RequestModal";
 
 export function HeroSearch() {
-  const [tab, setTab] = useState<"Library" | "Describe">("Library");
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
   const openRequest = useRequest();
+  const [activeTab, setActiveTab] = useState<"Library" | "Describe">("Library");
   const tabs = ["Library", "Describe", "Request"] as const;
 
-  const go = () => navigate(`/search?q=${encodeURIComponent(query)}${tab === "Describe" ? "&ai=1" : ""}`);
+  const go = () => navigate(`/search?q=${encodeURIComponent(query)}${activeTab === "Describe" ? "&ai=1" : ""}`);
 
   return (
     <div className="w-full max-w-[660px] border border-white/60 bg-[#ffffff]/95 p-2 shadow-2xl shadow-black/20 backdrop-blur-sm sm:p-2.5">
@@ -18,15 +18,15 @@ export function HeroSearch() {
         {tabs.map((item) => (
           <button
             key={item}
-            onClick={() => (item === "Request" ? openRequest() : setTab(item))}
+            onClick={() => (item === "Request" ? openRequest() : setActiveTab(item as "Library" | "Describe"))}
             className={`relative px-3 pb-3 text-xs font-semibold tracking-[0.07em] transition sm:px-5 ${
-              tab === item ? "text-[#173c33]" : "text-[#74766f] hover:text-[#18211f]"
+              item === "Request" ? "text-[#74766f] hover:text-[#18211f]" : activeTab === item ? "text-[#173c33]" : "text-[#74766f] hover:text-[#18211f]"
             }`}
           >
             {item === "Describe" && <Sparkles className="mr-1.5 inline size-3.5" />}
             {item === "Request" && <Send className="mr-1.5 inline size-3.5" />}
             {item}
-            {tab === item && <span className="absolute inset-x-3 bottom-0 h-0.5 bg-[#1e4a3f]" />}
+            {item !== "Request" && activeTab === item && <span className="absolute inset-x-3 bottom-0 h-0.5 bg-[#1e4a3f]" />}
           </button>
         ))}
       </div>
@@ -42,7 +42,7 @@ export function HeroSearch() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={
-            tab === "Describe"
+            activeTab === "Describe"
               ? "Describe the image you need — e.g. a fintech founder at her desk"
               : "Search photographs, collections, people..."
           }
