@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import {
   LayoutDashboard, Users, Image as ImageIcon, ShieldAlert, DollarSign, FileBarChart,
   Check, X, MoreHorizontal, Search, Filter, Trash2, Settings, Logs, Building2, UserCheck, UserX,
-  Download, Eye, Edit, ChevronDown, ArrowUpRight,
+  Download, Eye, Edit, ChevronDown, ArrowUpRight, Mail, Key, FolderHeart, Heart,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -100,6 +100,21 @@ export function Admin() {
   const [siteSettingsState, setSiteSettingsState] = useState(siteSettings);
   const [adminUsersList, setAdminUsersList] = useState(adminUsers);
   const [assetsList, setAssetsList] = useState(photos);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+
+  const handleRoleChange = useCallback((userId: string, newRole: AdminUser["role"]) => {
+    changeUserRole(userId, newRole);
+    setSelectedUser((prev) => prev && prev.id === userId ? { ...prev, role: newRole } : prev);
+  }, [changeUserRole]);
+
+  const handleStatusChange = useCallback((userId: string, newStatus: AdminUser["status"]) => {
+    changeUserStatus(userId, newStatus);
+    setSelectedUser((prev) => prev && prev.id === userId ? { ...prev, status: newStatus } : prev);
+  }, [changeUserStatus]);
+
+  const handleDeleteUserAsset = useCallback((photoId: string) => {
+    deleteAsset(photoId);
+  }, [deleteAsset]);
 
   const resolve = (id: string, approve: boolean) => {
     setQueue((q) => q.filter((m) => m.id !== id));
@@ -351,7 +366,7 @@ export function Admin() {
                   <tbody className="divide-y divide-[#ececec]/60">
                     {filteredUsers.map((u) => (
                       <tr key={u.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 cursor-pointer hover:underline" onClick={() => setSelectedUser(u)}>
                           <p className="font-semibold text-[#18211f]">{u.name}</p>
                           <p className="text-xs text-[#6b716d]">{u.email}</p>
                         </td>
@@ -380,7 +395,7 @@ export function Admin() {
                         </td>
                         <td className="px-6 py-4 text-[#6b716d] text-xs">{u.joined}</td>
                         <td className="px-6 py-4 text-right">
-                          <button onClick={() => toast(`Managing ${u.name}`)} className="text-[#6b716d] hover:text-[#1e4a3f] p-1.5 hover:bg-[#eef1ec] rounded-full transition-all duration-200">
+                          <button onClick={() => setSelectedUser(u)} className="text-[#6b716d] hover:text-[#1e4a3f] p-1.5 hover:bg-[#eef1ec] rounded-full transition-all duration-200" title="Manage user">
                             <MoreHorizontal className="size-4" />
                           </button>
                         </td>
@@ -685,6 +700,16 @@ export function Admin() {
           )}
         </div>
       </div>
+      {selectedUser && (
+        <AdminUserModal
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+          onRoleChange={handleRoleChange}
+          onStatusChange={handleStatusChange}
+          assets={assetsList}
+          onDeleteAsset={handleDeleteUserAsset}
+        />
+      )}
     </div>
   );
 }
@@ -720,5 +745,257 @@ function Toggle({ label, description, checked, onChange }: { label: string; desc
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? "translate-x-6" : "translate-x-1"}`} />
       </button>
     </label>
+  );
+}
+
+interface AdminUserModalProps {
+  user: AdminUser;
+  onClose: () => void;
+  onRoleChange: (userId: string, newRole: AdminUser["role"]) => void;
+  onStatusChange: (userId: string, newStatus: AdminUser["status"]) => void;
+  assets: Photo[];
+  onDeleteAsset: (photoId: string) => void;
+}
+
+function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, onDeleteAsset }: AdminUserModalProps) {
+  const isPhotographer = user.role === "Photographer";
+  
+  // Robustly query photographer photos using ID, name, or slug match
+  const userPhotos = assets.filter((p) =>
+    p.photographerId === user.id ||
+    p.photographer.toLowerCase() === user.name.toLowerCase() ||
+    p.photographerId === user.name.toLowerCase().replace(/\s+/g, "-") ||
+    p.photographerId === user.name.toLowerCase().split(" ")[0]
+  );
+
+  const totalDownloads = userPhotos.reduce((sum, p) => sum + p.downloads, 0);
+  const totalViews = userPhotos.reduce((sum, p) => sum + p.views, 0);
+  const totalLikes = userPhotos.reduce((sum, p) => sum + p.likes, 0);
+
+  const planName = user.role === "Enterprise" ? "Enterprise" : user.role === "Buyer" ? "Pro" : "Contributor";
+  const isBuyerOrEnterprise = user.role === "Buyer" || user.role === "Enterprise";
+
+  const userPurchasesMock = user.id === "U-1042" ? [
+    { id: "INV-2041", title: "Light on Lagos", photoId: "lagos-skyline", license: "COMMERCIAL", price: 190, date: "Jul 09, 2026" },
+    { id: "INV-2038", title: "The in-between", photoId: "smiling-black-top", license: "EXTENDED", price: 768, date: "Jul 02, 2026" },
+    { id: "INV-2033", title: "Ceremony", photoId: "orange-headdress", license: "EDITORIAL", price: 476, date: "Jun 21, 2026" },
+  ] : [
+    { id: "INV-1092", title: "Sands of Time", photoId: "desert-road", license: "ROYALTY FREE", price: 210, date: "Jun 12, 2026" },
+    { id: "INV-1087", title: "Grid, monochrome", photoId: "lagos-bw-skyline", license: "EDITORIAL", price: 250, date: "May 28, 2026" },
+  ];
+
+  const userCollectionsMock = [
+    { id: "c1", name: "Modern Minimalist", count: 8 },
+    { id: "c2", name: "Warm Portraits", count: 14 },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-55 flex items-center justify-end bg-[#16231f]/55 backdrop-blur-sm" onClick={onClose}>
+      <div 
+        className="h-full w-full max-w-2xl bg-[#FAF9F5] p-6 shadow-2xl overflow-y-auto flex flex-col md:p-8 border-l border-[#ececec]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between border-b border-[#ececec] pb-6">
+          <div className="flex items-center gap-4">
+            <div className="grid size-14 place-items-center rounded-full bg-[#dce8df] text-lg font-semibold text-[#1e4a3f]">
+              {user.name.charAt(0)}
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h2 className="font-serif text-2xl font-semibold text-[#18211f]">{user.name}</h2>
+                <Badge tone={user.status === "Active" ? "green" : user.status === "Suspended" ? "red" : "muted"}>
+                  {user.status}
+                </Badge>
+              </div>
+              <p className="text-sm text-[#6b716d]">{user.email}</p>
+              <p className="mt-1 font-mono text-[9px] tracking-wider text-[#9aa09b] uppercase">
+                Member Since {user.joined} · ID: {user.id}
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="rounded-full border border-[#ececec] p-1.5 text-[#55605b] hover:bg-[#eef1ec] transition-colors cursor-pointer">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {/* Quick Settings */}
+        <div className="mt-6 border-b border-[#ececec] pb-6">
+          <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-3">Management Settings</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="text-xs font-semibold text-[#4a534e]">Platform Role</span>
+              <select
+                value={user.role}
+                onChange={(e) => onRoleChange(user.id, e.target.value as AdminUser["role"])}
+                className="mt-1.5 w-full border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1e4a3f] font-mono text-xs shadow-sm"
+              >
+                <option value="Buyer">Buyer</option>
+                <option value="Photographer">Photographer</option>
+                <option value="Enterprise">Enterprise</option>
+                <option value="Admin">Admin</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-xs font-semibold text-[#4a534e]">Account Status</span>
+              <select
+                value={user.status}
+                onChange={(e) => onStatusChange(user.id, e.target.value as AdminUser["status"])}
+                className="mt-1.5 w-full border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1e4a3f] shadow-sm"
+              >
+                <option value="Active">Active</option>
+                <option value="Pending">Pending</option>
+                <option value="Suspended">Suspended</option>
+              </select>
+            </label>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2.5">
+            <button 
+              onClick={() => toast.success(`Password reset link sent to ${user.email}`)}
+              className="flex items-center gap-1.5 rounded-full border border-[#ececec] bg-white px-4 py-2 text-xs font-semibold text-[#4a534e] hover:border-[#1e4a3f] transition-all shadow-sm cursor-pointer"
+            >
+              <Key className="size-3.5" /> Reset Password
+            </button>
+            <button 
+              onClick={() => toast.success(`Contact panel opened for ${user.name}`)}
+              className="flex items-center gap-1.5 rounded-full border border-[#ececec] bg-white px-4 py-2 text-xs font-semibold text-[#4a534e] hover:border-[#1e4a3f] transition-all shadow-sm cursor-pointer"
+            >
+              <Mail className="size-3.5" /> Email User
+            </button>
+          </div>
+        </div>
+
+        {/* Tab content settings */}
+        <div className="mt-6 flex-1 flex flex-col">
+          {isPhotographer && (
+            <div className="flex-1 flex flex-col">
+              {/* Stats */}
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 bg-white border border-[#ececec] rounded-2xl p-4 shadow-sm mb-6">
+                <div>
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Uploads</p>
+                  <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">{userPhotos.length}</p>
+                </div>
+                <div>
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Total Views</p>
+                  <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">{totalViews.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Downloads</p>
+                  <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">{totalDownloads.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Likes</p>
+                  <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">{totalLikes.toLocaleString()}</p>
+                </div>
+              </div>
+
+              {/* Photos Portfolio Grid */}
+              <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-3">Portfolio ({userPhotos.length} Images)</p>
+              {userPhotos.length === 0 ? (
+                <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-[#ececec] rounded-2xl p-8 bg-white text-center">
+                  <ImageIcon className="size-8 text-[#9aa09b] mb-2" />
+                  <p className="text-sm font-semibold text-[#18211f]">No uploads yet</p>
+                  <p className="text-xs text-[#6b716d] mt-1">This contributor has not uploaded any assets to the library.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {userPhotos.map((photo) => (
+                    <div key={photo.id} className="group relative overflow-hidden bg-[#d7d8d2] rounded-xl aspect-square shadow-sm">
+                      <img src={photo.image} alt={photo.title} className="size-full object-cover group-hover:scale-105 transition-all duration-300" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-2.5 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end">
+                        <p className="text-[10px] font-serif text-white truncate font-medium">{photo.title}</p>
+                        <p className="text-[8px] font-mono text-white/70 mt-0.5 uppercase tracking-wide truncate">
+                          {photo.category} · {photo.license}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1.5 text-[8px] font-mono text-white/80">
+                          <span className="flex items-center gap-0.5"><Eye className="size-2" /> {photo.views}</span>
+                          <span className="flex items-center gap-0.5"><Download className="size-2" /> {photo.downloads}</span>
+                        </div>
+                      </div>
+                      <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        <button 
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteAsset(photo.id); }}
+                          className="p-1 rounded-full bg-white/95 text-[#d4183d] hover:bg-white shadow cursor-pointer"
+                          title="Delete photo"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {isBuyerOrEnterprise && (
+            <div className="flex-1 flex flex-col space-y-6">
+              {/* Billing tier */}
+              <div className="bg-white border border-[#ececec] rounded-2xl p-5 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Active Plan</p>
+                    <h4 className="font-serif text-lg font-semibold text-[#18211f] mt-1">{planName} Tier</h4>
+                    <p className="text-xs text-[#6b716d] mt-0.5">Billing renews automatically each month</p>
+                  </div>
+                  <Badge tone="green">Active</Badge>
+                </div>
+              </div>
+
+              {/* Purchase history */}
+              <div>
+                <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">Invoice Purchase History</p>
+                <div className="overflow-hidden border border-[#ececec] bg-white rounded-2xl shadow-sm">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#f7f7f7] font-mono text-[9px] tracking-wider text-[#8a8f89] uppercase border-b border-[#ececec]">
+                      <tr>
+                        <th className="px-4 py-3">Invoice</th>
+                        <th className="px-4 py-3">Asset</th>
+                        <th className="px-4 py-3">License</th>
+                        <th className="px-4 py-3 text-right">Price</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#ececec]/60">
+                      {userPurchasesMock.map((pur) => (
+                        <tr key={pur.id} className="hover:bg-[#FAF9F5] transition duration-150">
+                          <td className="px-4 py-3 font-semibold text-[#18211f]">{pur.id}</td>
+                          <td className="px-4 py-3 text-[#6b716d] max-w-[120px] truncate" title={pur.title}>{pur.title}</td>
+                          <td className="px-4 py-3"><Badge tone="muted" size="sm">{pur.license}</Badge></td>
+                          <td className="px-4 py-3 text-right font-semibold text-[#18211f]">${pur.price}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Collections */}
+              <div>
+                <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">Active Collections ({userCollectionsMock.length})</p>
+                <div className="grid gap-3 grid-cols-2">
+                  {userCollectionsMock.map((c) => (
+                    <div key={c.id} className="border border-[#ececec] bg-white p-4 rounded-xl shadow-sm hover:border-[#1e4a3f]/20 transition-all">
+                      <div className="flex items-center gap-2">
+                        <FolderHeart className="size-4 text-[#1e4a3f]" />
+                        <h5 className="font-serif font-semibold text-sm text-[#18211f] truncate" title={c.name}>{c.name}</h5>
+                      </div>
+                      <p className="mt-1 font-mono text-[9px] text-[#758078] uppercase">{c.count} items curated</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isPhotographer && !isBuyerOrEnterprise && (
+            <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-[#ececec] rounded-2xl p-8 bg-white text-center">
+              <ShieldAlert className="size-8 text-[#1e4a3f] mb-2" />
+              <p className="text-sm font-semibold text-[#18211f]">{user.role} Dashboard</p>
+              <p className="text-xs text-[#6b716d] mt-1">This user has the administrative role and does not have shopper or photographer metrics.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
