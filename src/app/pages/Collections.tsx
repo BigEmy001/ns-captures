@@ -2,6 +2,13 @@ import { Link } from "react-router";
 import { Eyebrow } from "../components/ui";
 import { collections } from "../data/photos";
 
+const colRoutes: Record<string, string> = {
+  "west-africa-now": "/search?q=Lagos",
+  "quiet-architecture": "/search?cat=Architecture",
+  "new-perspectives": "/search?q=creative",
+  "human-documentary": "/search?cat=Documentary",
+};
+
 export function Collections() {
   return (
     <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-12">
@@ -15,7 +22,7 @@ export function Collections() {
 
       <div className="mt-12 grid gap-8 md:grid-cols-2">
         {collections.map((c) => (
-          <Link key={c.id} to="/search" className="group block">
+          <Link key={c.id} to={colRoutes[c.id] || "/search"} className="group block">
             <div className="grid aspect-[16/9] grid-cols-3 gap-0.5 overflow-hidden bg-[#d7d8d2]">
               <img src={c.cover[0]} alt="" className="col-span-2 size-full object-cover transition group-hover:scale-[1.02]" />
               <div className="grid grid-rows-2 gap-0.5">
