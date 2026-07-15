@@ -37,9 +37,13 @@ export function Account() {
   const [passwordData, setPasswordData] = useState({ current: "", next: "", confirm: "" });
   const liked = photos.slice(0, 6);
 
-  const handleProfileSave = () => {
+  const handleProfileSave = async () => {
     if (isAuthenticated) {
-      updateProfile(profileData);
+      try {
+        await updateProfile(profileData);
+      } catch (err: any) {
+        toast.error(err.message || "Failed to update profile");
+      }
     } else {
       toast.success("Profile saved");
     }

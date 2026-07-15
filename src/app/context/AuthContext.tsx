@@ -23,7 +23,7 @@ interface AuthContextType {
   login: (email: string, password: string, remember?: boolean) => Promise<void>;
   signup: (data: { firstName: string; lastName: string; email: string; password: string }) => Promise<void>;
   logout: () => void;
-  updateProfile: (data: Partial<AuthUser>) => void;
+  updateProfile: (data: Partial<AuthUser>) => Promise<void>;
   changePassword: (current: string, next: string) => Promise<void>;
 }
 
@@ -204,10 +204,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigate("/signin", { replace: true });
   }, [navigate]);
 
-  const updateProfile = useCallback((data: Partial<AuthUser>) => {
+  const updateProfile = useCallback(async (data: Partial<AuthUser>) => {
     if (!user) return;
     const { id: _id, role: _role, ...editableData } = data;
     const normalizedEmail = editableData.email?.toLowerCase().trim() || user.email;
+    
+    if (normalizedEmail !== user.email && MOCK_USERS[normalizedEmail]) {
+      throw new Error("An account with this email already exists");
+    }
+
     const updated: AuthUser = { ...user, ...editableData, email: normalizedEmail, id: user.id, role: user.role };
     const record = MOCK_USERS[user.email];
     if (record) {
