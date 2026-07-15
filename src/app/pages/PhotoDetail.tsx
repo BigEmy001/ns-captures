@@ -183,7 +183,7 @@ export function PhotoDetail() {
           <div className="mt-8">
             <Eyebrow>KEYWORDS</Eyebrow>
             <div className="mt-4 flex flex-wrap gap-2">
-              {photo.keywords.map((k) => (
+              {(photo.keywords || []).map((k) => (
                 <Link key={k} to={`/search?q=${k}`} className="rounded-full border border-[#ececec] bg-white/50 px-3 py-1.5 text-xs text-[#4a534e] hover:border-[#1e4a3f]">
                   {k}
                 </Link>

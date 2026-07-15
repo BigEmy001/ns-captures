@@ -99,7 +99,7 @@ export function SearchPage() {
     let list = photos.filter((p) => {
       const matchesQ =
         !query ||
-        [p.title, p.photographer, p.location, p.category, ...p.keywords]
+        [p.title, p.photographer, p.location, p.category, ...(p.keywords || [])]
           .join(" ")
           .toLowerCase()
           .includes(query.toLowerCase());

@@ -17,11 +17,13 @@ import { SignIn } from "./pages/auth/SignIn";
 import { SignUp } from "./pages/auth/SignUp";
 import { ForgotPassword } from "./pages/auth/ForgotPassword";
 import { GuestRoute, AuthRoute, AdminRoute, PhotographerRoute, EnterpriseRoute } from "./components/RouteGuards";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 export const router = createBrowserRouter([
   {
     path: "/",
     Component: RootLayout,
+    errorElement: <ErrorBoundary />,
     children: [
       { index: true, Component: Home },
       { path: "search", Component: SearchPage },
