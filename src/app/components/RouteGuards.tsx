@@ -27,13 +27,22 @@ export function GuestRoute() {
   return <Outlet />;
 }
 
+export function AdminGuestRoute() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return null;
+  if (user && user.role === "Admin") return <Navigate to="/admin" replace />;
+
+  return <Outlet />;
+}
+
 export function AdminRoute() {
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) return null;
   if (!user || user.role !== "Admin") {
-    return <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />;
+    return <Navigate to="/admin/login" state={{ from: `${location.pathname}${location.search}` }} replace />;
   }
 
   return <Outlet />;

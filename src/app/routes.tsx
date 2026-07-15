@@ -16,7 +16,8 @@ import { NotFound } from "./pages/NotFound";
 import { SignIn } from "./pages/auth/SignIn";
 import { SignUp } from "./pages/auth/SignUp";
 import { ForgotPassword } from "./pages/auth/ForgotPassword";
-import { GuestRoute, AuthRoute, AdminRoute, PhotographerRoute, EnterpriseRoute } from "./components/RouteGuards";
+import { AdminLogin } from "./pages/auth/AdminLogin";
+import { GuestRoute, AuthRoute, AdminRoute, AdminGuestRoute, PhotographerRoute, EnterpriseRoute } from "./components/RouteGuards";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 export const router = createBrowserRouter([
@@ -62,6 +63,11 @@ export const router = createBrowserRouter([
         path: "enterprise",
         Component: EnterpriseRoute,
         children: [{ index: true, Component: Enterprise }],
+      },
+      {
+        path: "admin/login",
+        Component: AdminGuestRoute,
+        children: [{ index: true, Component: AdminLogin }],
       },
       {
         path: "admin",
