@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { fetchPhoto, type Photo } from "../data/db";
-import { getPhoto } from "../data/photos";
+import { photos as allPhotos, getPhoto } from "../data/photos";
 import { NotFound } from "./NotFound";
 import { addToCart } from "../data/cart";
 import { useAuth } from "../context/AuthContext";
@@ -74,7 +74,7 @@ export function PhotoDetail() {
   ];
 
   const current = options.find((o) => o.id === selected)!;
-  const related = photos.filter((p) => p.id !== photo.id && (p.category === photo.category || p.photographerId === photo.photographerId)).slice(0, 4);
+  const related = allPhotos.filter((p) => p.id !== photo.id && (p.category === photo.category || p.photographerId === photo.photographerId)).slice(0, 4);
   const categoryHref = `/search?cat=${encodeURIComponent(photo.category)}`;
   const photographerHref = `/photographer/${photo.photographerId}`;
 
