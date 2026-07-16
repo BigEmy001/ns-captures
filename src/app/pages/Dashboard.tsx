@@ -9,7 +9,8 @@ import {
 } from "recharts";
 import { Eyebrow, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
-import { photos, briefs, Photo, License, Orientation } from "../data/photos";
+import { photos, briefs, photographers, Photo, License, Orientation } from "../data/photos";
+import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
 const nav = [
@@ -78,10 +79,20 @@ export function Dashboard() {
     setParams(next);
   };
 
-  // Dynamic Portfolio state (starts with some of our mock photos)
-  const [portfolioPhotos, setPortfolioPhotos] = useState<Photo[]>(() =>
-    photos.slice(8, 12)
-  );
+  const { user } = useAuth();
+
+  // Dynamically resolve the photographerId and photographerProfile
+  const photographerProfile = photographers.find(p => p.name.toLowerCase() === user?.name.toLowerCase());
+  const photographerId = photographerProfile ? photographerProfile.id : user?.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "";
+
+  // Dynamic Portfolio state (starts with this photographer's photos)
+  const [portfolioPhotos, setPortfolioPhotos] = useState<Photo[]>([]);
+
+  useEffect(() => {
+    if (photographerId) {
+      setPortfolioPhotos(photos.filter((p) => p.photographerId === photographerId));
+    }
+  }, [photographerId]);
 
   // Upload wizard states
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -133,6 +144,14 @@ export function Dashboard() {
   const [specialty, setSpecialty] = useState("Editorial");
   const [location, setLocation] = useState("Lagos, Nigeria");
   const [bio, setBio] = useState("Editorial and documentary photographer based in Lagos, drawn to unhurried portraits of everyday life across West Africa.");
+
+  useEffect(() => {
+    if (photographerProfile) {
+      setSpecialty(photographerProfile.specialty);
+      setLocation(photographerProfile.location);
+      setBio(photographerProfile.bio || "");
+    }
+  }, [photographerProfile]);
 
   const handleDeletePhoto = (id: string) => {
     setPortfolioPhotos((prev) => prev.filter((p) => p.id !== id));
@@ -262,8 +281,8 @@ export function Dashboard() {
     const newPhotoItem: Photo = {
       id: newPhotoId,
       title: uploadTitle || "Untitled Frame",
-      photographerId: "namnso",
-      photographer: "Namnso Ukpanah",
+      photographerId: photographerId,
+      photographer: user?.name || "Unknown Photographer",
       license: "COMMERCIAL",
       category: uploadCategory,
       location: uploadLocation || "Lagos, Nigeria",
@@ -316,6 +335,28 @@ export function Dashboard() {
     setUploadOpen(false);
   };
 
+  const totalDownloads = portfolioPhotos.reduce((sum, p) => sum + p.downloads, 0);
+  const totalViews = portfolioPhotos.reduce((sum, p) => sum + p.views, 0);
+  const totalRevenue = portfolioPhotos.reduce((sum, p) => sum + (p.downloads * p.price), 0);
+  const followersCount = photographerProfile?.followers || "0";
+
+  const stats = [
+    { label: "REVENUE (LIFETIME)", value: `$${totalRevenue.toLocaleString()}`, delta: "+12%" },
+    { label: "DOWNLOADS", value: totalDownloads.toLocaleString(), delta: "+9%" },
+    { label: "FOLLOWERS", value: followersCount, delta: "+312" },
+    { label: "PORTFOLIO", value: String(portfolioPhotos.length), delta: "+6 new" },
+  ];
+
+  const payoutsToRender = user?.name === "Patrick Watson Quine"
+    ? [{ id: "PAY-9042", date: "Jul 16, 2026", method: "Zenith Bank Transfer", amount: "$150", status: "PENDING" }]
+    : user?.name === "Lexmond Dennis"
+    ? [{ id: "PAY-9043", date: "Jul 16, 2026", method: "Zenith Bank Transfer", amount: "$240", status: "PENDING" }]
+    : [
+        { id: "PAY-9041", date: "Jul 01, 2026", method: "Zenith Bank Transfer", amount: "$3,600", status: "SUCCESSFUL" },
+        { id: "PAY-8038", date: "Jun 01, 2026", method: "Zenith Bank Transfer", amount: "$2,850", status: "SUCCESSFUL" },
+        { id: "PAY-7033", date: "May 01, 2026", method: "Zenith Bank Transfer", amount: "$3,120", status: "SUCCESSFUL" },
+      ];
+
   return (
     <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
       <div className="mx-auto flex max-w-[1440px] gap-8 px-5 sm:px-8 lg:px-12">
@@ -325,10 +366,10 @@ export function Dashboard() {
           onSelect={setActive}
           header={() => (
             <div className="flex min-w-0 items-center gap-3">
-              <img src={photos[8]?.image || ""} alt="" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
+              <img src={user?.avatar || photos[8]?.image || ""} alt="" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">Namnso Ukpanah</p>
-                <p className="text-xs text-[#6b716d]">Verified · Lagos</p>
+                <p className="truncate text-sm font-semibold">{user?.name || "Photographer"}</p>
+                <p className="text-xs text-[#6b716d]">Verified · {user?.company || "Contributor"}</p>
               </div>
             </div>
           )}
@@ -342,7 +383,7 @@ export function Dashboard() {
               <h1 className="mt-2 font-serif text-3xl sm:text-4xl tracking-tight text-[#18211f]">
                 {active === "overview" && (() => {
                   const h = new Date().getHours();
-                  return `${h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"}, Namnso.`;
+                  return `${h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"}, ${user?.name?.split(" ")[0] || "Photographer"}.`;
                 })()}
                 {active === "portfolio" && "My Portfolio"}
                 {active === "analytics" && "Earnings & Metrics"}
@@ -728,7 +769,7 @@ export function Dashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#ececec]/60 font-mono text-xs">
-                      {mockPayouts.map((p) => (
+                      {payoutsToRender.map((p) => (
                         <tr key={p.id} className="hover:bg-[#FAF9F5] transition duration-150">
                           <td className="px-6 py-4 font-semibold text-[#18211f]">{p.id}</td>
                           <td className="px-6 py-4 text-[#6b716d]">{p.date}</td>

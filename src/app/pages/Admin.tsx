@@ -570,6 +570,8 @@ export function Admin() {
                     </thead>
                     <tbody className="divide-y divide-[#ececec]/60 font-mono text-xs">
                       {[
+                        { id: "PAY-9043", date: "Jul 16, 2026", photographer: "Lexmond Dennis", amount: "$240", status: "PENDING", method: "Zenith Bank" },
+                        { id: "PAY-9042", date: "Jul 16, 2026", photographer: "Patrick Watson Quine", amount: "$150", status: "PENDING", method: "Zenith Bank" },
                         { id: "PAY-9041", date: "Jul 01, 2026", photographer: "Namnso Ukpanah", amount: "$3,600", status: "SUCCESSFUL", method: "Zenith Bank" },
                         { id: "PAY-8038", date: "Jun 01, 2026", photographer: "Divine Effiong", amount: "$2,850", status: "SUCCESSFUL", method: "Zenith Bank" },
                         { id: "PAY-7033", date: "May 01, 2026", photographer: "Prince Akachi", amount: "$3,120", status: "SUCCESSFUL", method: "Access Bank" },
