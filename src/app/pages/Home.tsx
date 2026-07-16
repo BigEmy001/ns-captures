@@ -43,6 +43,15 @@ export function Home() {
     });
   }, []);
 
+  const trendingTags = [
+    photographers[0]?.location || "West Africa",
+    "Editorial portrait",
+    "Architecture",
+    "Culture",
+  ];
+
+  const firstBrief = briefs[0];
+
   return (
     <>
       {/* Hero — cinematic, full-bleed */}
@@ -74,7 +83,7 @@ export function Home() {
           </div>
           <p className="mt-5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/70">
             Trending:
-            {["Lagos", "Quiet architecture", "New perspectives", "Editorial portrait"].map((t) => (
+            {trendingTags.map((t) => (
               <Link key={t} to={`/search?q=${encodeURIComponent(t)}`} className="underline underline-offset-4 hover:text-white">
                 {t}
               </Link>
@@ -122,9 +131,9 @@ export function Home() {
             {collections.map((c) => (
               <Link key={c.id} to="/collections" className="group">
                 <div className="grid aspect-[4/3] grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden bg-[#d7d8d2]">
-                  <img src={c.cover[0]} alt="" loading="lazy" className="col-span-1 row-span-2 size-full object-cover transition group-hover:scale-[1.03]" />
-                  <img src={c.cover[1]} alt="" loading="lazy" className="size-full object-cover" />
-                  <img src={c.cover[2]} alt="" loading="lazy" className="size-full object-cover" />
+                  <img src={c.cover?.[0] || ""} alt="" loading="lazy" className="col-span-1 row-span-2 size-full object-cover transition group-hover:scale-[1.03]" />
+                  <img src={c.cover?.[1] || ""} alt="" loading="lazy" className="size-full object-cover" />
+                  <img src={c.cover?.[2] || ""} alt="" loading="lazy" className="size-full object-cover" />
                 </div>
                 <div className="flex items-start justify-between pt-3">
                   <div>
@@ -153,17 +162,26 @@ export function Home() {
           </div>
         </div>
         <div className="border border-[#e2e2e2] bg-[#fafafa] p-5 sm:p-7">
-          <div className="flex items-center justify-between border-b border-[#ececec] pb-5">
-            <span className="font-mono text-[10px] tracking-[0.14em] text-[#49685d]">ACTIVE BRIEF / {briefs[0].id}</span>
-            <Badge>{briefs[0].status}</Badge>
-          </div>
-          <h3 className="mt-8 font-serif text-2xl">{briefs[0].title}</h3>
-          <p className="mt-2 text-sm leading-6 text-[#68706b]">{briefs[0].description}</p>
-          <div className="mt-7 grid grid-cols-3 gap-3 border-t border-[#ececec] pt-5">
-            <div><p className="font-mono text-[9px] text-[#758078]">LICENSE</p><p className="mt-1 text-xs font-semibold">Commercial</p></div>
-            <div><p className="font-mono text-[9px] text-[#758078]">BUDGET</p><p className="mt-1 text-xs font-semibold">${briefs[0].budget}</p></div>
-            <div><p className="font-mono text-[9px] text-[#758078]">DELIVERY</p><p className="mt-1 text-xs font-semibold">{briefs[0].delivery}</p></div>
-          </div>
+          {firstBrief ? (
+            <>
+              <div className="flex items-center justify-between border-b border-[#ececec] pb-5">
+                <span className="font-mono text-[10px] tracking-[0.14em] text-[#49685d]">ACTIVE BRIEF / {firstBrief.id}</span>
+                <Badge>{firstBrief.status}</Badge>
+              </div>
+              <h3 className="mt-8 font-serif text-2xl">{firstBrief.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[#68706b]">{firstBrief.description}</p>
+              <div className="mt-7 grid grid-cols-3 gap-3 border-t border-[#ececec] pt-5">
+                <div><p className="font-mono text-[9px] text-[#758078]">LICENSE</p><p className="mt-1 text-xs font-semibold">{firstBrief.license}</p></div>
+                <div><p className="font-mono text-[9px] text-[#758078]">BUDGET</p><p className="mt-1 text-xs font-semibold">${firstBrief.budget}</p></div>
+                <div><p className="font-mono text-[9px] text-[#758078]">DELIVERY</p><p className="mt-1 text-xs font-semibold">{firstBrief.delivery}</p></div>
+              </div>
+            </>
+          ) : (
+            <div className="py-10 text-center">
+              <p className="text-sm text-[#6b716d]">No active briefs yet.</p>
+              <button onClick={openRequest} className="mt-3 text-sm font-semibold text-[#1e4a3f] hover:underline">Submit a request →</button>
+            </div>
+          )}
         </div>
       </section>
 

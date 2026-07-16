@@ -739,6 +739,96 @@ export async function updatePhotoPrice(photoId: string, price: number): Promise<
 }
 
 // ============================================================
+// CREATE PHOTO (upload from dashboard)
+// ============================================================
+
+export async function createPhoto(photo: Omit<Photo, "downloads" | "views" | "likes">): Promise<Photo | null> {
+  if (!isSupabaseConfigured) return null;
+
+  const { data, error } = await supabase!
+    .from("photos")
+    .insert({
+      id: photo.id,
+      title: photo.title,
+      photographer_id: photo.photographerId,
+      photographer_name: photo.photographer,
+      license: photo.license,
+      category: photo.category,
+      location: photo.location,
+      color: photo.color,
+      orientation: photo.orientation,
+      ratio: photo.ratio,
+      price: photo.price,
+      downloads: 0,
+      views: 0,
+      likes: 0,
+      camera: photo.camera,
+      lens: photo.lens,
+      iso: photo.iso,
+      keywords: photo.keywords,
+      image: photo.image,
+      uploaded_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) { console.error("createPhoto", error); return null; }
+  return rowToPhoto(data);
+}
+
+// ============================================================
+// PHOTOGRAPHER PROFILE (settings persistence)
+// ============================================================
+
+export interface PhotographerProfileSettings {
+  userId: string;
+  location: string;
+  specialty: string;
+  bio: string;
+  bankName: string;
+  bankAccountLast4: string;
+}
+
+export async function fetchPhotographerProfileSettings(userId: string): Promise<PhotographerProfileSettings | null> {
+  if (!isSupabaseConfigured) return null;
+
+  const { data } = await supabase!
+    .from("photographer_profiles")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!data) return null;
+  return {
+    userId: data.user_id,
+    location: data.location || "",
+    specialty: data.specialty || "",
+    bio: data.bio || "",
+    bankName: data.bank_name || "",
+    bankAccountLast4: data.bank_account_last4 || "",
+  };
+}
+
+export async function upsertPhotographerProfileSettings(settings: PhotographerProfileSettings): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+
+  const { error } = await supabase!
+    .from("photographer_profiles")
+    .upsert({
+      user_id: settings.userId,
+      location: settings.location,
+      specialty: settings.specialty,
+      bio: settings.bio,
+      bank_name: settings.bankName,
+      bank_account_last4: settings.bankAccountLast4,
+      updated_at: new Date().toISOString(),
+    });
+
+  if (error) { console.error("upsertPhotographerProfileSettings", error); return false; }
+  return true;
+}
+
+// ============================================================
 // INCREMENT PHOTO DOWNLOADS
 // ============================================================
 

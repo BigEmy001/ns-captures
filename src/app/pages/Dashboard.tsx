@@ -7,10 +7,11 @@ import {
 import {
   AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
+import exifr from "exifr";
 import { Eyebrow, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { photos as fallbackPhotos, briefs as fallbackBriefs, photographers as fallbackPhotographers, type Photo, type License, type Orientation } from "../data/photos";
-import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, type Payout } from "../data/db";
+import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
@@ -135,11 +136,17 @@ export function Dashboard() {
   // Form states for upload metadata
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadCategory, setUploadCategory] = useState("Portrait");
-  const [uploadLocation, setUploadLocation] = useState("Lagos, Nigeria");
-  const [uploadPrice, setUploadPrice] = useState("250");
+  const [uploadLocation, setUploadLocation] = useState("");
+  const [uploadPrice, setUploadPrice] = useState("1000");
   const [uploadFileName, setUploadFileName] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
+  const [uploadCamera, setUploadCamera] = useState("");
+  const [uploadLens, setUploadLens] = useState("");
+  const [uploadIso, setUploadIso] = useState(0);
+  const [exifFocalLength, setExifFocalLength] = useState("");
+  const [exifAperture, setExifAperture] = useState("");
+  const [exifShutterSpeed, setExifShutterSpeed] = useState("");
 
   // Accept brief state
   const [acceptedBriefs, setAcceptedBriefs] = useState<Record<string, boolean>>({});
@@ -147,16 +154,24 @@ export function Dashboard() {
 
   // Photographer profile inputs
   const [specialty, setSpecialty] = useState("Editorial");
-  const [location, setLocation] = useState("Lagos, Nigeria");
-  const [bio, setBio] = useState("Editorial and documentary photographer based in Lagos, drawn to unhurried portraits of everyday life across West Africa.");
+  const [location, setLocation] = useState("");
+  const [bio, setBio] = useState("");
+  const [profileSettingsLoaded, setProfileSettingsLoaded] = useState(false);
+  const [profileSettings, setProfileSettings] = useState<{ bankName: string; bankAccountLast4: string }>({ bankName: "", bankAccountLast4: "" });
 
   useEffect(() => {
-    if (photographerProfile) {
-      setSpecialty(photographerProfile.specialty);
-      setLocation(photographerProfile.location);
-      setBio(photographerProfile.bio || "");
+    if (user && !profileSettingsLoaded) {
+      fetchPhotographerProfileSettings(user.id).then((settings) => {
+        if (settings) {
+          setLocation(settings.location);
+          setSpecialty(settings.specialty);
+          setBio(settings.bio);
+          setProfileSettings({ bankName: settings.bankName, bankAccountLast4: settings.bankAccountLast4 });
+        }
+        setProfileSettingsLoaded(true);
+      }).catch(() => setProfileSettingsLoaded(true));
     }
-  }, [photographerProfile]);
+  }, [user, profileSettingsLoaded]);
 
   const handleDeletePhoto = (id: string) => {
     setPortfolioPhotos((prev) => prev.filter((p) => p.id !== id));
@@ -180,7 +195,7 @@ export function Dashboard() {
     processFile(file);
   };
 
-  const processFile = (file: File) => {
+  const processFile = async (file: File) => {
     clearPendingUploadWork();
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
@@ -191,6 +206,37 @@ export function Dashboard() {
     setUploadFileName(file.name);
     setUploadProgress(0);
     setUploadStep(1);
+
+    // Extract EXIF data from the file
+    let exifData = { camera: "", lens: "", iso: 0, focalLength: "", aperture: "", shutterSpeed: "", location: "" };
+    try {
+      const exif = await exifr.parse(file, true);
+      if (exif) {
+        exifData = {
+          camera: exif.Make && exif.Model ? `${exif.Make} ${exif.Model}` : (exif.Make || ""),
+          lens: exif.LensModel || exif.LensMake || "",
+          iso: exif.ISO || 0,
+          focalLength: exif.FocalLength ? `${exif.FocalLength}mm` : "",
+          aperture: exif.FNumber ? `f/${exif.FNumber}` : "",
+          shutterSpeed: exif.ExposureTime ? `1/${Math.round(1/exif.ExposureTime)}s` : "",
+          location: exif.GPSLatitude ? `${exif.GPSLatitude.toFixed(4)}°, ${exif.GPSLongitude.toFixed(4)}°` : "",
+        };
+      }
+    } catch (e) {
+      // EXIF extraction failed, continue without it
+    }
+
+    // Auto-fill metadata from EXIF
+    if (exifData.camera) setUploadCamera(exifData.camera);
+    if (exifData.lens) setUploadLens(exifData.lens);
+    if (exifData.iso) setUploadIso(exifData.iso);
+    if (exifData.focalLength) setExifFocalLength(exifData.focalLength);
+    if (exifData.aperture) setExifAperture(exifData.aperture);
+    if (exifData.shutterSpeed) setExifShutterSpeed(exifData.shutterSpeed);
+    if (exifData.location) setUploadLocation(exifData.location);
+    // Generate title from filename
+    const nameFromFilename = file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ").trim();
+    if (nameFromFilename) setUploadTitle(nameFromFilename);
 
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -275,13 +321,16 @@ export function Dashboard() {
     }
   };
 
-  const handlePublishPhoto = (e: React.FormEvent) => {
+  const handlePublishPhoto = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploadStep(3);
 
-    const imageUrl = uploadedImageUrl || "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080";
-    if (objectUrlRef.current === imageUrl) objectUrlRef.current = null;
-    
+    const imageUrl = uploadedImageUrl;
+    if (!imageUrl) {
+      toast.error("Please upload an image first");
+      return;
+    }
+
     const newPhotoId = "upload-" + Date.now();
     const newPhotoItem: Photo = {
       id: newPhotoId,
@@ -290,22 +339,30 @@ export function Dashboard() {
       photographer: user?.name || "Unknown Photographer",
       license: "COMMERCIAL",
       category: uploadCategory,
-      location: uploadLocation || "Lagos, Nigeria",
+      location: uploadLocation || "",
       color: "#9a6b3f",
       orientation: "portrait",
       ratio: "aspect-[4/5]",
-      price: Number(uploadPrice) || 250,
+      price: Math.max(Number(uploadPrice) || 1000, 1000),
       downloads: 0,
       views: 0,
       likes: 0,
-      camera: "Canon EOS R5",
-      lens: "85mm f/1.4",
-      iso: 100,
-      keywords: ["portrait", "studio", "new-release"],
+      camera: uploadCamera || "",
+      lens: uploadLens || "",
+      iso: uploadIso || 0,
+      keywords: [uploadCategory.toLowerCase(), "new-release"],
       image: imageUrl,
     };
 
-    setPortfolioPhotos((prev) => [newPhotoItem, ...prev]);
+    // Save to Supabase
+    const saved = await createPhoto(newPhotoItem);
+    if (saved) {
+      setPortfolioPhotos((prev) => [saved, ...prev]);
+    } else {
+      // Fallback: add locally if Supabase fails
+      setPortfolioPhotos((prev) => [newPhotoItem, ...prev]);
+    }
+
     toast.success("Photo published!", {
       description: `"${uploadTitle || "Untitled Frame"}" is now visible under your portfolio.`,
     });
@@ -330,14 +387,20 @@ export function Dashboard() {
     }
     setUploadTitle("");
     setUploadCategory("Portrait");
-    setUploadLocation("Lagos, Nigeria");
-    setUploadPrice("250");
+    setUploadLocation("");
+    setUploadPrice("1000");
     setUploadFileName("");
     setUploadProgress(0);
     setUploadFile(null);
     setUploadedImageUrl("");
     setUploadStep(1);
     setUploadOpen(false);
+    setUploadCamera("");
+    setUploadLens("");
+    setUploadIso(0);
+    setExifFocalLength("");
+    setExifAperture("");
+    setExifShutterSpeed("");
   };
 
   const handlePriceUpdate = async (photoId: string) => {
@@ -503,7 +566,11 @@ export function Dashboard() {
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
                   <h3 className="mb-4 font-serif text-lg text-[#18211f]">Top performing</h3>
                   <div className="space-y-2">
-                    {photos.slice(0, 4).map((p, i) => (
+                    {portfolioPhotos
+                      .filter((p) => p.photographerId === photographerId)
+                      .sort((a, b) => b.downloads - a.downloads)
+                      .slice(0, 4)
+                      .map((p, i) => (
                       <div
                         key={p.id}
                         className="flex items-center gap-4 hover:bg-[#FAF9F5] p-2.5 -mx-2.5 rounded-xl transition-all duration-200 group"
@@ -812,11 +879,13 @@ export function Dashboard() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1">
                     <p className="font-mono text-[9px] text-[#758078] uppercase">Bank Account Name</p>
-                    <p className="text-sm font-semibold text-[#18211f]">{user?.name || "Photographer"} Studios</p>
+                    <p className="text-sm font-semibold text-[#18211f]">{user?.name || "Photographer"}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="font-mono text-[9px] text-[#758078] uppercase">Zenith Bank account</p>
-                    <p className="text-sm font-semibold text-[#18211f]">**** 7891 (Nigeria)</p>
+                    <p className="font-mono text-[9px] text-[#758078] uppercase">Bank Account</p>
+                    <p className="text-sm font-semibold text-[#18211f]">
+                      {profileSettings.bankAccountLast4 ? `**** ${profileSettings.bankAccountLast4}` : "Not configured — add in Settings"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -885,7 +954,22 @@ export function Dashboard() {
                 </label>
                 <div className="flex justify-end pt-4">
                   <button
-                    onClick={() => toast.success("Settings saved successfully!")}
+                    onClick={async () => {
+                      if (user) {
+                        const ok = await upsertPhotographerProfileSettings({
+                          userId: user.id,
+                          location,
+                          specialty,
+                          bio,
+                          bankName: "",
+                          bankAccountLast4: "",
+                        });
+                        if (ok) toast.success("Settings saved to database");
+                        else toast.success("Settings saved");
+                      } else {
+                        toast.success("Settings saved");
+                      }
+                    }}
                     className="bg-[#1e4a3f] hover:bg-[#123b31] px-6 py-3 text-sm font-semibold text-white rounded-full transition-all duration-200 cursor-pointer shadow-md"
                   >
                     Save modifications
@@ -991,17 +1075,25 @@ export function Dashboard() {
                   <form onSubmit={handlePublishPhoto} className="space-y-5">
                     <div className="flex items-center gap-4 bg-[#FAF9F5] p-3 rounded-xl border border-[#ececec]/60">
                       <img
-                        src={uploadedImageUrl || "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150&h=150"}
+                        src={uploadedImageUrl || ""}
                         alt="Preview"
                         loading="lazy"
                         className="size-16 object-cover rounded-lg shadow"
                       />
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-[#18211f] truncate">{uploadFileName}</p>
-                        <p className="text-[10px] text-[#758078] font-mono mt-0.5">54.2 MB · RAW file</p>
-                        <div className="flex gap-2 mt-1.5 font-mono text-[9px] text-[#1e7a4f] bg-[#dce8df] px-2 py-0.5 rounded-full w-fit font-bold">
-                          <Check className="size-3" /> EXIF data read successful
-                        </div>
+                        <p className="text-[10px] text-[#758078] font-mono mt-0.5">
+                          {uploadFile ? `${(uploadFile.size / (1024 * 1024)).toFixed(1)} MB · ${uploadFile.type.split("/")[1]?.toUpperCase() || "Image"}` : "Processing..."}
+                        </p>
+                        {uploadCamera || uploadLens ? (
+                          <div className="flex gap-2 mt-1.5 font-mono text-[9px] text-[#1e7a4f] bg-[#dce8df] px-2 py-0.5 rounded-full w-fit font-bold">
+                            <Check className="size-3" /> EXIF data extracted
+                          </div>
+                        ) : (
+                          <div className="flex gap-2 mt-1.5 font-mono text-[9px] text-[#758078] bg-[#ececec] px-2 py-0.5 rounded-full w-fit">
+                            No EXIF data — fill fields manually
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1061,17 +1153,17 @@ export function Dashboard() {
                         <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
                           <div className="flex items-center gap-1.5 text-[#4a534e]">
                             <Camera className="size-3.5 text-[#1e4a3f]" />
-                            <span>Canon EOS R5</span>
+                            <span>{uploadCamera || "Not detected"}</span>
                           </div>
                           <div className="flex items-center gap-1.5 text-[#4a534e]">
                             <Aperture className="size-3.5 text-[#1e4a3f]" />
-                            <span>85mm f/1.4</span>
+                            <span>{uploadLens || "Not detected"}</span>
                           </div>
                           <div className="text-[#4a534e] font-mono text-[11px]">
-                            ISO 100 · f/2.0 · 1/250s
+                            {uploadIso ? `ISO ${uploadIso}` : "ISO —"} {exifAperture ? `· ${exifAperture}` : ""} {exifShutterSpeed ? `· ${exifShutterSpeed}` : ""}
                           </div>
                           <div className="text-[#4a534e] font-mono text-[11px]">
-                            Color: sRGB · 45.0 Megapixel
+                            {exifFocalLength ? `Focal: ${exifFocalLength}` : "Focal —"}
                           </div>
                         </div>
                       </div>
