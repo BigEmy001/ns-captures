@@ -117,6 +117,20 @@ const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
       "downloadsLeft": "N/A"
 }
   },
+    "lexmond@ns.co": {
+    password: "password123",
+    user: {
+      "id": "U-1092",
+      "name": "Lexmond Dennis",
+      "email": "lexmond@ns.co",
+      "role": "Photographer",
+      "plan": "Contributor",
+      "company": "Lexmond Dennis Photography",
+      "avatar": "https://res.cloudinary.com/odu5iecy/image/upload/v1784205071/ns-captures-lexmond/lexmond_photo_2.jpg",
+      "memberSince": "Jul 2026",
+      "downloadsLeft": "N/A"
+}
+  },
   // MIGRATED_USERS_END
 };
 
