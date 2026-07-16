@@ -792,7 +792,7 @@ export function Dashboard() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1">
                     <p className="font-mono text-[9px] text-[#758078] uppercase">Bank Account Name</p>
-                    <p className="text-sm font-semibold text-[#18211f]">Namnso Ukpanah Studios</p>
+                    <p className="text-sm font-semibold text-[#18211f]">{user?.name || "Photographer"} Studios</p>
                   </div>
                   <div className="space-y-1">
                     <p className="font-mono text-[9px] text-[#758078] uppercase">Zenith Bank account</p>
