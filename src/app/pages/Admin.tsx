@@ -101,6 +101,22 @@ export function Admin() {
   const [adminUsersList, setAdminUsersList] = useState(adminUsers);
   const [assetsList, setAssetsList] = useState(photos);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const changeUserRole = useCallback((userId: string, newRole: AdminUser["role"]) => {
+    setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
+    toast.success(`Role updated to ${newRole}`);
+  }, []);
+
+  const changeUserStatus = useCallback((userId: string, newStatus: AdminUser["status"]) => {
+    setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, status: newStatus } : u));
+    toast.success(`Status updated to ${newStatus}`);
+  }, []);
+
+  const deleteAsset = useCallback((photoId: string) => {
+    if (confirm("Delete this asset permanently?")) {
+      setAssetsList((prev) => prev.filter((p) => p.id !== photoId));
+      toast.success("Asset deleted");
+    }
+  }, []);
 
   const handleRoleChange = useCallback((userId: string, newRole: AdminUser["role"]) => {
     changeUserRole(userId, newRole);
@@ -138,23 +154,6 @@ export function Admin() {
   const filteredLogs = logFilter === "all"
     ? mockLogs
     : mockLogs.filter((l) => l.level === logFilter);
-
-  const changeUserRole = useCallback((userId: string, newRole: AdminUser["role"]) => {
-    setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
-    toast.success(`Role updated to ${newRole}`);
-  }, []);
-
-  const changeUserStatus = useCallback((userId: string, newStatus: AdminUser["status"]) => {
-    setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, status: newStatus } : u));
-    toast.success(`Status updated to ${newStatus}`);
-  }, []);
-
-  const deleteAsset = (photoId: string) => {
-    if (confirm("Delete this asset permanently?")) {
-      setAssetsList((prev) => prev.filter((p) => p.id !== photoId));
-      toast.success("Asset deleted");
-    }
-  };
 
   const handleSettingsSave = () => {
     toast.success("Settings saved");
