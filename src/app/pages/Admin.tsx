@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import {
   LayoutDashboard, Users, Image as ImageIcon, ShieldAlert, DollarSign, FileBarChart,
   Check, X, MoreHorizontal, Search, Filter, Trash2, Settings, Logs, Building2, UserCheck, UserX,
-  Download, Eye, Edit, ChevronDown, ArrowUpRight, Mail, Key, FolderHeart, Heart, LogOut,
+  Download, Eye, Edit, ChevronDown, Mail, Key, FolderHeart, Heart, LogOut,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -13,7 +13,7 @@ import { Eyebrow, Badge, Button } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { useAuth } from "../context/AuthContext";
 import { adminUsers as fallbackAdminUsers, moderationQueue as fallbackModerationQueue, getPhoto, photos as fallbackPhotos, type AdminUser, type ModerationItem } from "../data/photos";
-import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, type SiteSettingsRow, type Payout, type Purchase } from "../data/db";
+import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry } from "../data/db";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -24,16 +24,6 @@ const nav = [
   { id: "reports", label: "Reports", icon: FileBarChart },
   { id: "logs", label: "System Logs", icon: Logs },
   { id: "settings", label: "Settings", icon: Settings },
-];
-
-const growth = [
-  { m: "Jan", v: 4200 }, { m: "Feb", v: 5100 }, { m: "Mar", v: 6400 },
-  { m: "Apr", v: 7200 }, { m: "May", v: 9100 }, { m: "Jun", v: 10800 }, { m: "Jul", v: 12400 },
-];
-
-const revenueGrowth = [
-  { m: "Jan", v: 42000 }, { m: "Feb", v: 58000 }, { m: "Mar", v: 72000 },
-  { m: "Apr", v: 89000 }, { m: "May", v: 112000 }, { m: "Jun", v: 138000 }, { m: "Jul", v: 142000 },
 ];
 
 const statusTone = (s: AdminUser["status"]) =>
@@ -52,19 +42,6 @@ const CustomTooltip = ({ active, payload, label, prefix = "" }: any) => {
   }
   return null;
 };
-
-const mockLogs = [
-  { id: "LOG-001", time: "2026-07-13 08:23", level: "INFO", source: "Auth", message: "User login: amara@mainlandstudio.co" },
-  { id: "LOG-002", time: "2026-07-13 08:15", level: "INFO", source: "Payments", message: "Stripe webhook: payment_intent.succeeded for INV-2041" },
-  { id: "LOG-003", time: "2026-07-13 07:45", level: "WARN", source: "Moderation", message: "Asset M-302 flagged for keyword review" },
-  { id: "LOG-004", time: "2026-07-13 07:30", level: "ERROR", source: "Storage", message: "CDN cache purge failed for asset generated-1506744038136-46273834b3fb" },
-  { id: "LOG-005", time: "2026-07-13 06:55", level: "INFO", source: "Auth", message: "Password reset requested: divine@studio.ng" },
-  { id: "LOG-006", time: "2026-07-13 06:12", level: "INFO", source: "Upload", message: "New asset uploaded: bloom-study-no-12 by Namnso Ukpanah" },
-  { id: "LOG-007", time: "2026-07-13 05:40", level: "INFO", source: "Payments", message: "Payout processed: PAY-9041 to Namnso Ukpanah Studios ($3,600)" },
-  { id: "LOG-008", time: "2026-07-13 04:20", level: "WARN", source: "RateLimit", message: "IP 192.168.1.45 exceeded API rate limit" },
-  { id: "LOG-009", time: "2026-07-13 03:55", level: "INFO", source: "Auth", message: "New signup: user@agency.com (Buyer)" },
-  { id: "LOG-010", time: "2026-07-13 02:10", level: "INFO", source: "Cron", message: "Daily analytics aggregation completed" },
-];
 
 const logLevelColor = (level: string) =>
   level === "ERROR" ? "text-[#d4183d] bg-[#fcf1f3]" : level === "WARN" ? "text-[#e67e22] bg-[#fef3e2]" : "text-[#1e7a4f] bg-[#eef7f0]";
@@ -104,6 +81,10 @@ export function Admin() {
   const [adminPurchases, setAdminPurchases] = useState<Purchase[]>([]);
   const [platformRevenue, setPlatformRevenue] = useState(0);
   const [platformStats, setPlatformStats] = useState({ totalUsers: 0, photographers: 0, assets: 0, revenue: 0 });
+  const [userGrowth, setUserGrowth] = useState<{ m: string; v: number }[]>([]);
+  const [revenueGrowth, setRevenueGrowth] = useState<{ m: string; v: number }[]>([]);
+  const [adminLogs, setAdminLogs] = useState<AdminLogEntry[]>([]);
+  const [categoryStats, setCategoryStats] = useState<{ name: string; downloads: number }[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -123,6 +104,10 @@ export function Admin() {
       if (purchases) setAdminPurchases(purchases);
       if (stats) { setPlatformRevenue(stats.revenue); setPlatformStats(stats); }
     });
+    fetchUserGrowthPerMonth().then(setUserGrowth).catch(() => {});
+    fetchMonthlyRevenue().then(setRevenueGrowth).catch(() => {});
+    fetchAdminLogs().then(setAdminLogs).catch(() => {});
+    fetchCategoryStats().then(setCategoryStats).catch(() => {});
   }, []);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
@@ -181,8 +166,8 @@ export function Admin() {
   );
 
   const filteredLogs = logFilter === "all"
-    ? mockLogs
-    : mockLogs.filter((l) => l.level === logFilter);
+    ? adminLogs
+    : adminLogs.filter((l) => l.level === logFilter);
 
   const handleSettingsSave = async () => {
     const ok = await updateSiteSettings(siteSettingsState);
@@ -249,19 +234,14 @@ export function Admin() {
             <div className="mt-8 space-y-6">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[
-                  { label: "TOTAL USERS", value: platformStats.totalUsers.toLocaleString(), delta: "+3.2%" },
-                  { label: "PHOTOGRAPHERS", value: platformStats.photographers.toLocaleString(), delta: "+1.8%" },
-                  { label: "ASSETS", value: platformStats.assets.toLocaleString(), delta: "+4.1%" },
-                  { label: "REVENUE (MTD)", value: `$${platformRevenue.toLocaleString()}`, delta: "+8.5%" },
+                  { label: "TOTAL USERS", value: platformStats.totalUsers.toLocaleString() },
+                  { label: "PHOTOGRAPHERS", value: platformStats.photographers.toLocaleString() },
+                  { label: "ASSETS", value: platformStats.assets.toLocaleString() },
+                  { label: "REVENUE (MTD)", value: `$${platformRevenue.toLocaleString()}` },
                 ].map((s) => (
                   <div key={s.label} className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{s.label}</p>
                     <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">{s.value}</p>
-                    <div className="mt-3">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#dce8df] px-2 py-0.5 font-mono text-[10px] font-semibold text-[#1e7a4f]">
-                        <ArrowUpRight className="size-3" /> {s.delta}
-                      </span>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -272,7 +252,7 @@ export function Admin() {
                     <Badge>2026</Badge>
                   </div>
                   <ResponsiveContainer width="100%" height={260}>
-                    <AreaChart data={growth}>
+                    <AreaChart data={userGrowth}>
                       <defs>
                         <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#1e4a3f" stopOpacity={0.25} />
@@ -310,13 +290,7 @@ export function Admin() {
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
                   <h3 className="mb-4 font-serif text-lg text-[#18211f]">Top categories by downloads</h3>
                   <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={[
-                      { name: "Portrait", downloads: 4200 },
-                      { name: "Architecture", downloads: 3100 },
-                      { name: "Fashion", downloads: 2400 },
-                      { name: "Lifestyle", downloads: 1800 },
-                      { name: "Documentary", downloads: 1200 },
-                    ]}>
+                    <BarChart data={categoryStats}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
                       <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
@@ -612,25 +586,11 @@ export function Admin() {
                           </td>
                           <td className="px-6 py-4 text-right text-[#6b716d]">{p.method}</td>
                         </tr>
-                      )) : [
-                        { id: "PAY-9043", date: "Jul 16, 2026", photographer: "Lexmond Dennis", amount: "$240", status: "PENDING", method: "Zenith Bank" },
-                        { id: "PAY-9042", date: "Jul 16, 2026", photographer: "Patrick Watson Quine", amount: "$150", status: "PENDING", method: "Zenith Bank" },
-                        { id: "PAY-9041", date: "Jul 01, 2026", photographer: "Namnso Ukpanah", amount: "$3,600", status: "SUCCESSFUL", method: "Zenith Bank" },
-                        { id: "PAY-8038", date: "Jun 01, 2026", photographer: "Divine Effiong", amount: "$2,850", status: "SUCCESSFUL", method: "Zenith Bank" },
-                        { id: "PAY-7033", date: "May 01, 2026", photographer: "Prince Akachi", amount: "$3,120", status: "SUCCESSFUL", method: "Access Bank" },
-                        { id: "PAY-6021", date: "Apr 01, 2026", photographer: "Godfred Kwakye", amount: "$1,950", status: "SUCCESSFUL", method: "GTBank" },
-                      ].map((p) => (
-                        <tr key={p.id} className="hover:bg-[#FAF9F5] transition duration-150">
-                          <td className="px-6 py-4 font-semibold text-[#18211f]">{p.id}</td>
-                          <td className="px-6 py-4 text-[#6b716d]">{p.date}</td>
-                          <td className="px-6 py-4 text-[#6b716d]">{p.photographer}</td>
-                          <td className="px-6 py-4 text-[#18211f] font-semibold">{p.amount}</td>
-                          <td className="px-6 py-4">
-                            <span className="bg-[#dce8df] text-[#1e7a4f] px-2 py-0.5 rounded-full font-bold text-[9px]">{p.status}</span>
-                          </td>
-                          <td className="px-6 py-4 text-right text-[#6b716d]">{p.method}</td>
+                      )) : (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-8 text-center text-sm text-[#6b716d]">No payouts yet</td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -817,6 +777,11 @@ interface AdminUserModalProps {
 
 function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, onDeleteAsset }: AdminUserModalProps) {
   const isPhotographer = user.role === "Photographer";
+  const [userPurchasesList, setUserPurchasesList] = useState<Purchase[]>([]);
+
+  useEffect(() => {
+    fetchPurchases(user.id).then(setUserPurchasesList).catch(() => {});
+  }, [user.id]);
   
   // Robustly query photographer photos using ID, name, or slug match
   const userPhotos = assets.filter((p) =>
@@ -832,20 +797,6 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
 
   const planName = user.role === "Enterprise" ? "Enterprise" : user.role === "Buyer" ? "Pro" : "Contributor";
   const isBuyerOrEnterprise = user.role === "Buyer" || user.role === "Enterprise";
-
-  const userPurchasesMock = user.id === "U-1042" ? [
-    { id: "INV-2041", title: "Light on Lagos", photoId: "lagos-skyline", license: "COMMERCIAL", price: 190, date: "Jul 09, 2026" },
-    { id: "INV-2038", title: "The in-between", photoId: "smiling-black-top", license: "EXTENDED", price: 768, date: "Jul 02, 2026" },
-    { id: "INV-2033", title: "Ceremony", photoId: "orange-headdress", license: "EDITORIAL", price: 476, date: "Jun 21, 2026" },
-  ] : [
-    { id: "INV-1092", title: "Sands of Time", photoId: "desert-road", license: "ROYALTY FREE", price: 210, date: "Jun 12, 2026" },
-    { id: "INV-1087", title: "Grid, monochrome", photoId: "lagos-bw-skyline", license: "EDITORIAL", price: 250, date: "May 28, 2026" },
-  ];
-
-  const userCollectionsMock = [
-    { id: "c1", name: "Modern Minimalist", count: 8 },
-    { id: "c2", name: "Warm Portraits", count: 14 },
-  ];
 
   return (
     <div className="fixed inset-0 z-55 flex items-center justify-end bg-[#16231f]/55 backdrop-blur-sm" onClick={onClose}>
@@ -1014,14 +965,18 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#ececec]/60">
-                      {userPurchasesMock.map((pur) => (
+                      {userPurchasesList.length > 0 ? userPurchasesList.map((pur) => (
                         <tr key={pur.id} className="hover:bg-[#FAF9F5] transition duration-150">
                           <td className="px-4 py-3 font-semibold text-[#18211f]">{pur.id}</td>
                           <td className="px-4 py-3 text-[#6b716d] max-w-[120px] truncate" title={pur.title}>{pur.title}</td>
                           <td className="px-4 py-3"><Badge tone="muted" size="sm">{pur.license}</Badge></td>
                           <td className="px-4 py-3 text-right font-semibold text-[#18211f]">${pur.price}</td>
                         </tr>
-                      ))}
+                      )) : (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-6 text-center text-xs text-[#6b716d]">No purchases yet</td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1029,17 +984,10 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
 
               {/* Collections */}
               <div>
-                <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">Active Collections ({userCollectionsMock.length})</p>
-                <div className="grid gap-3 grid-cols-2">
-                  {userCollectionsMock.map((c) => (
-                    <div key={c.id} className="border border-[#ececec] bg-white p-4 rounded-xl shadow-sm hover:border-[#1e4a3f]/20 transition-all">
-                      <div className="flex items-center gap-2">
-                        <FolderHeart className="size-4 text-[#1e4a3f]" />
-                        <h5 className="font-serif font-semibold text-sm text-[#18211f] truncate" title={c.name}>{c.name}</h5>
-                      </div>
-                      <p className="mt-1 font-mono text-[9px] text-[#758078] uppercase">{c.count} items curated</p>
-                    </div>
-                  ))}
+                <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">Active Collections</p>
+                <div className="border border-dashed border-[#ececec] bg-white p-6 rounded-2xl text-center">
+                  <FolderHeart className="size-6 text-[#9aa09b] mx-auto mb-2" />
+                  <p className="text-xs text-[#6b716d]">No collections yet</p>
                 </div>
               </div>
             </div>

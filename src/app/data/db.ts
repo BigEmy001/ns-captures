@@ -896,3 +896,304 @@ export async function createContributorInterest(email: string): Promise<boolean>
   await logActivity({ userId: `CONTRIBUTE-${email}`, type: "contribute", title: "Contributor application", desc: email });
   return true;
 }
+
+// ============================================================
+// ADMIN: ACTIVITY LOGS (system logs from activity_log)
+// ============================================================
+
+export interface AdminLogEntry {
+  id: string;
+  time: string;
+  level: string;
+  source: string;
+  message: string;
+}
+
+export async function fetchAdminLogs(limit = 50): Promise<AdminLogEntry[]> {
+  if (!isSupabaseConfigured) return [];
+
+  const { data, error } = await supabase!
+    .from("activity_log")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  return data.map((r: any) => ({
+    id: r.id,
+    time: r.created_at ? new Date(r.created_at).toLocaleString() : "",
+    level: r.type === "error" ? "ERROR" : r.type === "warning" ? "WARN" : "INFO",
+    source: r.type === "purchase" ? "Payments" : r.type === "auth" ? "Auth" : r.type === "upload" ? "Upload" : r.type === "contribute" ? "Auth" : "System",
+    message: r.desc || r.title || "",
+  }));
+}
+
+// ============================================================
+// ADMIN: MONTHLY GROWTH (user signups by month)
+// ============================================================
+
+export async function fetchMonthlyGrowth(): Promise<{ m: string; v: number }[]> {
+  if (!isSupabaseConfigured) return [];
+
+  const { data } = await supabase!
+    .from("profiles")
+    .select("created_at");
+
+  if (!data || data.length === 0) return [];
+
+  const months: Record<string, number> = {};
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  data.forEach((r: any) => {
+    const d = new Date(r.created_at);
+    const key = monthNames[d.getMonth()] + " " + d.getFullYear();
+    months[key] = (months[key] || 0) + 1;
+  });
+
+  return Object.entries(months).map(([m, v]) => ({ m, v }));
+}
+
+// ============================================================
+// ADMIN: MONTHLY REVENUE (purchases by month)
+// ============================================================
+
+export async function fetchMonthlyRevenue(): Promise<{ m: string; v: number }[]> {
+  if (!isSupabaseConfigured) return [];
+
+  const { data } = await supabase!
+    .from("purchases")
+    .select("price, date");
+
+  if (!data || data.length === 0) return [];
+
+  const months: Record<string, number> = {};
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  data.forEach((r: any) => {
+    const d = new Date(r.date);
+    const key = monthNames[d.getMonth()] + " " + d.getFullYear();
+    months[key] = (months[key] || 0) + (r.price || 0);
+  });
+
+  return Object.entries(months).map(([m, v]) => ({ m, v }));
+}
+
+// ============================================================
+// ADMIN: CATEGORY STATS (downloads by category)
+// ============================================================
+
+export async function fetchCategoryStats(): Promise<{ name: string; downloads: number }[]> {
+  if (!isSupabaseConfigured) return [];
+
+  const { data } = await supabase!
+    .from("photos")
+    .select("category, downloads");
+
+  if (!data || data.length === 0) return [];
+
+  const cats: Record<string, number> = {};
+  data.forEach((r: any) => {
+    cats[r.category] = (cats[r.category] || 0) + (r.downloads || 0);
+  });
+
+  return Object.entries(cats)
+    .map(([name, downloads]) => ({ name, downloads }))
+    .sort((a, b) => b.downloads - a.downloads);
+}
+
+// ============================================================
+// ADMIN: USER GROWTH PER MONTH (for chart)
+// ============================================================
+
+export async function fetchUserGrowthPerMonth(): Promise<{ m: string; v: number }[]> {
+  if (!isSupabaseConfigured) return [];
+
+  const { data } = await supabase!
+    .from("profiles")
+    .select("created_at");
+
+  if (!data || data.length === 0) return [];
+
+  const months: Record<string, number> = {};
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  // Cumulative growth
+  const sorted = data.map((r: any) => new Date(r.created_at).getTime()).sort((a, b) => a - b);
+  let cumulative = 0;
+  const monthlyCounts: Record<string, number> = {};
+
+  sorted.forEach((ts) => {
+    const d = new Date(ts);
+    const key = monthNames[d.getMonth()] + " " + d.getFullYear();
+    monthlyCounts[key] = (monthlyCounts[key] || 0) + 1;
+  });
+
+  // Build cumulative array
+  const allMonths = Object.keys(monthlyCounts);
+  allMonths.forEach((m) => {
+    cumulative += monthlyCounts[m];
+    months[m] = cumulative;
+  });
+
+  return Object.entries(months).map(([m, v]) => ({ m, v }));
+}
+
+// ============================================================
+// DASHBOARD: PHOTOGRAPHER STATS
+// ============================================================
+
+export async function fetchPhotographerStats(photographerId: string): Promise<{
+  totalRevenue: number;
+  totalDownloads: number;
+  totalViews: number;
+  totalLikes: number;
+  photoCount: number;
+  avgPrice: number;
+}> {
+  if (!isSupabaseConfigured) return { totalRevenue: 0, totalDownloads: 0, totalViews: 0, totalLikes: 0, photoCount: 0, avgPrice: 0 };
+
+  const { data: photos } = await supabase!
+    .from("photos")
+    .select("downloads, views, likes, price")
+    .eq("photographer_id", photographerId);
+
+  if (!photos || photos.length === 0) return { totalRevenue: 0, totalDownloads: 0, totalViews: 0, totalLikes: 0, photoCount: 0, avgPrice: 0 };
+
+  const totalDownloads = photos.reduce((s: number, p: any) => s + (p.downloads || 0), 0);
+  const totalViews = photos.reduce((s: number, p: any) => s + (p.views || 0), 0);
+  const totalLikes = photos.reduce((s: number, p: any) => s + (p.likes || 0), 0);
+  const avgPrice = photos.reduce((s: number, p: any) => s + (p.price || 0), 0) / photos.length;
+
+  // Revenue from purchases where this photographer's photos were bought
+  const { data: purchases } = await supabase!
+    .from("purchases")
+    .select("price, photo_id");
+
+  const photoIds = new Set(photos.map((p: any) => p.id));
+  const totalRevenue = (purchases || [])
+    .filter((p: any) => photoIds.has(p.photo_id))
+    .reduce((s: number, p: any) => s + (p.price || 0), 0);
+
+  return { totalRevenue, totalDownloads, totalViews, totalLikes, photoCount: photos.length, avgPrice: Math.round(avgPrice) };
+}
+
+// ============================================================
+// DASHBOARD: MONTHLY REVENUE FOR PHOTOGRAPHER
+// ============================================================
+
+export async function fetchPhotographerMonthlyRevenue(photographerId: string): Promise<{ m: string; v: number }[]> {
+  if (!isSupabaseConfigured) return [];
+
+  // Get photographer's photo IDs
+  const { data: photos } = await supabase!
+    .from("photos")
+    .select("id")
+    .eq("photographer_id", photographerId);
+
+  if (!photos || photos.length === 0) return [];
+
+  const photoIds = photos.map((p: any) => p.id);
+
+  const { data: purchases } = await supabase!
+    .from("purchases")
+    .select("price, date, photo_id")
+    .in("photo_id", photoIds);
+
+  if (!purchases || purchases.length === 0) return [];
+
+  const months: Record<string, number> = {};
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  purchases.forEach((r: any) => {
+    const d = new Date(r.date);
+    const key = monthNames[d.getMonth()] + " " + d.getFullYear();
+    months[key] = (months[key] || 0) + (r.price || 0);
+  });
+
+  return Object.entries(months).map(([m, v]) => ({ m, v }));
+}
+
+// ============================================================
+// DASHBOARD: WEEKLY DOWNLOADS FOR PHOTOGRAPHER
+// ============================================================
+
+export async function fetchPhotographerWeeklyDownloads(photographerId: string): Promise<{ m: string; v: number }[]> {
+  if (!isSupabaseConfigured) return [];
+
+  const { data: photos } = await supabase!
+    .from("photos")
+    .select("id, downloads")
+    .eq("photographer_id", photographerId);
+
+  if (!photos || photos.length === 0) return [];
+
+  // Approximate weekly distribution from total downloads
+  const total = photos.reduce((s: number, p: any) => s + (p.downloads || 0), 0);
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  // Distribute roughly with weekend lower
+  const weights = [0.16, 0.15, 0.14, 0.15, 0.16, 0.12, 0.12];
+  return days.map((d, i) => ({ m: d, v: Math.round(total * weights[i] / 7) }));
+}
+
+// ============================================================
+// DASHBOARD: TOP CATEGORIES FOR PHOTOGRAPHER
+// ============================================================
+
+export async function fetchPhotographerTopCategories(photographerId: string): Promise<{ name: string; pct: string }[]> {
+  if (!isSupabaseConfigured) return [];
+
+  const { data: photos } = await supabase!
+    .from("photos")
+    .select("category, downloads")
+    .eq("photographer_id", photographerId);
+
+  if (!photos || photos.length === 0) return [];
+
+  const cats: Record<string, number> = {};
+  photos.forEach((r: any) => {
+    cats[r.category] = (cats[r.category] || 0) + (r.downloads || 0);
+  });
+
+  const total = Object.values(cats).reduce((s, v) => s + v, 0) || 1;
+
+  return Object.entries(cats)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => ({ name, pct: `${Math.round((count / total) * 100)}%` }));
+}
+
+// ============================================================
+// ACCOUNT: USER PURCHASE STATS
+// ============================================================
+
+export async function fetchUserPurchaseStats(userId: string): Promise<{
+  totalSpent: number;
+  totalPurchases: number;
+  totalLicenses: number;
+  recentPurchases: Purchase[];
+}> {
+  if (!isSupabaseConfigured) return { totalSpent: 0, totalPurchases: 0, totalLicenses: 0, recentPurchases: [] };
+
+  const { data: purchases } = await supabase!
+    .from("purchases")
+    .select("*")
+    .eq("user_id", userId)
+    .order("date", { ascending: false });
+
+  const { data: licenses } = await supabase!
+    .from("licenses")
+    .select("id")
+    .eq("user_id", userId);
+
+  const totalSpent = (purchases || []).reduce((s: number, p: any) => s + (p.price || 0), 0);
+
+  return {
+    totalSpent,
+    totalPurchases: (purchases || []).length,
+    totalLicenses: (licenses || []).length,
+    recentPurchases: (purchases || []).slice(0, 5).map((r: any) => ({
+      id: r.id, userId: r.user_id, photoId: r.photo_id, license: r.license, price: r.price, date: r.date,
+    })),
+  };
+}

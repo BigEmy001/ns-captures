@@ -4,8 +4,7 @@ import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Be
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
-import { userCollections } from "../data/photos";
-import { fetchPhoto, fetchPurchases, fetchLicenses, fetchActivity, type Purchase, type LicenseRecord, type ActivityLogItem } from "../data/db";
+import { fetchPhoto, fetchPurchases, fetchLicenses, fetchActivity, fetchUserPurchaseStats, fetchUserSavedPhotoIds, type Purchase, type LicenseRecord, type ActivityLogItem } from "../data/db";
 import type { Photo } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
@@ -46,6 +45,8 @@ export function Account() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [licenses, setLicenses] = useState<LicenseRecord[]>([]);
   const [activity, setActivity] = useState<ActivityLogItem[]>([]);
+  const [purchaseStats, setPurchaseStats] = useState({ totalSpent: 0, totalPurchases: 0, totalLicenses: 0, recentPurchases: [] });
+  const [savedPhotoIds, setSavedPhotoIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -59,12 +60,16 @@ export function Account() {
       if (licenses) setLicenses(licenses);
       if (activity) setActivity(activity);
     });
+
+    fetchUserPurchaseStats(user.id).then(setPurchaseStats).catch(() => {});
+    fetchUserSavedPhotoIds(user.id).then(setSavedPhotoIds).catch(() => {});
   }, [user?.id]);
 
   useEffect(() => {
     const allPhotoIds = new Set([
       ...purchases.map((p) => p.photoId),
       ...licenses.map((l) => l.photoId),
+      ...savedPhotoIds,
     ]);
     allPhotoIds.forEach(async (id) => {
       try {
@@ -75,7 +80,7 @@ export function Account() {
         }
       } catch {}
     });
-  }, [purchases, licenses]);
+  }, [purchases, licenses, savedPhotoIds]);
 
   const handleProfileSave = async () => {
     if (isAuthenticated) {
@@ -147,8 +152,9 @@ export function Account() {
           {/* Profile Header Cover */}
           <div className="relative h-44 w-full rounded-2xl overflow-hidden mb-8 shadow-sm border border-[#ececec]/80">
             <img
-              src="https://images.unsplash.com/photo-1559833064-6f4573ec1ac9?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1200"
-              alt="Marina Midday"
+              src={user?.avatar || ""}
+              alt=""
+              loading="lazy"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
@@ -185,8 +191,8 @@ export function Account() {
               <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
                 {[
                   { label: "PLAN", value: user?.plan || "Starter" },
-                  { label: "DOWNLOADS LEFT", value: user?.downloadsLeft || "50" },
-                  { label: "COLLECTIONS", value: String(userCollections.length) },
+                  { label: "PURCHASES", value: String(purchaseStats.totalPurchases) },
+                  { label: "SAVED ITEMS", value: String(savedPhotoIds.length) },
                   { label: "MEMBER SINCE", value: user?.memberSince || "—" },
                 ].map((s) => (
                   <div
@@ -199,42 +205,7 @@ export function Account() {
                 ))}
               </div>
 
-              {/* Usage Meter */}
-              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-serif text-xl text-[#18211f]">Plan Usage This Month</h3>
-                  <Badge tone="green">Active</Badge>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1.5">
-                      <span className="text-[#4a534e]">Downloads used</span>
-                      <span className="font-semibold text-[#18211f]">47 / {user?.plan === "Studio" ? "Unlimited" : "50"}</span>
-                    </div>
-                    <div className="h-2 bg-[#ececec] rounded-full overflow-hidden">
-                      <div className="h-full bg-[#1e4a3f] rounded-full transition-all duration-500" style={{ width: user?.plan === "Studio" ? "40%" : "94%" }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1.5">
-                      <span className="text-[#4a534e]">Storage used</span>
-                      <span className="font-semibold text-[#18211f]">2.4 GB / 10 GB</span>
-                    </div>
-                    <div className="h-2 bg-[#ececec] rounded-full overflow-hidden">
-                      <div className="h-full bg-[#1e4a3f] rounded-full transition-all duration-500" style={{ width: "24%" }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1.5">
-                      <span className="text-[#4a534e]">Collections</span>
-                      <span className="font-semibold text-[#18211f]">3 / 20</span>
-                    </div>
-                    <div className="h-2 bg-[#ececec] rounded-full overflow-hidden">
-                      <div className="h-full bg-[#1e4a3f] rounded-full transition-all duration-500" style={{ width: "15%" }} />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Usage Meter - removed, not applicable for per-photo marketplace */}
 
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
                 <h3 className="font-serif text-xl text-[#18211f] mb-6">Profile details</h3>
@@ -257,32 +228,33 @@ export function Account() {
           )}
 
           {active === "collections" && (
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 pt-4">
-              {userCollections.map((c) => (
-                <div key={c.id} className="group cursor-pointer">
-                  <div className="relative aspect-[4/3] w-full">
-                    <div className="absolute inset-0 translate-x-2 -translate-y-2 rotate-2 rounded-2xl bg-[#d7d8d2] shadow-sm transition-all duration-300 group-hover:translate-x-3 group-hover:-translate-y-3 group-hover:rotate-3 overflow-hidden opacity-60">
-                      <img src={c.cover[2]} alt="" loading="lazy" className="size-full object-cover" />
-                    </div>
-                    <div className="absolute inset-0 translate-x-1 -translate-y-1 -rotate-1 rounded-2xl bg-[#d7d8d2] shadow-md transition-all duration-300 group-hover:translate-x-1.5 group-hover:-translate-y-1.5 group-hover:-rotate-2 overflow-hidden opacity-85">
-                      <img src={c.cover[1]} alt="" loading="lazy" className="size-full object-cover" />
-                    </div>
-                    <div className="absolute inset-0 rounded-2xl bg-[#d7d8d2] shadow-lg transition-all duration-300 group-hover:scale-[1.01] overflow-hidden">
-                      <img src={c.cover[0]} alt="" loading="lazy" className="size-full object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between pt-4 px-1">
-                    <div>
-                      <h3 className="font-serif text-base text-[#18211f] font-semibold leading-tight group-hover:text-[#1e4a3f] transition-colors duration-200">{c.name}</h3>
-                      <p className="mt-0.5 font-mono text-[9px] tracking-wider text-[#758078] uppercase">Curated collection</p>
-                    </div>
-                    <span className="font-mono text-[10px] text-[#285746] bg-[#dce8df] px-2.5 py-0.5 rounded-full font-semibold">
-                      {c.count} IMAGES
-                    </span>
-                  </div>
+            <div className="space-y-4 pt-4">
+              <p className="text-sm text-[#6b716d]">Saved items and collections appear here.</p>
+              {savedPhotoIds.length === 0 ? (
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-8 ns-shadow-sm text-center">
+                  <FolderHeart className="size-10 text-[#9aa09b] mx-auto mb-3" />
+                  <p className="font-serif text-lg text-[#18211f]">No saved items yet</p>
+                  <p className="mt-1 text-sm text-[#6b716d]">Browse photos and save them to your collections.</p>
                 </div>
-              ))}
+              ) : (
+                <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {savedPhotoIds.map((id) => (
+                    <Link
+                      key={id}
+                      to={`/photo/${id}`}
+                      className="group relative aspect-square rounded-2xl overflow-hidden bg-[#ececec] ns-shadow-sm hover:shadow-md transition-all duration-200"
+                    >
+                      {purchasePhotos[id]?.image ? (
+                        <img src={purchasePhotos[id].image} alt="" loading="lazy" className="size-full object-cover" />
+                      ) : (
+                        <div className="size-full flex items-center justify-center text-[#9aa09b]">
+                          <Heart className="size-6" />
+                        </div>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -456,11 +428,11 @@ export function Account() {
               <div className="flex flex-wrap items-center justify-between gap-6 border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/20 transition-all duration-200">
                 <div>
                   <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Current Plan</p>
-                  <p className="mt-1 font-serif text-2xl text-[#18211f] font-semibold">{user?.plan || "Starter"} · $49/mo</p>
-                  <p className="mt-1 text-sm text-[#59645f]">Renews Aug 1, 2026 · Unlimited downloads</p>
+                  <p className="mt-1 font-serif text-2xl text-[#18211f] font-semibold">{user?.plan || "Starter"} — Pay per photo</p>
+                  <p className="mt-1 text-sm text-[#59645f]">No active subscription · Purchased {purchaseStats.totalPurchases} photo{purchaseStats.totalPurchases !== 1 ? "s" : ""} · Total spent ${purchaseStats.totalSpent.toFixed(2)}</p>
                 </div>
                 <Link to="/pricing">
-                  <Button variant="outline">Change plan</Button>
+                  <Button variant="outline">Browse pricing</Button>
                 </Link>
               </div>
               <div>

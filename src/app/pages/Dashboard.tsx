@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
 import {
-  LayoutGrid, Image as ImageIcon, TrendingUp, Wallet, Users, Inbox, Settings, Upload, ArrowUpRight,
+  LayoutGrid, Image as ImageIcon, TrendingUp, Wallet, Users, Inbox, Settings, Upload,
   Plus, Trash2, Check, X, Camera, Aperture, AlertCircle, FileText, ChevronRight, Loader2, CheckCircle2,
 } from "lucide-react";
 import {
@@ -10,7 +10,7 @@ import {
 import { Eyebrow, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { photos as fallbackPhotos, briefs as fallbackBriefs, photographers as fallbackPhotographers, type Photo, type License, type Orientation } from "../data/photos";
-import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, updatePhotoPrice, type Payout } from "../data/db";
+import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, type Payout } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
@@ -22,37 +22,6 @@ const nav = [
   { id: "payouts", label: "Payouts", icon: Wallet },
   { id: "followers", label: "Followers", icon: Users },
   { id: "settings", label: "Settings", icon: Settings },
-];
-
-const revenue = [
-  { m: "Jan", v: 2100 }, { m: "Feb", v: 2600 }, { m: "Mar", v: 2400 },
-  { m: "Apr", v: 3200 }, { m: "May", v: 3900 }, { m: "Jun", v: 3600 },
-  { m: "Jul", v: 4800 },
-];
-
-const downloads = [
-  { m: "Mon", v: 120 }, { m: "Tue", v: 180 }, { m: "Wed", v: 140 },
-  { m: "Thu", v: 220 }, { m: "Fri", v: 260 }, { m: "Sat", v: 190 }, { m: "Sun", v: 150 },
-];
-
-const stats = [
-  { label: "REVENUE (MTD)", value: "$4,820", delta: "+18%" },
-  { label: "DOWNLOADS", value: "1,264", delta: "+9%" },
-  { label: "FOLLOWERS", value: "24,110", delta: "+312" },
-  { label: "PORTFOLIO", value: "412", delta: "+6 new" },
-];
-
-const mockFollowers = [
-  { name: "Sarah Jenkins", role: "Creative Director @ Pentagram", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop" },
-  { name: "David Kojo", role: "Art Buyer @ Ogilvy", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop" },
-  { name: "Elena Rostova", role: "Lead Designer @ Vaynermedia", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" },
-  { name: "Marcus Tunde", role: "Publisher @ Mainland Press", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop" },
-];
-
-const mockPayouts = [
-  { id: "PAY-9041", date: "Jul 01, 2026", method: "Zenith Bank Transfer", amount: "$3,600", status: "SUCCESSFUL" },
-  { id: "PAY-8038", date: "Jun 01, 2026", method: "Zenith Bank Transfer", amount: "$2,850", status: "SUCCESSFUL" },
-  { id: "PAY-7033", date: "May 01, 2026", method: "Zenith Bank Transfer", amount: "$3,120", status: "SUCCESSFUL" },
 ];
 
 const CustomTooltip = ({ active, payload, label, prefix = "" }: any) => {
@@ -104,6 +73,13 @@ export function Dashboard() {
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editingPriceValue, setEditingPriceValue] = useState<string>("");
 
+  // Photographer dashboard data
+  const [revenueData, setRevenueData] = useState<{ m: string; v: number }[]>([]);
+  const [downloadsData, setDownloadsData] = useState<{ m: string; v: number }[]>([]);
+  const [photographerStats, setPhotographerStats] = useState<{ totalRevenue: number; totalDownloads: number; totalViews: number; totalLikes: number; photoCount: number; avgPrice: number }>({ totalRevenue: 0, totalDownloads: 0, totalViews: 0, totalLikes: 0, photoCount: 0, avgPrice: 0 });
+  const [topCategories, setTopCategories] = useState<{ name: string; pct: string }[]>([]);
+  const [followerCount, setFollowerCount] = useState(0);
+
   // Dynamically resolve the photographerId and photographerProfile
   const photographerProfile = photographers.find(p => p.name.toLowerCase() === user?.name.toLowerCase());
   const photographerId = photographerProfile ? photographerProfile.id : user?.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "";
@@ -115,6 +91,11 @@ export function Dashboard() {
     if (photographerId) {
       setPortfolioPhotos(photos.filter((p) => p.photographerId === photographerId));
       fetchPayouts(photographerId).then(setPayouts).catch(() => {});
+      fetchPhotographerMonthlyRevenue(photographerId).then(setRevenueData).catch(() => {});
+      fetchPhotographerWeeklyDownloads(photographerId).then(setDownloadsData).catch(() => {});
+      fetchPhotographerStats(photographerId).then(setPhotographerStats).catch(() => {});
+      fetchPhotographerTopCategories(photographerId).then(setTopCategories).catch(() => {});
+      fetchFollowerCount(photographerId).then(setFollowerCount).catch(() => {});
     }
   }, [photographerId]);
 
@@ -359,18 +340,6 @@ export function Dashboard() {
     setUploadOpen(false);
   };
 
-  const totalDownloads = portfolioPhotos.reduce((sum, p) => sum + p.downloads, 0);
-  const totalViews = portfolioPhotos.reduce((sum, p) => sum + p.views, 0);
-  const totalRevenue = portfolioPhotos.reduce((sum, p) => sum + (p.downloads * p.price), 0);
-  const followersCount = photographerProfile?.followers || "0";
-
-  const stats = [
-    { label: "REVENUE (LIFETIME)", value: `$${totalRevenue.toLocaleString()}`, delta: "+12%" },
-    { label: "DOWNLOADS", value: totalDownloads.toLocaleString(), delta: "+9%" },
-    { label: "FOLLOWERS", value: followersCount, delta: "+312" },
-    { label: "PORTFOLIO", value: String(portfolioPhotos.length), delta: "+6 new" },
-  ];
-
   const handlePriceUpdate = async (photoId: string) => {
     const newPrice = parseInt(editingPriceValue, 10);
     if (isNaN(newPrice) || newPrice < 1000) {
@@ -387,19 +356,20 @@ export function Dashboard() {
     setEditingPriceId(null);
   };
 
-  const payoutsToRender = payouts.length > 0
-    ? payouts.map((p) => ({
-        id: p.id,
-        date: p.date,
-        method: p.method,
-        amount: `$${p.amount.toLocaleString()}`,
-        status: p.status,
-      }))
-    : [
-        { id: "PAY-9041", date: "Jul 01, 2026", method: "Zenith Bank Transfer", amount: "$3,600", status: "SUCCESSFUL" },
-        { id: "PAY-8038", date: "Jun 01, 2026", method: "Zenith Bank Transfer", amount: "$2,850", status: "SUCCESSFUL" },
-        { id: "PAY-7033", date: "May 01, 2026", method: "Zenith Bank Transfer", amount: "$3,120", status: "SUCCESSFUL" },
-      ];
+  const payoutsToRender = payouts.map((p) => ({
+    id: p.id,
+    date: p.date,
+    method: p.method,
+    amount: `$${p.amount.toLocaleString()}`,
+    status: p.status,
+  }));
+
+  const stats = [
+    { label: "REVENUE (LIFETIME)", value: `$${photographerStats.totalRevenue.toLocaleString()}` },
+    { label: "DOWNLOADS", value: photographerStats.totalDownloads.toLocaleString() },
+    { label: "FOLLOWERS", value: followerCount.toLocaleString() },
+    { label: "PORTFOLIO", value: String(portfolioPhotos.length) },
+  ];
 
   const pendingPayout = payouts.find((p) => p.status === "PENDING");
   const successfulPayouts = payouts.filter((p) => p.status === "SUCCESSFUL");
@@ -481,11 +451,6 @@ export function Dashboard() {
                   >
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{s.label}</p>
                     <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">{s.value}</p>
-                    <div className="mt-3">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#dce8df] px-2 py-0.5 font-mono text-[10px] font-semibold text-[#1e7a4f]">
-                        <ArrowUpRight className="size-3" /> {s.delta}
-                      </span>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -498,7 +463,7 @@ export function Dashboard() {
                     <Badge>2026</Badge>
                   </div>
                   <ResponsiveContainer width="100%" height={240}>
-                    <AreaChart data={revenue}>
+                    <AreaChart data={revenueData}>
                       <defs>
                         <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#1e4a3f" stopOpacity={0.25} />
@@ -516,7 +481,7 @@ export function Dashboard() {
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
                   <h3 className="mb-6 font-serif text-lg text-[#18211f]">Downloads this week</h3>
                   <ResponsiveContainer width="100%" height={240}>
-                    <BarChart data={downloads}>
+                    <BarChart data={downloadsData}>
                       <defs>
                         <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#1e4a3f" />
@@ -672,26 +637,23 @@ export function Dashboard() {
             <div className="mt-8 space-y-6">
               <div className="grid gap-6 lg:grid-cols-3">
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Conversion Rate</p>
-                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">1.82%</p>
-                  <p className="text-xs text-[#1e7a4f] mt-1.5 flex items-center gap-1"><ArrowUpRight className="size-3" /> +0.2% vs last month</p>
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Total Audience views</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">{photographerStats.totalViews.toLocaleString()}</p>
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Average License Fee</p>
-                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">$240.00</p>
-                  <p className="text-xs text-[#758078] mt-1.5 font-mono">Based on MTD downloads</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">${photographerStats.avgPrice.toLocaleString()}.00</p>
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Total Audience views</p>
-                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">88,200</p>
-                  <p className="text-xs text-[#1e7a4f] mt-1.5 flex items-center gap-1"><ArrowUpRight className="size-3" /> +12% search impressions</p>
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Total Likes</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">{photographerStats.totalLikes.toLocaleString()}</p>
                 </div>
               </div>
 
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                 <h3 className="mb-6 font-serif text-lg text-[#18211f]">Detailed Revenue History</h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={revenue}>
+                  <AreaChart data={revenueData}>
                     <defs>
                       <linearGradient id="revFull" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#1e4a3f" stopOpacity={0.3} />
@@ -711,12 +673,9 @@ export function Dashboard() {
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <h3 className="font-serif text-base text-[#18211f] mb-4">Top Licensing Categories</h3>
                   <div className="space-y-3 font-mono text-xs">
-                    {[
-                      { name: "Portrait Study", pct: "42%" },
-                      { name: "Lagos Architecture", pct: "30%" },
-                      { name: "Fashion & Editorial", pct: "18%" },
-                      { name: "Lifestyle & Culture", pct: "10%" },
-                    ].map((c) => (
+                    {topCategories.length === 0 ? (
+                      <p className="text-[#758078] text-xs">No data yet</p>
+                    ) : topCategories.map((c) => (
                       <div key={c.name} className="flex items-center justify-between border-b border-[#ececec]/50 pb-2">
                         <span className="text-[#4a534e]">{c.name}</span>
                         <span className="font-semibold text-[#1e4a3f]">{c.pct}</span>
@@ -727,17 +686,7 @@ export function Dashboard() {
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <h3 className="font-serif text-base text-[#18211f] mb-4">Key Client Accounts</h3>
                   <div className="space-y-3 font-mono text-xs">
-                    {[
-                      { name: "Mainland Studio", views: 24, downloads: 8 },
-                      { name: "Vaynermedia EMEA", views: 18, downloads: 3 },
-                      { name: "Pentagram London", views: 12, downloads: 2 },
-                      { name: "Ogilvy West Africa", views: 9, downloads: 2 },
-                    ].map((c) => (
-                      <div key={c.name} className="flex items-center justify-between border-b border-[#ececec]/50 pb-2">
-                        <span className="text-[#4a534e]">{c.name}</span>
-                        <span className="text-[#6d746e]">{c.downloads} dl / {c.views} views</span>
-                      </div>
-                    ))}
+                    <p className="text-[#758078] text-xs">No data yet</p>
                   </div>
                 </div>
               </div>
@@ -816,7 +765,7 @@ export function Dashboard() {
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Gross Lifetime Sales</p>
-                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">${totalRevenue.toLocaleString()}</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">${photographerStats.totalRevenue.toLocaleString()}</p>
                   <p className="text-xs text-[#1e7a4f] mt-1.5">70% average royalties</p>
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
@@ -877,26 +826,21 @@ export function Dashboard() {
           {/* 6. FOLLOWERS VIEW */}
           {active === "followers" && (
             <div className="mt-8">
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {mockFollowers.map((f) => (
-                  <div
-                    key={f.name}
-                    className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm text-center flex flex-col items-center space-y-4 hover:border-[#1e4a3f]/25 transition duration-300"
-                  >
-                    <img src={f.avatar} alt={f.name} loading="lazy" className="size-16 rounded-full object-cover border border-[#ececec]/80" />
-                    <div>
-                      <h3 className="font-serif text-base text-[#18211f] font-semibold leading-tight">{f.name}</h3>
-                      <p className="text-xs text-[#6b716d] mt-1 font-mono">{f.role}</p>
-                    </div>
-                    <button
-                      onClick={() => toast.success(`Viewing profile of ${f.name}`)}
-                      className="text-xs font-semibold text-[#1e4a3f] bg-[#dce8df] px-4 py-1.5 rounded-full hover:bg-[#dce8df]/85 transition duration-200 cursor-pointer"
-                    >
-                      View Profile
-                    </button>
-                  </div>
-                ))}
-              </div>
+              {followerCount === 0 ? (
+                <div className="border border-dashed border-[#ececec] rounded-2xl py-24 text-center bg-white">
+                  <Users className="size-12 mx-auto text-[#758078] mb-4 opacity-55" />
+                  <p className="font-serif text-2xl text-[#18211f]">No followers yet</p>
+                  <p className="mt-2 text-sm text-[#6b716d] max-w-sm mx-auto">
+                    Share your work to attract creative directors, art buyers, and publishers.
+                  </p>
+                </div>
+              ) : (
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm text-center">
+                  <Users className="size-10 mx-auto text-[#1e4a3f] mb-3" />
+                  <p className="font-serif text-3xl text-[#18211f] font-medium">{followerCount.toLocaleString()}</p>
+                  <p className="text-sm text-[#6b716d] mt-1">followers</p>
+                </div>
+              )}
             </div>
           )}
 
