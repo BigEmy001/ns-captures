@@ -1,19 +1,18 @@
 -- Haru Tanaka — photographer profile + 187 photos
 
-INSERT INTO public.photographers (id, name, location, specialty, followers, images, avatar, cover, gear, bio, verified)
+INSERT INTO public.photographers (id, name, location, specialty, followers, avatar, cover, gear, bio, verified)
 VALUES (
   'haru-tanaka',
   'Haru Tanaka',
   'Tokyo, Japan',
   'Documentary',
   '8.2k',
-  187,
   'https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150',
   'https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080',
   ARRAY['Fujifilm X-T4', 'SIGMA fp', 'Ricoh GR IV', '35mm f/2', '56mm f/1.4'],
   'Documentary and street photographer based in Tokyo. Quiet observations of urban life, texture, and light across Japan.',
   true
-) ON CONFLICT (id) DO UPDATE SET images = 187;
+) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.photos (id, title, photographer_id, photographer_name, license, category, location, color, orientation, ratio, price, downloads, views, likes, camera, lens, iso, keywords, image, aperture, shutter_speed, focal_length, created_at) VALUES
 ('haru-haru8081edit', 'Haru 8081', 'haru-tanaka', 'Haru Tanaka', 'EDITORIAL', 'Portrait', 'Tokyo, Japan', '#4a3728', 'portrait', 'aspect-[4/5]', 1500, 0, 0, 0, 'X-T4', 'SIGMA 56mm F1.4 DC DN | Contemporary 018', 320, ARRAY['portrait','japan','tokyo','haru-tanaka'], 'https://res.cloudinary.com/odu5iecy/image/upload/v1784239171/nscaptures/haru-tanaka/HARU8081edit.jpg', 'f/1.4', '1/32000s', '56.0mm', now() - interval '0 minutes'),
