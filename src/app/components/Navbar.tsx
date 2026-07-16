@@ -19,7 +19,7 @@ const publicLinks = [
   { to: "/search", label: "Discover" },
   { to: "/collections", label: "Collections" },
   { to: "/requests", label: "Requests" },
-  { to: "/pricing", label: "Pricing" },
+  { to: "/pricing", label: "Licensing" },
 ];
 
 const photographerLinks = [
@@ -34,7 +34,7 @@ const buyerLinks = [
   { to: "/account", label: "My Account" },
   { to: "/collections", label: "Collections" },
   { to: "/requests", label: "Requests" },
-  { to: "/pricing", label: "Pricing" },
+  { to: "/pricing", label: "Licensing" },
 ];
 
 const enterpriseLinks = [

@@ -4,7 +4,7 @@ import { Heart, Share2, Bookmark, Check, Eye, Download, MapPin, Camera, Aperture
 import { toast } from "sonner";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow, Button, Badge } from "../components/ui";
-import { fetchPhoto, type Photo } from "../data/db";
+import { fetchPhoto, type Photo, getOptimizedImageUrl } from "../data/db";
 import { photos as allPhotos, getPhoto } from "../data/photos";
 import { NotFound } from "./NotFound";
 import { addToCart } from "../data/cart";
@@ -78,20 +78,8 @@ export function PhotoDetail() {
   const categoryHref = `/search?cat=${encodeURIComponent(photo.category)}`;
   const photographerHref = `/photographer/${photo.photographerId}`;
 
-  // Robust image display with URL parsing
-  let imageSrc = photo.image || "";
-  try {
-    if (imageSrc && imageSrc.startsWith("http")) {
-      const url = new URL(imageSrc);
-      if (url.searchParams.has("w")) {
-        url.searchParams.set("w", "1600");
-        url.searchParams.set("q", "90");
-        imageSrc = url.toString();
-      }
-    }
-  } catch (e) {
-    // Ignore invalid URLs
-  }
+  // Optimized image display
+  const imageSrc = getOptimizedImageUrl(photo.image || "", 1200);
 
   return (
     <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-12 min-h-screen">

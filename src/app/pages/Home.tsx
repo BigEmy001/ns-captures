@@ -8,7 +8,7 @@ import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow, Button, Badge, PartnerButton } from "../components/ui";
 import { useRequest } from "../components/RequestModal";
 import { photos as fallbackPhotos, collections as fallbackCollections, photographers as fallbackPhotographers, briefs as fallbackBriefs } from "../data/photos";
-import { fetchPhotos, fetchCollections, fetchPhotographers, fetchBriefs } from "../data/db";
+import { fetchPhotos, fetchCollections, fetchPhotographers, fetchBriefs, getOptimizedImageUrl } from "../data/db";
 import { AnimatedRays } from "../components/ui/animated-rays";
 
 const heroImage =
@@ -201,7 +201,7 @@ export function Home() {
             {photographers.map((p) => (
               <Link key={p.id} to={`/photographer/${p.id}`} className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-5 transition hover:border-[#1e4a3f]">
                 <div className="flex items-center gap-3">
-                  <img src={p.avatar} alt={p.name} loading="lazy" className="size-12 rounded-full object-cover" />
+                  <img src={getOptimizedImageUrl(p.avatar, 100)} alt={p.name} loading="lazy" className="size-12 rounded-full object-cover" />
                   <div>
                     <h3 className="font-serif text-lg leading-none">{p.name}</h3>
                     <p className="mt-1 text-xs text-[#6b716d]">{p.location}</p>

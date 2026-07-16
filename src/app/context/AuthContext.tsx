@@ -134,6 +134,21 @@ const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
       downloadsLeft: "N/A",
     },
   },
+  "haru@ns.co": {
+    password: "haru2026",
+    user: {
+      id: "haru-tanaka",
+      email: "haru@ns.co",
+      name: "Haru Tanaka",
+      slug: "haru-tanaka",
+      role: "Photographer",
+      plan: "Contributor",
+      company: "Haru Tanaka Photography",
+      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150",
+      memberSince: "Jul 2026",
+      downloadsLeft: "N/A",
+    },
+  },
 };
 
 // ============================================================

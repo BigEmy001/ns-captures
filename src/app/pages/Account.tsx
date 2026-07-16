@@ -4,7 +4,7 @@ import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Be
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
-import { fetchPhoto, fetchPurchases, fetchLicenses, fetchActivity, fetchUserPurchaseStats, fetchUserSavedPhotoIds, type Purchase, type LicenseRecord, type ActivityLogItem } from "../data/db";
+import { fetchPhoto, fetchPurchases, fetchLicenses, fetchActivity, fetchUserPurchaseStats, fetchUserSavedPhotoIds, type Purchase, type LicenseRecord, type ActivityLogItem, getOptimizedImageUrl, getFullQualityImageUrl } from "../data/db";
 import type { Photo } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
@@ -245,7 +245,7 @@ export function Account() {
                       className="group relative aspect-square rounded-2xl overflow-hidden bg-[#ececec] ns-shadow-sm hover:shadow-md transition-all duration-200"
                     >
                       {purchasePhotos[id]?.image ? (
-                        <img src={purchasePhotos[id].image} alt="" loading="lazy" className="size-full object-cover" />
+                        <img src={getOptimizedImageUrl(purchasePhotos[id].image, 400)} alt="" loading="lazy" className="size-full object-cover" />
                       ) : (
                         <div className="size-full flex items-center justify-center text-[#9aa09b]">
                           <Heart className="size-6" />
@@ -276,7 +276,7 @@ export function Account() {
                       <tr key={pur.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <img src={p?.image} alt="" loading="lazy" className="size-11 object-cover rounded-lg shadow-sm" />
+                            <img src={getOptimizedImageUrl(p?.image || "", 100)} alt="" loading="lazy" className="size-11 object-cover rounded-lg shadow-sm" />
                             <Link to={`/photo/${pur.photoId}`} className="font-semibold text-[#18211f] hover:text-[#1e4a3f] hover:underline">
                               {p?.title}
                             </Link>
@@ -291,7 +291,7 @@ export function Account() {
                             onClick={() => {
                               if (p?.image) {
                                 const a = document.createElement("a");
-                                a.href = p.image;
+                                a.href = getFullQualityImageUrl(p.image);
                                 a.download = `NS-CAPTURES-${p.id}.jpg`;
                                 a.target = "_blank";
                                 document.body.appendChild(a);
@@ -334,7 +334,7 @@ export function Account() {
                       <tr key={lic.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <img src={p?.image} alt="" loading="lazy" className="size-11 object-cover rounded-lg shadow-sm" />
+                            <img src={getOptimizedImageUrl(p?.image || "", 100)} alt="" loading="lazy" className="size-11 object-cover rounded-lg shadow-sm" />
                             <Link to={`/photo/${lic.photoId}`} className="font-semibold text-[#18211f] hover:text-[#1e4a3f] hover:underline">
                               {p?.title}
                             </Link>

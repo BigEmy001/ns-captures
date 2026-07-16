@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { Button, Eyebrow } from "../components/ui";
 import { useRequest } from "../components/RequestModal";
-import { fetchPhotographer, fetchPhotosByPhotographer, type Photographer, type Photo } from "../data/db";
+import { fetchPhotographer, fetchPhotosByPhotographer, type Photographer, type Photo, getOptimizedImageUrl } from "../data/db";
 import { NotFound } from "./NotFound";
 import { useAuth } from "../context/AuthContext";
 import { toggleFollow, hasUserFollowedPhotographer, fetchFollowerCount } from "../data/db";
@@ -74,7 +74,7 @@ export function PhotographerProfile() {
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div className="flex items-start gap-5">
           <img
-            src={photographer.avatar}
+            src={getOptimizedImageUrl(photographer.avatar, 200)}
             alt={photographer.name}
             className="size-20 shrink-0 rounded-full object-cover sm:size-24"
           />
@@ -252,7 +252,7 @@ function GalleryTile({ photo, name }: { photo: Photo; name: string }) {
   return (
     <div className="group relative overflow-hidden bg-[#d7d8d2]">
       <Link to={`/photo/${photo.id}`}>
-        <img src={photo.image} alt={photo.title} loading="lazy" className="w-full object-cover" />
+        <img src={getOptimizedImageUrl(photo.image, 600)} alt={photo.title} loading="lazy" className="w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10 opacity-0 transition group-hover:opacity-100" />
       </Link>
       <button

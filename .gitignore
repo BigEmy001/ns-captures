@@ -3,3 +3,4 @@ dist
 .env
 *.local
 cloudinary-test.mjs
+.DS_Store

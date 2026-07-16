@@ -11,7 +11,7 @@ import exifr from "exifr";
 import { Eyebrow, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { photos as fallbackPhotos, briefs as fallbackBriefs, photographers as fallbackPhotographers, type Photo, type License, type Orientation } from "../data/photos";
-import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout } from "../data/db";
+import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout, getOptimizedImageUrl } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
@@ -646,7 +646,7 @@ export function Dashboard() {
                         className="flex items-center gap-4 hover:bg-[#FAF9F5] p-2.5 -mx-2.5 rounded-xl transition-all duration-200 group"
                       >
                         <span className="font-mono text-xs text-[#8a8f89]">0{i + 1}</span>
-                        <img src={p.image} alt="" loading="lazy" className="size-12 object-cover rounded-lg group-hover:scale-[1.03] transition-all duration-200 shadow-sm" />
+                        <img src={getOptimizedImageUrl(p.image, 100)} alt="" loading="lazy" className="size-12 object-cover rounded-lg group-hover:scale-[1.03] transition-all duration-200 shadow-sm" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-[#18211f]">{p.title}</p>
                           <p className="text-xs text-[#6b716d]">{p.downloads.toLocaleString()} downloads</p>
@@ -705,7 +705,7 @@ export function Dashboard() {
                       className="group relative flex flex-col bg-white border border-[#ececec]/80 rounded-2xl overflow-hidden shadow-sm hover:border-[#1e4a3f]/25 transition duration-300"
                     >
                       <div className="aspect-[4/5] relative overflow-hidden bg-[#d7d8d2] shrink-0">
-                        <img src={p.image} alt={p.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-102 transition duration-300" />
+                        <img src={getOptimizedImageUrl(p.image, 600)} alt={p.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-102 transition duration-300" />
                         
                         {/* Overlay tools */}
                         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition duration-200">
@@ -1212,29 +1212,70 @@ export function Dashboard() {
                         <input
                           value={uploadLocation}
                           onChange={(e) => setUploadLocation(e.target.value)}
-                          placeholder="e.g. Kano, Nigeria"
+                          placeholder="e.g. Arizona, USA"
                           className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
                         />
                       </label>
 
-                      {/* Decoded EXIF read-only visual */}
-                      <div className="border border-[#ececec] bg-[#FAF9F5] rounded-xl p-4 space-y-2">
-                        <p className="font-mono text-[9px] text-[#758078] uppercase tracking-wider">EXIF Metadata (Embedded)</p>
-                        <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
-                          <div className="flex items-center gap-1.5 text-[#4a534e]">
-                            <Camera className="size-3.5 text-[#1e4a3f]" />
-                            <span>{uploadCamera || "Not detected"}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[#4a534e]">
-                            <Aperture className="size-3.5 text-[#1e4a3f]" />
-                            <span>{uploadLens || "Not detected"}</span>
-                          </div>
-                          <div className="text-[#4a534e] font-mono text-[11px]">
-                            {uploadIso ? `ISO ${uploadIso}` : "ISO —"} {exifAperture ? `· ${exifAperture}` : ""} {exifShutterSpeed ? `· ${exifShutterSpeed}` : ""}
-                          </div>
-                          <div className="text-[#4a534e] font-mono text-[11px]">
-                            {exifFocalLength ? `Focal: ${exifFocalLength}` : "Focal —"}
-                          </div>
+                      {/* EXIF Metadata Inputs */}
+                      <div className="border border-[#ececec] bg-[#FAF9F5] rounded-xl p-4 space-y-4">
+                        <p className="font-mono text-[9px] text-[#758078] uppercase tracking-wider">EXIF Metadata (Photographer can fill/edit manually)</p>
+                        <div className="grid grid-cols-2 gap-4">
+                          <label className="block">
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Camera Body</span>
+                            <input
+                              value={uploadCamera}
+                              onChange={(e) => setUploadCamera(e.target.value)}
+                              placeholder="e.g. Sony A7 IV"
+                              className="mt-1.5 w-full border border-[#ececec] rounded-lg bg-white px-3 py-2 text-xs outline-none transition focus:border-[#1e4a3f] focus:ring-1 focus:ring-[#1e4a3f]/10 shadow-sm"
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Optics/Lens</span>
+                            <input
+                              value={uploadLens}
+                              onChange={(e) => setUploadLens(e.target.value)}
+                              placeholder="e.g. 50mm f/1.2"
+                              className="mt-1.5 w-full border border-[#ececec] rounded-lg bg-white px-3 py-2 text-xs outline-none transition focus:border-[#1e4a3f] focus:ring-1 focus:ring-[#1e4a3f]/10 shadow-sm"
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">ISO Sensitivity</span>
+                            <input
+                              type="number"
+                              value={uploadIso || ""}
+                              onChange={(e) => setUploadIso(Number(e.target.value))}
+                              placeholder="e.g. 100"
+                              className="mt-1.5 w-full border border-[#ececec] rounded-lg bg-white px-3 py-2 text-xs outline-none transition focus:border-[#1e4a3f] focus:ring-1 focus:ring-[#1e4a3f]/10 shadow-sm"
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Aperture</span>
+                            <input
+                              value={exifAperture}
+                              onChange={(e) => setExifAperture(e.target.value)}
+                              placeholder="e.g. f/2.8"
+                              className="mt-1.5 w-full border border-[#ececec] rounded-lg bg-white px-3 py-2 text-xs outline-none transition focus:border-[#1e4a3f] focus:ring-1 focus:ring-[#1e4a3f]/10 shadow-sm"
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Shutter Speed</span>
+                            <input
+                              value={exifShutterSpeed}
+                              onChange={(e) => setExifShutterSpeed(e.target.value)}
+                              placeholder="e.g. 1/250s"
+                              className="mt-1.5 w-full border border-[#ececec] rounded-lg bg-white px-3 py-2 text-xs outline-none transition focus:border-[#1e4a3f] focus:ring-1 focus:ring-[#1e4a3f]/10 shadow-sm"
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Focal Length</span>
+                            <input
+                              value={exifFocalLength}
+                              onChange={(e) => setExifFocalLength(e.target.value)}
+                              placeholder="e.g. 85mm"
+                              className="mt-1.5 w-full border border-[#ececec] rounded-lg bg-white px-3 py-2 text-xs outline-none transition focus:border-[#1e4a3f] focus:ring-1 focus:ring-[#1e4a3f]/10 shadow-sm"
+                            />
+                          </label>
                         </div>
                       </div>
                     </div>

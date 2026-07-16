@@ -1359,3 +1359,63 @@ export async function fetchUserPurchaseStats(userId: string): Promise<{
     })),
   };
 }
+
+// ============================================================
+// IMAGE OPTIMIZATION UTILITY
+// ============================================================
+
+export function getOptimizedImageUrl(url: string, width = 600): string {
+  if (!url) return "";
+
+  // Handle Unsplash image resizing
+  if (url.includes("images.unsplash.com")) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.set("w", String(width));
+      // Auto format and compress
+      urlObj.searchParams.set("auto", "format");
+      urlObj.searchParams.set("fit", "crop");
+      urlObj.searchParams.set("q", "80");
+      return urlObj.toString();
+    } catch {
+      return url;
+    }
+  }
+
+  // Handle Cloudinary image resizing/compression
+  if (url.includes("res.cloudinary.com")) {
+    const match = url.match(/\/upload\/(v\d+\/)?/);
+    if (match) {
+      const insertIndex = url.indexOf(match[0]) + match[0].length;
+      return url.slice(0, insertIndex) + `w_${width},c_limit,q_auto,f_auto/` + url.slice(insertIndex);
+    }
+  }
+
+  return url;
+}
+
+export function getFullQualityImageUrl(url: string): string {
+  if (!url) return "";
+
+  // Handle Unsplash - strip query params to get original raw master resolution
+  if (url.includes("images.unsplash.com")) {
+    try {
+      const urlObj = new URL(url);
+      urlObj.searchParams.delete("w");
+      urlObj.searchParams.delete("h");
+      urlObj.searchParams.delete("crop");
+      urlObj.searchParams.delete("fit");
+      urlObj.searchParams.set("q", "100");
+      return urlObj.toString();
+    } catch {
+      return url;
+    }
+  }
+
+  // For Cloudinary, remove any inserted optimization subpaths
+  if (url.includes("res.cloudinary.com")) {
+    return url.replace(/\/w_\d+,c_limit,q_auto,f_auto\//, "/");
+  }
+
+  return url;
+}

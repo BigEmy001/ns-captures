@@ -16,7 +16,7 @@ const publicGroups = [
     title: "Platform",
     links: [
       { to: "/requests", label: "Curated requests" },
-      { to: "/pricing", label: "Pricing" },
+      { to: "/pricing", label: "Licensing" },
       { to: "/enterprise", label: "For teams" },
       { to: "/contribute", label: "Become a contributor" },
     ],
@@ -53,7 +53,7 @@ const buyerGroups = [
   {
     title: "Platform",
     links: [
-      { to: "/pricing", label: "Pricing" },
+      { to: "/pricing", label: "Licensing" },
       { to: "/enterprise", label: "Upgrade to Enterprise" },
       { to: "/contribute", label: "Become a contributor" },
     ],
@@ -108,7 +108,7 @@ const enterpriseGroups = [
   {
     title: "Platform",
     links: [
-      { to: "/pricing", label: "Pricing" },
+      { to: "/pricing", label: "Licensing" },
       { to: "/contribute", label: "Become a contributor" },
     ],
   },

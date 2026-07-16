@@ -5677,6 +5677,59 @@ const unsplashIds = [
   "1531746020798-e6953c6e8e04", // Studio portrait red background
 ];
 
+const naturalTitles = [
+  "Yosemite Valley Peak",
+  "Golden Hour Mist",
+  "Rolling Green Hills",
+  "Snowy Mountain Range",
+  "Sunlight through Pines",
+  "Winding Forest Path",
+  "Morning Street Sprint",
+  "Glass Skyscraper Monolith",
+  "Analog Thoughts",
+  "Acoustic Escape",
+  "Pacific Dusk Horizon",
+  "Form and Shadow",
+  "Sketchbook Study",
+  "Warm Linen Mornings",
+  "Brutalist Facade",
+  "Chrono Minimalist",
+  "Instant Memories",
+  "Aurora Borealis Lights",
+  "Minimal Developer Desk",
+  "Red Nike Runner",
+  "Collaborative Workspace",
+  "Leather Workwear Boots",
+  "Mid-century Modern Lounge",
+  "Oak Seating Study",
+  "Mobile Studio setup",
+  "Marbled Counters Kitchen",
+  "Berlin Concrete Patterns",
+  "Symphony of Inks",
+  "Velvet Sofa Textures",
+  "Quiet Bathroom Sanctuary",
+  "Softbox Studio Glow",
+  "Deep Focus Monitor",
+  "Saharan Dune Ridges",
+  "Red Sandstone Canyon",
+  "Namib Desert Dusk",
+  "Atlantic Ocean Cliff",
+  "Architectural Geometric Angles",
+  "Windblown Portrait",
+  "Unfiltered Laugh",
+  "Focused Gaze Portrait",
+  "Monochrome Profile",
+  "Designer Workspace Setup",
+  "Confident Corporate Headshot",
+  "Warm Greeting Headshot",
+  "Studio Laugh Portrait",
+  "Rich Contrast Portrait",
+  "Modern Executive Headshot",
+  "Urban Casual Portrait",
+  "Outdoor Styling Session",
+  "Crimson Background Portrait"
+];
+
 const generatedPhotos: Photo[] = unsplashIds.map((uid, index) => {
   const categoriesList = ["Portrait", "Lifestyle", "Fashion", "Architecture", "Culture", "Landscape"];
   const cameras = ["Sony A7R V", "Canon EOS R5", "Nikon Z7 II", "Fujifilm GFX 100S", "Leica M11-P"];
@@ -5698,7 +5751,7 @@ const generatedPhotos: Photo[] = unsplashIds.map((uid, index) => {
 
   return {
     id: `generated-${uid}`,
-    title: `Study in ${category} no. ${index + 1}`,
+    title: naturalTitles[index] || `Study in ${category} no. ${index + 1}`,
     photographerId: photographer.toLowerCase().replace(/\s+/g, "-"),
     photographer,
     license: (index % 3 === 0 ? "COMMERCIAL" : index % 3 === 1 ? "ROYALTY FREE" : "EDITORIAL") as License,
@@ -5842,6 +5895,7 @@ export const photographers: Photographer[] = [
     ],
     bio: "Landscape and architectural photographer capturing the quiet beauty, historic canals, and dramatic skies of the Netherlands and Europe."
   },
+  { id: "haru-tanaka", name: "Haru Tanaka", location: "Tokyo, Japan", specialty: "Documentary", followers: "8.2k", images: 187, avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150", verified: true, cover: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Fujifilm X-T4", "SIGMA fp", "Ricoh GR IV", "35mm f/2", "56mm f/1.4"], bio: "Documentary and street photographer based in Tokyo. Quiet observations of urban life, texture, and light across Japan." },
   // MIGRATED_PHOTOGRAPHERS_END
 ];
 

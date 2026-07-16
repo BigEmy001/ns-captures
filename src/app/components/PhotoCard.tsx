@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Photo } from "../data/photos";
 import { useAuth } from "../context/AuthContext";
-import { toggleSave, hasUserSavedPhoto } from "../data/db";
+import { toggleSave, hasUserSavedPhoto, getOptimizedImageUrl } from "../data/db";
 
 export function PhotoCard({ item }: { item: Photo }) {
   const { user } = useAuth();
@@ -29,7 +29,7 @@ export function PhotoCard({ item }: { item: Photo }) {
       <div className={`relative overflow-hidden bg-[#d7d8d2] ${item.ratio}`}>
         <Link to={`/photo/${item.id}`} className="block size-full">
           <img
-            src={item.image}
+            src={getOptimizedImageUrl(item.image, 600)}
             alt={item.title}
             loading="lazy"
             className="size-full object-cover transition duration-500 group-hover:scale-[1.03]"
