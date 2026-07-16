@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import {
   LayoutDashboard, Users, Image as ImageIcon, ShieldAlert, DollarSign, FileBarChart,
   Check, X, MoreHorizontal, Search, Filter, Trash2, Settings, Logs, Building2, UserCheck, UserX,
-  Download, Eye, Edit, ChevronDown, ArrowUpRight, Mail, Key, FolderHeart, Heart,
+  Download, Eye, Edit, ChevronDown, ArrowUpRight, Mail, Key, FolderHeart, Heart, LogOut,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 import { Eyebrow, Badge, Button } from "../components/ui";
 import { SideNav } from "../components/SideNav";
+import { useAuth } from "../context/AuthContext";
 import { adminUsers, moderationQueue, getPhoto, photos, AdminUser, ModerationItem } from "../data/photos";
 
 const nav = [
@@ -82,6 +83,7 @@ const siteSettings = {
 };
 
 export function Admin() {
+  const { logout } = useAuth();
   const [params, setParams] = useSearchParams();
   const requestedTab = params.get("tab");
   const active = nav.some((item) => item.id === requestedTab) ? requestedTab! : "dashboard";
@@ -174,6 +176,18 @@ export function Admin() {
                 <p className="text-xs text-[#6b716d]">Operations</p>
               </div>
             </div>
+          )}
+          footer={(collapsed) => (
+            <button
+              onClick={logout}
+              className={`flex w-full items-center rounded-lg py-2.5 text-sm transition text-[#d4183d] hover:bg-[#fcf1f3] ${
+                collapsed ? "justify-center px-0" : "gap-3 px-3"
+              }`}
+              title={collapsed ? "Sign out" : undefined}
+            >
+              <LogOut className="size-[18px] shrink-0" />
+              {!collapsed && "Sign out"}
+            </button>
           )}
         />
 
