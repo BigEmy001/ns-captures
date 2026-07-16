@@ -9,13 +9,17 @@ import { Button, Eyebrow } from "../components/ui";
 import { useRequest } from "../components/RequestModal";
 import { fetchPhotographer, fetchPhotosByPhotographer, type Photographer, type Photo } from "../data/db";
 import { NotFound } from "./NotFound";
+import { useAuth } from "../context/AuthContext";
+import { toggleFollow, hasUserFollowedPhotographer, fetchFollowerCount } from "../data/db";
 
 type Tab = "highlights" | "gallery" | "collections" | "statistics" | "followers" | "following";
 
 export function PhotographerProfile() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [photographer, setPhotographer] = useState<Photographer | null>(null);
   const [shots, setShots] = useState<Photo[]>([]);
+  const [followerCount, setFollowerCount] = useState(551);
 
   useEffect(() => {
     const load = async () => {
@@ -24,6 +28,8 @@ export function PhotographerProfile() {
       if (p) {
         const photos = await fetchPhotosByPhotographer(id ?? "");
         setShots(photos);
+        const count = await fetchFollowerCount(id ?? "");
+        if (count > 0) setFollowerCount(count);
       }
     };
     load();
@@ -33,11 +39,14 @@ export function PhotographerProfile() {
   const [sort, setSort] = useState<"recency" | "popular">("recency");
   const openRequest = useRequest();
 
+  useEffect(() => {
+    if (user && id) hasUserFollowedPhotographer(user.id, id).then(setFollowing);
+  }, [user, id]);
+
   if (!photographer) return <NotFound />;
 
   const totalDownloads = shots.reduce((s, p) => s + p.downloads, 0);
   const totalViews = shots.reduce((s, p) => s + p.views, 0);
-  const followerCount = 551;
   const followingCount = 34;
   const mockFollowersData = [
     { name: "Sarah Jenkins", role: "Creative Director", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop" },
@@ -98,7 +107,13 @@ export function PhotographerProfile() {
           </button>
           <Button
             variant={following ? "outline" : "solid"}
-            onClick={() => { setFollowing((v) => !v); toast(following ? "Unfollowed" : `Following ${photographer.name}`); }}
+            onClick={async () => {
+              if (!user) { toast.error("Sign in to follow"); return; }
+              const nowFollowing = await toggleFollow(user.id, photographer.id);
+              setFollowing(nowFollowing);
+              setFollowerCount((c) => nowFollowing ? c + 1 : Math.max(c - 1, 0));
+              toast(nowFollowing ? `Following ${photographer.name}` : "Unfollowed");
+            }}
           >
             {following ? "Following" : "Follow"}
           </Button>

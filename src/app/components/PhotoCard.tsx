@@ -1,12 +1,28 @@
 import { Link } from "react-router";
-import { Heart } from "lucide-react";
+import { Heart, Bookmark, Check } from "lucide-react";
 import { toast } from "sonner";
+import { useState, useEffect } from "react";
 import { Photo } from "../data/photos";
+import { useAuth } from "../context/AuthContext";
+import { toggleSave, hasUserSavedPhoto } from "../data/db";
 
 export function PhotoCard({ item }: { item: Photo }) {
-  const photographerHref = item.id.startsWith("unsplash-")
-    ? `https://unsplash.com/@${item.photographerId}`
-    : `/photographer/${item.photographerId}`;
+  const { user } = useAuth();
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (user) hasUserSavedPhoto(user.id, item.id).then(setSaved);
+  }, [user, item.id]);
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!user) { toast.error("Sign in to save photos"); return; }
+    const nowSaved = await toggleSave(user.id, item.id);
+    setSaved(nowSaved);
+    toast(nowSaved ? `Saved "${item.title}"` : `Removed "${item.title}" from saved`);
+  };
+
+  const photographerHref = `/photographer/${item.photographerId}`;
 
   return (
     <article className="group">
@@ -25,10 +41,10 @@ export function PhotoCard({ item }: { item: Photo }) {
         </Link>
         <button
           aria-label={`Save ${item.title}`}
-          onClick={(e) => { e.preventDefault(); toast(item.title ? `Saved "${item.title}"` : "Saved"); }}
+          onClick={handleSave}
           className="absolute right-3 top-3 grid size-8 translate-y-1 place-items-center bg-white/90 text-[#1e4a3f] opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100 cursor-pointer rounded-full"
         >
-          <Heart className="size-4" />
+          {saved ? <Check className="size-4" /> : <Bookmark className="size-4" />}
         </button>
       </div>
       <div className="flex items-start justify-between gap-4 pt-3">
@@ -36,15 +52,9 @@ export function PhotoCard({ item }: { item: Photo }) {
           <Link to={`/photo/${item.id}`} className="font-serif text-lg leading-none hover:underline">
             {item.title}
           </Link>
-          {item.id.startsWith("unsplash-") ? (
-            <a href={photographerHref} target="_blank" rel="noreferrer" className="mt-1.5 block text-xs text-[#6b716d] hover:text-[#1e4a3f]">
-              by {item.photographer}
-            </a>
-          ) : (
-            <Link to={photographerHref} className="mt-1.5 block text-xs text-[#6b716d] hover:text-[#1e4a3f]">
-              by {item.photographer}
-            </Link>
-          )}
+          <Link to={photographerHref} className="mt-1.5 block text-xs text-[#6b716d] hover:text-[#1e4a3f]">
+            by {item.photographer}
+          </Link>
         </div>
         <span className="pt-1 font-mono text-[9px] tracking-[0.1em] text-[#637167]">
           ${item.price}

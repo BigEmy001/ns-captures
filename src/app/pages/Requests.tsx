@@ -1,8 +1,11 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { ArrowRight, Send, Users, ShieldCheck } from "lucide-react";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { useRequest } from "../components/RequestModal";
-import { briefs } from "../data/photos";
+import { briefs as fallbackBriefs } from "../data/photos";
+import { fetchBriefs } from "../data/db";
+import type { Brief } from "../data/photos";
 
 const steps = [
   { icon: Send, title: "Write a brief", body: "Describe the image you need, the license, budget and deadline." },
@@ -12,6 +15,11 @@ const steps = [
 
 export function Requests() {
   const openRequest = useRequest();
+  const [briefs, setBriefs] = useState<Brief[]>(fallbackBriefs);
+
+  useEffect(() => {
+    fetchBriefs().then(setBriefs);
+  }, []);
 
   return (
     <div>

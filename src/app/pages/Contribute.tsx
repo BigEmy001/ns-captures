@@ -3,6 +3,7 @@ import { Upload, DollarSign, Globe, BadgeCheck, ArrowRight } from "lucide-react"
 import { toast } from "sonner";
 import { Eyebrow, Button, PartnerButton } from "../components/ui";
 import { photos } from "../data/photos";
+import { logActivity } from "../data/db";
 
 const perks = [
   { icon: DollarSign, title: "Keep more", body: "Industry-leading royalties, paid monthly with transparent reporting." },
@@ -31,7 +32,7 @@ export function Contribute() {
             Sell your photography to serious buyers, accept curated shoot requests, and build a following on a platform that treats the image as the hero.
           </p>
           <form
-            onSubmit={(e) => { e.preventDefault(); toast.success("Application started", { description: "Check your inbox to complete onboarding." }); }}
+            onSubmit={(e) => { e.preventDefault(); logActivity({ userId: `CONTRIBUTE-${email}`, type: "contribute", title: "Contributor application", desc: email }); toast.success("Application started", { description: "Check your inbox to complete onboarding." }); setEmail(""); }}
             className="mt-8 flex max-w-md flex-col gap-3 sm:flex-row"
           >
             <input
@@ -83,7 +84,7 @@ export function Contribute() {
 
       <section className="mx-auto flex max-w-[1440px] flex-col items-center gap-4 px-5 py-20 text-center sm:px-8 lg:px-12">
         <h2 className="max-w-2xl font-serif text-4xl leading-[1.04] sm:text-5xl">Join thousands of photographers shaping the archive.</h2>
-        <PartnerButton onClick={() => toast.success("Application started")} label="Become a contributor" className="mt-4" />
+        <PartnerButton onClick={() => { logActivity({ userId: "CONTRIBUTE-BUTTON", type: "contribute", title: "Contributor CTA clicked", desc: "Used bottom CTA" }); toast.success("Application started"); }} label="Become a contributor" className="mt-4" />
       </section>
     </div>
   );

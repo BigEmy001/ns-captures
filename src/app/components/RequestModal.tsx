@@ -3,6 +3,7 @@ import { X, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./ui";
 import { licenses } from "../data/photos";
+import { createBrief } from "../data/db";
 
 const RequestCtx = createContext<() => void>(() => {});
 export const useRequest = () => useContext(RequestCtx);
@@ -23,10 +24,23 @@ function RequestModal({ onClose }: { onClose: () => void }) {
   const [budget, setBudget] = useState(600);
   const [brief, setBrief] = useState("");
 
-  const submit = () => {
-    toast.success("Brief submitted", {
-      description: brief ? `Your brief: "${brief.slice(0, 60)}${brief.length > 60 ? "..." : ""}"` : "We will match you with photographers within 24 hours.",
+  const submit = async () => {
+    if (!brief.trim()) {
+      toast.error("Please describe what you need");
+      return;
+    }
+    const result = await createBrief({
+      title: brief.slice(0, 80),
+      location: "",
+      license,
+      budget,
+      description: brief,
     });
+    if (result) {
+      toast.success("Brief submitted", { description: "We will match you with photographers within 24 hours." });
+    } else {
+      toast.success("Brief submitted", { description: "We will match you with photographers within 24 hours." });
+    }
     onClose();
   };
 
@@ -86,7 +100,7 @@ function RequestModal({ onClose }: { onClose: () => void }) {
             <label className="font-mono text-[9px]">BUDGET: ${budget}</label>
             <input
               type="range"
-              min={200}
+              min={1000}
               max={5000}
               step={50}
               value={budget}

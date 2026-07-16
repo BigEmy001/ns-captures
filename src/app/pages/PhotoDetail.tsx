@@ -8,6 +8,8 @@ import { fetchPhoto, type Photo } from "../data/db";
 import { getPhoto } from "../data/photos";
 import { NotFound } from "./NotFound";
 import { addToCart } from "../data/cart";
+import { useAuth } from "../context/AuthContext";
+import { toggleLike, toggleSave, hasUserLikedPhoto, hasUserSavedPhoto } from "../data/db";
 
 interface LicenseOption {
   id: string;
@@ -20,10 +22,12 @@ interface LicenseOption {
 
 export function PhotoDetail() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState("COMMERCIAL");
   const [saved, setSaved] = useState(false);
+  const [liked, setLiked] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -35,6 +39,13 @@ export function PhotoDetail() {
       setLoading(false);
     });
   }, [id]);
+
+  useEffect(() => {
+    if (user && id) {
+      hasUserSavedPhoto(user.id, id).then(setSaved);
+      hasUserLikedPhoto(user.id, id).then(setLiked);
+    }
+  }, [user, id]);
 
   if (loading) {
     return (
@@ -107,14 +118,14 @@ export function PhotoDetail() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => { setSaved((v) => !v); toast(saved ? "Removed from collection" : "Saved to collection"); }} className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer">
+              <button onClick={async () => { if (!user) { toast.error("Sign in to save"); return; } const now = await toggleSave(user.id, photo.id); setSaved(now); toast(now ? "Saved to collection" : "Removed from collection"); }} className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer">
                 {saved ? <Check className="size-4 text-[#1e4a3f]" /> : <Bookmark className="size-4" />} Save
               </button>
               <button onClick={() => toast("Link copied")} className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer">
                 <Share2 className="size-4" /> Share
               </button>
-              <button onClick={() => toast("Liked")} className="grid place-items-center rounded-full border border-[#ececec] bg-white/50 px-3 py-2 transition hover:border-[#1e4a3f] cursor-pointer">
-                <Heart className="size-4" />
+              <button onClick={async () => { if (!user) { toast.error("Sign in to like"); return; } const now = await toggleLike(user.id, photo.id); setLiked(now); toast(now ? "Liked" : "Unliked"); }} className={`grid place-items-center rounded-full border bg-white/50 px-3 py-2 transition hover:border-[#1e4a3f] cursor-pointer ${liked ? "border-[#1e4a3f] text-[#1e4a3f]" : "border-[#ececec]"}`}>
+                <Heart className="size-4" fill={liked ? "#1e4a3f" : "none"} />
               </button>
             </div>
           </div>

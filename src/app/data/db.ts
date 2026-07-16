@@ -313,6 +313,34 @@ export async function fetchBriefs(): Promise<Brief[]> {
 }
 
 // ============================================================
+// CREATE BRIEF (Request modal)
+// ============================================================
+
+export async function createBrief(brief: { title: string; location: string; license: string; budget: number; description: string }): Promise<Brief | null> {
+  if (!isSupabaseConfigured) {
+    return { id: `BRF-${Date.now().toString(36)}`, ...brief, delivery: "30 days", status: "OPEN" };
+  }
+
+  const id = `BRF-${Date.now().toString(36)}`;
+  const { data, error } = await supabase!
+    .from("briefs")
+    .insert({
+      id,
+      title: brief.title,
+      location: brief.location,
+      license: brief.license,
+      budget: brief.budget,
+      description: brief.description,
+      status: "OPEN",
+    })
+    .select()
+    .single();
+
+  if (error) { console.error("createBrief", error); return null; }
+  return { id: data.id, title: data.title, location: data.location, license: data.license, budget: data.budget, delivery: data.delivery || "", status: data.status, description: data.description || "" };
+}
+
+// ============================================================
 // ADMIN
 // ============================================================
 
@@ -729,4 +757,142 @@ export async function incrementPhotoDownloads(photoId: string): Promise<void> {
       .update({ downloads: (data.downloads || 0) + 1 })
       .eq("id", photoId);
   }
+}
+
+// ============================================================
+// SOCIAL: LIKES
+// ============================================================
+
+export async function hasUserLikedPhoto(userId: string, photoId: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+  const { data } = await supabase!
+    .from("user_likes")
+    .select("photo_id")
+    .eq("user_id", userId)
+    .eq("photo_id", photoId)
+    .maybeSingle();
+  return !!data;
+}
+
+export async function toggleLike(userId: string, photoId: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+
+  const { data: existing } = await supabase!
+    .from("user_likes")
+    .select("photo_id")
+    .eq("user_id", userId)
+    .eq("photo_id", photoId)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase!.from("user_likes").delete().eq("user_id", userId).eq("photo_id", photoId);
+    // Decrement likes on photos table
+    const { data: photo } = await supabase!.from("photos").select("likes").eq("id", photoId).single();
+    if (photo) await supabase!.from("photos").update({ likes: Math.max((photo.likes || 1) - 1, 0) }).eq("id", photoId);
+    return false; // unliked
+  } else {
+    await supabase!.from("user_likes").insert({ user_id: userId, photo_id: photoId });
+    const { data: photo } = await supabase!.from("photos").select("likes").eq("id", photoId).single();
+    if (photo) await supabase!.from("photos").update({ likes: (photo.likes || 0) + 1 }).eq("id", photoId);
+    return true; // liked
+  }
+}
+
+// ============================================================
+// SOCIAL: SAVES (bookmarks)
+// ============================================================
+
+export async function hasUserSavedPhoto(userId: string, photoId: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+  const { data } = await supabase!
+    .from("user_saves")
+    .select("photo_id")
+    .eq("user_id", userId)
+    .eq("photo_id", photoId)
+    .maybeSingle();
+  return !!data;
+}
+
+export async function toggleSave(userId: string, photoId: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+
+  const { data: existing } = await supabase!
+    .from("user_saves")
+    .select("photo_id")
+    .eq("user_id", userId)
+    .eq("photo_id", photoId)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase!.from("user_saves").delete().eq("user_id", userId).eq("photo_id", photoId);
+    return false; // unsaved
+  } else {
+    await supabase!.from("user_saves").insert({ user_id: userId, photo_id: photoId });
+    return true; // saved
+  }
+}
+
+export async function fetchUserSavedPhotoIds(userId: string): Promise<string[]> {
+  if (!isSupabaseConfigured) return [];
+  const { data } = await supabase!
+    .from("user_saves")
+    .select("photo_id")
+    .eq("user_id", userId);
+  return (data || []).map((r: any) => r.photo_id);
+}
+
+// ============================================================
+// SOCIAL: FOLLOWS
+// ============================================================
+
+export async function hasUserFollowedPhotographer(userId: string, photographerId: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+  const { data } = await supabase!
+    .from("user_follows")
+    .select("following_id")
+    .eq("follower_id", userId)
+    .eq("following_id", photographerId)
+    .maybeSingle();
+  return !!data;
+}
+
+export async function toggleFollow(userId: string, photographerId: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+
+  const { data: existing } = await supabase!
+    .from("user_follows")
+    .select("following_id")
+    .eq("follower_id", userId)
+    .eq("following_id", photographerId)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase!.from("user_follows").delete().eq("follower_id", userId).eq("following_id", photographerId);
+    return false; // unfollowed
+  } else {
+    await supabase!.from("user_follows").insert({ follower_id: userId, following_id: photographerId });
+    return true; // followed
+  }
+}
+
+export async function fetchFollowerCount(photographerId: string): Promise<number> {
+  if (!isSupabaseConfigured) return 0;
+  const { count } = await supabase!
+    .from("user_follows")
+    .select("follower_id", { count: "exact", head: true })
+    .eq("following_id", photographerId);
+  return count || 0;
+}
+
+// ============================================================
+// CONTRIBUTOR INTEREST (no auth required)
+// ============================================================
+
+export async function createContributorInterest(email: string): Promise<boolean> {
+  if (!isSupabaseConfigured) {
+    await logActivity({ userId: `CONTRIBUTE-${email}`, type: "contribute", title: "Contributor application", desc: email });
+    return true;
+  }
+  await logActivity({ userId: `CONTRIBUTE-${email}`, type: "contribute", title: "Contributor application", desc: email });
+  return true;
 }

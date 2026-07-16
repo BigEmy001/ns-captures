@@ -1,15 +1,16 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Eyebrow } from "../components/ui";
-import { collections } from "../data/photos";
-
-const colRoutes: Record<string, string> = {
-  "west-africa-now": "/search?q=Lagos",
-  "quiet-architecture": "/search?cat=Architecture",
-  "new-perspectives": "/search?q=creative",
-  "human-documentary": "/search?cat=Documentary",
-};
+import { collections as fallbackCollections } from "../data/photos";
+import { fetchCollections } from "../data/db";
+import type { Collection } from "../data/photos";
 
 export function Collections() {
+  const [collections, setCollections] = useState<Collection[]>(fallbackCollections);
+
+  useEffect(() => {
+    fetchCollections().then(setCollections);
+  }, []);
   return (
     <div className="mx-auto max-w-[1440px] px-5 py-14 sm:px-8 lg:px-12">
       <Eyebrow>CURATED COLLECTIONS</Eyebrow>
@@ -22,12 +23,12 @@ export function Collections() {
 
       <div className="mt-12 grid gap-8 md:grid-cols-2">
         {collections.map((c) => (
-          <Link key={c.id} to={colRoutes[c.id] || "/search"} className="group block">
+          <Link key={c.id} to={`/search?q=${encodeURIComponent(c.title)}`} className="group block">
             <div className="grid aspect-[16/9] grid-cols-3 gap-0.5 overflow-hidden bg-[#d7d8d2]">
-              <img src={c.cover[0]} alt="" loading="lazy" className="col-span-2 size-full object-cover transition group-hover:scale-[1.02]" />
+              <img src={c.cover?.[0] || ""} alt={c.title} loading="lazy" className="col-span-2 size-full object-cover transition group-hover:scale-[1.02]" />
               <div className="grid grid-rows-2 gap-0.5">
-                <img src={c.cover[1]} alt="" loading="lazy" className="size-full object-cover" />
-                <img src={c.cover[2]} alt="" loading="lazy" className="size-full object-cover" />
+                <img src={c.cover?.[1] || ""} alt="" loading="lazy" className="size-full object-cover" />
+                <img src={c.cover?.[2] || ""} alt="" loading="lazy" className="size-full object-cover" />
               </div>
             </div>
             <div className="flex items-start justify-between gap-4 pt-4">
