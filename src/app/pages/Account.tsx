@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
 import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Bell, Shield, FileText, TrendingUp, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
-import { currentUser, userPurchases, userCollections, getPhoto, photos, mockLicenses, mockActivity } from "../data/photos";
+import { userCollections } from "../data/photos";
+import { fetchPhoto, fetchPurchases, fetchLicenses, fetchActivity, type Purchase, type LicenseRecord, type ActivityLogItem } from "../data/db";
+import type { Photo } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
 
@@ -30,12 +32,42 @@ export function Account() {
     setParams(next);
   };
   const [profileData, setProfileData] = useState({
-    name: user?.name || currentUser.name,
-    email: user?.email || currentUser.email,
-    company: user?.company || currentUser.company,
+    name: user?.name || "",
+    email: user?.email || "",
+    company: user?.company || "",
   });
   const [passwordData, setPasswordData] = useState({ current: "", next: "", confirm: "" });
-  const liked = photos.slice(0, 6);
+
+  // Fetch photos for purchases/licenses
+  const [purchasePhotos, setPurchasePhotos] = useState<Record<string, Photo>>({});
+  const [licensePhotos, setLicensePhotos] = useState<Record<string, Photo>>({});
+
+  // Real data from DB
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [licenses, setLicenses] = useState<LicenseRecord[]>([]);
+  const [activity, setActivity] = useState<ActivityLogItem[]>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    fetchPurchases(user.id).then(setPurchases);
+    fetchLicenses(user.id).then(setLicenses);
+    fetchActivity(user.id).then(setActivity);
+  }, [user?.id]);
+
+  useEffect(() => {
+    const allPhotoIds = new Set([
+      ...purchases.map((p) => p.photoId),
+      ...licenses.map((l) => l.photoId),
+    ]);
+    allPhotoIds.forEach(async (id) => {
+      const photo = await fetchPhoto(id);
+      if (photo) {
+        setPurchasePhotos((prev) => ({ ...prev, [id]: photo }));
+        setLicensePhotos((prev) => ({ ...prev, [id]: photo }));
+      }
+    });
+  }, [purchases, licenses]);
 
   const handleProfileSave = async () => {
     if (isAuthenticated) {
@@ -80,10 +112,10 @@ export function Account() {
           onSelect={setActive}
           header={() => (
             <div className="flex min-w-0 items-center gap-3">
-              <img src={user?.avatar || currentUser.avatar} alt="" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
+              <img src={user?.avatar || ""} alt="" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold">{user?.name || currentUser.name}</p>
-                <p className="text-xs text-[#6b716d]">{user?.plan || currentUser.plan} plan</p>
+                <p className="truncate text-sm font-semibold">{user?.name || "User"}</p>
+                <p className="text-xs text-[#6b716d]">{user?.plan || "Starter"} plan</p>
               </div>
             </div>
           )}
@@ -113,11 +145,11 @@ export function Account() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute bottom-6 left-6 flex items-center gap-4">
-              <img src={user?.avatar || currentUser.avatar} alt="" className="size-16 rounded-full object-cover border-2 border-white shadow-md" />
+              <img src={user?.avatar || ""} alt="" className="size-16 rounded-full object-cover border-2 border-white shadow-md" />
               <div className="text-white">
-                <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight">{user?.name || currentUser.name}</h1>
+                <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight">{user?.name || "User"}</h1>
                 <p className="text-xs text-white/80 font-mono tracking-wider uppercase mt-1">
-                  {user?.role || currentUser.role} · {user?.company || currentUser.company}
+                  {user?.role || "Buyer"} · {user?.company || ""}
                 </p>
               </div>
             </div>
@@ -144,10 +176,10 @@ export function Account() {
             <div className="space-y-8">
               <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
                 {[
-                  { label: "PLAN", value: user?.plan || currentUser.plan },
-                  { label: "DOWNLOADS LEFT", value: user?.downloadsLeft || currentUser.downloadsLeft },
+                  { label: "PLAN", value: user?.plan || "Starter" },
+                  { label: "DOWNLOADS LEFT", value: user?.downloadsLeft || "50" },
                   { label: "COLLECTIONS", value: String(userCollections.length) },
-                  { label: "MEMBER SINCE", value: user?.memberSince || currentUser.memberSince },
+                  { label: "MEMBER SINCE", value: user?.memberSince || "—" },
                 ].map((s) => (
                   <div
                     key={s.label}
@@ -205,7 +237,7 @@ export function Account() {
                    <div className="block">
                      <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Role</span>
                      <p className="mt-2 rounded-xl border border-[#ececec] bg-[#f7f7f7] px-4 py-3 text-sm text-[#6b716d]">
-                       {user?.role || currentUser.role}
+                       {user?.role || "Buyer"}
                      </p>
                    </div>
                 </div>
@@ -258,8 +290,8 @@ export function Account() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#ececec]/60">
-                  {userPurchases.map((pur) => {
-                    const p = getPhoto(pur.photoId);
+                  {purchases.map((pur) => {
+                    const p = purchasePhotos[pur.photoId];
                     return (
                       <tr key={pur.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
                         <td className="px-6 py-4">
@@ -305,8 +337,8 @@ export function Account() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#ececec]/60">
-                  {mockLicenses.map((lic) => {
-                    const p = getPhoto(lic.photoId);
+                  {licenses.map((lic) => {
+                    const p = licensePhotos[lic.photoId];
                     return (
                       <tr key={lic.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
                         <td className="px-6 py-4">
@@ -318,11 +350,11 @@ export function Account() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <Badge tone={lic.license === "EXTENDED" ? "green" : "muted"}>{lic.license}</Badge>
+                          <Badge tone={lic.licenseType === "EXTENDED" ? "green" : "muted"}>{lic.licenseType}</Badge>
                         </td>
                         <td className="px-6 py-4 font-mono text-xs text-[#4a534e]">{lic.id}</td>
-                        <td className="px-6 py-4 text-[#6b716d] text-xs">{lic.date}</td>
-                        <td className="px-6 py-4 text-[#6b716d] text-xs">{lic.expires}</td>
+                        <td className="px-6 py-4 text-[#6b716d] text-xs">{lic.purchasedAt ? new Date(lic.purchasedAt).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) : ""}</td>
+                        <td className="px-6 py-4 text-[#6b716d] text-xs">{lic.expiresAt}</td>
                         <td className="px-6 py-4 text-[#18211f] font-mono text-sm">{lic.downloads}</td>
                         <td className="px-6 py-4 text-right">
                           <button
@@ -342,7 +374,7 @@ export function Account() {
 
           {active === "activity" && (
             <div className="space-y-3">
-              {mockActivity.map((a) => {
+              {activity.map((a) => {
                 const iconMap = {
                   download: <Download className="size-5 text-[#1e4a3f]" />,
                   purchase: <TrendingUp className="size-5 text-[#1e4a3f]" />,
@@ -363,8 +395,8 @@ export function Account() {
                       <p className="font-semibold text-[#18211f]">{a.title}</p>
                       <p className="mt-0.5 text-xs text-[#6b716d]">{a.desc}</p>
                     </div>
-                    <time className="text-xs text-[#9aa09b] font-mono shrink-0" dateTime={a.date.toISOString()}>
-                      {format(a.date, "MMM d, yyyy")}
+                    <time className="text-xs text-[#9aa09b] font-mono shrink-0">
+                      {a.createdAt ? format(new Date(a.createdAt), "MMM d, yyyy") : ""}
                     </time>
                   </div>
                 );
@@ -416,7 +448,7 @@ export function Account() {
               <div className="flex flex-wrap items-center justify-between gap-6 border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/20 transition-all duration-200">
                 <div>
                   <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Current Plan</p>
-                  <p className="mt-1 font-serif text-2xl text-[#18211f] font-semibold">{user?.plan || currentUser.plan} · $49/mo</p>
+                  <p className="mt-1 font-serif text-2xl text-[#18211f] font-semibold">{user?.plan || "Starter"} · $49/mo</p>
                   <p className="mt-1 text-sm text-[#59645f]">Renews Aug 1, 2026 · Unlimited downloads</p>
                 </div>
                 <Link to="/pricing">
@@ -438,7 +470,7 @@ export function Account() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#ececec]/60">
-                      {userPurchases.map((pur) => (
+                      {purchases.map((pur) => (
                         <tr key={pur.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
                           <td className="px-6 py-4 font-semibold text-[#18211f]">{pur.id}</td>
                           <td className="px-6 py-4 text-[#6b716d] text-xs">{pur.date}</td>

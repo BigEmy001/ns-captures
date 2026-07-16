@@ -4,7 +4,8 @@ import { Heart, Share2, Bookmark, Check, Eye, Download, MapPin, Camera, Aperture
 import { toast } from "sonner";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow, Button, Badge } from "../components/ui";
-import { getPhoto, photos, Photo } from "../data/photos";
+import { fetchPhoto, type Photo } from "../data/db";
+import { getPhoto } from "../data/photos";
 import { NotFound } from "./NotFound";
 import { addToCart } from "../data/cart";
 
@@ -26,52 +27,10 @@ export function PhotoDetail() {
 
   useEffect(() => {
     if (!id) return;
-
-    if (id.startsWith("unsplash-")) {
-      setLoading(true);
-      const unsplashId = id.replace("unsplash-", "");
-      fetch(`https://unsplash.com/napi/photos/${unsplashId}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && data.id) {
-            const mapped: Photo = {
-              id: "unsplash-" + data.id,
-              title: data.description || data.alt_description || "Untitled Frame",
-              photographerId: data.user.username,
-              photographer: data.user.name,
-              license: "COMMERCIAL",
-              category: "Unsplash",
-              location: data.location?.name || "Global Network",
-              color: data.color || "#333",
-              orientation: data.width > data.height ? "landscape" : "portrait",
-              ratio: data.width > data.height ? "aspect-[3/2]" : "aspect-[3/4]",
-              price: 250,
-              downloads: data.downloads || data.likes * 12,
-              views: data.views || data.likes * 240,
-              likes: data.likes,
-              camera: data.exif?.model || "Professional Body",
-              lens: data.exif?.name || "Creative Focal Lens",
-              iso: data.exif?.iso || 100,
-              keywords: data.tags?.map((t: any) => t.title).filter(Boolean) || ["unsplash"],
-              image: data.urls.regular,
-            };
-            setPhoto(mapped);
-          } else {
-            setPhoto(null);
-          }
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.warn("Unsplash API unavailable, falling back to local archive", err);
-          const localPhoto = getPhoto(id);
-          setPhoto(localPhoto || null);
-          setLoading(false);
-        });
-    } else {
-      const localPhoto = getPhoto(id);
-      setPhoto(localPhoto || null);
+    fetchPhoto(id).then((p) => {
+      setPhoto(p || getPhoto(id) || null);
       setLoading(false);
-    }
+    });
   }, [id]);
 
   if (loading) {
@@ -92,20 +51,18 @@ export function PhotoDetail() {
 
   if (!photo) return <NotFound />;
 
+  const MIN_PRICE = 1000;
   const options: LicenseOption[] = [
-    { id: "COMMERCIAL", price: photo.price, usage: "Ads, packaging, web & social for a business.", restrictions: "No resale as stock.", duration: "Perpetual", coverage: "Worldwide" },
-    { id: "EDITORIAL", price: Math.round(photo.price * 0.7), usage: "News, blogs, education & non-commercial.", restrictions: "No commercial promotion.", duration: "Perpetual", coverage: "Worldwide" },
-    { id: "EXTENDED", price: Math.round(photo.price * 2.4), usage: "Merchandise for resale, unlimited prints.", restrictions: "None.", duration: "Perpetual", coverage: "Worldwide" },
-    { id: "EXCLUSIVE", price: Math.round(photo.price * 6), usage: "Sole rights — removed from the library.", restrictions: "Buyer owns exclusive use.", duration: "Perpetual", coverage: "Worldwide" },
+    { id: "COMMERCIAL", price: Math.max(photo.price, MIN_PRICE), usage: "Ads, packaging, web & social for a business.", restrictions: "No resale as stock.", duration: "Perpetual", coverage: "Worldwide" },
+    { id: "EDITORIAL", price: Math.max(Math.round(photo.price * 0.7), MIN_PRICE), usage: "News, blogs, education & non-commercial.", restrictions: "No commercial promotion.", duration: "Perpetual", coverage: "Worldwide" },
+    { id: "EXTENDED", price: Math.max(Math.round(photo.price * 2.4), MIN_PRICE), usage: "Merchandise for resale, unlimited prints.", restrictions: "None.", duration: "Perpetual", coverage: "Worldwide" },
+    { id: "EXCLUSIVE", price: Math.max(Math.round(photo.price * 6), MIN_PRICE), usage: "Sole rights — removed from the library.", restrictions: "Buyer owns exclusive use.", duration: "Perpetual", coverage: "Worldwide" },
   ];
 
   const current = options.find((o) => o.id === selected)!;
   const related = photos.filter((p) => p.id !== photo.id && (p.category === photo.category || p.photographerId === photo.photographerId)).slice(0, 4);
-  const isUnsplashPhoto = photo.id.startsWith("unsplash-");
-  const categoryHref = photo.category === "Unsplash" ? "/search" : `/search?cat=${encodeURIComponent(photo.category)}`;
-  const photographerHref = isUnsplashPhoto
-    ? `https://unsplash.com/@${photo.photographerId}`
-    : `/photographer/${photo.photographerId}`;
+  const categoryHref = `/search?cat=${encodeURIComponent(photo.category)}`;
+  const photographerHref = `/photographer/${photo.photographerId}`;
 
   // Robust image display with URL parsing
   let imageSrc = photo.image || "";
@@ -143,11 +100,7 @@ export function PhotoDetail() {
             <div>
               <h1 className="font-serif text-3xl leading-snug sm:text-4xl">{photo.title}</h1>
               <p className="mt-2 text-sm text-[#6b716d]">
-                by {isUnsplashPhoto ? (
-                  <a href={photographerHref} target="_blank" rel="noreferrer" className="font-semibold text-[#1e4a3f] hover:underline">{photo.photographer}</a>
-                ) : (
-                  <Link to={photographerHref} className="font-semibold text-[#1e4a3f] hover:underline">{photo.photographer}</Link>
-                )}
+                by <Link to={photographerHref} className="font-semibold text-[#1e4a3f] hover:underline">{photo.photographer}</Link>
               </p>
             </div>
             <div className="flex gap-2">
@@ -252,25 +205,14 @@ export function PhotoDetail() {
             </Button>
             <p className="mt-3 text-center text-xs text-[#8a8f89]">Instant download · Royalty-free after purchase</p>
 
-            {isUnsplashPhoto ? (
-              <a href={photographerHref} target="_blank" rel="noreferrer" className="mt-6 flex items-center gap-3 border-t border-[#ececec] pt-5 hover:opacity-80">
-                <div className="grid size-10 place-items-center rounded-full bg-[#dce8df] text-xs font-semibold text-[#1e4a3f]">{photo.photographer.charAt(0)}</div>
-                <div className="text-xs">
-                  <p className="font-semibold">{photo.photographer}</p>
-                  <p className="text-[#6b716d]">{photo.location}</p>
-                </div>
-                <Badge tone="muted">UNSPLASH</Badge>
-              </a>
-            ) : (
-              <Link to={photographerHref} className="mt-6 flex items-center gap-3 border-t border-[#ececec] pt-5 hover:opacity-80">
+            <Link to={photographerHref} className="mt-6 flex items-center gap-3 border-t border-[#ececec] pt-5 hover:opacity-80">
               <div className="grid size-10 place-items-center rounded-full bg-[#dce8df] text-xs font-semibold text-[#1e4a3f]">{photo.photographer.charAt(0)}</div>
               <div className="text-xs">
                 <p className="font-semibold">{photo.photographer}</p>
                 <p className="text-[#6b716d]">{photo.location}</p>
               </div>
               <Badge tone="muted">VERIFIED</Badge>
-              </Link>
-            )}
+            </Link>
           </div>
         </div>
       </div>

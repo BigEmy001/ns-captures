@@ -9,7 +9,8 @@ import {
 } from "recharts";
 import { Eyebrow, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
-import { photos, briefs, photographers, Photo, License, Orientation } from "../data/photos";
+import { photos as fallbackPhotos, briefs as fallbackBriefs, photographers as fallbackPhotographers, type Photo, type License, type Orientation } from "../data/photos";
+import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, updatePhotoPrice, type Payout } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
@@ -81,6 +82,22 @@ export function Dashboard() {
 
   const { user } = useAuth();
 
+  // Supabase data
+  const [photos, setPhotos] = useState(fallbackPhotos);
+  const [briefs, setBriefs] = useState(fallbackBriefs);
+  const [photographers, setPhotographers] = useState(fallbackPhotographers);
+
+  useEffect(() => {
+    fetchPhotos().then(setPhotos);
+    fetchBriefs().then(setBriefs);
+    fetchPhotographers().then(setPhotographers);
+  }, []);
+
+  // Payouts from DB
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  const [editingPriceValue, setEditingPriceValue] = useState<string>("");
+
   // Dynamically resolve the photographerId and photographerProfile
   const photographerProfile = photographers.find(p => p.name.toLowerCase() === user?.name.toLowerCase());
   const photographerId = photographerProfile ? photographerProfile.id : user?.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "";
@@ -91,6 +108,7 @@ export function Dashboard() {
   useEffect(() => {
     if (photographerId) {
       setPortfolioPhotos(photos.filter((p) => p.photographerId === photographerId));
+      fetchPayouts(photographerId).then(setPayouts);
     }
   }, [photographerId]);
 
@@ -347,15 +365,39 @@ export function Dashboard() {
     { label: "PORTFOLIO", value: String(portfolioPhotos.length), delta: "+6 new" },
   ];
 
-  const payoutsToRender = user?.name === "Patrick Watson Quine"
-    ? [{ id: "PAY-9042", date: "Jul 16, 2026", method: "Zenith Bank Transfer", amount: "$150", status: "PENDING" }]
-    : user?.name === "Lexmond Dennis"
-    ? [{ id: "PAY-9043", date: "Jul 16, 2026", method: "Zenith Bank Transfer", amount: "$240", status: "PENDING" }]
+  const handlePriceUpdate = async (photoId: string) => {
+    const newPrice = parseInt(editingPriceValue, 10);
+    if (isNaN(newPrice) || newPrice < 1000) {
+      toast.error("Minimum price is $1,000");
+      return;
+    }
+    const ok = await updatePhotoPrice(photoId, newPrice);
+    if (ok) {
+      setPortfolioPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, price: newPrice } : p));
+      toast.success(`Price updated to $${newPrice.toLocaleString()}`);
+    } else {
+      toast.error("Failed to update price");
+    }
+    setEditingPriceId(null);
+  };
+
+  const payoutsToRender = payouts.length > 0
+    ? payouts.map((p) => ({
+        id: p.id,
+        date: p.date,
+        method: p.method,
+        amount: `$${p.amount.toLocaleString()}`,
+        status: p.status,
+      }))
     : [
         { id: "PAY-9041", date: "Jul 01, 2026", method: "Zenith Bank Transfer", amount: "$3,600", status: "SUCCESSFUL" },
         { id: "PAY-8038", date: "Jun 01, 2026", method: "Zenith Bank Transfer", amount: "$2,850", status: "SUCCESSFUL" },
         { id: "PAY-7033", date: "May 01, 2026", method: "Zenith Bank Transfer", amount: "$3,120", status: "SUCCESSFUL" },
       ];
+
+  const pendingPayout = payouts.find((p) => p.status === "PENDING");
+  const successfulPayouts = payouts.filter((p) => p.status === "SUCCESSFUL");
+  const lastPayout = successfulPayouts[0];
 
   return (
     <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
@@ -583,7 +625,30 @@ export function Dashboard() {
                           </p>
                         </div>
                         <div className="flex items-center justify-between pt-3 border-t border-[#ececec]/40 text-xs font-mono text-[#758078]">
-                          <span>${p.price} License</span>
+                          {editingPriceId === p.id ? (
+                            <div className="flex items-center gap-1.5">
+                              <span>$</span>
+                              <input
+                                type="number"
+                                value={editingPriceValue}
+                                onChange={(e) => setEditingPriceValue(e.target.value)}
+                                onBlur={() => handlePriceUpdate(p.id)}
+                                onKeyDown={(e) => { if (e.key === "Enter") handlePriceUpdate(p.id); if (e.key === "Escape") setEditingPriceId(null); }}
+                                className="w-20 border border-[#1e4a3f] rounded px-1.5 py-0.5 text-[#18211f] font-semibold outline-none"
+                                autoFocus
+                                min={1000}
+                              />
+                              <button onClick={() => setEditingPriceId(null)} className="text-[#d4183d] hover:text-[#b01530] cursor-pointer"><X className="size-3" /></button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setEditingPriceId(p.id); setEditingPriceValue(String(p.price)); }}
+                              className="hover:text-[#1e4a3f] hover:underline cursor-pointer transition"
+                              title="Click to edit price"
+                            >
+                              ${p.price.toLocaleString()} License
+                            </button>
+                          )}
                           <span className="text-[#1e7a4f] bg-[#dce8df] px-2 py-0.5 rounded font-semibold uppercase text-[9px]">
                             Approved
                           </span>
@@ -740,18 +805,18 @@ export function Dashboard() {
               <div className="grid gap-6 sm:grid-cols-3">
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Pending Payout</p>
-                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">$1,220.00</p>
-                  <p className="text-xs text-[#6d746e] mt-1.5">Scheduled for Aug 1st</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">{pendingPayout ? `$${pendingPayout.amount.toLocaleString()}` : "$0.00"}</p>
+                  <p className="text-xs text-[#6d746e] mt-1.5">{pendingPayout ? `Scheduled for Aug 1st` : "No pending payouts"}</p>
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Gross Lifetime Sales</p>
-                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">$48,200.00</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">${totalRevenue.toLocaleString()}</p>
                   <p className="text-xs text-[#1e7a4f] mt-1.5">70% average royalties</p>
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Last Payout Amount</p>
-                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">$3,600.00</p>
-                  <p className="text-xs text-[#1e7a4f] mt-1.5 font-mono">Paid Jul 01, 2026</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">{lastPayout ? `$${lastPayout.amount.toLocaleString()}` : "$0.00"}</p>
+                  <p className="text-xs text-[#1e7a4f] mt-1.5 font-mono">{lastPayout ? `Paid ${lastPayout.date}` : "No payouts yet"}</p>
                 </div>
               </div>
 

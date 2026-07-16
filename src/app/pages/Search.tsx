@@ -1,10 +1,11 @@
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router";
-import { Search, SlidersHorizontal, Sparkles, X, Globe, Library } from "lucide-react";
+import { Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow } from "../components/ui";
-import { photos, categories, licenses, License, Orientation, Photo } from "../data/photos";
+import { photos as fallbackPhotos, categories, licenses, License, Orientation, Photo } from "../data/photos";
+import { fetchPhotos } from "../data/db";
 
 const orientations: Orientation[] = ["portrait", "landscape", "square"];
 
@@ -15,6 +16,11 @@ export function SearchPage() {
 
   const [query, setQuery] = useState(q);
   const [category, setCategory] = useState(params.get("cat") ?? "All");
+  const [photos, setPhotos] = useState(fallbackPhotos);
+
+  useEffect(() => {
+    fetchPhotos().then(setPhotos);
+  }, []);
 
   useEffect(() => {
     setQuery(params.get("q") ?? "");
@@ -26,81 +32,10 @@ export function SearchPage() {
   const [sort, setSort] = useState<"popular" | "new" | "priceLow">("popular");
   const [drawer, setDrawer] = useState(false);
 
-  // Unsplash API state
-  const [source, setSource] = useState<"local" | "unsplash">("local");
-  const [unsplashResults, setUnsplashResults] = useState<Photo[]>([]);
-  const [unsplashLoading, setUnsplashLoading] = useState(false);
-
-  useEffect(() => {
-    if (source !== "unsplash") return;
-
-    setUnsplashLoading(true);
-    const searchQuery = query || (category !== "All" ? category : "photography");
-
-    const controller = new AbortController();
-    fetch(`https://unsplash.com/napi/search/photos?query=${encodeURIComponent(searchQuery)}&per_page=24`, {
-      signal: controller.signal,
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && data.results) {
-          const mapped: Photo[] = data.results.map((item: any) => ({
-            id: "unsplash-" + item.id,
-            title: item.description || item.alt_description || "Untitled Frame",
-            photographerId: item.user.username,
-            photographer: item.user.name,
-            license: "COMMERCIAL" as License,
-            category: "Unsplash",
-            location: item.user.location || "Global Network",
-            color: item.color || "#333",
-            orientation: item.width > item.height ? ("landscape" as Orientation) : ("portrait" as Orientation),
-            ratio: item.width > item.height ? "aspect-[3/2]" : "aspect-[3/4]",
-            price: 250,
-            downloads: item.likes * 12,
-            views: item.likes * 240,
-            likes: item.likes,
-            createdAt: item.created_at || item.updated_at,
-            camera: "Professional Body",
-            lens: "Prime Focal Lens",
-            iso: 100,
-            keywords: ["unsplash", "global"],
-            image: item.urls.regular,
-          }));
-          setUnsplashResults(mapped);
-        } else {
-          setUnsplashResults([]);
-        }
-        setUnsplashLoading(false);
-      })
-      .catch((err) => {
-        if (err.name !== "AbortError") {
-          console.error(err);
-          setUnsplashLoading(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, [query, category, source]);
-
   const toggleLicense = (l: License) =>
     setActiveLicenses((prev) => (prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l]));
 
   const results = useMemo(() => {
-    if (source === "unsplash") {
-      let list = [...unsplashResults];
-      if (activeLicenses.length > 0) {
-        list = list.filter((p) => activeLicenses.includes(p.license));
-      }
-      if (orientation) {
-        list = list.filter((p) => p.orientation === orientation);
-      }
-      list = list.filter((p) => p.price <= maxPrice);
-      if (sort === "priceLow") list.sort((a, b) => a.price - b.price);
-      if (sort === "new") list.sort((a, b) => (b.createdAt || b.id).localeCompare(a.createdAt || a.id));
-      if (sort === "popular") list.sort((a, b) => b.downloads - a.downloads);
-      return list;
-    }
-
     let list = photos.filter((p) => {
       const matchesQ =
         !query ||
@@ -118,7 +53,7 @@ export function SearchPage() {
     if (sort === "new") list = [...list].sort((a, b) => b.id.localeCompare(a.id));
     if (sort === "popular") list = [...list].sort((a, b) => b.downloads - a.downloads);
     return list;
-  }, [query, category, activeLicenses, orientation, maxPrice, sort, source, unsplashResults]);
+  }, [query, category, activeLicenses, orientation, maxPrice, sort, photos]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,32 +178,10 @@ export function SearchPage() {
 
         {/* Results */}
         <div className="min-w-0 flex-1">
-          {/* API Source Switcher */}
-          <div className="flex border-b border-[#ececec] mb-6 gap-6">
-            <button
-              onClick={() => setSource("local")}
-              className={`pb-3 text-xs font-mono tracking-wider font-semibold uppercase relative transition flex items-center gap-1.5 cursor-pointer ${
-                source === "local" ? "text-[#1e4a3f]" : "text-[#8a8f89] hover:text-[#18211f]"
-              }`}
-            >
-              <Library className="size-3.5" /> Local Archive
-              {source === "local" && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#1e4a3f]" />}
-            </button>
-            <button
-              onClick={() => setSource("unsplash")}
-              className={`pb-3 text-xs font-mono tracking-wider font-semibold uppercase relative transition flex items-center gap-1.5 cursor-pointer ${
-                source === "unsplash" ? "text-[#1e4a3f]" : "text-[#8a8f89] hover:text-[#18211f]"
-              }`}
-            >
-              <Globe className="size-3.5" /> Global Unsplash Network
-              {source === "unsplash" && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[#1e4a3f]" />}
-            </button>
-          </div>
-
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <Eyebrow>{query ? `RESULTS FOR "${query.toUpperCase()}"` : "THE LIBRARY"}</Eyebrow>
-              <p className="mt-2 text-sm text-[#6b716d]">{unsplashLoading ? "Searching..." : `${results.length} images`}</p>
+              <Eyebrow>{query ? `RESULTS FOR "${query.toUpperCase()}"` : "NS COLLECTION"}</Eyebrow>
+              <p className="mt-2 text-sm text-[#6b716d]">{results.length} images</p>
             </div>
             <div className="flex items-center gap-3">
               <select
@@ -289,17 +202,7 @@ export function SearchPage() {
             </div>
           </div>
 
-          {unsplashLoading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="animate-pulse border border-[#ececec]/80 bg-white rounded-2xl p-4 space-y-4 shadow-sm">
-                  <div className="aspect-[3/4] bg-gray-200 rounded-xl"></div>
-                  <div className="h-4 bg-gray-200 w-2/3 rounded-md"></div>
-                  <div className="h-3 bg-gray-200 w-1/3 rounded-md"></div>
-                </div>
-              ))}
-            </div>
-          ) : results.length === 0 ? (
+          {results.length === 0 ? (
             <div className="border border-dashed border-[#ececec] py-24 text-center">
               <p className="font-serif text-2xl">No matches yet.</p>
               <p className="mt-2 text-sm text-[#6b716d]">Try a broader term or request a custom shoot.</p>

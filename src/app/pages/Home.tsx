@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Camera, Upload, Quote } from "lucide-react";
 import { HeroSearch } from "../components/HeroSearch";
@@ -6,7 +7,8 @@ import { TopicRail } from "../components/TopicRail";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow, Button, Badge, PartnerButton } from "../components/ui";
 import { useRequest } from "../components/RequestModal";
-import { photos, collections, photographers, briefs } from "../data/photos";
+import { photos as fallbackPhotos, collections as fallbackCollections, photographers as fallbackPhotographers, briefs as fallbackBriefs } from "../data/photos";
+import { fetchPhotos, fetchCollections, fetchPhotographers, fetchBriefs } from "../data/db";
 import { AnimatedRays } from "../components/ui/animated-rays";
 
 const heroImage =
@@ -22,6 +24,17 @@ const companies = ["MERIDIAN", "PALMWINE", "NORTHWIND", "STUDIO LINE", "CONTINEN
 
 export function Home() {
   const openRequest = useRequest();
+  const [photos, setPhotos] = useState(fallbackPhotos);
+  const [collections, setCollections] = useState(fallbackCollections);
+  const [photographers, setPhotographers] = useState(fallbackPhotographers);
+  const [briefs, setBriefs] = useState(fallbackBriefs);
+
+  useEffect(() => {
+    fetchPhotos().then(setPhotos);
+    fetchCollections().then(setCollections);
+    fetchPhotographers().then(setPhotographers);
+    fetchBriefs().then(setBriefs);
+  }, []);
 
   return (
     <>

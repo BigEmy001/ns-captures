@@ -418,7 +418,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#6e7b7a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 180,
@@ -426,10 +426,10 @@ const initialPhotos: Photo[] = [
     views: 250,
     likes: 10,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 500,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203446/ns-captures/AM%20Downtown%20Closeup%20C-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203446/ns-captures/AM%20Downtown%20Closeup%20C-1.jpg", "createdAt": "2025-09-13"
   },
   {
     id: "am-downtown-skyline-a-1",
@@ -439,7 +439,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#8a9bb0",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 230,
@@ -447,10 +447,10 @@ const initialPhotos: Photo[] = [
     views: 295,
     likes: 14,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "28mm f/2",
+    iso: 160,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203467/ns-captures/AM%20Downtown%20Skyline%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203467/ns-captures/AM%20Downtown%20Skyline%20A-1.jpg", "createdAt": "2025-08-03"
   },
   {
     id: "am-rooftop-b-1",
@@ -460,7 +460,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#6d7f94",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -468,10 +468,10 @@ const initialPhotos: Photo[] = [
     views: 340,
     likes: 18,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 160,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203532/ns-captures/AM%20Rooftop%20B-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203532/ns-captures/AM%20Rooftop%20B-1.jpg", "createdAt": "2026-03-25"
   },
   {
     id: "am-skyline-a-1",
@@ -481,7 +481,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#94a8c0",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 330,
@@ -489,10 +489,10 @@ const initialPhotos: Photo[] = [
     views: 385,
     likes: 22,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 160,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203610/ns-captures/AM%20Skyline%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203610/ns-captures/AM%20Skyline%20A-1.jpg", "createdAt": "2025-04-13"
   },
   {
     id: "am-rooftop-a-1",
@@ -502,7 +502,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#94a8c0",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 380,
@@ -510,10 +510,10 @@ const initialPhotos: Photo[] = [
     views: 430,
     likes: 26,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
+    lens: "28mm f/2",
     iso: 100,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203617/ns-captures/AM%20Rooftop%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203617/ns-captures/AM%20Rooftop%20A-1.jpg", "createdAt": "2025-03-16"
   },
   {
     id: "am-relics-a-1",
@@ -523,7 +523,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#6e6454",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 180,
@@ -532,9 +532,9 @@ const initialPhotos: Photo[] = [
     likes: 30,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 400,
     keywords: ["culture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203628/ns-captures/AM%20Relics%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203628/ns-captures/AM%20Relics%20A-1.jpg", "createdAt": "2024-02-12"
   },
   {
     id: "am-relics-b-1",
@@ -544,7 +544,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#9a8e7d",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 230,
@@ -553,9 +553,9 @@ const initialPhotos: Photo[] = [
     likes: 34,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 160,
     keywords: ["culture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203637/ns-captures/AM%20Relics%20B-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203637/ns-captures/AM%20Relics%20B-1.jpg", "createdAt": "2025-12-25"
   },
   {
     id: "ascension-of-our-lord-a-1",
@@ -565,7 +565,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Canada",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -574,9 +574,9 @@ const initialPhotos: Photo[] = [
     likes: 38,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 160,
     keywords: ["culture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203652/ns-captures/Ascension%20of%20Our%20Lord%20%28A%29-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203652/ns-captures/Ascension%20of%20Our%20Lord%20%28A%29-1.jpg", "createdAt": "2026-02-17"
   },
   {
     id: "am-skyline-b-1",
@@ -586,7 +586,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#6d7f94",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 330,
@@ -594,10 +594,10 @@ const initialPhotos: Photo[] = [
     views: 610,
     likes: 42,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "50mm f/1.4",
+    iso: 200,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203657/ns-captures/AM%20Skyline%20B-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203657/ns-captures/AM%20Skyline%20B-1.jpg", "createdAt": "2025-02-26"
   },
   {
     id: "cambie-bridge-view-a-1",
@@ -607,7 +607,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Vancouver, Canada",
-    color: "#555555",
+    color: "#7a8590",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 380,
@@ -616,9 +616,9 @@ const initialPhotos: Photo[] = [
     likes: 46,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 320,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203668/ns-captures/Cambie%20Bridge%20View%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203668/ns-captures/Cambie%20Bridge%20View%20A-1.jpg", "createdAt": "2025-07-09"
   },
   {
     id: "ascension-of-our-lord-b-1",
@@ -628,7 +628,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Canada",
-    color: "#555555",
+    color: "#5fb4a3",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 180,
@@ -636,10 +636,10 @@ const initialPhotos: Photo[] = [
     views: 700,
     likes: 50,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "28mm f/2",
+    iso: 160,
     keywords: ["culture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203737/ns-captures/Ascension%20of%20Our%20Lord%20%28B%29-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203737/ns-captures/Ascension%20of%20Our%20Lord%20%28B%29-1.jpg", "createdAt": "2024-10-16"
   },
   {
     id: "canal-afternoon-scene-a-1",
@@ -649,7 +649,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#3a6878",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 230,
@@ -657,10 +657,10 @@ const initialPhotos: Photo[] = [
     views: 745,
     likes: 54,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "50mm f/1.4",
+    iso: 320,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203739/ns-captures/Canal%20Afternoon%20Scene%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203739/ns-captures/Canal%20Afternoon%20Scene%20A-1.jpg", "createdAt": "2024-07-18"
   },
   {
     id: "cite-multimedia-view-b-1",
@@ -670,7 +670,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#9a9e9a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -678,10 +678,10 @@ const initialPhotos: Photo[] = [
     views: 790,
     likes: 58,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
+    lens: "35mm f/2",
     iso: 100,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203758/ns-captures/Cite%CC%81%20Multimedia%20View%20B-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203758/ns-captures/Cite%CC%81%20Multimedia%20View%20B-1.jpg", "createdAt": "2025-09-04"
   },
   {
     id: "cite-multimedia-night-1",
@@ -691,7 +691,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#0a1020",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 330,
@@ -699,10 +699,10 @@ const initialPhotos: Photo[] = [
     views: 835,
     likes: 62,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "28mm f/2",
+    iso: 640,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203761/ns-captures/Cite%CC%81%20Multimedia%20Night-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203761/ns-captures/Cite%CC%81%20Multimedia%20Night-1.jpg", "createdAt": "2024-04-03"
   },
   {
     id: "church-skyline-1",
@@ -712,7 +712,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#7088a2",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 380,
@@ -720,10 +720,10 @@ const initialPhotos: Photo[] = [
     views: 880,
     likes: 66,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 640,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203799/ns-captures/Church%20Skyline-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203799/ns-captures/Church%20Skyline-1.jpg", "createdAt": "2024-05-18"
   },
   {
     id: "downtown-am-closeup-a-1",
@@ -733,7 +733,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#7a8590",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 180,
@@ -742,9 +742,9 @@ const initialPhotos: Photo[] = [
     likes: 70,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 200,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203830/ns-captures/Downtown%20AM%20Closeup%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203830/ns-captures/Downtown%20AM%20Closeup%20A-1.jpg", "createdAt": "2025-03-26"
   },
   {
     id: "false-creek-courtyard-1",
@@ -754,7 +754,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Vancouver, Canada",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 230,
@@ -762,10 +762,10 @@ const initialPhotos: Photo[] = [
     views: 970,
     likes: 74,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
+    lens: "50mm f/1.4",
     iso: 100,
     keywords: ["landscape", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203833/ns-captures/False%20Creek%20Courtyard-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203833/ns-captures/False%20Creek%20Courtyard-1.jpg", "createdAt": "2025-10-28"
   },
   {
     id: "downtown-am-closeup-b-1",
@@ -775,7 +775,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#9a8e7d",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -783,10 +783,10 @@ const initialPhotos: Photo[] = [
     views: 1015,
     likes: 78,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 400,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203861/ns-captures/Downtown%20AM%20Closeup%20B-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203861/ns-captures/Downtown%20AM%20Closeup%20B-1.jpg", "createdAt": "2024-06-25"
   },
   {
     id: "cohen-skyline-1",
@@ -796,7 +796,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#94a8c0",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 330,
@@ -804,10 +804,10 @@ const initialPhotos: Photo[] = [
     views: 1060,
     likes: 82,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
+    lens: "50mm f/1.4",
     iso: 100,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203873/ns-captures/Cohen%20Skyline-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203873/ns-captures/Cohen%20Skyline-1.jpg", "createdAt": "2026-07-06"
   },
   {
     id: "false-creek-view-a-1",
@@ -817,7 +817,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Vancouver, Canada",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 380,
@@ -825,10 +825,10 @@ const initialPhotos: Photo[] = [
     views: 1105,
     likes: 86,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "50mm f/1.4",
+    iso: 320,
     keywords: ["landscape", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203887/ns-captures/False%20Creek%20View%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203887/ns-captures/False%20Creek%20View%20A-1.jpg", "createdAt": "2025-06-22"
   },
   {
     id: "griffintown-canal-b-1",
@@ -838,7 +838,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#5a8898",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 180,
@@ -846,10 +846,10 @@ const initialPhotos: Photo[] = [
     views: 1150,
     likes: 90,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "28mm f/2",
+    iso: 200,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203931/ns-captures/Griffintown%20Canal%20B-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203931/ns-captures/Griffintown%20Canal%20B-1.jpg", "createdAt": "2025-11-06"
   },
   {
     id: "griffintown-canal-a-1",
@@ -859,7 +859,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#5a8898",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 230,
@@ -867,10 +867,10 @@ const initialPhotos: Photo[] = [
     views: 1195,
     likes: 94,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 500,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203972/ns-captures/Griffintown%20Canal%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203972/ns-captures/Griffintown%20Canal%20A-1.jpg", "createdAt": "2025-10-06"
   },
   {
     id: "mcgill-skyline-a-1",
@@ -880,7 +880,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#7088a2",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -888,10 +888,10 @@ const initialPhotos: Photo[] = [
     views: 1240,
     likes: 98,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "50mm f/1.4",
+    iso: 320,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204069/ns-captures/McGill%20Skyline%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204069/ns-captures/McGill%20Skyline%20A-1.jpg", "createdAt": "2025-05-23"
   },
   {
     id: "griffintown-view-a-1",
@@ -901,7 +901,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Canada",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 330,
@@ -910,9 +910,9 @@ const initialPhotos: Photo[] = [
     likes: 102,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 400,
     keywords: ["landscape", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204078/ns-captures/Griffintown%20View%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204078/ns-captures/Griffintown%20View%20A-1.jpg", "createdAt": "2024-10-25"
   },
   {
     id: "griffintown-daytime-a-1",
@@ -922,7 +922,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Canada",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 380,
@@ -930,10 +930,10 @@ const initialPhotos: Photo[] = [
     views: 1330,
     likes: 106,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
+    lens: "50mm f/1.4",
     iso: 100,
     keywords: ["landscape", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204089/ns-captures/Griffintown%20Daytime%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204089/ns-captures/Griffintown%20Daytime%20A-1.jpg", "createdAt": "2025-03-21"
   },
   {
     id: "griffintown-night-a-1",
@@ -943,7 +943,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Canada",
-    color: "#555555",
+    color: "#1a2838",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 180,
@@ -952,9 +952,9 @@ const initialPhotos: Photo[] = [
     likes: 110,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 640,
     keywords: ["landscape", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204099/ns-captures/Griffintown%20Night%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204099/ns-captures/Griffintown%20Night%20A-1.jpg", "createdAt": "2024-06-24"
   },
   {
     id: "mcgill-downtown-closeup-a-1",
@@ -964,7 +964,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#6e7b7a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 230,
@@ -972,10 +972,10 @@ const initialPhotos: Photo[] = [
     views: 1420,
     likes: 114,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "28mm f/2",
+    iso: 160,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204125/ns-captures/McGill%20Downtown%20Closeup%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204125/ns-captures/McGill%20Downtown%20Closeup%20A-1.jpg", "createdAt": "2025-01-23"
   },
   {
     id: "montagnes-de-verre-1",
@@ -985,7 +985,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#84ad67",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -993,10 +993,10 @@ const initialPhotos: Photo[] = [
     views: 1465,
     likes: 118,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "28mm f/2",
+    iso: 200,
     keywords: ["landscape", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204177/ns-captures/Montagnes%20de%20Verre-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204177/ns-captures/Montagnes%20de%20Verre-1.jpg", "createdAt": "2024-07-20"
   },
   {
     id: "mcgill-skyline-closeup-b-1",
@@ -1006,7 +1006,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#94a8c0",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 330,
@@ -1014,10 +1014,10 @@ const initialPhotos: Photo[] = [
     views: 1510,
     likes: 122,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "50mm f/1.4",
+    iso: 200,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204179/ns-captures/McGill%20Skyline%20Closeup%20B-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204179/ns-captures/McGill%20Skyline%20Closeup%20B-1.jpg", "createdAt": "2026-01-02"
   },
   {
     id: "mcgill-skyline-b-1",
@@ -1027,7 +1027,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#6d7f94",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 380,
@@ -1036,9 +1036,9 @@ const initialPhotos: Photo[] = [
     likes: 126,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 640,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204205/ns-captures/McGill%20Skyline%20B-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204205/ns-captures/McGill%20Skyline%20B-1.jpg", "createdAt": "2024-12-15"
   },
   {
     id: "soccer-skyline-b-1",
@@ -1048,7 +1048,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#8a9bb0",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 180,
@@ -1056,10 +1056,10 @@ const initialPhotos: Photo[] = [
     views: 1600,
     likes: 130,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "28mm f/2",
+    iso: 400,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204228/ns-captures/Soccer%20Skyline%20B-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204228/ns-captures/Soccer%20Skyline%20B-1.jpg", "createdAt": "2026-03-19"
   },
   {
     id: "reading-in-the-sun-1",
@@ -1069,7 +1069,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Canada",
-    color: "#555555",
+    color: "#aa9e8e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 230,
@@ -1078,9 +1078,9 @@ const initialPhotos: Photo[] = [
     likes: 134,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 400,
     keywords: ["lifestyle", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204265/ns-captures/Reading%20in%20the%20Sun-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204265/ns-captures/Reading%20in%20the%20Sun-1.jpg", "createdAt": "2025-04-02"
   },
   {
     id: "soccer-skyline-c-1",
@@ -1090,7 +1090,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#8a9bb0",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -1099,9 +1099,9 @@ const initialPhotos: Photo[] = [
     likes: 138,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 400,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204266/ns-captures/Soccer%20Skyline%20C-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204266/ns-captures/Soccer%20Skyline%20C-1.jpg", "createdAt": "2025-10-18"
   },
   {
     id: "mcgill-skyline-c-1",
@@ -1111,7 +1111,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#6d7f94",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 330,
@@ -1119,10 +1119,10 @@ const initialPhotos: Photo[] = [
     views: 1735,
     likes: 142,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 200,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204269/ns-captures/McGill%20Skyline%20C-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204269/ns-captures/McGill%20Skyline%20C-1.jpg", "createdAt": "2024-02-10"
   },
   {
     id: "mcgill-skyline-d-1",
@@ -1132,7 +1132,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#8a9bb0",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 380,
@@ -1140,10 +1140,10 @@ const initialPhotos: Photo[] = [
     views: 1780,
     likes: 146,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "50mm f/1.4",
+    iso: 400,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204307/ns-captures/McGill%20Skyline%20D-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204307/ns-captures/McGill%20Skyline%20D-1.jpg", "createdAt": "2026-06-29"
   },
   {
     id: "square-saint-louis-cafe-1",
@@ -1153,7 +1153,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#74a172",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 180,
@@ -1162,9 +1162,9 @@ const initialPhotos: Photo[] = [
     likes: 150,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 320,
     keywords: ["landscape", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204328/ns-captures/Square%20Saint-Louis%20Cafe%CC%81-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204328/ns-captures/Square%20Saint-Louis%20Cafe%CC%81-1.jpg", "createdAt": "2024-10-06"
   },
   {
     id: "sun-life-detail-1",
@@ -1174,7 +1174,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Canada",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 230,
@@ -1182,10 +1182,10 @@ const initialPhotos: Photo[] = [
     views: 1870,
     likes: 154,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 200,
     keywords: ["culture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204340/ns-captures/Sun%20Life%20Detail-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204340/ns-captures/Sun%20Life%20Detail-1.jpg", "createdAt": "2025-09-28"
   },
   {
     id: "sun-life-building-1",
@@ -1195,7 +1195,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#9a9e9a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -1203,10 +1203,10 @@ const initialPhotos: Photo[] = [
     views: 1915,
     likes: 158,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 640,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204346/ns-captures/Sun%20Life%20Building-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204346/ns-captures/Sun%20Life%20Building-1.jpg", "createdAt": "2024-11-06"
   },
   {
     id: "tungsten-street-plateau-1",
@@ -1216,7 +1216,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#3a5e2a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 330,
@@ -1224,10 +1224,10 @@ const initialPhotos: Photo[] = [
     views: 1960,
     likes: 162,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "28mm f/2",
+    iso: 320,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204357/ns-captures/Tungsten%20Street%20Plateau-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204357/ns-captures/Tungsten%20Street%20Plateau-1.jpg", "createdAt": "2025-07-02"
   },
   {
     id: "vancouver-city-of-glass-1",
@@ -1237,7 +1237,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Vancouver, Canada",
-    color: "#555555",
+    color: "#6d7a85",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 380,
@@ -1245,10 +1245,10 @@ const initialPhotos: Photo[] = [
     views: 2005,
     likes: 166,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 200,
     keywords: ["culture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204363/ns-captures/Vancouver%2C%20City%20of%20Glass-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204363/ns-captures/Vancouver%2C%20City%20of%20Glass-1.jpg", "createdAt": "2024-10-31"
   },
   {
     id: "tungsten-skyline-1",
@@ -1258,7 +1258,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Canada",
-    color: "#555555",
+    color: "#94a8c0",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 180,
@@ -1267,9 +1267,9 @@ const initialPhotos: Photo[] = [
     likes: 170,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 160,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204369/ns-captures/Tungsten%20Skyline-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204369/ns-captures/Tungsten%20Skyline-1.jpg", "createdAt": "2025-10-06"
   },
   {
     id: "vieux-montre-al-am-runner-1",
@@ -1279,7 +1279,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 230,
@@ -1288,9 +1288,9 @@ const initialPhotos: Photo[] = [
     likes: 174,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 200,
     keywords: ["landscape", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204394/ns-captures/Vieux-Montre%CC%81al%20AM%20Runner-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204394/ns-captures/Vieux-Montre%CC%81al%20AM%20Runner-1.jpg", "createdAt": "2024-02-22"
   },
   {
     id: "vieux-montre-al-pm-street-a-1",
@@ -1300,7 +1300,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#5a7e4a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -1309,9 +1309,9 @@ const initialPhotos: Photo[] = [
     likes: 178,
     camera: "Leica M11",
     lens: "35mm f/1.4",
-    iso: 100,
+    iso: 320,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204395/ns-captures/Vieux-Montre%CC%81al%20PM%20Street%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204395/ns-captures/Vieux-Montre%CC%81al%20PM%20Street%20A-1.jpg", "createdAt": "2024-12-24"
   },
   {
     id: "vieux-montre-al-am-golden-hour-a-1",
@@ -1321,7 +1321,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#b49030",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 330,
@@ -1329,10 +1329,10 @@ const initialPhotos: Photo[] = [
     views: 2185,
     likes: 182,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "50mm f/1.4",
+    iso: 500,
     keywords: ["landscape", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204429/ns-captures/Vieux-Montre%CC%81al%20AM%20Golden%20Hour%20A-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204429/ns-captures/Vieux-Montre%CC%81al%20AM%20Golden%20Hour%20A-1.jpg", "createdAt": "2025-02-16"
   },
   {
     id: "vieux-montre-al-pm-street-c-1",
@@ -1342,7 +1342,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#4a6e3a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 380,
@@ -1350,10 +1350,10 @@ const initialPhotos: Photo[] = [
     views: 2230,
     likes: 186,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "50mm f/1.4",
+    iso: 320,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204431/ns-captures/Vieux-Montre%CC%81al%20PM%20Street%20C-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204431/ns-captures/Vieux-Montre%CC%81al%20PM%20Street%20C-1.jpg", "createdAt": "2026-02-15"
   },
   {
     id: "vieux-montre-al-pm-street-b-1",
@@ -1363,7 +1363,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Montreal, Canada",
-    color: "#555555",
+    color: "#2a4e1a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 180,
@@ -1371,10 +1371,10 @@ const initialPhotos: Photo[] = [
     views: 2275,
     likes: 190,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 160,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204443/ns-captures/Vieux-Montre%CC%81al%20PM%20Street%20B-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784204443/ns-captures/Vieux-Montre%CC%81al%20PM%20Street%20B-1.jpg", "createdAt": "2025-07-29"
   },
   {
     id: "lexmond-dennis-photo-2",
@@ -1384,7 +1384,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#2a4e1a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -1393,9 +1393,9 @@ const initialPhotos: Photo[] = [
     likes: 10,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 320,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205071/ns-captures-lexmond/lexmond_photo_2.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205071/ns-captures-lexmond/lexmond_photo_2.jpg", "createdAt": "2025-11-26"
   },
   {
     id: "lexmond-dennis-photo-3",
@@ -1405,7 +1405,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -1413,10 +1413,10 @@ const initialPhotos: Photo[] = [
     views: 228,
     likes: 12,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1250,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205072/ns-captures-lexmond/lexmond_photo_3.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205072/ns-captures-lexmond/lexmond_photo_3.jpg", "createdAt": "2026-04-23"
   },
   {
     id: "lexmond-dennis-photo-5",
@@ -1426,7 +1426,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#8a9580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -1437,7 +1437,7 @@ const initialPhotos: Photo[] = [
     lens: "FE 24-70mm f/2.8 GM II",
     iso: 100,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205067/ns-captures-lexmond/lexmond_photo_5.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205067/ns-captures-lexmond/lexmond_photo_5.jpg", "createdAt": "2025-05-23"
   },
   {
     id: "lexmond-dennis-photo-6",
@@ -1447,7 +1447,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#5a7e3e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -1455,10 +1455,10 @@ const initialPhotos: Photo[] = [
     views: 300,
     likes: 18,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 800,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205071/ns-captures-lexmond/lexmond_photo_6.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205071/ns-captures-lexmond/lexmond_photo_6.jpg", "createdAt": "2026-07-05"
   },
   {
     id: "lexmond-dennis-photo-4",
@@ -1468,7 +1468,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#d63384",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -1476,10 +1476,10 @@ const initialPhotos: Photo[] = [
     views: 252,
     likes: 14,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 1000,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205077/ns-captures-lexmond/lexmond_photo_4.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205077/ns-captures-lexmond/lexmond_photo_4.jpg", "createdAt": "2026-04-28"
   },
   {
     id: "lexmond-dennis-photo-1",
@@ -1489,7 +1489,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#3a6878",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -1497,10 +1497,10 @@ const initialPhotos: Photo[] = [
     views: 180,
     likes: 8,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 320,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205070/ns-captures-lexmond/lexmond_photo_1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205070/ns-captures-lexmond/lexmond_photo_1.jpg", "createdAt": "2026-05-10"
   },
   {
     id: "lexmond-dennis-photo-8",
@@ -1510,7 +1510,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#3a6878",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -1518,10 +1518,10 @@ const initialPhotos: Photo[] = [
     views: 348,
     likes: 22,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1600,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205078/ns-captures-lexmond/lexmond_photo_8.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205078/ns-captures-lexmond/lexmond_photo_8.jpg", "createdAt": "2026-01-05"
   },
   {
     id: "lexmond-dennis-photo-7",
@@ -1531,7 +1531,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#6a9fb8",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -1540,9 +1540,9 @@ const initialPhotos: Photo[] = [
     likes: 20,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 125,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205077/ns-captures-lexmond/lexmond_photo_7.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205077/ns-captures-lexmond/lexmond_photo_7.jpg", "createdAt": "2025-08-29"
   },
   {
     id: "lexmond-dennis-photo-9",
@@ -1552,7 +1552,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#c4783c",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -1561,9 +1561,9 @@ const initialPhotos: Photo[] = [
     likes: 24,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 640,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205074/ns-captures-lexmond/lexmond_photo_9.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205074/ns-captures-lexmond/lexmond_photo_9.jpg", "createdAt": "2026-02-24"
   },
   {
     id: "lexmond-dennis-photo-10",
@@ -1573,7 +1573,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#1a2838",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -1582,9 +1582,9 @@ const initialPhotos: Photo[] = [
     likes: 26,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 400,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205076/ns-captures-lexmond/lexmond_photo_10.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205076/ns-captures-lexmond/lexmond_photo_10.jpg", "createdAt": "2026-02-14"
   },
   {
     id: "lexmond-dennis-photo-13",
@@ -1594,7 +1594,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#8c805a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -1602,10 +1602,10 @@ const initialPhotos: Photo[] = [
     views: 468,
     likes: 32,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 125,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205082/ns-captures-lexmond/lexmond_photo_13.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205082/ns-captures-lexmond/lexmond_photo_13.jpg", "createdAt": "2025-03-24"
   },
   {
     id: "lexmond-dennis-photo-12",
@@ -1615,7 +1615,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#e84393",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -1623,10 +1623,10 @@ const initialPhotos: Photo[] = [
     views: 444,
     likes: 30,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 500,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205081/ns-captures-lexmond/lexmond_photo_12.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205081/ns-captures-lexmond/lexmond_photo_12.jpg", "createdAt": "2026-02-19"
   },
   {
     id: "lexmond-dennis-photo-14",
@@ -1636,7 +1636,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -1645,9 +1645,9 @@ const initialPhotos: Photo[] = [
     likes: 34,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 160,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205080/ns-captures-lexmond/lexmond_photo_14.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205080/ns-captures-lexmond/lexmond_photo_14.jpg", "createdAt": "2026-01-25"
   },
   {
     id: "lexmond-dennis-photo-11",
@@ -1657,7 +1657,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -1665,10 +1665,10 @@ const initialPhotos: Photo[] = [
     views: 420,
     likes: 28,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 400,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205090/ns-captures-lexmond/lexmond_photo_11.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205090/ns-captures-lexmond/lexmond_photo_11.jpg", "createdAt": "2025-10-14"
   },
   {
     id: "lexmond-dennis-photo-17",
@@ -1678,7 +1678,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -1686,10 +1686,10 @@ const initialPhotos: Photo[] = [
     views: 564,
     likes: 40,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 200,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205086/ns-captures-lexmond/lexmond_photo_17.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205086/ns-captures-lexmond/lexmond_photo_17.jpg", "createdAt": "2025-05-13"
   },
   {
     id: "lexmond-dennis-photo-15",
@@ -1699,7 +1699,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -1707,10 +1707,10 @@ const initialPhotos: Photo[] = [
     views: 516,
     likes: 36,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 400,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205083/ns-captures-lexmond/lexmond_photo_15.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205083/ns-captures-lexmond/lexmond_photo_15.jpg", "createdAt": "2025-11-27"
   },
   {
     id: "lexmond-dennis-photo-18",
@@ -1720,7 +1720,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#c46020",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -1728,10 +1728,10 @@ const initialPhotos: Photo[] = [
     views: 588,
     likes: 42,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 125,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205089/ns-captures-lexmond/lexmond_photo_18.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205089/ns-captures-lexmond/lexmond_photo_18.jpg", "createdAt": "2025-03-02"
   },
   {
     id: "lexmond-dennis-photo-19",
@@ -1741,7 +1741,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#6d9060",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -1752,7 +1752,7 @@ const initialPhotos: Photo[] = [
     lens: "FE 24-70mm f/2.8 GM II",
     iso: 100,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205088/ns-captures-lexmond/lexmond_photo_19.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205088/ns-captures-lexmond/lexmond_photo_19.jpg", "createdAt": "2026-05-06"
   },
   {
     id: "lexmond-dennis-photo-20",
@@ -1762,7 +1762,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#9a8e7e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -1770,10 +1770,10 @@ const initialPhotos: Photo[] = [
     views: 636,
     likes: 46,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 125,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205095/ns-captures-lexmond/lexmond_photo_20.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205095/ns-captures-lexmond/lexmond_photo_20.jpg", "createdAt": "2026-04-12"
   },
   {
     id: "lexmond-dennis-photo-23",
@@ -1783,7 +1783,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -1791,10 +1791,10 @@ const initialPhotos: Photo[] = [
     views: 708,
     likes: 52,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 160,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205095/ns-captures-lexmond/lexmond_photo_23.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205095/ns-captures-lexmond/lexmond_photo_23.jpg", "createdAt": "2026-02-12"
   },
   {
     id: "lexmond-dennis-photo-21",
@@ -1804,7 +1804,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#3a6878",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -1813,9 +1813,9 @@ const initialPhotos: Photo[] = [
     likes: 48,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1600,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205127/ns-captures-lexmond/lexmond_photo_21.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205127/ns-captures-lexmond/lexmond_photo_21.jpg", "createdAt": "2026-03-08"
   },
   {
     id: "lexmond-dennis-photo-24",
@@ -1825,7 +1825,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#a83257",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -1834,9 +1834,9 @@ const initialPhotos: Photo[] = [
     likes: 54,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 500,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205095/ns-captures-lexmond/lexmond_photo_24.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205095/ns-captures-lexmond/lexmond_photo_24.jpg", "createdAt": "2026-04-04"
   },
   {
     id: "lexmond-dennis-photo-22",
@@ -1846,7 +1846,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#5a7e4a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -1855,9 +1855,9 @@ const initialPhotos: Photo[] = [
     likes: 50,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 125,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205093/ns-captures-lexmond/lexmond_photo_22.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205093/ns-captures-lexmond/lexmond_photo_22.jpg", "createdAt": "2025-04-17"
   },
   {
     id: "lexmond-dennis-photo-25",
@@ -1867,7 +1867,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#7a8570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -1875,10 +1875,10 @@ const initialPhotos: Photo[] = [
     views: 756,
     likes: 56,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 640,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205098/ns-captures-lexmond/lexmond_photo_25.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205098/ns-captures-lexmond/lexmond_photo_25.jpg", "createdAt": "2026-01-26"
   },
   {
     id: "lexmond-dennis-photo-26",
@@ -1888,7 +1888,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#5a7e3e",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -1899,7 +1899,7 @@ const initialPhotos: Photo[] = [
     lens: "FE 24-70mm f/2.8 GM II",
     iso: 100,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205098/ns-captures-lexmond/lexmond_photo_26.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205098/ns-captures-lexmond/lexmond_photo_26.jpg", "createdAt": "2025-09-13"
   },
   {
     id: "lexmond-dennis-photo-27",
@@ -1909,7 +1909,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#6a9fb8",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -1917,10 +1917,10 @@ const initialPhotos: Photo[] = [
     views: 804,
     likes: 60,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1000,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205100/ns-captures-lexmond/lexmond_photo_27.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205100/ns-captures-lexmond/lexmond_photo_27.jpg", "createdAt": "2025-11-22"
   },
   {
     id: "lexmond-dennis-photo-28",
@@ -1930,7 +1930,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#4a7888",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -1939,9 +1939,9 @@ const initialPhotos: Photo[] = [
     likes: 62,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1600,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205100/ns-captures-lexmond/lexmond_photo_28.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205100/ns-captures-lexmond/lexmond_photo_28.jpg", "createdAt": "2025-07-11"
   },
   {
     id: "lexmond-dennis-photo-30",
@@ -1951,7 +1951,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#0a1020",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -1960,9 +1960,9 @@ const initialPhotos: Photo[] = [
     likes: 66,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1600,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205101/ns-captures-lexmond/lexmond_photo_30.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205101/ns-captures-lexmond/lexmond_photo_30.jpg", "createdAt": "2026-02-03"
   },
   {
     id: "lexmond-dennis-photo-29",
@@ -1972,7 +1972,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#b4682c",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -1981,9 +1981,9 @@ const initialPhotos: Photo[] = [
     likes: 64,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 250,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205101/ns-captures-lexmond/lexmond_photo_29.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205101/ns-captures-lexmond/lexmond_photo_29.jpg", "createdAt": "2025-11-01"
   },
   {
     id: "lexmond-dennis-photo-31",
@@ -1993,7 +1993,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -2001,10 +2001,10 @@ const initialPhotos: Photo[] = [
     views: 900,
     likes: 68,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 640,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205108/ns-captures-lexmond/lexmond_photo_31.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205108/ns-captures-lexmond/lexmond_photo_31.jpg", "createdAt": "2025-11-30"
   },
   {
     id: "lexmond-dennis-photo-32",
@@ -2014,7 +2014,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#a83257",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -2023,9 +2023,9 @@ const initialPhotos: Photo[] = [
     likes: 70,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1600,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205106/ns-captures-lexmond/lexmond_photo_32.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205106/ns-captures-lexmond/lexmond_photo_32.jpg", "createdAt": "2026-03-16"
   },
   {
     id: "lexmond-dennis-photo-34",
@@ -2035,7 +2035,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#9a9e9a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -2043,10 +2043,10 @@ const initialPhotos: Photo[] = [
     views: 972,
     likes: 74,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 640,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205108/ns-captures-lexmond/lexmond_photo_34.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205108/ns-captures-lexmond/lexmond_photo_34.jpg", "createdAt": "2026-05-03"
   },
   {
     id: "lexmond-dennis-photo-33",
@@ -2056,7 +2056,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -2065,9 +2065,9 @@ const initialPhotos: Photo[] = [
     likes: 72,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 250,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205106/ns-captures-lexmond/lexmond_photo_33.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205106/ns-captures-lexmond/lexmond_photo_33.jpg", "createdAt": "2026-05-11"
   },
   {
     id: "lexmond-dennis-photo-36",
@@ -2077,7 +2077,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#3a5e2a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -2085,10 +2085,10 @@ const initialPhotos: Photo[] = [
     views: 1020,
     likes: 78,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 400,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205111/ns-captures-lexmond/lexmond_photo_36.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205111/ns-captures-lexmond/lexmond_photo_36.jpg", "createdAt": "2026-04-20"
   },
   {
     id: "lexmond-dennis-photo-37",
@@ -2098,7 +2098,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 120,
@@ -2107,9 +2107,9 @@ const initialPhotos: Photo[] = [
     likes: 80,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 640,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205110/ns-captures-lexmond/lexmond_photo_37.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205110/ns-captures-lexmond/lexmond_photo_37.jpg", "createdAt": "2025-05-14"
   },
   {
     id: "lexmond-dennis-photo-39",
@@ -2119,7 +2119,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -2128,9 +2128,9 @@ const initialPhotos: Photo[] = [
     likes: 84,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 400,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205116/ns-captures-lexmond/lexmond_photo_39.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205116/ns-captures-lexmond/lexmond_photo_39.jpg", "createdAt": "2025-07-15"
   },
   {
     id: "lexmond-dennis-photo-40",
@@ -2140,7 +2140,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#7a6e5e",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -2149,9 +2149,9 @@ const initialPhotos: Photo[] = [
     likes: 86,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 800,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205116/ns-captures-lexmond/lexmond_photo_40.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205116/ns-captures-lexmond/lexmond_photo_40.jpg", "createdAt": "2026-02-18"
   },
   {
     id: "lexmond-dennis-photo-41",
@@ -2161,7 +2161,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#4a7888",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -2170,9 +2170,9 @@ const initialPhotos: Photo[] = [
     likes: 88,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1250,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205115/ns-captures-lexmond/lexmond_photo_41.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205115/ns-captures-lexmond/lexmond_photo_41.jpg", "createdAt": "2025-11-26"
   },
   {
     id: "lexmond-dennis-photo-42",
@@ -2182,7 +2182,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#3a5e2a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -2191,9 +2191,9 @@ const initialPhotos: Photo[] = [
     likes: 90,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 400,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205117/ns-captures-lexmond/lexmond_photo_42.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205117/ns-captures-lexmond/lexmond_photo_42.jpg", "createdAt": "2026-05-18"
   },
   {
     id: "lexmond-dennis-photo-38",
@@ -2203,7 +2203,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#c46020",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -2211,10 +2211,10 @@ const initialPhotos: Photo[] = [
     views: 1068,
     likes: 82,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 320,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205113/ns-captures-lexmond/lexmond_photo_38.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205113/ns-captures-lexmond/lexmond_photo_38.jpg", "createdAt": "2025-12-31"
   },
   {
     id: "lexmond-dennis-photo-35",
@@ -2224,7 +2224,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -2232,10 +2232,10 @@ const initialPhotos: Photo[] = [
     views: 996,
     likes: 76,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
+    lens: "FE 50mm f/1.4 GM",
     iso: 100,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205126/ns-captures-lexmond/lexmond_photo_35.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205126/ns-captures-lexmond/lexmond_photo_35.jpg", "createdAt": "2025-05-23"
   },
   {
     id: "lexmond-dennis-photo-43",
@@ -2245,7 +2245,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -2254,9 +2254,9 @@ const initialPhotos: Photo[] = [
     likes: 92,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 250,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205121/ns-captures-lexmond/lexmond_photo_43.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205121/ns-captures-lexmond/lexmond_photo_43.jpg", "createdAt": "2026-04-15"
   },
   {
     id: "lexmond-dennis-photo-49",
@@ -2266,7 +2266,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#a45820",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -2274,10 +2274,10 @@ const initialPhotos: Photo[] = [
     views: 1332,
     likes: 104,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 125,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205133/ns-captures-lexmond/lexmond_photo_49.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205133/ns-captures-lexmond/lexmond_photo_49.jpg", "createdAt": "2025-03-17"
   },
   {
     id: "lexmond-dennis-photo-51",
@@ -2287,7 +2287,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -2295,10 +2295,10 @@ const initialPhotos: Photo[] = [
     views: 1380,
     likes: 108,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 200,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205132/ns-captures-lexmond/lexmond_photo_51.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205132/ns-captures-lexmond/lexmond_photo_51.jpg", "createdAt": "2026-04-29"
   },
   {
     id: "lexmond-dennis-photo-50",
@@ -2308,7 +2308,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#0a1020",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -2317,9 +2317,9 @@ const initialPhotos: Photo[] = [
     likes: 106,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1250,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205130/ns-captures-lexmond/lexmond_photo_50.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205130/ns-captures-lexmond/lexmond_photo_50.jpg", "createdAt": "2025-08-19"
   },
   {
     id: "lexmond-dennis-photo-53",
@@ -2329,7 +2329,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#638d58",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -2337,10 +2337,10 @@ const initialPhotos: Photo[] = [
     views: 1428,
     likes: 112,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 200,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205140/ns-captures-lexmond/lexmond_photo_53.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205140/ns-captures-lexmond/lexmond_photo_53.jpg", "createdAt": "2025-10-25"
   },
   {
     id: "lexmond-dennis-photo-52",
@@ -2350,7 +2350,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#e84393",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -2358,10 +2358,10 @@ const initialPhotos: Photo[] = [
     views: 1404,
     likes: 110,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 800,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205137/ns-captures-lexmond/lexmond_photo_52.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205137/ns-captures-lexmond/lexmond_photo_52.jpg", "createdAt": "2025-11-13"
   },
   {
     id: "lexmond-dennis-photo-54",
@@ -2371,7 +2371,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#9a9e9a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -2379,10 +2379,10 @@ const initialPhotos: Photo[] = [
     views: 1452,
     likes: 114,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 125,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205137/ns-captures-lexmond/lexmond_photo_54.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205137/ns-captures-lexmond/lexmond_photo_54.jpg", "createdAt": "2026-03-23"
   },
   {
     id: "lexmond-dennis-photo-55",
@@ -2392,7 +2392,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 120,
@@ -2401,9 +2401,9 @@ const initialPhotos: Photo[] = [
     likes: 116,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 125,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205145/ns-captures-lexmond/lexmond_photo_55.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205145/ns-captures-lexmond/lexmond_photo_55.jpg", "createdAt": "2025-03-30"
   },
   {
     id: "lexmond-dennis-photo-56",
@@ -2413,7 +2413,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#4a6e3a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -2421,10 +2421,10 @@ const initialPhotos: Photo[] = [
     views: 1500,
     likes: 118,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 200,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205139/ns-captures-lexmond/lexmond_photo_56.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205139/ns-captures-lexmond/lexmond_photo_56.jpg", "createdAt": "2025-06-23"
   },
   {
     id: "lexmond-dennis-photo-48",
@@ -2434,7 +2434,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#6a98a8",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -2442,10 +2442,10 @@ const initialPhotos: Photo[] = [
     views: 1308,
     likes: 102,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 1000,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205133/ns-captures-lexmond/lexmond_photo_48.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205133/ns-captures-lexmond/lexmond_photo_48.jpg", "createdAt": "2025-08-17"
   },
   {
     id: "lexmond-dennis-photo-57",
@@ -2455,7 +2455,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -2464,9 +2464,9 @@ const initialPhotos: Photo[] = [
     likes: 120,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 800,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205138/ns-captures-lexmond/lexmond_photo_57.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205138/ns-captures-lexmond/lexmond_photo_57.jpg", "createdAt": "2026-04-01"
   },
   {
     id: "lexmond-dennis-photo-65",
@@ -2476,7 +2476,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#6a7560",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -2485,9 +2485,9 @@ const initialPhotos: Photo[] = [
     likes: 136,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1000,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205148/ns-captures-lexmond/lexmond_photo_65.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205148/ns-captures-lexmond/lexmond_photo_65.jpg", "createdAt": "2025-11-06"
   },
   {
     id: "lexmond-dennis-photo-68",
@@ -2497,7 +2497,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#4a7888",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -2506,9 +2506,9 @@ const initialPhotos: Photo[] = [
     likes: 142,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1000,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205151/ns-captures-lexmond/lexmond_photo_68.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205151/ns-captures-lexmond/lexmond_photo_68.jpg", "createdAt": "2025-10-01"
   },
   {
     id: "lexmond-dennis-photo-64",
@@ -2518,7 +2518,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#d63384",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -2527,9 +2527,9 @@ const initialPhotos: Photo[] = [
     likes: 134,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 400,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205156/ns-captures-lexmond/lexmond_photo_64.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205156/ns-captures-lexmond/lexmond_photo_64.jpg", "createdAt": "2026-06-15"
   },
   {
     id: "lexmond-dennis-photo-67",
@@ -2539,7 +2539,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#5a8fa8",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 120,
@@ -2548,9 +2548,9 @@ const initialPhotos: Photo[] = [
     likes: 140,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 500,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205153/ns-captures-lexmond/lexmond_photo_67.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205153/ns-captures-lexmond/lexmond_photo_67.jpg", "createdAt": "2026-01-29"
   },
   {
     id: "lexmond-dennis-photo-69",
@@ -2560,7 +2560,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#c4783c",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -2569,9 +2569,9 @@ const initialPhotos: Photo[] = [
     likes: 144,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 200,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205156/ns-captures-lexmond/lexmond_photo_69.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205156/ns-captures-lexmond/lexmond_photo_69.jpg", "createdAt": "2025-05-06"
   },
   {
     id: "lexmond-dennis-photo-66",
@@ -2581,7 +2581,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#5a7e3e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -2589,10 +2589,10 @@ const initialPhotos: Photo[] = [
     views: 1740,
     likes: 138,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 500,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205151/ns-captures-lexmond/lexmond_photo_66.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205151/ns-captures-lexmond/lexmond_photo_66.jpg", "createdAt": "2025-06-10"
   },
   {
     id: "lexmond-dennis-photo-70",
@@ -2602,7 +2602,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#1a2838",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -2610,10 +2610,10 @@ const initialPhotos: Photo[] = [
     views: 1836,
     likes: 146,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 800,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205156/ns-captures-lexmond/lexmond_photo_70.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205156/ns-captures-lexmond/lexmond_photo_70.jpg", "createdAt": "2025-03-25"
   },
   {
     id: "lexmond-dennis-photo-71",
@@ -2623,7 +2623,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -2631,10 +2631,10 @@ const initialPhotos: Photo[] = [
     views: 1860,
     likes: 148,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 200,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205159/ns-captures-lexmond/lexmond_photo_71.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205159/ns-captures-lexmond/lexmond_photo_71.jpg", "createdAt": "2025-03-24"
   },
   {
     id: "lexmond-dennis-photo-82",
@@ -2644,7 +2644,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#3a5e2a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -2652,10 +2652,10 @@ const initialPhotos: Photo[] = [
     views: 2124,
     likes: 170,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 800,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205173/ns-captures-lexmond/lexmond_photo_82.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205173/ns-captures-lexmond/lexmond_photo_82.jpg", "createdAt": "2025-07-03"
   },
   {
     id: "lexmond-dennis-photo-80",
@@ -2665,7 +2665,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#aa9e8e",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -2673,10 +2673,10 @@ const initialPhotos: Photo[] = [
     views: 2076,
     likes: 166,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 160,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205170/ns-captures-lexmond/lexmond_photo_80.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205170/ns-captures-lexmond/lexmond_photo_80.jpg", "createdAt": "2026-01-13"
   },
   {
     id: "lexmond-dennis-photo-79",
@@ -2686,7 +2686,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -2695,9 +2695,9 @@ const initialPhotos: Photo[] = [
     likes: 164,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1250,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205166/ns-captures-lexmond/lexmond_photo_79.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205166/ns-captures-lexmond/lexmond_photo_79.jpg", "createdAt": "2025-04-13"
   },
   {
     id: "lexmond-dennis-photo-81",
@@ -2707,7 +2707,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#4a7888",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -2716,9 +2716,9 @@ const initialPhotos: Photo[] = [
     likes: 168,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 160,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205178/ns-captures-lexmond/lexmond_photo_81.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205178/ns-captures-lexmond/lexmond_photo_81.jpg", "createdAt": "2025-10-20"
   },
   {
     id: "lexmond-dennis-photo-83",
@@ -2728,7 +2728,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -2736,10 +2736,10 @@ const initialPhotos: Photo[] = [
     views: 2148,
     likes: 172,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 640,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205173/ns-captures-lexmond/lexmond_photo_83.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205173/ns-captures-lexmond/lexmond_photo_83.jpg", "createdAt": "2025-05-18"
   },
   {
     id: "lexmond-dennis-photo-103",
@@ -2749,7 +2749,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -2758,9 +2758,9 @@ const initialPhotos: Photo[] = [
     likes: 212,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 250,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207102/ns-captures-lexmond/lexmond_photo_103.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207102/ns-captures-lexmond/lexmond_photo_103.jpg", "createdAt": "2025-06-10"
   },
   {
     id: "lexmond-dennis-photo-106",
@@ -2770,7 +2770,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#5a7e3e",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -2779,9 +2779,9 @@ const initialPhotos: Photo[] = [
     likes: 218,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 320,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207112/ns-captures-lexmond/lexmond_photo_106.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207112/ns-captures-lexmond/lexmond_photo_106.jpg", "createdAt": "2025-10-27"
   },
   {
     id: "lexmond-dennis-photo-104",
@@ -2791,7 +2791,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#e84393",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -2799,10 +2799,10 @@ const initialPhotos: Photo[] = [
     views: 2652,
     likes: 214,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
+    lens: "FE 35mm f/1.4 GM",
     iso: 100,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207122/ns-captures-lexmond/lexmond_photo_104.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207122/ns-captures-lexmond/lexmond_photo_104.jpg", "createdAt": "2026-05-02"
   },
   {
     id: "lexmond-dennis-photo-107",
@@ -2812,7 +2812,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#6a9fb8",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -2820,10 +2820,10 @@ const initialPhotos: Photo[] = [
     views: 2724,
     likes: 220,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 200,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207123/ns-captures-lexmond/lexmond_photo_107.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207123/ns-captures-lexmond/lexmond_photo_107.jpg", "createdAt": "2025-11-05"
   },
   {
     id: "lexmond-dennis-photo-108",
@@ -2833,7 +2833,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#4a7888",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -2841,10 +2841,10 @@ const initialPhotos: Photo[] = [
     views: 2748,
     likes: 222,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
+    lens: "FE 50mm f/1.4 GM",
     iso: 100,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207123/ns-captures-lexmond/lexmond_photo_108.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207123/ns-captures-lexmond/lexmond_photo_108.jpg", "createdAt": "2026-05-21"
   },
   {
     id: "lexmond-dennis-photo-128",
@@ -2854,7 +2854,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#6a98a8",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -2862,10 +2862,10 @@ const initialPhotos: Photo[] = [
     views: 3228,
     likes: 262,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 1000,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207267/ns-captures-lexmond/lexmond_photo_128.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207267/ns-captures-lexmond/lexmond_photo_128.jpg", "createdAt": "2025-03-27"
   },
   {
     id: "lexmond-dennis-photo-129",
@@ -2875,7 +2875,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#b4682c",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -2883,10 +2883,10 @@ const initialPhotos: Photo[] = [
     views: 3252,
     likes: 264,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 400,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207271/ns-captures-lexmond/lexmond_photo_129.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207271/ns-captures-lexmond/lexmond_photo_129.jpg", "createdAt": "2025-11-10"
   },
   {
     id: "lexmond-dennis-photo-130",
@@ -2896,7 +2896,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#2a3040",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -2904,10 +2904,10 @@ const initialPhotos: Photo[] = [
     views: 3276,
     likes: 266,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 500,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207276/ns-captures-lexmond/lexmond_photo_130.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207276/ns-captures-lexmond/lexmond_photo_130.jpg", "createdAt": "2025-03-09"
   },
   {
     id: "lexmond-dennis-photo-132",
@@ -2917,7 +2917,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#a83257",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -2926,9 +2926,9 @@ const initialPhotos: Photo[] = [
     likes: 270,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 640,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207278/ns-captures-lexmond/lexmond_photo_132.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207278/ns-captures-lexmond/lexmond_photo_132.jpg", "createdAt": "2025-05-30"
   },
   {
     id: "lexmond-dennis-photo-131",
@@ -2938,7 +2938,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -2946,10 +2946,10 @@ const initialPhotos: Photo[] = [
     views: 3300,
     likes: 268,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 1600,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207281/ns-captures-lexmond/lexmond_photo_131.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207281/ns-captures-lexmond/lexmond_photo_131.jpg", "createdAt": "2025-07-17"
   },
   {
     id: "lexmond-dennis-photo-134",
@@ -2959,7 +2959,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -2967,10 +2967,10 @@ const initialPhotos: Photo[] = [
     views: 3372,
     likes: 274,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
+    lens: "FE 35mm f/1.4 GM",
     iso: 100,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207283/ns-captures-lexmond/lexmond_photo_134.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207283/ns-captures-lexmond/lexmond_photo_134.jpg", "createdAt": "2025-12-07"
   },
   {
     id: "lexmond-dennis-photo-133",
@@ -2980,7 +2980,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 120,
@@ -2988,10 +2988,10 @@ const initialPhotos: Photo[] = [
     views: 3348,
     likes: 272,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 400,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207285/ns-captures-lexmond/lexmond_photo_133.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207285/ns-captures-lexmond/lexmond_photo_133.jpg", "createdAt": "2026-03-09"
   },
   {
     id: "lexmond-dennis-photo-135",
@@ -3001,7 +3001,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#bd9570",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -3009,10 +3009,10 @@ const initialPhotos: Photo[] = [
     views: 3396,
     likes: 276,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 500,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207285/ns-captures-lexmond/lexmond_photo_135.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207285/ns-captures-lexmond/lexmond_photo_135.jpg", "createdAt": "2026-06-13"
   },
   {
     id: "lexmond-dennis-photo-139",
@@ -3022,7 +3022,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 120,
@@ -3030,10 +3030,10 @@ const initialPhotos: Photo[] = [
     views: 3492,
     likes: 284,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
+    lens: "FE 35mm f/1.4 GM",
     iso: 100,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207290/ns-captures-lexmond/lexmond_photo_139.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207290/ns-captures-lexmond/lexmond_photo_139.jpg", "createdAt": "2026-05-26"
   },
   {
     id: "lexmond-dennis-photo-137",
@@ -3043,7 +3043,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#bb6abe",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -3051,10 +3051,10 @@ const initialPhotos: Photo[] = [
     views: 3444,
     likes: 280,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 400,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207291/ns-captures-lexmond/lexmond_photo_137.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207291/ns-captures-lexmond/lexmond_photo_137.jpg", "createdAt": "2026-02-02"
   },
   {
     id: "lexmond-dennis-photo-140",
@@ -3064,7 +3064,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#7a6e5e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -3072,10 +3072,10 @@ const initialPhotos: Photo[] = [
     views: 3516,
     likes: 286,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 1250,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207297/ns-captures-lexmond/lexmond_photo_140.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207297/ns-captures-lexmond/lexmond_photo_140.jpg", "createdAt": "2026-01-24"
   },
   {
     id: "lexmond-dennis-photo-136",
@@ -3085,7 +3085,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#2a4e1a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -3094,9 +3094,9 @@ const initialPhotos: Photo[] = [
     likes: 278,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1600,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207303/ns-captures-lexmond/lexmond_photo_136.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207303/ns-captures-lexmond/lexmond_photo_136.jpg", "createdAt": "2026-04-07"
   },
   {
     id: "lexmond-dennis-photo-141",
@@ -3106,7 +3106,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#6a98a8",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -3115,9 +3115,9 @@ const initialPhotos: Photo[] = [
     likes: 288,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 160,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207307/ns-captures-lexmond/lexmond_photo_141.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207307/ns-captures-lexmond/lexmond_photo_141.jpg", "createdAt": "2025-04-14"
   },
   {
     id: "lexmond-dennis-photo-138",
@@ -3127,7 +3127,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#f49050",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -3136,9 +3136,9 @@ const initialPhotos: Photo[] = [
     likes: 282,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 400,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207310/ns-captures-lexmond/lexmond_photo_138.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207310/ns-captures-lexmond/lexmond_photo_138.jpg", "createdAt": "2026-05-08"
   },
   {
     id: "lexmond-dennis-photo-143",
@@ -3148,7 +3148,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -3156,10 +3156,10 @@ const initialPhotos: Photo[] = [
     views: 3588,
     likes: 292,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1000,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207312/ns-captures-lexmond/lexmond_photo_143.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207312/ns-captures-lexmond/lexmond_photo_143.jpg", "createdAt": "2025-10-12"
   },
   {
     id: "lexmond-dennis-photo-142",
@@ -3169,7 +3169,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#2a4e1a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -3177,10 +3177,10 @@ const initialPhotos: Photo[] = [
     views: 3564,
     likes: 290,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 200,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207312/ns-captures-lexmond/lexmond_photo_142.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207312/ns-captures-lexmond/lexmond_photo_142.jpg", "createdAt": "2025-05-17"
   },
   {
     id: "lexmond-dennis-photo-147",
@@ -3190,7 +3190,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#6a9fb8",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -3198,10 +3198,10 @@ const initialPhotos: Photo[] = [
     views: 3684,
     likes: 300,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
+    lens: "FE 50mm f/1.4 GM",
     iso: 100,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207320/ns-captures-lexmond/lexmond_photo_147.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207320/ns-captures-lexmond/lexmond_photo_147.jpg", "createdAt": "2025-05-08"
   },
   {
     id: "lexmond-dennis-photo-144",
@@ -3211,7 +3211,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#c44569",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -3219,10 +3219,10 @@ const initialPhotos: Photo[] = [
     views: 3612,
     likes: 294,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 250,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207320/ns-captures-lexmond/lexmond_photo_144.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207320/ns-captures-lexmond/lexmond_photo_144.jpg", "createdAt": "2026-01-10"
   },
   {
     id: "lexmond-dennis-photo-145",
@@ -3232,7 +3232,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#5a6550",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -3240,10 +3240,10 @@ const initialPhotos: Photo[] = [
     views: 3636,
     likes: 296,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1000,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207335/ns-captures-lexmond/lexmond_photo_145.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207335/ns-captures-lexmond/lexmond_photo_145.jpg", "createdAt": "2026-03-02"
   },
   {
     id: "lexmond-dennis-photo-146",
@@ -3253,7 +3253,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#6b8e4e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -3261,10 +3261,10 @@ const initialPhotos: Photo[] = [
     views: 3660,
     likes: 298,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 1250,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207337/ns-captures-lexmond/lexmond_photo_146.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207337/ns-captures-lexmond/lexmond_photo_146.jpg", "createdAt": "2025-07-05"
   },
   {
     id: "lexmond-dennis-photo-149",
@@ -3274,7 +3274,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#b4682c",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -3283,9 +3283,9 @@ const initialPhotos: Photo[] = [
     likes: 304,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 400,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207338/ns-captures-lexmond/lexmond_photo_149.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207338/ns-captures-lexmond/lexmond_photo_149.jpg", "createdAt": "2025-09-06"
   },
   {
     id: "lexmond-dennis-photo-148",
@@ -3295,7 +3295,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#6a98a8",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -3303,10 +3303,10 @@ const initialPhotos: Photo[] = [
     views: 3708,
     likes: 302,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 250,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207341/ns-captures-lexmond/lexmond_photo_148.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207341/ns-captures-lexmond/lexmond_photo_148.jpg", "createdAt": "2025-10-17"
   },
   {
     id: "lexmond-dennis-photo-150",
@@ -3316,7 +3316,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#0a1020",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -3325,9 +3325,9 @@ const initialPhotos: Photo[] = [
     likes: 306,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 160,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207343/ns-captures-lexmond/lexmond_photo_150.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207343/ns-captures-lexmond/lexmond_photo_150.jpg", "createdAt": "2025-12-20"
   },
   {
     id: "lexmond-dennis-photo-151",
@@ -3337,7 +3337,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#a357a8",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 120,
@@ -3345,10 +3345,10 @@ const initialPhotos: Photo[] = [
     views: 3780,
     likes: 308,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 1000,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207344/ns-captures-lexmond/lexmond_photo_151.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207344/ns-captures-lexmond/lexmond_photo_151.jpg", "createdAt": "2025-10-02"
   },
   {
     id: "lexmond-dennis-photo-152",
@@ -3358,7 +3358,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#a83257",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -3367,9 +3367,9 @@ const initialPhotos: Photo[] = [
     likes: 310,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 320,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207345/ns-captures-lexmond/lexmond_photo_152.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207345/ns-captures-lexmond/lexmond_photo_152.jpg", "createdAt": "2025-12-18"
   },
   {
     id: "lexmond-dennis-photo-154",
@@ -3379,7 +3379,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -3388,9 +3388,9 @@ const initialPhotos: Photo[] = [
     likes: 314,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 160,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207349/ns-captures-lexmond/lexmond_photo_154.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207349/ns-captures-lexmond/lexmond_photo_154.jpg", "createdAt": "2026-01-31"
   },
   {
     id: "lexmond-dennis-photo-155",
@@ -3400,7 +3400,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -3408,10 +3408,10 @@ const initialPhotos: Photo[] = [
     views: 3876,
     likes: 316,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 500,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207351/ns-captures-lexmond/lexmond_photo_155.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207351/ns-captures-lexmond/lexmond_photo_155.jpg", "createdAt": "2026-01-07"
   },
   {
     id: "lexmond-dennis-photo-153",
@@ -3421,7 +3421,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -3432,7 +3432,7 @@ const initialPhotos: Photo[] = [
     lens: "FE 24-70mm f/2.8 GM II",
     iso: 100,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207352/ns-captures-lexmond/lexmond_photo_153.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207352/ns-captures-lexmond/lexmond_photo_153.jpg", "createdAt": "2025-03-30"
   },
   {
     id: "lexmond-dennis-photo-158",
@@ -3442,7 +3442,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#d47030",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -3453,7 +3453,7 @@ const initialPhotos: Photo[] = [
     lens: "FE 24-70mm f/2.8 GM II",
     iso: 100,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207359/ns-captures-lexmond/lexmond_photo_158.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207359/ns-captures-lexmond/lexmond_photo_158.jpg", "createdAt": "2025-03-18"
   },
   {
     id: "lexmond-dennis-photo-156",
@@ -3463,7 +3463,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#5a7e4a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -3472,9 +3472,9 @@ const initialPhotos: Photo[] = [
     likes: 318,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 800,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207362/ns-captures-lexmond/lexmond_photo_156.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207362/ns-captures-lexmond/lexmond_photo_156.jpg", "createdAt": "2026-01-09"
   },
   {
     id: "lexmond-dennis-photo-160",
@@ -3484,7 +3484,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#8a7e6e",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -3492,10 +3492,10 @@ const initialPhotos: Photo[] = [
     views: 3996,
     likes: 326,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1000,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207368/ns-captures-lexmond/lexmond_photo_160.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207368/ns-captures-lexmond/lexmond_photo_160.jpg", "createdAt": "2025-08-19"
   },
   {
     id: "lexmond-dennis-photo-159",
@@ -3505,7 +3505,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#493db3",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -3513,10 +3513,10 @@ const initialPhotos: Photo[] = [
     views: 3972,
     likes: 324,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 640,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207374/ns-captures-lexmond/lexmond_photo_159.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207374/ns-captures-lexmond/lexmond_photo_159.jpg", "createdAt": "2025-03-25"
   },
   {
     id: "lexmond-dennis-photo-157",
@@ -3526,7 +3526,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -3534,10 +3534,10 @@ const initialPhotos: Photo[] = [
     views: 3924,
     likes: 320,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 1250,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207376/ns-captures-lexmond/lexmond_photo_157.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207376/ns-captures-lexmond/lexmond_photo_157.jpg", "createdAt": "2025-12-13"
   },
   {
     id: "lexmond-dennis-photo-162",
@@ -3547,7 +3547,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#3a5e2a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -3555,10 +3555,10 @@ const initialPhotos: Photo[] = [
     views: 4044,
     likes: 330,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 320,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207378/ns-captures-lexmond/lexmond_photo_162.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207378/ns-captures-lexmond/lexmond_photo_162.jpg", "createdAt": "2025-12-18"
   },
   {
     id: "lexmond-dennis-photo-163",
@@ -3568,7 +3568,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -3577,9 +3577,9 @@ const initialPhotos: Photo[] = [
     likes: 332,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 800,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207386/ns-captures-lexmond/lexmond_photo_163.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207386/ns-captures-lexmond/lexmond_photo_163.jpg", "createdAt": "2026-02-27"
   },
   {
     id: "lexmond-dennis-photo-161",
@@ -3589,7 +3589,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#5a8898",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -3598,9 +3598,9 @@ const initialPhotos: Photo[] = [
     likes: 328,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1600,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207387/ns-captures-lexmond/lexmond_photo_161.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207387/ns-captures-lexmond/lexmond_photo_161.jpg", "createdAt": "2025-09-30"
   },
   {
     id: "lexmond-dennis-photo-166",
@@ -3610,7 +3610,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#5a7e3e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -3618,10 +3618,10 @@ const initialPhotos: Photo[] = [
     views: 4140,
     likes: 338,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 640,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207410/ns-captures-lexmond/lexmond_photo_166.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207410/ns-captures-lexmond/lexmond_photo_166.jpg", "createdAt": "2026-06-29"
   },
   {
     id: "lexmond-dennis-photo-167",
@@ -3631,7 +3631,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#7aafca",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -3639,10 +3639,10 @@ const initialPhotos: Photo[] = [
     views: 4164,
     likes: 340,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 250,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207412/ns-captures-lexmond/lexmond_photo_167.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207412/ns-captures-lexmond/lexmond_photo_167.jpg", "createdAt": "2026-05-25"
   },
   {
     id: "lexmond-dennis-photo-165",
@@ -3652,7 +3652,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#8a9580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -3661,9 +3661,9 @@ const initialPhotos: Photo[] = [
     likes: 336,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 200,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207419/ns-captures-lexmond/lexmond_photo_165.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207419/ns-captures-lexmond/lexmond_photo_165.jpg", "createdAt": "2025-05-14"
   },
   {
     id: "lexmond-dennis-photo-170",
@@ -3673,7 +3673,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#2a3040",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -3682,9 +3682,9 @@ const initialPhotos: Photo[] = [
     likes: 346,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 400,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207430/ns-captures-lexmond/lexmond_photo_170.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207430/ns-captures-lexmond/lexmond_photo_170.jpg", "createdAt": "2026-06-28"
   },
   {
     id: "lexmond-dennis-photo-172",
@@ -3694,7 +3694,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#c44569",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -3702,10 +3702,10 @@ const initialPhotos: Photo[] = [
     views: 4284,
     likes: 350,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 500,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207436/ns-captures-lexmond/lexmond_photo_172.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207436/ns-captures-lexmond/lexmond_photo_172.jpg", "createdAt": "2026-07-04"
   },
   {
     id: "lexmond-dennis-photo-173",
@@ -3715,7 +3715,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -3724,9 +3724,9 @@ const initialPhotos: Photo[] = [
     likes: 352,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 160,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207442/ns-captures-lexmond/lexmond_photo_173.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207442/ns-captures-lexmond/lexmond_photo_173.jpg", "createdAt": "2026-06-13"
   },
   {
     id: "lexmond-dennis-photo-168",
@@ -3736,7 +3736,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#5a8898",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -3744,10 +3744,10 @@ const initialPhotos: Photo[] = [
     views: 4188,
     likes: 342,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 320,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207444/ns-captures-lexmond/lexmond_photo_168.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207444/ns-captures-lexmond/lexmond_photo_168.jpg", "createdAt": "2025-06-16"
   },
   {
     id: "lexmond-dennis-photo-174",
@@ -3757,7 +3757,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#9a9e9a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -3766,9 +3766,9 @@ const initialPhotos: Photo[] = [
     likes: 354,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 640,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207450/ns-captures-lexmond/lexmond_photo_174.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207450/ns-captures-lexmond/lexmond_photo_174.jpg", "createdAt": "2025-08-04"
   },
   {
     id: "lexmond-dennis-photo-171",
@@ -3778,7 +3778,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -3786,10 +3786,10 @@ const initialPhotos: Photo[] = [
     views: 4260,
     likes: 348,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 320,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207484/ns-captures-lexmond/lexmond_photo_171.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207484/ns-captures-lexmond/lexmond_photo_171.jpg", "createdAt": "2025-05-27"
   },
   {
     id: "lexmond-dennis-photo-177",
@@ -3799,7 +3799,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -3808,9 +3808,9 @@ const initialPhotos: Photo[] = [
     likes: 360,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 640,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207488/ns-captures-lexmond/lexmond_photo_177.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207488/ns-captures-lexmond/lexmond_photo_177.jpg", "createdAt": "2025-11-24"
   },
   {
     id: "lexmond-dennis-photo-178",
@@ -3820,7 +3820,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#f49050",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -3828,10 +3828,10 @@ const initialPhotos: Photo[] = [
     views: 4428,
     likes: 362,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 1250,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207490/ns-captures-lexmond/lexmond_photo_178.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207490/ns-captures-lexmond/lexmond_photo_178.jpg", "createdAt": "2025-10-07"
   },
   {
     id: "lexmond-dennis-photo-180",
@@ -3841,7 +3841,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#7a6e5e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -3849,10 +3849,10 @@ const initialPhotos: Photo[] = [
     views: 4476,
     likes: 366,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 500,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207493/ns-captures-lexmond/lexmond_photo_180.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207493/ns-captures-lexmond/lexmond_photo_180.jpg", "createdAt": "2026-01-22"
   },
   {
     id: "lexmond-dennis-photo-182",
@@ -3862,7 +3862,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#5a7e4a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -3870,10 +3870,10 @@ const initialPhotos: Photo[] = [
     views: 4524,
     likes: 370,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 160,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207494/ns-captures-lexmond/lexmond_photo_182.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207494/ns-captures-lexmond/lexmond_photo_182.jpg", "createdAt": "2025-03-03"
   },
   {
     id: "lexmond-dennis-photo-179",
@@ -3883,7 +3883,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -3891,10 +3891,10 @@ const initialPhotos: Photo[] = [
     views: 4452,
     likes: 364,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 250,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207495/ns-captures-lexmond/lexmond_photo_179.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207495/ns-captures-lexmond/lexmond_photo_179.jpg", "createdAt": "2025-03-10"
   },
   {
     id: "lexmond-dennis-photo-185",
@@ -3904,7 +3904,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#7a8570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -3912,10 +3912,10 @@ const initialPhotos: Photo[] = [
     views: 4596,
     likes: 376,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 200,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207505/ns-captures-lexmond/lexmond_photo_185.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207505/ns-captures-lexmond/lexmond_photo_185.jpg", "createdAt": "2025-03-22"
   },
   {
     id: "lexmond-dennis-photo-183",
@@ -3925,7 +3925,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#9a9e9a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -3933,10 +3933,10 @@ const initialPhotos: Photo[] = [
     views: 4548,
     likes: 372,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 125,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207508/ns-captures-lexmond/lexmond_photo_183.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207508/ns-captures-lexmond/lexmond_photo_183.jpg", "createdAt": "2026-02-15"
   },
   {
     id: "lexmond-dennis-photo-181",
@@ -3946,7 +3946,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#4a7888",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 120,
@@ -3954,10 +3954,10 @@ const initialPhotos: Photo[] = [
     views: 4500,
     likes: 368,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 640,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207513/ns-captures-lexmond/lexmond_photo_181.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207513/ns-captures-lexmond/lexmond_photo_181.jpg", "createdAt": "2025-08-16"
   },
   {
     id: "lexmond-dennis-photo-184",
@@ -3967,7 +3967,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#e84393",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -3975,10 +3975,10 @@ const initialPhotos: Photo[] = [
     views: 4572,
     likes: 374,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 400,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207522/ns-captures-lexmond/lexmond_photo_184.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207522/ns-captures-lexmond/lexmond_photo_184.jpg", "createdAt": "2026-04-09"
   },
   {
     id: "lexmond-dennis-photo-188",
@@ -3988,7 +3988,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#4a7888",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -3997,9 +3997,9 @@ const initialPhotos: Photo[] = [
     likes: 382,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 250,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207528/ns-captures-lexmond/lexmond_photo_188.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207528/ns-captures-lexmond/lexmond_photo_188.jpg", "createdAt": "2026-05-13"
   },
   {
     id: "lexmond-dennis-photo-187",
@@ -4009,7 +4009,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#7aafca",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 120,
@@ -4018,9 +4018,9 @@ const initialPhotos: Photo[] = [
     likes: 380,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 400,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207531/ns-captures-lexmond/lexmond_photo_187.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207531/ns-captures-lexmond/lexmond_photo_187.jpg", "createdAt": "2025-05-26"
   },
   {
     id: "lexmond-dennis-photo-189",
@@ -4030,7 +4030,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#b4682c",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -4038,10 +4038,10 @@ const initialPhotos: Photo[] = [
     views: 4692,
     likes: 384,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 800,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207539/ns-captures-lexmond/lexmond_photo_189.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207539/ns-captures-lexmond/lexmond_photo_189.jpg", "createdAt": "2026-06-10"
   },
   {
     id: "lexmond-dennis-photo-186",
@@ -4051,7 +4051,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#7a9e5e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -4059,10 +4059,10 @@ const initialPhotos: Photo[] = [
     views: 4620,
     likes: 378,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 160,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207535/ns-captures-lexmond/lexmond_photo_186.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207535/ns-captures-lexmond/lexmond_photo_186.jpg", "createdAt": "2026-05-22"
   },
   {
     id: "lexmond-dennis-photo-190",
@@ -4072,7 +4072,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#0a1020",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -4083,7 +4083,7 @@ const initialPhotos: Photo[] = [
     lens: "FE 24-70mm f/2.8 GM II",
     iso: 100,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207548/ns-captures-lexmond/lexmond_photo_190.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207548/ns-captures-lexmond/lexmond_photo_190.jpg", "createdAt": "2026-04-30"
   },
   {
     id: "lexmond-dennis-photo-192",
@@ -4093,7 +4093,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#c44569",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -4101,10 +4101,10 @@ const initialPhotos: Photo[] = [
     views: 4764,
     likes: 390,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 400,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207551/ns-captures-lexmond/lexmond_photo_192.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207551/ns-captures-lexmond/lexmond_photo_192.jpg", "createdAt": "2025-12-22"
   },
   {
     id: "lexmond-dennis-photo-191",
@@ -4114,7 +4114,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -4122,10 +4122,10 @@ const initialPhotos: Photo[] = [
     views: 4740,
     likes: 388,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 640,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207553/ns-captures-lexmond/lexmond_photo_191.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207553/ns-captures-lexmond/lexmond_photo_191.jpg", "createdAt": "2025-11-16"
   },
   {
     id: "lexmond-dennis-photo-194",
@@ -4135,7 +4135,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -4144,9 +4144,9 @@ const initialPhotos: Photo[] = [
     likes: 394,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 125,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207557/ns-captures-lexmond/lexmond_photo_194.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207557/ns-captures-lexmond/lexmond_photo_194.jpg", "createdAt": "2025-06-20"
   },
   {
     id: "lexmond-dennis-photo-193",
@@ -4156,7 +4156,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 120,
@@ -4164,10 +4164,10 @@ const initialPhotos: Photo[] = [
     views: 4788,
     likes: 392,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 800,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207563/ns-captures-lexmond/lexmond_photo_193.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207563/ns-captures-lexmond/lexmond_photo_193.jpg", "createdAt": "2025-11-21"
   },
   {
     id: "lexmond-dennis-photo-198",
@@ -4177,7 +4177,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#e48040",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -4185,10 +4185,10 @@ const initialPhotos: Photo[] = [
     views: 4908,
     likes: 402,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 250,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207582/ns-captures-lexmond/lexmond_photo_198.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207582/ns-captures-lexmond/lexmond_photo_198.jpg", "createdAt": "2025-08-14"
   },
   {
     id: "lexmond-dennis-photo-199",
@@ -4198,7 +4198,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -4207,9 +4207,9 @@ const initialPhotos: Photo[] = [
     likes: 404,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1250,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207616/ns-captures-lexmond/lexmond_photo_199.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207616/ns-captures-lexmond/lexmond_photo_199.jpg", "createdAt": "2025-06-27"
   },
   {
     id: "lexmond-dennis-photo-201",
@@ -4219,7 +4219,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#3a6878",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -4227,10 +4227,10 @@ const initialPhotos: Photo[] = [
     views: 4980,
     likes: 408,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 400,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207616/ns-captures-lexmond/lexmond_photo_201.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207616/ns-captures-lexmond/lexmond_photo_201.jpg", "createdAt": "2026-02-25"
   },
   {
     id: "lexmond-dennis-photo-200",
@@ -4240,7 +4240,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#7a6e5e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -4248,10 +4248,10 @@ const initialPhotos: Photo[] = [
     views: 4956,
     likes: 406,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1600,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207616/ns-captures-lexmond/lexmond_photo_200.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207616/ns-captures-lexmond/lexmond_photo_200.jpg", "createdAt": "2025-06-18"
   },
   {
     id: "lexmond-dennis-photo-202",
@@ -4261,7 +4261,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#3a5e2a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -4270,9 +4270,9 @@ const initialPhotos: Photo[] = [
     likes: 410,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 160,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207619/ns-captures-lexmond/lexmond_photo_202.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207619/ns-captures-lexmond/lexmond_photo_202.jpg", "createdAt": "2025-03-24"
   },
   {
     id: "lexmond-dennis-photo-96",
@@ -4282,7 +4282,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#4a6e3a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -4290,10 +4290,10 @@ const initialPhotos: Photo[] = [
     views: 2460,
     likes: 198,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 800,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207916/ns-captures-lexmond/lexmond_photo_96.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207916/ns-captures-lexmond/lexmond_photo_96.jpg", "createdAt": "2025-11-17"
   },
   {
     id: "lexmond-dennis-photo-98",
@@ -4303,7 +4303,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#e48040",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -4311,10 +4311,10 @@ const initialPhotos: Photo[] = [
     views: 2508,
     likes: 202,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1600,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207942/ns-captures-lexmond/lexmond_photo_98.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207942/ns-captures-lexmond/lexmond_photo_98.jpg", "createdAt": "2026-02-24"
   },
   {
     id: "lexmond-dennis-photo-100",
@@ -4324,7 +4324,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#9a8e7e",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -4332,10 +4332,10 @@ const initialPhotos: Photo[] = [
     views: 2556,
     likes: 206,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 800,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207965/ns-captures-lexmond/lexmond_photo_100.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207965/ns-captures-lexmond/lexmond_photo_100.jpg", "createdAt": "2025-07-23"
   },
   {
     id: "lexmond-dennis-photo-101",
@@ -4345,7 +4345,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#3a6878",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -4353,10 +4353,10 @@ const initialPhotos: Photo[] = [
     views: 2580,
     likes: 208,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 125,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207981/ns-captures-lexmond/lexmond_photo_101.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207981/ns-captures-lexmond/lexmond_photo_101.jpg", "createdAt": "2026-04-23"
   },
   {
     id: "lexmond-dennis-photo-102",
@@ -4366,7 +4366,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#3a5e2a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -4375,9 +4375,9 @@ const initialPhotos: Photo[] = [
     likes: 210,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1600,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207995/ns-captures-lexmond/lexmond_photo_102.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207995/ns-captures-lexmond/lexmond_photo_102.jpg", "createdAt": "2025-03-22"
   },
   {
     id: "lexmond-dennis-photo-105",
@@ -4387,7 +4387,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#5a6550",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -4395,10 +4395,10 @@ const initialPhotos: Photo[] = [
     views: 2676,
     likes: 216,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
+    lens: "FE 50mm f/1.4 GM",
     iso: 100,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208021/ns-captures-lexmond/lexmond_photo_105.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208021/ns-captures-lexmond/lexmond_photo_105.jpg", "createdAt": "2026-01-02"
   },
   {
     id: "lexmond-dennis-photo-110",
@@ -4408,7 +4408,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#1a2838",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -4417,9 +4417,9 @@ const initialPhotos: Photo[] = [
     likes: 226,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1000,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208040/ns-captures-lexmond/lexmond_photo_110.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208040/ns-captures-lexmond/lexmond_photo_110.jpg", "createdAt": "2025-06-17"
   },
   {
     id: "lexmond-dennis-photo-111",
@@ -4429,7 +4429,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -4437,10 +4437,10 @@ const initialPhotos: Photo[] = [
     views: 2820,
     likes: 228,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 320,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208073/ns-captures-lexmond/lexmond_photo_111.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208073/ns-captures-lexmond/lexmond_photo_111.jpg", "createdAt": "2025-03-11"
   },
   {
     id: "lexmond-dennis-photo-112",
@@ -4450,7 +4450,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#e84393",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -4459,9 +4459,9 @@ const initialPhotos: Photo[] = [
     likes: 230,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 250,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208090/ns-captures-lexmond/lexmond_photo_112.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208090/ns-captures-lexmond/lexmond_photo_112.jpg", "createdAt": "2025-10-26"
   },
   {
     id: "lexmond-dennis-photo-113",
@@ -4471,7 +4471,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -4480,9 +4480,9 @@ const initialPhotos: Photo[] = [
     likes: 232,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1600,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208110/ns-captures-lexmond/lexmond_photo_113.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208110/ns-captures-lexmond/lexmond_photo_113.jpg", "createdAt": "2026-03-15"
   },
   {
     id: "lexmond-dennis-photo-114",
@@ -4492,7 +4492,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -4501,9 +4501,9 @@ const initialPhotos: Photo[] = [
     likes: 234,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 160,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208142/ns-captures-lexmond/lexmond_photo_114.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784208142/ns-captures-lexmond/lexmond_photo_114.jpg", "createdAt": "2026-02-05"
   },
   {
     id: "lexmond-dennis-photo-116",
@@ -4513,7 +4513,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#2a4e1a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -4522,9 +4522,9 @@ const initialPhotos: Photo[] = [
     likes: 238,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1250,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210349/ns-captures-lexmond/lexmond_photo_116.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210349/ns-captures-lexmond/lexmond_photo_116.jpg", "createdAt": "2026-05-15"
   },
   {
     id: "lexmond-dennis-photo-117",
@@ -4534,7 +4534,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#906abe",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -4542,10 +4542,10 @@ const initialPhotos: Photo[] = [
     views: 2964,
     likes: 240,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 400,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210362/ns-captures-lexmond/lexmond_photo_117.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210362/ns-captures-lexmond/lexmond_photo_117.jpg", "createdAt": "2026-04-13"
   },
   {
     id: "lexmond-dennis-photo-118",
@@ -4555,7 +4555,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#d47030",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -4564,9 +4564,9 @@ const initialPhotos: Photo[] = [
     likes: 242,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1000,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210371/ns-captures-lexmond/lexmond_photo_118.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210371/ns-captures-lexmond/lexmond_photo_118.jpg", "createdAt": "2026-05-25"
   },
   {
     id: "lexmond-dennis-photo-119",
@@ -4576,7 +4576,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -4585,9 +4585,9 @@ const initialPhotos: Photo[] = [
     likes: 244,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 125,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210400/ns-captures-lexmond/lexmond_photo_119.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210400/ns-captures-lexmond/lexmond_photo_119.jpg", "createdAt": "2025-03-06"
   },
   {
     id: "lexmond-dennis-photo-120",
@@ -4597,7 +4597,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#aa9e8e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -4605,10 +4605,10 @@ const initialPhotos: Photo[] = [
     views: 3036,
     likes: 246,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 640,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210414/ns-captures-lexmond/lexmond_photo_120.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210414/ns-captures-lexmond/lexmond_photo_120.jpg", "createdAt": "2025-04-15"
   },
   {
     id: "lexmond-dennis-photo-121",
@@ -4618,7 +4618,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#3a6878",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -4626,10 +4626,10 @@ const initialPhotos: Photo[] = [
     views: 3060,
     likes: 248,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 1000,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210427/ns-captures-lexmond/lexmond_photo_121.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210427/ns-captures-lexmond/lexmond_photo_121.jpg", "createdAt": "2025-03-08"
   },
   {
     id: "lexmond-dennis-photo-122",
@@ -4639,7 +4639,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#2a4e1a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -4648,9 +4648,9 @@ const initialPhotos: Photo[] = [
     likes: 250,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 400,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210445/ns-captures-lexmond/lexmond_photo_122.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210445/ns-captures-lexmond/lexmond_photo_122.jpg", "createdAt": "2025-08-31"
   },
   {
     id: "lexmond-dennis-photo-123",
@@ -4660,7 +4660,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -4668,10 +4668,10 @@ const initialPhotos: Photo[] = [
     views: 3108,
     likes: 252,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1250,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210463/ns-captures-lexmond/lexmond_photo_123.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210463/ns-captures-lexmond/lexmond_photo_123.jpg", "createdAt": "2026-07-05"
   },
   {
     id: "lexmond-dennis-photo-124",
@@ -4681,7 +4681,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#a83257",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -4692,7 +4692,7 @@ const initialPhotos: Photo[] = [
     lens: "FE 24-70mm f/2.8 GM II",
     iso: 100,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210475/ns-captures-lexmond/lexmond_photo_124.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210475/ns-captures-lexmond/lexmond_photo_124.jpg", "createdAt": "2026-04-06"
   },
   {
     id: "lexmond-dennis-photo-125",
@@ -4702,7 +4702,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#7a8570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -4711,9 +4711,9 @@ const initialPhotos: Photo[] = [
     likes: 256,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 250,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210486/ns-captures-lexmond/lexmond_photo_125.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210486/ns-captures-lexmond/lexmond_photo_125.jpg", "createdAt": "2026-06-16"
   },
   {
     id: "lexmond-dennis-photo-126",
@@ -4723,7 +4723,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#4e7035",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -4732,9 +4732,9 @@ const initialPhotos: Photo[] = [
     likes: 258,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 125,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210507/ns-captures-lexmond/lexmond_photo_126.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210507/ns-captures-lexmond/lexmond_photo_126.jpg", "createdAt": "2025-08-26"
   },
   {
     id: "lexmond-dennis-photo-127",
@@ -4744,7 +4744,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#6a9fb8",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -4753,9 +4753,9 @@ const initialPhotos: Photo[] = [
     likes: 260,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 640,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210523/ns-captures-lexmond/lexmond_photo_127.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210523/ns-captures-lexmond/lexmond_photo_127.jpg", "createdAt": "2025-11-25"
   },
   {
     id: "lexmond-dennis-photo-164",
@@ -4765,7 +4765,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#a83257",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -4773,10 +4773,10 @@ const initialPhotos: Photo[] = [
     views: 4092,
     likes: 334,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 500,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210536/ns-captures-lexmond/lexmond_photo_164.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210536/ns-captures-lexmond/lexmond_photo_164.jpg", "createdAt": "2025-04-01"
   },
   {
     id: "lexmond-dennis-photo-169",
@@ -4786,7 +4786,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#a45820",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -4794,10 +4794,10 @@ const initialPhotos: Photo[] = [
     views: 4212,
     likes: 344,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 640,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210548/ns-captures-lexmond/lexmond_photo_169.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210548/ns-captures-lexmond/lexmond_photo_169.jpg", "createdAt": "2025-09-24"
   },
   {
     id: "lexmond-dennis-photo-175",
@@ -4807,7 +4807,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -4816,9 +4816,9 @@ const initialPhotos: Photo[] = [
     likes: 356,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 320,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210558/ns-captures-lexmond/lexmond_photo_175.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210558/ns-captures-lexmond/lexmond_photo_175.jpg", "createdAt": "2025-04-20"
   },
   {
     id: "lexmond-dennis-photo-176",
@@ -4828,7 +4828,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#2a4e1a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -4837,9 +4837,9 @@ const initialPhotos: Photo[] = [
     likes: 358,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 200,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210580/ns-captures-lexmond/lexmond_photo_176.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210580/ns-captures-lexmond/lexmond_photo_176.jpg", "createdAt": "2025-12-26"
   },
   {
     id: "lexmond-dennis-photo-195",
@@ -4849,7 +4849,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -4857,10 +4857,10 @@ const initialPhotos: Photo[] = [
     views: 4836,
     likes: 396,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 320,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210606/ns-captures-lexmond/lexmond_photo_195.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210606/ns-captures-lexmond/lexmond_photo_195.jpg", "createdAt": "2025-09-18"
   },
   {
     id: "lexmond-dennis-photo-196",
@@ -4870,7 +4870,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#3a5e2a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -4878,10 +4878,10 @@ const initialPhotos: Photo[] = [
     views: 4860,
     likes: 398,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 800,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210617/ns-captures-lexmond/lexmond_photo_196.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210617/ns-captures-lexmond/lexmond_photo_196.jpg", "createdAt": "2025-04-09"
   },
   {
     id: "lexmond-dennis-photo-197",
@@ -4891,7 +4891,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -4899,10 +4899,10 @@ const initialPhotos: Photo[] = [
     views: 4884,
     likes: 400,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 640,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210629/ns-captures-lexmond/lexmond_photo_197.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784210629/ns-captures-lexmond/lexmond_photo_197.jpg", "createdAt": "2026-05-10"
   },
   {
     id: "cambie-bridge-view-b-1",
@@ -4912,7 +4912,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Vancouver, Canada",
-    color: "#555555",
+    color: "#5f6e7a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 380,
@@ -4920,10 +4920,10 @@ const initialPhotos: Photo[] = [
     views: 450,
     likes: 24,
     camera: "Leica M11",
-    lens: "35mm f/1.4",
-    iso: 100,
+    lens: "35mm f/2",
+    iso: 500,
     keywords: ["architecture", "canada", "creative", "editorial", "urban"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784211171/ns-captures/Cambie_Bridge_View_B-1.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784211171/ns-captures/Cambie_Bridge_View_B-1.jpg", "createdAt": "2024-05-27"
   },
   {
     id: "lexmond-dennis-photo-44",
@@ -4933,7 +4933,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#6a7560",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -4941,10 +4941,10 @@ const initialPhotos: Photo[] = [
     views: 1236,
     likes: 96,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 320,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205125/ns-captures-lexmond/lexmond_photo_44.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205125/ns-captures-lexmond/lexmond_photo_44.jpg", "createdAt": "2025-06-05"
   },
   {
     id: "lexmond-dennis-photo-45",
@@ -4954,7 +4954,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#4e7035",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -4963,9 +4963,9 @@ const initialPhotos: Photo[] = [
     likes: 98,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 320,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205125/ns-captures-lexmond/lexmond_photo_45.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205125/ns-captures-lexmond/lexmond_photo_45.jpg", "createdAt": "2026-06-02"
   },
   {
     id: "lexmond-dennis-photo-46",
@@ -4975,7 +4975,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#7aafca",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -4984,9 +4984,9 @@ const initialPhotos: Photo[] = [
     likes: 100,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 400,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205133/ns-captures-lexmond/lexmond_photo_46.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205133/ns-captures-lexmond/lexmond_photo_46.jpg", "createdAt": "2026-05-04"
   },
   {
     id: "lexmond-dennis-photo-47",
@@ -4996,7 +4996,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#5a8898",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -5004,10 +5004,10 @@ const initialPhotos: Photo[] = [
     views: 1308,
     likes: 102,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1000,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205127/ns-captures-lexmond/lexmond_photo_47.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205127/ns-captures-lexmond/lexmond_photo_47.jpg", "createdAt": "2025-08-18"
   },
   {
     id: "lexmond-dennis-photo-58",
@@ -5017,7 +5017,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 280,
@@ -5025,10 +5025,10 @@ const initialPhotos: Photo[] = [
     views: 1572,
     likes: 124,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1600,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205164/ns-captures-lexmond/lexmond_photo_58.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205164/ns-captures-lexmond/lexmond_photo_58.jpg", "createdAt": "2025-03-31"
   },
   {
     id: "lexmond-dennis-photo-59",
@@ -5038,7 +5038,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#aa9e8e",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -5046,10 +5046,10 @@ const initialPhotos: Photo[] = [
     views: 1596,
     likes: 126,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 320,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205143/ns-captures-lexmond/lexmond_photo_59.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205143/ns-captures-lexmond/lexmond_photo_59.jpg", "createdAt": "2025-07-26"
   },
   {
     id: "lexmond-dennis-photo-60",
@@ -5059,7 +5059,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#5a8898",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -5067,10 +5067,10 @@ const initialPhotos: Photo[] = [
     views: 1620,
     likes: 128,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 200,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205148/ns-captures-lexmond/lexmond_photo_60.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205148/ns-captures-lexmond/lexmond_photo_60.jpg", "createdAt": "2025-06-11"
   },
   {
     id: "lexmond-dennis-photo-61",
@@ -5080,7 +5080,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#4a6e3a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -5088,10 +5088,10 @@ const initialPhotos: Photo[] = [
     views: 1644,
     likes: 130,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 160,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205144/ns-captures-lexmond/lexmond_photo_61.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205144/ns-captures-lexmond/lexmond_photo_61.jpg", "createdAt": "2025-07-06"
   },
   {
     id: "lexmond-dennis-photo-62",
@@ -5101,7 +5101,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -5110,9 +5110,9 @@ const initialPhotos: Photo[] = [
     likes: 132,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 125,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205146/ns-captures-lexmond/lexmond_photo_62.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205146/ns-captures-lexmond/lexmond_photo_62.jpg", "createdAt": "2026-02-27"
   },
   {
     id: "lexmond-dennis-photo-63",
@@ -5122,7 +5122,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#a83257",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 240,
@@ -5130,10 +5130,10 @@ const initialPhotos: Photo[] = [
     views: 1692,
     likes: 134,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 250,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205148/ns-captures-lexmond/lexmond_photo_63.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205148/ns-captures-lexmond/lexmond_photo_63.jpg", "createdAt": "2026-01-13"
   },
   {
     id: "lexmond-dennis-photo-72",
@@ -5143,7 +5143,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -5151,10 +5151,10 @@ const initialPhotos: Photo[] = [
     views: 1908,
     likes: 152,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1000,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205165/ns-captures-lexmond/lexmond_photo_72.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205165/ns-captures-lexmond/lexmond_photo_72.jpg", "createdAt": "2026-05-07"
   },
   {
     id: "lexmond-dennis-photo-73",
@@ -5164,7 +5164,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -5172,10 +5172,10 @@ const initialPhotos: Photo[] = [
     views: 1932,
     likes: 154,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 250,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205162/ns-captures-lexmond/lexmond_photo_73.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205162/ns-captures-lexmond/lexmond_photo_73.jpg", "createdAt": "2025-12-22"
   },
   {
     id: "lexmond-dennis-photo-74",
@@ -5185,7 +5185,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#5a6570",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -5193,10 +5193,10 @@ const initialPhotos: Photo[] = [
     views: 1956,
     likes: 156,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 320,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205161/ns-captures-lexmond/lexmond_photo_74.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205161/ns-captures-lexmond/lexmond_photo_74.jpg", "createdAt": "2025-09-20"
   },
   {
     id: "lexmond-dennis-photo-75",
@@ -5206,7 +5206,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#3a5e2a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -5214,10 +5214,10 @@ const initialPhotos: Photo[] = [
     views: 1980,
     likes: 158,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 250,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205167/ns-captures-lexmond/lexmond_photo_75.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205167/ns-captures-lexmond/lexmond_photo_75.jpg", "createdAt": "2025-06-03"
   },
   {
     id: "lexmond-dennis-photo-76",
@@ -5227,7 +5227,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -5236,9 +5236,9 @@ const initialPhotos: Photo[] = [
     likes: 160,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 500,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205162/ns-captures-lexmond/lexmond_photo_76.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205162/ns-captures-lexmond/lexmond_photo_76.jpg", "createdAt": "2026-07-04"
   },
   {
     id: "lexmond-dennis-photo-77",
@@ -5248,7 +5248,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#f49050",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -5257,9 +5257,9 @@ const initialPhotos: Photo[] = [
     likes: 162,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 500,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205165/ns-captures-lexmond/lexmond_photo_77.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205165/ns-captures-lexmond/lexmond_photo_77.jpg", "createdAt": "2025-11-08"
   },
   {
     id: "lexmond-dennis-photo-78",
@@ -5269,7 +5269,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 120,
@@ -5278,9 +5278,9 @@ const initialPhotos: Photo[] = [
     likes: 164,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 200,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205167/ns-captures-lexmond/lexmond_photo_78.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205167/ns-captures-lexmond/lexmond_photo_78.jpg", "createdAt": "2025-03-31"
   },
   {
     id: "lexmond-dennis-photo-84",
@@ -5290,7 +5290,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Landscape",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#8a9580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 120,
@@ -5299,9 +5299,9 @@ const initialPhotos: Photo[] = [
     likes: 176,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 125,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205188/ns-captures-lexmond/lexmond_photo_84.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205188/ns-captures-lexmond/lexmond_photo_84.jpg", "createdAt": "2026-02-24"
   },
   {
     id: "lexmond-dennis-photo-85",
@@ -5311,7 +5311,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#6b8e4e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -5320,9 +5320,9 @@ const initialPhotos: Photo[] = [
     likes: 178,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 160,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205173/ns-captures-lexmond/lexmond_photo_85.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205173/ns-captures-lexmond/lexmond_photo_85.jpg", "createdAt": "2025-09-07"
   },
   {
     id: "lexmond-dennis-photo-86",
@@ -5332,7 +5332,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Culture",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#7aafca",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 200,
@@ -5340,10 +5340,10 @@ const initialPhotos: Photo[] = [
     views: 2244,
     likes: 180,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 800,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205176/ns-captures-lexmond/lexmond_photo_86.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205176/ns-captures-lexmond/lexmond_photo_86.jpg", "createdAt": "2026-04-30"
   },
   {
     id: "lexmond-dennis-photo-87",
@@ -5353,7 +5353,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#6a98a8",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -5361,10 +5361,10 @@ const initialPhotos: Photo[] = [
     views: 2268,
     likes: 182,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1000,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205177/ns-captures-lexmond/lexmond_photo_87.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205177/ns-captures-lexmond/lexmond_photo_87.jpg", "createdAt": "2025-08-29"
   },
   {
     id: "lexmond-dennis-photo-88",
@@ -5374,7 +5374,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#d4884c",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 280,
@@ -5383,9 +5383,9 @@ const initialPhotos: Photo[] = [
     likes: 184,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 800,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205179/ns-captures-lexmond/lexmond_photo_88.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205179/ns-captures-lexmond/lexmond_photo_88.jpg", "createdAt": "2026-03-09"
   },
   {
     id: "lexmond-dennis-photo-89",
@@ -5395,7 +5395,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Architecture",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#1a2838",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 320,
@@ -5403,10 +5403,10 @@ const initialPhotos: Photo[] = [
     views: 2316,
     likes: 186,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 200,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205182/ns-captures-lexmond/lexmond_photo_89.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205182/ns-captures-lexmond/lexmond_photo_89.jpg", "createdAt": "2025-12-31"
   },
   {
     id: "lexmond-dennis-photo-90",
@@ -5416,7 +5416,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Culture",
     location: "Amsterdam, Netherlands",
-    color: "#555555",
+    color: "#8a8e92",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 120,
@@ -5424,10 +5424,10 @@ const initialPhotos: Photo[] = [
     views: 2340,
     likes: 188,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1250,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205187/ns-captures-lexmond/lexmond_photo_90.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205187/ns-captures-lexmond/lexmond_photo_90.jpg", "createdAt": "2026-03-31"
   },
   {
     id: "lexmond-dennis-photo-91",
@@ -5437,7 +5437,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#a83257",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -5445,10 +5445,10 @@ const initialPhotos: Photo[] = [
     views: 2364,
     likes: 190,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 400,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205187/ns-captures-lexmond/lexmond_photo_91.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205187/ns-captures-lexmond/lexmond_photo_91.jpg", "createdAt": "2026-05-27"
   },
   {
     id: "lexmond-dennis-photo-92",
@@ -5458,7 +5458,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Landscape",
     location: "Utrecht, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 200,
@@ -5467,9 +5467,9 @@ const initialPhotos: Photo[] = [
     likes: 192,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 1000,
     keywords: ["landscape", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205181/ns-captures-lexmond/lexmond_photo_92.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205181/ns-captures-lexmond/lexmond_photo_92.jpg", "createdAt": "2025-04-12"
   },
   {
     id: "lexmond-dennis-photo-93",
@@ -5479,7 +5479,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#6e7580",
     orientation: "square",
     ratio: "aspect-square",
     price: 240,
@@ -5487,10 +5487,10 @@ const initialPhotos: Photo[] = [
     views: 2412,
     likes: 194,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 1000,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205183/ns-captures-lexmond/lexmond_photo_93.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205183/ns-captures-lexmond/lexmond_photo_93.jpg", "createdAt": "2025-06-29"
   },
   {
     id: "lexmond-dennis-photo-94",
@@ -5500,7 +5500,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Culture",
     location: "Haarlem, Netherlands",
-    color: "#555555",
+    color: "#95be6f",
     orientation: "square",
     ratio: "aspect-square",
     price: 280,
@@ -5509,9 +5509,9 @@ const initialPhotos: Photo[] = [
     likes: 196,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 320,
     keywords: ["culture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205186/ns-captures-lexmond/lexmond_photo_94.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205186/ns-captures-lexmond/lexmond_photo_94.jpg", "createdAt": "2025-12-07"
   },
   {
     id: "lexmond-dennis-photo-95",
@@ -5521,7 +5521,7 @@ const initialPhotos: Photo[] = [
     license: "EDITORIAL",
     category: "Lifestyle",
     location: "Delft, Netherlands",
-    color: "#555555",
+    color: "#2a4e1a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 320,
@@ -5529,10 +5529,10 @@ const initialPhotos: Photo[] = [
     views: 2460,
     likes: 198,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 250,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205185/ns-captures-lexmond/lexmond_photo_95.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205185/ns-captures-lexmond/lexmond_photo_95.jpg", "createdAt": "2025-11-21"
   },
   {
     id: "lexmond-dennis-photo-97",
@@ -5542,7 +5542,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#d47030",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -5550,10 +5550,10 @@ const initialPhotos: Photo[] = [
     views: 2508,
     likes: 202,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 1600,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205190/ns-captures-lexmond/lexmond_photo_97.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205190/ns-captures-lexmond/lexmond_photo_97.jpg", "createdAt": "2026-06-20"
   },
   {
     id: "lexmond-dennis-photo-99",
@@ -5563,7 +5563,7 @@ const initialPhotos: Photo[] = [
     license: "COMMERCIAL",
     category: "Lifestyle",
     location: "Kinderdijk, Netherlands",
-    color: "#555555",
+    color: "#7a6e5e",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 240,
@@ -5571,10 +5571,10 @@ const initialPhotos: Photo[] = [
     views: 2556,
     likes: 206,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 50mm f/1.4 GM",
+    iso: 160,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205190/ns-captures-lexmond/lexmond_photo_99.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205190/ns-captures-lexmond/lexmond_photo_99.jpg", "createdAt": "2025-04-12"
   },
   {
     id: "lexmond-dennis-photo-109",
@@ -5584,7 +5584,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Architecture",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#1a2838",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
     price: 160,
@@ -5592,10 +5592,10 @@ const initialPhotos: Photo[] = [
     views: 2796,
     likes: 226,
     camera: "Sony A7R V",
-    lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    lens: "FE 35mm f/1.4 GM",
+    iso: 200,
     keywords: ["architecture", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207212/ns-captures-lexmond/lexmond_photo_109.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784207212/ns-captures-lexmond/lexmond_photo_109.jpg", "createdAt": "2026-07-08"
   },
   {
     id: "lexmond-dennis-photo-115",
@@ -5605,7 +5605,7 @@ const initialPhotos: Photo[] = [
     license: "ROYALTY FREE",
     category: "Lifestyle",
     location: "Rotterdam, Netherlands",
-    color: "#555555",
+    color: "#5a7e4a",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
     price: 160,
@@ -5614,9 +5614,9 @@ const initialPhotos: Photo[] = [
     likes: 238,
     camera: "Sony A7R V",
     lens: "FE 24-70mm f/2.8 GM II",
-    iso: 100,
+    iso: 200,
     keywords: ["lifestyle", "netherlands", "dutch", "europe", "urban", "travel"],
-    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784211786/ns-captures-lexmond/lexmond_photo_115.jpg"
+    image: "https://res.cloudinary.com/odu5iecy/image/upload/v1784211786/ns-captures-lexmond/lexmond_photo_115.jpg", "createdAt": "2025-06-11"
   },
   // MIGRATED_PHOTOS_END
 ];

@@ -11,7 +11,7 @@ export function RootLayout() {
 
   // Scroll to top on navigation.
   useEffect(() => {
-    window.scrollTo(0, 0);
+    requestAnimationFrame(() => window.scrollTo(0, 0));
   }, [pathname]);
 
   return (

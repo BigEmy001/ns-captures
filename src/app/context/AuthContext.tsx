@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { toast } from "sonner";
+import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 
 export type UserRole = "Buyer" | "Photographer" | "Enterprise" | "Admin" | "Guest";
 
@@ -29,8 +30,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const ADMIN_SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes (industry standard admin session idle timeout)
+const ADMIN_SESSION_TIMEOUT = 15 * 60 * 1000;
 
+// ============================================================
+// MOCK USERS (fallback when Supabase is not configured)
+// ============================================================
 const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
   "amara@mainlandstudio.co": {
     password: "password123",
@@ -102,150 +106,190 @@ const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
       downloadsLeft: "Unlimited",
     },
   },
-  // MIGRATED_USERS_START
   "patrick@ns.co": {
     password: "password123",
     user: {
-      "id": "U-1090",
-      "name": "Patrick Watson Quine",
-      "email": "patrick@ns.co",
-      "role": "Photographer",
-      "plan": "Contributor",
-      "company": "Patrick Watson Quine Photography",
-      "avatar": "https://res.cloudinary.com/odu5iecy/image/upload/v1784203446/ns-captures/AM%20Downtown%20Closeup%20C-1.jpg",
-      "memberSince": "Jul 2026",
-      "downloadsLeft": "N/A"
-}
+      id: "U-1090",
+      name: "Patrick Watson Quine",
+      email: "patrick@ns.co",
+      role: "Photographer",
+      plan: "Contributor",
+      company: "Patrick Watson Quine Photography",
+      avatar: "https://res.cloudinary.com/odu5iecy/image/upload/v1784203446/ns-captures/AM%20Downtown%20Closeup%20C-1.jpg",
+      memberSince: "Jul 2026",
+      downloadsLeft: "N/A",
+    },
   },
-    "lexmond@ns.co": {
+  "lexmond@ns.co": {
     password: "password123",
     user: {
-      "id": "U-1092",
-      "name": "Lexmond Dennis",
-      "email": "lexmond@ns.co",
-      "role": "Photographer",
-      "plan": "Contributor",
-      "company": "Lexmond Dennis Photography",
-      "avatar": "https://res.cloudinary.com/odu5iecy/image/upload/v1784205071/ns-captures-lexmond/lexmond_photo_2.jpg",
-      "memberSince": "Jul 2026",
-      "downloadsLeft": "N/A"
-}
+      id: "U-1092",
+      name: "Lexmond Dennis",
+      email: "lexmond@ns.co",
+      role: "Photographer",
+      plan: "Contributor",
+      company: "Lexmond Dennis Photography",
+      avatar: "https://res.cloudinary.com/odu5iecy/image/upload/v1784205071/ns-captures-lexmond/lexmond_photo_2.jpg",
+      memberSince: "Jul 2026",
+      downloadsLeft: "N/A",
+    },
   },
-  // MIGRATED_USERS_END
 };
 
-const userRoles: UserRole[] = ["Buyer", "Photographer", "Enterprise", "Admin", "Guest"];
-
-function isAuthUser(value: unknown): value is AuthUser {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<AuthUser>;
-  return typeof candidate.id === "string" &&
-    typeof candidate.name === "string" &&
-    typeof candidate.email === "string" &&
-    userRoles.includes(candidate.role as UserRole);
+// ============================================================
+// Helper: map Supabase user + profile to AuthUser
+// ============================================================
+function supabaseUserToAuthUser(supabaseUser: any, profile: any): AuthUser {
+  return {
+    id: supabaseUser.id,
+    name: profile?.name || supabaseUser.email?.split("@")[0] || "User",
+    email: supabaseUser.email || "",
+    role: (profile?.role as UserRole) || "Buyer",
+    plan: profile?.plan || "Starter",
+    company: profile?.company || "",
+    avatar: profile?.avatar || "",
+    memberSince: profile?.member_since || "",
+    downloadsLeft: profile?.downloads_left || "50",
+  };
 }
 
+// ============================================================
+// Provider
+// ============================================================
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ----------------------------------------------------------
+  // Restore session on mount
+  // ----------------------------------------------------------
   useEffect(() => {
-    const storedEntries = [
-      [localStorage, localStorage.getItem("ns-auth")],
-      [sessionStorage, sessionStorage.getItem("ns-auth")],
-    ] as const;
-
-    for (const [storage, stored] of storedEntries) {
-      if (!stored) continue;
-      try {
-        const parsed = JSON.parse(stored);
-        if (parsed.expires && Date.now() > parsed.expires) {
-          storage.removeItem("ns-auth");
-          continue;
+    if (isSupabaseConfigured && supabase) {
+      // Supabase: get existing session
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
+          setUser(supabaseUserToAuthUser(session.user, profile));
         }
-        if (isAuthUser(parsed.user)) {
-          setUser(parsed.user);
-          break;
+        setIsLoading(false);
+      });
+
+      // Listen for auth state changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (event === "SIGNED_IN" && session?.user) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", session.user.id)
+              .single();
+            setUser(supabaseUserToAuthUser(session.user, profile));
+          } else if (event === "SIGNED_OUT") {
+            setUser(null);
+          }
         }
-      } catch {
-        storage.removeItem("ns-auth");
-      }
-    }
-    setIsLoading(false);
-  }, []);
+      );
 
-  // Handle Admin session idle timeout (industry standard: 15 minutes)
-  useEffect(() => {
-    if (!user || user.role !== "Admin") return;
-
-    // Periodically check if the session has expired
-    const interval = setInterval(() => {
+      return () => subscription.unsubscribe();
+    } else {
+      // Mock: restore from localStorage/sessionStorage
       const storedEntries = [
         [localStorage, localStorage.getItem("ns-auth")],
         [sessionStorage, sessionStorage.getItem("ns-auth")],
       ] as const;
 
-      let expired = false;
       for (const [storage, stored] of storedEntries) {
         if (!stored) continue;
         try {
           const parsed = JSON.parse(stored);
           if (parsed.expires && Date.now() > parsed.expires) {
             storage.removeItem("ns-auth");
-            expired = true;
+            continue;
+          }
+          if (parsed.user && typeof parsed.user.id === "string") {
+            setUser(parsed.user);
+            break;
           }
         } catch {
           storage.removeItem("ns-auth");
-          expired = true;
         }
       }
+      setIsLoading(false);
+    }
+  }, []);
 
-      if (expired) {
-        setUser(null);
-        toast.error("Session expired due to inactivity. Please sign in again.");
-        navigate("/admin/login", { replace: true });
-      }
-    }, 10000); // Check every 10 seconds
-
-    // Throttled activity listener to update session expiration
-    let lastUpdate = Date.now();
-    const handleActivity = () => {
-      const now = Date.now();
-      // Throttle updates to at most once every 5 seconds
-      if (now - lastUpdate < 5000) return;
-      lastUpdate = now;
-
-      const storedEntries = [
-        [localStorage, localStorage.getItem("ns-auth")],
-        [sessionStorage, sessionStorage.getItem("ns-auth")],
-      ] as const;
-
-      for (const [storage, stored] of storedEntries) {
-        if (!stored) continue;
-        try {
-          const parsed = JSON.parse(stored);
-          if (parsed.user && parsed.user.role === "Admin") {
-            parsed.expires = now + ADMIN_SESSION_TIMEOUT;
-            storage.setItem("ns-auth", JSON.stringify(parsed));
+  // ----------------------------------------------------------
+  // Admin session idle timeout
+  // ----------------------------------------------------------
+  useEffect(() => {
+    if (!user || user.role !== "Admin") return;
+    if (!isSupabaseConfigured) {
+      // Mock admin timeout
+      const interval = setInterval(() => {
+        const storedEntries = [
+          [localStorage, localStorage.getItem("ns-auth")],
+          [sessionStorage, sessionStorage.getItem("ns-auth")],
+        ] as const;
+        let expired = false;
+        for (const [storage, stored] of storedEntries) {
+          if (!stored) continue;
+          try {
+            const parsed = JSON.parse(stored);
+            if (parsed.expires && Date.now() > parsed.expires) {
+              storage.removeItem("ns-auth");
+              expired = true;
+            }
+          } catch {
+            storage.removeItem("ns-auth");
+            expired = true;
           }
-        } catch {
-          // ignore
         }
-      }
-    };
+        if (expired) {
+          setUser(null);
+          toast.error("Session expired due to inactivity. Please sign in again.");
+          navigate("/admin/login", { replace: true });
+        }
+      }, 10000);
 
-    const events = ["mousedown", "keydown", "scroll", "touchstart", "mousemove"];
-    events.forEach((event) => window.addEventListener(event, handleActivity));
-
-    return () => {
-      clearInterval(interval);
-      events.forEach((event) => window.removeEventListener(event, handleActivity));
-    };
+      let lastUpdate = Date.now();
+      const handleActivity = () => {
+        const now = Date.now();
+        if (now - lastUpdate < 5000) return;
+        lastUpdate = now;
+        const storedEntries = [
+          [localStorage, localStorage.getItem("ns-auth")],
+          [sessionStorage, sessionStorage.getItem("ns-auth")],
+        ] as const;
+        for (const [storage, stored] of storedEntries) {
+          if (!stored) continue;
+          try {
+            const parsed = JSON.parse(stored);
+            if (parsed.user && parsed.user.role === "Admin") {
+              parsed.expires = now + ADMIN_SESSION_TIMEOUT;
+              storage.setItem("ns-auth", JSON.stringify(parsed));
+            }
+          } catch { /* ignore */ }
+        }
+      };
+      const events = ["mousedown", "keydown", "scroll", "touchstart", "mousemove"];
+      events.forEach((event) => window.addEventListener(event, handleActivity));
+      return () => {
+        clearInterval(interval);
+        events.forEach((event) => window.removeEventListener(event, handleActivity));
+      };
+    }
   }, [user, navigate]);
 
-  const persist = useCallback((u: AuthUser, remember: boolean) => {
+  // ----------------------------------------------------------
+  // Mock persist helper
+  // ----------------------------------------------------------
+  const mockPersist = useCallback((u: AuthUser, remember: boolean) => {
     const payload = {
       user: u,
       expires: u.role === "Admin" ? Date.now() + ADMIN_SESSION_TIMEOUT : (remember ? Date.now() + 30 * 24 * 60 * 60 * 1000 : null),
@@ -257,47 +301,119 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u);
   }, []);
 
+  // ----------------------------------------------------------
+  // LOGIN
+  // ----------------------------------------------------------
   const login = useCallback(async (email: string, password: string, remember?: boolean) => {
     const normalized = email.toLowerCase().trim();
-    const record = MOCK_USERS[normalized];
-    if (!record || record.password !== password) {
-      throw new Error("Invalid email or password");
-    }
-    persist(record.user, !!remember);
-    toast.success("Welcome back, " + record.user.name.split(" ")[0]);
-    const roleHome: Record<string, string> = {
-      Admin: "/admin",
-      Photographer: "/dashboard",
-      Enterprise: "/enterprise",
-      Buyer: "/account",
-    };
-    const from = (location.state as { from?: string })?.from || roleHome[record.user.role] || "/account";
-    navigate(from, { replace: true });
-  }, [location.state, navigate, persist]);
 
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalized,
+        password,
+      });
+      if (error) throw new Error(error.message);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .single();
+
+      const authUser = supabaseUserToAuthUser(data.user, profile);
+      setUser(authUser);
+      toast.success("Welcome back, " + authUser.name.split(" ")[0]);
+
+      const roleHome: Record<string, string> = {
+        Admin: "/admin",
+        Photographer: "/dashboard",
+        Enterprise: "/enterprise",
+        Buyer: "/account",
+      };
+      const from = (location.state as { from?: string })?.from || roleHome[authUser.role] || "/account";
+      navigate(from, { replace: true });
+    } else {
+      // Mock fallback
+      const record = MOCK_USERS[normalized];
+      if (!record || record.password !== password) {
+        throw new Error("Invalid email or password");
+      }
+      mockPersist(record.user, !!remember);
+      toast.success("Welcome back, " + record.user.name.split(" ")[0]);
+      const roleHome: Record<string, string> = {
+        Admin: "/admin",
+        Photographer: "/dashboard",
+        Enterprise: "/enterprise",
+        Buyer: "/account",
+      };
+      const from = (location.state as { from?: string })?.from || roleHome[record.user.role] || "/account";
+      navigate(from, { replace: true });
+    }
+  }, [location.state, navigate, mockPersist]);
+
+  // ----------------------------------------------------------
+  // SIGNUP
+  // ----------------------------------------------------------
   const signup = useCallback(async (data: { firstName: string; lastName: string; email: string; password: string }) => {
     const normalized = data.email.toLowerCase().trim();
-    if (MOCK_USERS[normalized]) {
-      throw new Error("An account with this email already exists");
-    }
-    const newUser: AuthUser = {
-      id: "U-" + Date.now().toString().slice(-4),
-      name: `${data.firstName} ${data.lastName}`,
-      email: normalized,
-      role: "Buyer",
-      plan: "Starter",
-      company: "",
-      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150",
-      memberSince: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-      downloadsLeft: "50",
-    };
-    MOCK_USERS[normalized] = { password: data.password, user: newUser };
-    persist(newUser, false);
-    toast.success("Account created", { description: "Welcome to NS CAPTURES!" });
-    navigate("/account", { replace: true });
-  }, [navigate, persist]);
 
-  const logout = useCallback(() => {
+    if (isSupabaseConfigured && supabase) {
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: normalized,
+        password: data.password,
+        options: {
+          data: {
+            name: `${data.firstName} ${data.lastName}`,
+            role: "Buyer",
+            plan: "Starter",
+          },
+        },
+      });
+      if (error) throw new Error(error.message);
+
+      if (authData.user) {
+        // Profile is auto-created by the trigger
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", authData.user.id)
+          .single();
+
+        const authUser = supabaseUserToAuthUser(authData.user, profile);
+        setUser(authUser);
+        toast.success("Account created", { description: "Welcome to NS CAPTURES!" });
+        navigate("/account", { replace: true });
+      }
+    } else {
+      // Mock fallback
+      if (MOCK_USERS[normalized]) {
+        throw new Error("An account with this email already exists");
+      }
+      const newUser: AuthUser = {
+        id: "U-" + Date.now().toString().slice(-4),
+        name: `${data.firstName} ${data.lastName}`,
+        email: normalized,
+        role: "Buyer",
+        plan: "Starter",
+        company: "",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150",
+        memberSince: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+        downloadsLeft: "50",
+      };
+      MOCK_USERS[normalized] = { password: data.password, user: newUser };
+      mockPersist(newUser, false);
+      toast.success("Account created", { description: "Welcome to NS CAPTURES!" });
+      navigate("/account", { replace: true });
+    }
+  }, [navigate, mockPersist]);
+
+  // ----------------------------------------------------------
+  // LOGOUT
+  // ----------------------------------------------------------
+  const logout = useCallback(async () => {
+    if (isSupabaseConfigured && supabase) {
+      await supabase.auth.signOut();
+    }
     localStorage.removeItem("ns-auth");
     sessionStorage.removeItem("ns-auth");
     setUser(null);
@@ -305,34 +421,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigate("/signin", { replace: true });
   }, [navigate]);
 
+  // ----------------------------------------------------------
+  // UPDATE PROFILE
+  // ----------------------------------------------------------
   const updateProfile = useCallback(async (data: Partial<AuthUser>) => {
     if (!user) return;
     const { id: _id, role: _role, ...editableData } = data;
-    const normalizedEmail = editableData.email?.toLowerCase().trim() || user.email;
-    
-    if (normalizedEmail !== user.email && MOCK_USERS[normalizedEmail]) {
-      throw new Error("An account with this email already exists");
-    }
 
-    const updated: AuthUser = { ...user, ...editableData, email: normalizedEmail, id: user.id, role: user.role };
-    const record = MOCK_USERS[user.email];
-    if (record) {
-      if (normalizedEmail !== user.email) delete MOCK_USERS[user.email];
-      MOCK_USERS[normalizedEmail] = { ...record, user: updated };
-    }
-    const remember = localStorage.getItem("ns-auth") !== null;
-    persist(updated, remember);
-    toast.success("Profile saved");
-  }, [user, persist]);
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          name: editableData.name,
+          email: editableData.email,
+          company: editableData.company,
+          avatar: editableData.avatar,
+        })
+        .eq("id", user.id);
 
+      if (error) throw new Error(error.message);
+
+      const updated = { ...user, ...editableData };
+      setUser(updated);
+      toast.success("Profile saved");
+    } else {
+      // Mock fallback
+      const normalizedEmail = editableData.email?.toLowerCase().trim() || user.email;
+      if (normalizedEmail !== user.email && MOCK_USERS[normalizedEmail]) {
+        throw new Error("An account with this email already exists");
+      }
+      const updated: AuthUser = { ...user, ...editableData, email: normalizedEmail, id: user.id, role: user.role };
+      const record = MOCK_USERS[user.email];
+      if (record) {
+        if (normalizedEmail !== user.email) delete MOCK_USERS[user.email];
+        MOCK_USERS[normalizedEmail] = { ...record, user: updated };
+      }
+      const remember = localStorage.getItem("ns-auth") !== null;
+      mockPersist(updated, remember);
+      toast.success("Profile saved");
+    }
+  }, [user, mockPersist]);
+
+  // ----------------------------------------------------------
+  // CHANGE PASSWORD
+  // ----------------------------------------------------------
   const changePassword = useCallback(async (current: string, next: string) => {
     if (!user) throw new Error("Not authenticated");
-    const record = MOCK_USERS[user.email];
-    if (!record || record.password !== current) {
-      throw new Error("Current password is incorrect");
+
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.auth.updateUser({ password: next });
+      if (error) throw new Error(error.message);
+      toast.success("Password updated");
+    } else {
+      // Mock fallback
+      const record = MOCK_USERS[user.email];
+      if (!record || record.password !== current) {
+        throw new Error("Current password is incorrect");
+      }
+      record.password = next;
+      toast.success("Password updated");
     }
-    record.password = next;
-    toast.success("Password updated");
   }, [user]);
 
   return (

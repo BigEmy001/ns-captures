@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router";
 import {
   BadgeCheck, MapPin, Share2, Mail, ChevronDown, Camera, Download, Bookmark,
@@ -7,15 +7,27 @@ import { toast } from "sonner";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { Button, Eyebrow } from "../components/ui";
 import { useRequest } from "../components/RequestModal";
-import { getPhotographer, getPhotosByPhotographer, Photo } from "../data/photos";
+import { fetchPhotographer, fetchPhotosByPhotographer, type Photographer, type Photo } from "../data/db";
 import { NotFound } from "./NotFound";
 
 type Tab = "highlights" | "gallery" | "collections" | "statistics" | "followers" | "following";
 
 export function PhotographerProfile() {
   const { id } = useParams();
-  const photographer = getPhotographer(id ?? "");
-  const shots = getPhotosByPhotographer(id ?? "");
+  const [photographer, setPhotographer] = useState<Photographer | null>(null);
+  const [shots, setShots] = useState<Photo[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const p = await fetchPhotographer(id ?? "");
+      setPhotographer(p);
+      if (p) {
+        const photos = await fetchPhotosByPhotographer(id ?? "");
+        setShots(photos);
+      }
+    };
+    load();
+  }, [id]);
   const [tab, setTab] = useState<Tab>("gallery");
   const [following, setFollowing] = useState(false);
   const [sort, setSort] = useState<"recency" | "popular">("recency");

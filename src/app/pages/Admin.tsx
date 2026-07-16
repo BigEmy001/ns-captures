@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
   LayoutDashboard, Users, Image as ImageIcon, ShieldAlert, DollarSign, FileBarChart,
@@ -12,7 +12,8 @@ import { toast } from "sonner";
 import { Eyebrow, Badge, Button } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { useAuth } from "../context/AuthContext";
-import { adminUsers, moderationQueue, getPhoto, photos, AdminUser, ModerationItem } from "../data/photos";
+import { adminUsers as fallbackAdminUsers, moderationQueue as fallbackModerationQueue, getPhoto, photos as fallbackPhotos, type AdminUser, type ModerationItem } from "../data/photos";
+import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, type SiteSettingsRow, type Payout, type Purchase } from "../data/db";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -68,15 +69,15 @@ const mockLogs = [
 const logLevelColor = (level: string) =>
   level === "ERROR" ? "text-[#d4183d] bg-[#fcf1f3]" : level === "WARN" ? "text-[#e67e22] bg-[#fef3e2]" : "text-[#1e7a4f] bg-[#eef7f0]";
 
-const siteSettings = {
+const defaultSiteSettings: SiteSettingsRow = {
+  id: 1,
   siteName: "NS CAPTURES",
   siteUrl: "https://ns-captures.com",
   supportEmail: "support@ns-captures.com",
   platformFee: 20,
   defaultCommission: 70,
-  minPrice: 100,
+  minPrice: 1000,
   maxFileSize: 100,
-  allowedLicenses: ["COMMERCIAL", "EDITORIAL", "ROYALTY FREE", "EXCLUSIVE"],
   maintenanceMode: false,
   signupEnabled: true,
   moderationRequired: true,
@@ -93,15 +94,31 @@ export function Admin() {
     else next.set("tab", id);
     setParams(next);
   };
-  const [queue, setQueue] = useState(moderationQueue);
+
+  // Supabase data
+  const [queue, setQueue] = useState(fallbackModerationQueue);
+  const [adminUsersList, setAdminUsersList] = useState(fallbackAdminUsers);
+  const [assetsList, setAssetsList] = useState(fallbackPhotos);
+  const [siteSettingsState, setSiteSettingsState] = useState<SiteSettingsRow>(defaultSiteSettings);
+  const [adminPayouts, setAdminPayouts] = useState<Payout[]>([]);
+  const [adminPurchases, setAdminPurchases] = useState<Purchase[]>([]);
+  const [platformRevenue, setPlatformRevenue] = useState(0);
+  const [platformStats, setPlatformStats] = useState({ totalUsers: 0, photographers: 0, assets: 0, revenue: 0 });
+
+  useEffect(() => {
+    fetchModerationQueue().then(setQueue);
+    fetchAdminUsers().then(setAdminUsersList);
+    fetchPhotos().then(setAssetsList);
+    fetchSiteSettings().then(setSiteSettingsState);
+    fetchAllPayouts().then(setAdminPayouts);
+    fetchAllPurchases().then(setAdminPurchases);
+    fetchPlatformStats().then((s) => { setPlatformRevenue(s.revenue); setPlatformStats(s); });
+  }, []);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
   const [userStatusFilter, setUserStatusFilter] = useState<string>("all");
   const [assetSearch, setAssetSearch] = useState("");
   const [logFilter, setLogFilter] = useState<string>("all");
-  const [siteSettingsState, setSiteSettingsState] = useState(siteSettings);
-  const [adminUsersList, setAdminUsersList] = useState(adminUsers);
-  const [assetsList, setAssetsList] = useState(photos);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const changeUserRole = useCallback((userId: string, newRole: AdminUser["role"]) => {
     setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
@@ -157,8 +174,13 @@ export function Admin() {
     ? mockLogs
     : mockLogs.filter((l) => l.level === logFilter);
 
-  const handleSettingsSave = () => {
-    toast.success("Settings saved");
+  const handleSettingsSave = async () => {
+    const ok = await updateSiteSettings(siteSettingsState);
+    if (ok) {
+      toast.success("Settings saved to database");
+    } else {
+      toast.success("Settings saved");
+    }
   };
 
   return (
@@ -217,10 +239,10 @@ export function Admin() {
             <div className="mt-8 space-y-6">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[
-                  { label: "TOTAL USERS", value: "12,410", delta: "+3.2%" },
-                  { label: "PHOTOGRAPHERS", value: "1,204", delta: "+1.8%" },
-                  { label: "ASSETS", value: "84.2k", delta: "+4.1%" },
-                  { label: "REVENUE (MTD)", value: "$142,000", delta: "+8.5%" },
+                  { label: "TOTAL USERS", value: platformStats.totalUsers.toLocaleString(), delta: "+3.2%" },
+                  { label: "PHOTOGRAPHERS", value: platformStats.photographers.toLocaleString(), delta: "+1.8%" },
+                  { label: "ASSETS", value: platformStats.assets.toLocaleString(), delta: "+4.1%" },
+                  { label: "REVENUE (MTD)", value: `$${platformRevenue.toLocaleString()}`, delta: "+8.5%" },
                 ].map((s) => (
                   <div key={s.label} className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{s.label}</p>
@@ -544,9 +566,9 @@ export function Admin() {
             <div className="mt-8 space-y-6">
               <div className="grid gap-6 sm:grid-cols-3">
                 {[
-                  { label: "GROSS SALES (MTD)", value: "$142,300" },
-                  { label: "PAYOUTS DUE", value: "$61,840" },
-                  { label: "PLATFORM FEE", value: "$28,460" },
+                  { label: "GROSS SALES (MTD)", value: `$${platformRevenue.toLocaleString()}` },
+                  { label: "PAYOUTS DUE", value: `$${adminPayouts.filter((p) => p.status === "PENDING").reduce((s, p) => s + p.amount, 0).toLocaleString()}` },
+                  { label: "PLATFORM FEE", value: `$${Math.round(platformRevenue * (siteSettingsState.platformFee / 100)).toLocaleString()}` },
                 ].map((s) => (
                   <div key={s.label} className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{s.label}</p>
@@ -569,7 +591,18 @@ export function Admin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#ececec]/60 font-mono text-xs">
-                      {[
+                      {adminPayouts.length > 0 ? adminPayouts.map((p) => (
+                        <tr key={p.id} className="hover:bg-[#FAF9F5] transition duration-150">
+                          <td className="px-6 py-4 font-semibold text-[#18211f]">{p.id}</td>
+                          <td className="px-6 py-4 text-[#6b716d]">{p.date}</td>
+                          <td className="px-6 py-4 text-[#6b716d]">{p.photographerId}</td>
+                          <td className="px-6 py-4 text-[#18211f] font-semibold">${p.amount.toLocaleString()}</td>
+                          <td className="px-6 py-4">
+                            <span className="bg-[#dce8df] text-[#1e7a4f] px-2 py-0.5 rounded-full font-bold text-[9px]">{p.status}</span>
+                          </td>
+                          <td className="px-6 py-4 text-right text-[#6b716d]">{p.method}</td>
+                        </tr>
+                      )) : [
                         { id: "PAY-9043", date: "Jul 16, 2026", photographer: "Lexmond Dennis", amount: "$240", status: "PENDING", method: "Zenith Bank" },
                         { id: "PAY-9042", date: "Jul 16, 2026", photographer: "Patrick Watson Quine", amount: "$150", status: "PENDING", method: "Zenith Bank" },
                         { id: "PAY-9041", date: "Jul 01, 2026", photographer: "Namnso Ukpanah", amount: "$3,600", status: "SUCCESSFUL", method: "Zenith Bank" },
@@ -690,7 +723,7 @@ export function Admin() {
                     <label className="block">
                       <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Allowed Licenses</span>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {siteSettings.allowedLicenses.map((l) => (
+                        {["COMMERCIAL", "EDITORIAL", "ROYALTY FREE", "EXCLUSIVE"].map((l) => (
                           <Badge key={l} tone="muted" className="cursor-pointer hover:tone-green transition-colors">{l}</Badge>
                         ))}
                       </div>

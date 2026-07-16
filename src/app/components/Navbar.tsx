@@ -10,6 +10,7 @@ import { Monogram } from "./ui";
 import { Dropdown, DropdownItem } from "./Dropdown";
 import { useRequest } from "./RequestModal";
 import { getCart, removeFromCart, clearCart, CartItem } from "../data/cart";
+import { createPurchase, createLicense, logActivity, incrementPhotoDownloads, fetchPhoto } from "../data/db";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, UserRole } from "../context/AuthContext";
@@ -197,7 +198,7 @@ export function Navbar() {
     setMenu(false);
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cartItems.length === 0) return;
     if (!isAuthenticated) {
       toast.error("Sign in to complete checkout");
@@ -206,18 +207,55 @@ export function Navbar() {
       return;
     }
     setCheckoutStatus("loading");
+
+    const now = new Date().toISOString();
+    const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+
+    for (const item of cartItems) {
+      // Create purchase record
+      await createPurchase({
+        userId: user!.id,
+        photoId: item.photoId,
+        license: item.license,
+        price: item.price,
+        date: dateStr,
+      });
+
+      // Create license record
+      const photo = await fetchPhoto(item.photoId);
+      await createLicense({
+        userId: user!.id,
+        photoId: item.photoId,
+        title: photo?.title || item.title,
+        licenseType: item.license,
+        price: item.price,
+        purchasedAt: now,
+        expiresAt: "Perpetual",
+        downloads: 0,
+      });
+
+      // Increment download count
+      await incrementPhotoDownloads(item.photoId);
+
+      // Log activity
+      await logActivity({
+        userId: user!.id,
+        type: "purchase",
+        title: `License purchased: ${photo?.title || item.title}`,
+        desc: `${item.license} license for $${item.price}`,
+      });
+    }
+
+    setCheckoutStatus("success");
     setTimeout(() => {
-      setCheckoutStatus("success");
-      setTimeout(() => {
-        toast.success("License acquired successfully!", {
-          description: `Acquired licenses for ${cartItems.length} photos.`,
-        });
-        clearCart();
-        setCheckoutStatus("idle");
-        setCartOpen(false);
-        navigate("/account");
-      }, 1500);
-    }, 2000);
+      toast.success("License acquired successfully!", {
+        description: `Acquired licenses for ${cartItems.length} photos.`,
+      });
+      clearCart();
+      setCheckoutStatus("idle");
+      setCartOpen(false);
+      navigate("/account");
+    }, 1500);
   };
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
