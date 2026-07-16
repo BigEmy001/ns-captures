@@ -29,6 +29,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const ADMIN_SESSION_TIMEOUT = 15 * 60 * 1000; // 15 minutes (industry standard admin session idle timeout)
+
 const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
   "amara@mainlandstudio.co": {
     password: "password123",
@@ -144,10 +146,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
+  // Handle Admin session idle timeout (industry standard: 15 minutes)
+  useEffect(() => {
+    if (!user || user.role !== "Admin") return;
+
+    // Periodically check if the session has expired
+    const interval = setInterval(() => {
+      const storedEntries = [
+        [localStorage, localStorage.getItem("ns-auth")],
+        [sessionStorage, sessionStorage.getItem("ns-auth")],
+      ] as const;
+
+      let expired = false;
+      for (const [storage, stored] of storedEntries) {
+        if (!stored) continue;
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed.expires && Date.now() > parsed.expires) {
+            storage.removeItem("ns-auth");
+            expired = true;
+          }
+        } catch {
+          storage.removeItem("ns-auth");
+          expired = true;
+        }
+      }
+
+      if (expired) {
+        setUser(null);
+        toast.error("Session expired due to inactivity. Please sign in again.");
+        navigate("/admin/login", { replace: true });
+      }
+    }, 10000); // Check every 10 seconds
+
+    // Throttled activity listener to update session expiration
+    let lastUpdate = Date.now();
+    const handleActivity = () => {
+      const now = Date.now();
+      // Throttle updates to at most once every 5 seconds
+      if (now - lastUpdate < 5000) return;
+      lastUpdate = now;
+
+      const storedEntries = [
+        [localStorage, localStorage.getItem("ns-auth")],
+        [sessionStorage, sessionStorage.getItem("ns-auth")],
+      ] as const;
+
+      for (const [storage, stored] of storedEntries) {
+        if (!stored) continue;
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed.user && parsed.user.role === "Admin") {
+            parsed.expires = now + ADMIN_SESSION_TIMEOUT;
+            storage.setItem("ns-auth", JSON.stringify(parsed));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    const events = ["mousedown", "keydown", "scroll", "touchstart", "mousemove"];
+    events.forEach((event) => window.addEventListener(event, handleActivity));
+
+    return () => {
+      clearInterval(interval);
+      events.forEach((event) => window.removeEventListener(event, handleActivity));
+    };
+  }, [user, navigate]);
+
   const persist = useCallback((u: AuthUser, remember: boolean) => {
     const payload = {
       user: u,
-      expires: remember ? Date.now() + 30 * 24 * 60 * 60 * 1000 : null,
+      expires: u.role === "Admin" ? Date.now() + ADMIN_SESSION_TIMEOUT : (remember ? Date.now() + 30 * 24 * 60 * 60 * 1000 : null),
     };
     const storage = remember ? localStorage : sessionStorage;
     const otherStorage = remember ? sessionStorage : localStorage;
