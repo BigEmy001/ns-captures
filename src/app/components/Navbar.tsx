@@ -272,34 +272,56 @@ export function Navbar() {
                 )}
               </NavLink>
             ))}
-            <Dropdown label="Explore" items={exploreItems} align="right" />
+            {user?.role !== "Admin" && (
+              <Dropdown label="Explore" items={exploreItems} align="right" />
+            )}
             <Dropdown
               align="right"
               items={moreItems}
-              trigger={<MoreHorizontal className="size-5 text-[#4a534e]" />}
+              trigger={
+                isAuthenticated ? (
+                  user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt="Profile"
+                      className="size-8 rounded-full object-cover border border-[#ececec] hover:opacity-90 transition-opacity"
+                    />
+                  ) : (
+                    <div className="grid size-8 place-items-center rounded-full bg-[#1e4a3f] text-white font-serif text-sm font-semibold hover:opacity-90 transition-opacity">
+                      {user?.name?.charAt(0) || "U"}
+                    </div>
+                  )
+                ) : (
+                  <MoreHorizontal className="size-5 text-[#4a534e]" />
+                )
+              }
               onItemClick={handleMoreClick}
             />
 
             {/* Shopping Cart Icon */}
-            <button
-              onClick={() => setCartOpen(true)}
-              className="relative p-1.5 text-[#4a534e] hover:text-[#18211f] transition-colors duration-200 cursor-pointer"
-              aria-label="Shopping Cart"
-            >
-              <ShoppingBag className="size-5" />
-              {cartItems.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center bg-[#1e4a3f] text-[8px] font-mono font-bold text-white rounded-full">
-                  {cartItems.length}
-                </span>
-              )}
-            </button>
+            {user?.role !== "Admin" && (
+              <button
+                onClick={() => setCartOpen(true)}
+                className="relative p-1.5 text-[#4a534e] hover:text-[#18211f] transition-colors duration-200 cursor-pointer"
+                aria-label="Shopping Cart"
+              >
+                <ShoppingBag className="size-5" />
+                {cartItems.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center bg-[#1e4a3f] text-[8px] font-mono font-bold text-white rounded-full">
+                    {cartItems.length}
+                  </span>
+                )}
+              </button>
+            )}
 
-            <button
-              onClick={openRequest}
-              className="rounded-full bg-[#1e4a3f] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#123b31]"
-            >
-              Start a project
-            </button>
+            {user?.role !== "Admin" && (
+              <button
+                onClick={openRequest}
+                className="rounded-full bg-[#1e4a3f] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#123b31]"
+              >
+                Start a project
+              </button>
+            )}
             {!isAuthenticated && !isLoading && (
               <Link
                 to="/signin"
@@ -312,18 +334,20 @@ export function Navbar() {
 
           <div className="ml-auto flex items-center gap-4 lg:hidden">
             {/* Mobile Cart Button */}
-            <button
-              onClick={() => setCartOpen(true)}
-              className="relative p-1.5 text-[#4a534e] hover:text-[#18211f]"
-              aria-label="Shopping Cart"
-            >
-              <ShoppingBag className="size-5" />
-              {cartItems.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 grid size-3.5 place-items-center bg-[#1e4a3f] text-[7px] font-mono font-bold text-white rounded-full">
-                  {cartItems.length}
-                </span>
-              )}
-            </button>
+            {user?.role !== "Admin" && (
+              <button
+                onClick={() => setCartOpen(true)}
+                className="relative p-1.5 text-[#4a534e] hover:text-[#18211f]"
+                aria-label="Shopping Cart"
+              >
+                <ShoppingBag className="size-5" />
+                {cartItems.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 grid size-3.5 place-items-center bg-[#1e4a3f] text-[7px] font-mono font-bold text-white rounded-full">
+                    {cartItems.length}
+                  </span>
+                )}
+              </button>
+            )}
             <button onClick={() => setMenu((v) => !v)}>
               {menu ? <X className="size-6" /> : <Menu className="size-6" />}
             </button>
@@ -347,20 +371,22 @@ export function Navbar() {
                 </Link>
                 <div className="flex items-center gap-4">
                   {/* Cart icon */}
-                  <button
-                    onClick={() => {
-                      setMenu(false);
-                      setCartOpen(true);
-                    }}
-                    className="relative p-1.5 text-white/80 hover:text-white"
-                  >
-                    <ShoppingBag className="size-5" />
-                    {cartItems.length > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center bg-white text-[8px] font-mono font-bold text-[#12231f] rounded-full">
-                        {cartItems.length}
-                      </span>
-                    )}
-                  </button>
+                  {user?.role !== "Admin" && (
+                    <button
+                      onClick={() => {
+                        setMenu(false);
+                        setCartOpen(true);
+                      }}
+                      className="relative p-1.5 text-white/80 hover:text-white"
+                    >
+                      <ShoppingBag className="size-5" />
+                      {cartItems.length > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center bg-white text-[8px] font-mono font-bold text-[#12231f] rounded-full">
+                          {cartItems.length}
+                        </span>
+                      )}
+                    </button>
+                  )}
                   <button
                     onClick={() => setMenu(false)}
                     className="p-1 hover:bg-white/10 rounded-full transition-colors cursor-pointer text-white"
@@ -447,15 +473,17 @@ export function Navbar() {
 
               {/* Footer / CTA section */}
               <div className="border-t border-white/10 pt-6 mt-auto space-y-4">
-                <button
-                  onClick={() => {
-                    setMenu(false);
-                    openRequest();
-                  }}
-                  className="w-full rounded-full bg-white px-5 py-3 text-center text-sm font-bold text-[#12231f] hover:bg-white/90 transition-colors cursor-pointer"
-                >
-                  Start a project
-                </button>
+                {user?.role !== "Admin" && (
+                  <button
+                    onClick={() => {
+                      setMenu(false);
+                      openRequest();
+                    }}
+                    className="w-full rounded-full bg-white px-5 py-3 text-center text-sm font-bold text-[#12231f] hover:bg-white/90 transition-colors cursor-pointer"
+                  >
+                    Start a project
+                  </button>
+                )}
                 <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-white/40">
                   <span>NS CAPTURES © 2026</span>
                   <span>LAGOS, NIGERIA</span>
