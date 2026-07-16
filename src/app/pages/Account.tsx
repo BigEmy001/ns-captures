@@ -50,9 +50,15 @@ export function Account() {
   useEffect(() => {
     if (!user?.id) return;
 
-    fetchPurchases(user.id).then(setPurchases);
-    fetchLicenses(user.id).then(setLicenses);
-    fetchActivity(user.id).then(setActivity);
+    Promise.all([
+      fetchPurchases(user.id).catch(() => {}),
+      fetchLicenses(user.id).catch(() => {}),
+      fetchActivity(user.id).catch(() => {}),
+    ]).then(([purchases, licenses, activity]) => {
+      if (purchases) setPurchases(purchases);
+      if (licenses) setLicenses(licenses);
+      if (activity) setActivity(activity);
+    });
   }, [user?.id]);
 
   useEffect(() => {
@@ -61,11 +67,13 @@ export function Account() {
       ...licenses.map((l) => l.photoId),
     ]);
     allPhotoIds.forEach(async (id) => {
-      const photo = await fetchPhoto(id);
-      if (photo) {
-        setPurchasePhotos((prev) => ({ ...prev, [id]: photo }));
-        setLicensePhotos((prev) => ({ ...prev, [id]: photo }));
-      }
+      try {
+        const photo = await fetchPhoto(id);
+        if (photo) {
+          setPurchasePhotos((prev) => ({ ...prev, [id]: photo }));
+          setLicensePhotos((prev) => ({ ...prev, [id]: photo }));
+        }
+      } catch {}
     });
   }, [purchases, licenses]);
 
@@ -112,7 +120,7 @@ export function Account() {
           onSelect={setActive}
           header={() => (
             <div className="flex min-w-0 items-center gap-3">
-              <img src={user?.avatar || ""} alt="" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
+              <img src={user?.avatar || ""} alt="" loading="lazy" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{user?.name || "User"}</p>
                 <p className="text-xs text-[#6b716d]">{user?.plan || "Starter"} plan</p>
@@ -145,7 +153,7 @@ export function Account() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute bottom-6 left-6 flex items-center gap-4">
-              <img src={user?.avatar || ""} alt="" className="size-16 rounded-full object-cover border-2 border-white shadow-md" />
+              <img src={user?.avatar || ""} alt="" loading="lazy" className="size-16 rounded-full object-cover border-2 border-white shadow-md" />
               <div className="text-white">
                 <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight">{user?.name || "User"}</h1>
                 <p className="text-xs text-white/80 font-mono tracking-wider uppercase mt-1">
@@ -254,13 +262,13 @@ export function Account() {
                 <div key={c.id} className="group cursor-pointer">
                   <div className="relative aspect-[4/3] w-full">
                     <div className="absolute inset-0 translate-x-2 -translate-y-2 rotate-2 rounded-2xl bg-[#d7d8d2] shadow-sm transition-all duration-300 group-hover:translate-x-3 group-hover:-translate-y-3 group-hover:rotate-3 overflow-hidden opacity-60">
-                      <img src={c.cover[2]} alt="" className="size-full object-cover" />
+                      <img src={c.cover[2]} alt="" loading="lazy" className="size-full object-cover" />
                     </div>
                     <div className="absolute inset-0 translate-x-1 -translate-y-1 -rotate-1 rounded-2xl bg-[#d7d8d2] shadow-md transition-all duration-300 group-hover:translate-x-1.5 group-hover:-translate-y-1.5 group-hover:-rotate-2 overflow-hidden opacity-85">
-                      <img src={c.cover[1]} alt="" className="size-full object-cover" />
+                      <img src={c.cover[1]} alt="" loading="lazy" className="size-full object-cover" />
                     </div>
                     <div className="absolute inset-0 rounded-2xl bg-[#d7d8d2] shadow-lg transition-all duration-300 group-hover:scale-[1.01] overflow-hidden">
-                      <img src={c.cover[0]} alt="" className="size-full object-cover" />
+                      <img src={c.cover[0]} alt="" loading="lazy" className="size-full object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
                   </div>
@@ -296,7 +304,7 @@ export function Account() {
                       <tr key={pur.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <img src={p?.image} alt="" className="size-11 object-cover rounded-lg shadow-sm" />
+                            <img src={p?.image} alt="" loading="lazy" className="size-11 object-cover rounded-lg shadow-sm" />
                             <Link to={`/photo/${pur.photoId}`} className="font-semibold text-[#18211f] hover:text-[#1e4a3f] hover:underline">
                               {p?.title}
                             </Link>
@@ -343,7 +351,7 @@ export function Account() {
                       <tr key={lic.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <img src={p?.image} alt="" className="size-11 object-cover rounded-lg shadow-sm" />
+                            <img src={p?.image} alt="" loading="lazy" className="size-11 object-cover rounded-lg shadow-sm" />
                             <Link to={`/photo/${lic.photoId}`} className="font-semibold text-[#18211f] hover:text-[#1e4a3f] hover:underline">
                               {p?.title}
                             </Link>

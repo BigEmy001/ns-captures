@@ -92,7 +92,7 @@ export function Enterprise() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {photos.slice(0, 4).map((p) => (
-                  <img key={p.id} src={p.image} alt="" className="aspect-square w-full object-cover" />
+                  <img key={p.id} src={p.image} alt="" loading="lazy" className="aspect-square w-full object-cover" />
                 ))}
               </div>
             </div>
@@ -108,7 +108,7 @@ export function Enterprise() {
             </div>
             <div className="flex -space-x-2">
               {photos.slice(0, 5).map((p) => (
-                <img key={p.id} src={p.image} alt="" className="size-9 rounded-full border-2 border-[#ffffff] object-cover" />
+                <img key={p.id} src={p.image} alt="" loading="lazy" className="size-9 rounded-full border-2 border-[#ffffff] object-cover" />
               ))}
               <span className="grid size-9 place-items-center rounded-full border-2 border-[#ffffff] bg-[#1e4a3f] text-xs text-white">+8</span>
             </div>
@@ -154,7 +154,7 @@ export function Enterprise() {
               <div className="space-y-3">
                 {collections.slice(0, 3).map((c) => (
                   <div key={c.id} className="flex items-center gap-3">
-                    <img src={c.cover[0]} alt="" className="size-12 object-cover" />
+                    <img src={c.cover[0]} alt="" loading="lazy" className="size-12 object-cover" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{c.title}</p>
                       <p className="text-xs text-[#6b716d]">{c.count} assets</p>

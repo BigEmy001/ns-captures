@@ -9,7 +9,6 @@ import {
   briefs as mockBriefs,
   adminUsers as mockAdminUsers,
   moderationQueue as mockModerationQueue,
-  currentUser as mockCurrentUser,
   userPurchases as mockUserPurchases,
   userCollections as mockUserCollections,
   mockLicenses as mockLicenses,
@@ -265,41 +264,6 @@ export async function fetchPhotosByPhotographer(photographerId: string): Promise
   return data.map(rowToPhoto);
 }
 
-export async function searchPhotos(query: string, category?: string): Promise<Photo[]> {
-  if (!isSupabaseConfigured) {
-    let results = mockPhotos;
-    if (query) {
-      const q = query.toLowerCase();
-      results = results.filter(
-        (p) =>
-          p.title.toLowerCase().includes(q) ||
-          p.photographer.toLowerCase().includes(q) ||
-          p.keywords.some((k) => k.toLowerCase().includes(q))
-      );
-    }
-    if (category && category !== "All") {
-      results = results.filter((p) => p.category === category);
-    }
-    return results;
-  }
-
-  let queryBuilder = supabase!.from("photos").select("*");
-
-  if (query) {
-    queryBuilder = queryBuilder.or(
-      `title.ilike.%${query}%,photographer_name.ilike.%${query}%,keywords.cs.{${query}}`
-    );
-  }
-
-  if (category && category !== "All") {
-    queryBuilder = queryBuilder.eq("category", category);
-  }
-
-  const { data } = await queryBuilder.order("downloads", { ascending: false });
-  if (!data) return [];
-  return data.map(rowToPhoto);
-}
-
 // ============================================================
 // COLLECTIONS
 // ============================================================
@@ -512,20 +476,6 @@ export async function createLicense(lic: Omit<LicenseRecord, "id">): Promise<Lic
 
   if (error) { console.error("createLicense", error); return null; }
   return { id: data.id, userId: data.user_id, photoId: data.photo_id, title: data.title, licenseType: data.license_type, price: data.price, purchasedAt: data.purchased_at, expiresAt: data.expires_at, downloads: data.downloads };
-}
-
-export async function fetchAllLicenses(): Promise<LicenseRecord[]> {
-  if (!isSupabaseConfigured) return mockLicenses;
-
-  const { data, error } = await supabase!
-    .from("licenses")
-    .select("*")
-    .order("purchased_at", { ascending: false });
-
-  if (error || !data) return mockLicenses;
-  return data.map((r: any) => ({
-    id: r.id, userId: r.user_id, photoId: r.photo_id, title: r.title || "", licenseType: r.license_type, price: r.price, purchasedAt: r.purchased_at, expiresAt: r.expires_at || "Perpetual", downloads: r.downloads || 0,
-  }));
 }
 
 // ============================================================

@@ -88,9 +88,15 @@ export function Dashboard() {
   const [photographers, setPhotographers] = useState(fallbackPhotographers);
 
   useEffect(() => {
-    fetchPhotos().then(setPhotos);
-    fetchBriefs().then(setBriefs);
-    fetchPhotographers().then(setPhotographers);
+    Promise.all([
+      fetchPhotos().catch(() => {}),
+      fetchBriefs().catch(() => {}),
+      fetchPhotographers().catch(() => {}),
+    ]).then(([photos, briefs, photographers]) => {
+      if (photos) setPhotos(photos);
+      if (briefs) setBriefs(briefs);
+      if (photographers) setPhotographers(photographers);
+    });
   }, []);
 
   // Payouts from DB
@@ -108,7 +114,7 @@ export function Dashboard() {
   useEffect(() => {
     if (photographerId) {
       setPortfolioPhotos(photos.filter((p) => p.photographerId === photographerId));
-      fetchPayouts(photographerId).then(setPayouts);
+      fetchPayouts(photographerId).then(setPayouts).catch(() => {});
     }
   }, [photographerId]);
 
@@ -408,7 +414,7 @@ export function Dashboard() {
           onSelect={setActive}
           header={() => (
             <div className="flex min-w-0 items-center gap-3">
-              <img src={user?.avatar || photos[8]?.image || ""} alt="" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
+              <img src={user?.avatar || photos[8]?.image || ""} alt="" loading="lazy" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{user?.name || "Photographer"}</p>
                 <p className="text-xs text-[#6b716d]">Verified · {user?.company || "Contributor"}</p>
@@ -538,7 +544,7 @@ export function Dashboard() {
                         className="flex items-center gap-4 hover:bg-[#FAF9F5] p-2.5 -mx-2.5 rounded-xl transition-all duration-200 group"
                       >
                         <span className="font-mono text-xs text-[#8a8f89]">0{i + 1}</span>
-                        <img src={p.image} alt="" className="size-12 object-cover rounded-lg group-hover:scale-[1.03] transition-all duration-200 shadow-sm" />
+                        <img src={p.image} alt="" loading="lazy" className="size-12 object-cover rounded-lg group-hover:scale-[1.03] transition-all duration-200 shadow-sm" />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-[#18211f]">{p.title}</p>
                           <p className="text-xs text-[#6b716d]">{p.downloads.toLocaleString()} downloads</p>
@@ -597,7 +603,7 @@ export function Dashboard() {
                       className="group relative flex flex-col bg-white border border-[#ececec]/80 rounded-2xl overflow-hidden shadow-sm hover:border-[#1e4a3f]/25 transition duration-300"
                     >
                       <div className="aspect-[4/5] relative overflow-hidden bg-[#d7d8d2] shrink-0">
-                        <img src={p.image} alt={p.title} className="w-full h-full object-cover group-hover:scale-102 transition duration-300" />
+                        <img src={p.image} alt={p.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-102 transition duration-300" />
                         
                         {/* Overlay tools */}
                         <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition duration-200">
@@ -877,7 +883,7 @@ export function Dashboard() {
                     key={f.name}
                     className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm text-center flex flex-col items-center space-y-4 hover:border-[#1e4a3f]/25 transition duration-300"
                   >
-                    <img src={f.avatar} alt={f.name} className="size-16 rounded-full object-cover border border-[#ececec]/80" />
+                    <img src={f.avatar} alt={f.name} loading="lazy" className="size-16 rounded-full object-cover border border-[#ececec]/80" />
                     <div>
                       <h3 className="font-serif text-base text-[#18211f] font-semibold leading-tight">{f.name}</h3>
                       <p className="text-xs text-[#6b716d] mt-1 font-mono">{f.role}</p>
@@ -1043,6 +1049,7 @@ export function Dashboard() {
                       <img
                         src={uploadedImageUrl || "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150&h=150"}
                         alt="Preview"
+                        loading="lazy"
                         className="size-16 object-cover rounded-lg shadow"
                       />
                       <div className="min-w-0">

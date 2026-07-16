@@ -201,7 +201,7 @@ export function PhotographerProfile() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(tab === "followers" ? mockFollowersData : []).map((f, i) => (
               <div key={f.name} className="flex items-center gap-3 border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4">
-                <img src={f.avatar} alt={f.name} className="size-11 rounded-full object-cover" />
+                <img src={f.avatar} alt={f.name} loading="lazy" className="size-11 rounded-full object-cover" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{f.name}</p>
                   <p className="text-xs text-[#6b716d]">{f.role}</p>

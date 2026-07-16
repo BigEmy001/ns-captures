@@ -37,7 +37,7 @@ function Column({ title, topics }: { title: string; topics: Topic[] }) {
             to={`/search?q=${encodeURIComponent(t.label)}`}
             className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white py-1 pl-1 pr-3 transition hover:border-[#1e4a3f]"
           >
-            <img src={t.image} alt="" className="size-7 rounded-full object-cover" />
+            <img src={t.image} alt="" loading="lazy" className="size-7 rounded-full object-cover" />
             <span className="text-sm font-medium">{t.label}</span>
             <span className="text-xs text-[#8a8f89]">{t.count}</span>
           </Link>

@@ -212,38 +212,36 @@ export function Navbar() {
     const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
 
     for (const item of cartItems) {
-      // Create purchase record
-      await createPurchase({
-        userId: user!.id,
-        photoId: item.photoId,
-        license: item.license,
-        price: item.price,
-        date: dateStr,
-      });
+      try {
+        await createPurchase({
+          userId: user!.id,
+          photoId: item.photoId,
+          license: item.license,
+          price: item.price,
+          date: dateStr,
+        });
 
-      // Create license record
-      const photo = await fetchPhoto(item.photoId);
-      await createLicense({
-        userId: user!.id,
-        photoId: item.photoId,
-        title: photo?.title || item.title,
-        licenseType: item.license,
-        price: item.price,
-        purchasedAt: now,
-        expiresAt: "Perpetual",
-        downloads: 0,
-      });
+        const photo = await fetchPhoto(item.photoId);
+        await createLicense({
+          userId: user!.id,
+          photoId: item.photoId,
+          title: photo?.title || item.title,
+          licenseType: item.license,
+          price: item.price,
+          purchasedAt: now,
+          expiresAt: "Perpetual",
+          downloads: 0,
+        });
 
-      // Increment download count
-      await incrementPhotoDownloads(item.photoId);
+        await incrementPhotoDownloads(item.photoId);
 
-      // Log activity
-      await logActivity({
-        userId: user!.id,
-        type: "purchase",
-        title: `License purchased: ${photo?.title || item.title}`,
-        desc: `${item.license} license for $${item.price}`,
-      });
+        await logActivity({
+          userId: user!.id,
+          type: "purchase",
+          title: `License purchased: ${photo?.title || item.title}`,
+          desc: `${item.license} license for $${item.price}`,
+        });
+      } catch {}
     }
 
     setCheckoutStatus("success");

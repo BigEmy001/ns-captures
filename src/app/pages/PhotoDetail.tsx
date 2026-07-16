@@ -30,6 +30,9 @@ export function PhotoDetail() {
     fetchPhoto(id).then((p) => {
       setPhoto(p || getPhoto(id) || null);
       setLoading(false);
+    }).catch(() => {
+      setPhoto(getPhoto(id) || null);
+      setLoading(false);
     });
   }, [id]);
 

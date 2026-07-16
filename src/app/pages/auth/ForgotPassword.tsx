@@ -6,6 +6,14 @@ import { AuthLayout, AuthField } from "./AuthLayout";
 export function ForgotPassword() {
   const [sent, setSent] = useState(false);
   const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) { setError("Email is required"); return; }
+    if (!email.includes("@")) { setError("Enter a valid email address"); return; }
+    setSent(true);
+  };
 
   return (
     <AuthLayout
@@ -37,19 +45,19 @@ export function ForgotPassword() {
         </div>
       ) : (
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setSent(true);
-          }}
+          onSubmit={submit}
           className="space-y-4"
         >
-          <AuthField
-            label="Email"
-            type="email"
-            placeholder="you@studio.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          <div>
+            <AuthField
+              label="Email"
+              type="email"
+              placeholder="you@studio.com"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(""); }}
+            />
+            {error && <p className="mt-1 text-xs text-[#d4183d]">{error}</p>}
+          </div>
           <button
             type="submit"
             className="w-full rounded-full bg-[#1e4a3f] py-3 text-sm font-semibold text-white transition hover:bg-[#123b31]"

@@ -5833,33 +5833,6 @@ export const photographers: Photographer[] = [
   // MIGRATED_PHOTOGRAPHERS_END
 ];
 
-export const getPhotosByPhotographer = (id: string) =>
-  photos.filter((p) => p.photographerId === id);
-
-// Returns a profile for any photographerId — enriched if editorial, otherwise
-// derived from their photos so every credited creator has a page.
-export function getPhotographer(id: string): Photographer | undefined {
-  const known = photographers.find((p) => p.id === id);
-  const shots = getPhotosByPhotographer(id);
-  if (known) return { ...known, images: shots.length || known.images };
-  if (shots.length === 0) return undefined;
-  const first = shots[0];
-  const totalLikes = shots.reduce((s, p) => s + p.likes, 0);
-  return {
-    id,
-    name: first.photographer,
-    location: first.location,
-    specialty: first.category,
-    followers: `${(totalLikes / 1000).toFixed(1)}k`,
-    images: shots.length,
-    avatar: first.image,
-    cover: first.image,
-    verified: true,
-    gear: [first.camera, first.lens],
-    bio: `${first.category} photographer based in ${first.location}, contributing to the NS CAPTURES archive.`,
-  };
-}
-
 export interface Brief {
   id: string;
   title: string;
@@ -5885,17 +5858,6 @@ export interface Purchase {
   price: number;
   date: string;
 }
-
-export const currentUser = {
-  name: "Amara Okafor",
-  email: "amara@mainlandstudio.co",
-  plan: "Studio",
-  role: "Art Director",
-  company: "Mainland Studio",
-  avatar: photos[2].image,
-  memberSince: "Mar 2025",
-  downloadsLeft: "Unlimited",
-};
 
 export const userPurchases: Purchase[] = [
   { id: "INV-2041", photoId: "lagos-skyline", license: "COMMERCIAL", price: 190, date: "Jul 09, 2026" },

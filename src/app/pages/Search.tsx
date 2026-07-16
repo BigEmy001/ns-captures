@@ -19,7 +19,7 @@ export function SearchPage() {
   const [photos, setPhotos] = useState(fallbackPhotos);
 
   useEffect(() => {
-    fetchPhotos().then(setPhotos);
+    fetchPhotos().then(setPhotos).catch(() => {});
   }, []);
 
   useEffect(() => {

@@ -18,7 +18,7 @@ export function Contribute() {
       <section className="relative overflow-hidden bg-[#213e35] text-[#ffffff]">
         <div className="absolute inset-0 grid grid-cols-4 opacity-25">
           {photos.slice(0, 8).map((p) => (
-            <img key={p.id} src={p.image} alt="" className="size-full object-cover" />
+            <img key={p.id} src={p.image} alt="" loading="lazy" className="size-full object-cover" />
           ))}
         </div>
         <div className="absolute inset-0 bg-[#17372f]/70" />

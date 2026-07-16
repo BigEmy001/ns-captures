@@ -10,9 +10,20 @@ export function SignIn() {
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  const validate = () => {
+    const next: { email?: string; password?: string } = {};
+    if (!email.trim()) next.email = "Email is required";
+    else if (!email.includes("@")) next.email = "Enter a valid email address";
+    if (!password) next.password = "Password is required";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     setIsLoading(true);
     try {
       await login(email, password, remember);
@@ -37,25 +48,31 @@ export function SignIn() {
       }
     >
       <form onSubmit={submit} className="space-y-4">
-        <AuthField
-          label="Email"
-          type="email"
-          placeholder="you@studio.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <AuthField
-          label="Password"
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          trailing={
-            <Link to="/forgot-password" className="font-normal text-[#1e4a3f] hover:underline">
-              Forgot?
-            </Link>
-          }
-        />
+        <div>
+          <AuthField
+            label="Email"
+            type="email"
+            placeholder="you@studio.com"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
+          />
+          {errors.email && <p className="mt-1 text-xs text-[#d4183d]">{errors.email}</p>}
+        </div>
+        <div>
+          <AuthField
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
+            trailing={
+              <Link to="/forgot-password" className="font-normal text-[#1e4a3f] hover:underline">
+                Forgot?
+              </Link>
+            }
+          />
+          {errors.password && <p className="mt-1 text-xs text-[#d4183d]">{errors.password}</p>}
+        </div>
         <label className="flex items-center gap-2 text-sm text-[#4a534e]">
           <input
             type="checkbox"

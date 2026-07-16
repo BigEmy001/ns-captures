@@ -30,10 +30,17 @@ export function Home() {
   const [briefs, setBriefs] = useState(fallbackBriefs);
 
   useEffect(() => {
-    fetchPhotos().then(setPhotos);
-    fetchCollections().then(setCollections);
-    fetchPhotographers().then(setPhotographers);
-    fetchBriefs().then(setBriefs);
+    Promise.all([
+      fetchPhotos().catch(() => {}),
+      fetchCollections().catch(() => {}),
+      fetchPhotographers().catch(() => {}),
+      fetchBriefs().catch(() => {}),
+    ]).then(([photos, collections, photographers, briefs]) => {
+      if (photos) setPhotos(photos);
+      if (collections) setCollections(collections);
+      if (photographers) setPhotographers(photographers);
+      if (briefs) setBriefs(briefs);
+    });
   }, []);
 
   return (
@@ -115,9 +122,9 @@ export function Home() {
             {collections.map((c) => (
               <Link key={c.id} to="/collections" className="group">
                 <div className="grid aspect-[4/3] grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden bg-[#d7d8d2]">
-                  <img src={c.cover[0]} alt="" className="col-span-1 row-span-2 size-full object-cover transition group-hover:scale-[1.03]" />
-                  <img src={c.cover[1]} alt="" className="size-full object-cover" />
-                  <img src={c.cover[2]} alt="" className="size-full object-cover" />
+                  <img src={c.cover[0]} alt="" loading="lazy" className="col-span-1 row-span-2 size-full object-cover transition group-hover:scale-[1.03]" />
+                  <img src={c.cover[1]} alt="" loading="lazy" className="size-full object-cover" />
+                  <img src={c.cover[2]} alt="" loading="lazy" className="size-full object-cover" />
                 </div>
                 <div className="flex items-start justify-between pt-3">
                   <div>
@@ -176,7 +183,7 @@ export function Home() {
             {photographers.map((p) => (
               <Link key={p.id} to={`/photographer/${p.id}`} className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-5 transition hover:border-[#1e4a3f]">
                 <div className="flex items-center gap-3">
-                  <img src={p.avatar} alt={p.name} className="size-12 rounded-full object-cover" />
+                  <img src={p.avatar} alt={p.name} loading="lazy" className="size-12 rounded-full object-cover" />
                   <div>
                     <h3 className="font-serif text-lg leading-none">{p.name}</h3>
                     <p className="mt-1 text-xs text-[#6b716d]">{p.location}</p>

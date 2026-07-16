@@ -24,10 +24,10 @@ export function Collections() {
         {collections.map((c) => (
           <Link key={c.id} to={colRoutes[c.id] || "/search"} className="group block">
             <div className="grid aspect-[16/9] grid-cols-3 gap-0.5 overflow-hidden bg-[#d7d8d2]">
-              <img src={c.cover[0]} alt="" className="col-span-2 size-full object-cover transition group-hover:scale-[1.02]" />
+              <img src={c.cover[0]} alt="" loading="lazy" className="col-span-2 size-full object-cover transition group-hover:scale-[1.02]" />
               <div className="grid grid-rows-2 gap-0.5">
-                <img src={c.cover[1]} alt="" className="size-full object-cover" />
-                <img src={c.cover[2]} alt="" className="size-full object-cover" />
+                <img src={c.cover[1]} alt="" loading="lazy" className="size-full object-cover" />
+                <img src={c.cover[2]} alt="" loading="lazy" className="size-full object-cover" />
               </div>
             </div>
             <div className="flex items-start justify-between gap-4 pt-4">

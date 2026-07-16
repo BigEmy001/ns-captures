@@ -42,7 +42,7 @@ export function AuthLayout({
 
       {/* Image side */}
       <div className="relative hidden overflow-hidden bg-[#213e35] lg:block">
-        <img src={showcase} alt="Against the wall" className="absolute inset-0 size-full object-cover" />
+        <img src={showcase} alt="Against the wall" loading="lazy" className="absolute inset-0 size-full object-cover" />
       </div>
     </div>
   );

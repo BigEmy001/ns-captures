@@ -106,13 +106,23 @@ export function Admin() {
   const [platformStats, setPlatformStats] = useState({ totalUsers: 0, photographers: 0, assets: 0, revenue: 0 });
 
   useEffect(() => {
-    fetchModerationQueue().then(setQueue);
-    fetchAdminUsers().then(setAdminUsersList);
-    fetchPhotos().then(setAssetsList);
-    fetchSiteSettings().then(setSiteSettingsState);
-    fetchAllPayouts().then(setAdminPayouts);
-    fetchAllPurchases().then(setAdminPurchases);
-    fetchPlatformStats().then((s) => { setPlatformRevenue(s.revenue); setPlatformStats(s); });
+    Promise.all([
+      fetchModerationQueue().catch(() => {}),
+      fetchAdminUsers().catch(() => {}),
+      fetchPhotos().catch(() => {}),
+      fetchSiteSettings().catch(() => {}),
+      fetchAllPayouts().catch(() => {}),
+      fetchAllPurchases().catch(() => {}),
+      fetchPlatformStats().catch(() => {}),
+    ]).then(([queue, users, photos, settings, payouts, purchases, stats]) => {
+      if (queue) setQueue(queue);
+      if (users) setAdminUsersList(users);
+      if (photos) setAssetsList(photos);
+      if (settings) setSiteSettingsState(settings);
+      if (payouts) setAdminPayouts(payouts);
+      if (purchases) setAdminPurchases(purchases);
+      if (stats) { setPlatformRevenue(stats.revenue); setPlatformStats(stats); }
+    });
   }, []);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
@@ -333,7 +343,7 @@ export function Admin() {
                       return (
                         <div key={m.id} className="flex items-center justify-between py-2 border-b border-[#f0f0f0] last:border-0">
                           <div className="flex items-center gap-3">
-                            <img src={p?.image} alt="" className="size-10 object-cover rounded-lg" />
+                            <img src={p?.image} alt="" loading="lazy" className="size-10 object-cover rounded-lg" />
                             <div>
                               <p className="font-medium text-sm text-[#18211f] truncate max-w-[200px]">{p?.title}</p>
                               <p className="text-xs text-[#6b716d]">By {m.photographer}</p>
@@ -459,7 +469,7 @@ export function Admin() {
                       className="flex flex-col md:flex-row items-start md:items-center gap-6 border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/20 transition-all duration-300"
                     >
                       <div className="relative group shrink-0 overflow-hidden rounded-xl shadow-sm">
-                        <img src={p?.image} alt="" className="size-20 md:size-24 object-cover group-hover:scale-105 transition-all duration-300" />
+                        <img src={p?.image} alt="" loading="lazy" className="size-20 md:size-24 object-cover group-hover:scale-105 transition-all duration-300" />
                         <div className="absolute top-1.5 left-1.5">
                           <span className="bg-black/60 backdrop-blur-sm text-[8px] font-mono text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
                             {p?.license}
@@ -529,7 +539,7 @@ export function Admin() {
                 {filteredAssets.map((p) => (
                   <div key={p.id} className="group relative overflow-hidden bg-[#d7d8d2] rounded-xl shadow-sm ns-lift">
                     <Link to={`/photo/${p.id}`}>
-                      <img src={p.image} alt="" className="aspect-square w-full object-cover group-hover:scale-105 transition-all duration-300" />
+                      <img src={p.image} alt="" loading="lazy" className="aspect-square w-full object-cover group-hover:scale-105 transition-all duration-300" />
                     </Link>
                     <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 opacity-0 transition group-hover:opacity-100">
                       <span className="text-xs text-white font-serif">{p.title}</span>
@@ -949,7 +959,7 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {userPhotos.map((photo) => (
                     <div key={photo.id} className="group relative overflow-hidden bg-[#d7d8d2] rounded-xl aspect-square shadow-sm">
-                      <img src={photo.image} alt={photo.title} className="size-full object-cover group-hover:scale-105 transition-all duration-300" />
+                      <img src={photo.image} alt={photo.title} loading="lazy" className="size-full object-cover group-hover:scale-105 transition-all duration-300" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-2.5 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end">
                         <p className="text-[10px] font-serif text-white truncate font-medium">{photo.title}</p>
                         <p className="text-[8px] font-mono text-white/70 mt-0.5 uppercase tracking-wide truncate">

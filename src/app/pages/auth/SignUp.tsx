@@ -11,9 +11,27 @@ export function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ firstName?: string; lastName?: string; email?: string; password?: string; terms?: string }>({});
+  const [terms, setTerms] = useState(false);
+
+  const validate = () => {
+    const next: typeof errors = {};
+    if (!firstName.trim()) next.firstName = "First name is required";
+    if (!lastName.trim()) next.lastName = "Last name is required";
+    if (!email.trim()) next.email = "Email is required";
+    else if (!email.includes("@")) next.email = "Enter a valid email address";
+    if (!password) next.password = "Password is required";
+    else if (password.length < 8) next.password = "Password must be at least 8 characters";
+    if (!terms) next.terms = "You must agree to the terms";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const clearError = (field: string) => setErrors((p) => ({ ...p, [field]: undefined }));
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     setIsLoading(true);
     try {
       await signup({ firstName, lastName, email, password });
@@ -39,40 +57,55 @@ export function SignUp() {
     >
       <form onSubmit={submit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          <AuthField
-            label="First name"
-            placeholder="Ada"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-          />
-          <AuthField
-            label="Last name"
-            placeholder="Obi"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-          />
+          <div>
+            <AuthField
+              label="First name"
+              placeholder="Ada"
+              value={firstName}
+              onChange={(e) => { setFirstName(e.target.value); clearError("firstName"); }}
+            />
+            {errors.firstName && <p className="mt-1 text-xs text-[#d4183d]">{errors.firstName}</p>}
+          </div>
+          <div>
+            <AuthField
+              label="Last name"
+              placeholder="Obi"
+              value={lastName}
+              onChange={(e) => { setLastName(e.target.value); clearError("lastName"); }}
+            />
+            {errors.lastName && <p className="mt-1 text-xs text-[#d4183d]">{errors.lastName}</p>}
+          </div>
         </div>
-        <AuthField
-          label="Email"
-          type="email"
-          placeholder="you@studio.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <AuthField
-          label="Password"
-          type="password"
-          placeholder="At least 8 characters"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <label className="flex items-start gap-2 text-xs leading-5 text-[#4a534e]">
-          <input type="checkbox" className="mt-0.5 size-4 accent-[#1e4a3f]" required />
-          I agree to the{" "}
-          <Link to="/pricing" className="text-[#1e4a3f] hover:underline">Terms</Link>{" "}
-          &{" "}
-          <Link to="/pricing" className="text-[#1e4a3f] hover:underline">Privacy Policy</Link>.
-        </label>
+        <div>
+          <AuthField
+            label="Email"
+            type="email"
+            placeholder="you@studio.com"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); clearError("email"); }}
+          />
+          {errors.email && <p className="mt-1 text-xs text-[#d4183d]">{errors.email}</p>}
+        </div>
+        <div>
+          <AuthField
+            label="Password"
+            type="password"
+            placeholder="At least 8 characters"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); clearError("password"); }}
+          />
+          {errors.password && <p className="mt-1 text-xs text-[#d4183d]">{errors.password}</p>}
+        </div>
+        <div>
+          <label className="flex items-start gap-2 text-xs leading-5 text-[#4a534e]">
+            <input type="checkbox" checked={terms} onChange={(e) => { setTerms(e.target.checked); clearError("terms"); }} className="mt-0.5 size-4 accent-[#1e4a3f]" />
+            I agree to the{" "}
+            <Link to="/pricing" className="text-[#1e4a3f] hover:underline">Terms</Link>{" "}
+            &{" "}
+            <Link to="/pricing" className="text-[#1e4a3f] hover:underline">Privacy Policy</Link>.
+          </label>
+          {errors.terms && <p className="mt-1 text-xs text-[#d4183d]">{errors.terms}</p>}
+        </div>
         <button
           type="submit"
           disabled={isLoading}
