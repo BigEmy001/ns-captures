@@ -219,6 +219,9 @@ function rowToPhoto(row: any): Photo {
     keywords: row.keywords || [],
     image: row.image || "",
     createdAt: row.created_at || undefined,
+    aperture: row.aperture || undefined,
+    shutterSpeed: row.shutter_speed || undefined,
+    focalLength: row.focal_length || undefined,
   };
 }
 
@@ -768,6 +771,9 @@ export async function createPhoto(photo: Omit<Photo, "downloads" | "views" | "li
       keywords: photo.keywords,
       image: photo.image,
       uploaded_at: new Date().toISOString(),
+      aperture: photo.aperture,
+      shutter_speed: photo.shutterSpeed,
+      focal_length: photo.focalLength,
     })
     .select()
     .single();
@@ -850,11 +856,33 @@ export async function incrementPhotoDownloads(photoId: string): Promise<void> {
 }
 
 // ============================================================
+// LOCAL STORAGE HELPERS FOR MOCK MODE
+// ============================================================
+
+function getLocalSet(key: string): Set<string> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    return new Set(JSON.parse(localStorage.getItem(key) || "[]"));
+  } catch {
+    return new Set();
+  }
+}
+
+function saveLocalSet(key: string, set: Set<string>) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(key, JSON.stringify(Array.from(set)));
+  }
+}
+
+// ============================================================
 // SOCIAL: LIKES
 // ============================================================
 
 export async function hasUserLikedPhoto(userId: string, photoId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured) {
+    const likes = getLocalSet(`likes_${userId}`);
+    return likes.has(photoId);
+  }
   const { data } = await supabase!
     .from("user_likes")
     .select("photo_id")
@@ -865,7 +893,18 @@ export async function hasUserLikedPhoto(userId: string, photoId: string): Promis
 }
 
 export async function toggleLike(userId: string, photoId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured) {
+    const likes = getLocalSet(`likes_${userId}`);
+    let isLiked = false;
+    if (likes.has(photoId)) {
+      likes.delete(photoId);
+    } else {
+      likes.add(photoId);
+      isLiked = true;
+    }
+    saveLocalSet(`likes_${userId}`, likes);
+    return isLiked;
+  }
 
   const { data: existing } = await supabase!
     .from("user_likes")
@@ -893,7 +932,10 @@ export async function toggleLike(userId: string, photoId: string): Promise<boole
 // ============================================================
 
 export async function hasUserSavedPhoto(userId: string, photoId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured) {
+    const saves = getLocalSet(`saves_${userId}`);
+    return saves.has(photoId);
+  }
   const { data } = await supabase!
     .from("user_saves")
     .select("photo_id")
@@ -904,7 +946,18 @@ export async function hasUserSavedPhoto(userId: string, photoId: string): Promis
 }
 
 export async function toggleSave(userId: string, photoId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured) {
+    const saves = getLocalSet(`saves_${userId}`);
+    let isSaved = false;
+    if (saves.has(photoId)) {
+      saves.delete(photoId);
+    } else {
+      saves.add(photoId);
+      isSaved = true;
+    }
+    saveLocalSet(`saves_${userId}`, saves);
+    return isSaved;
+  }
 
   const { data: existing } = await supabase!
     .from("user_saves")
@@ -923,7 +976,9 @@ export async function toggleSave(userId: string, photoId: string): Promise<boole
 }
 
 export async function fetchUserSavedPhotoIds(userId: string): Promise<string[]> {
-  if (!isSupabaseConfigured) return [];
+  if (!isSupabaseConfigured) {
+    return Array.from(getLocalSet(`saves_${userId}`));
+  }
   const { data } = await supabase!
     .from("user_saves")
     .select("photo_id")
@@ -936,7 +991,10 @@ export async function fetchUserSavedPhotoIds(userId: string): Promise<string[]> 
 // ============================================================
 
 export async function hasUserFollowedPhotographer(userId: string, photographerId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured) {
+    const follows = getLocalSet(`follows_${userId}`);
+    return follows.has(photographerId);
+  }
   const { data } = await supabase!
     .from("user_follows")
     .select("following_id")
@@ -947,7 +1005,18 @@ export async function hasUserFollowedPhotographer(userId: string, photographerId
 }
 
 export async function toggleFollow(userId: string, photographerId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
+  if (!isSupabaseConfigured) {
+    const follows = getLocalSet(`follows_${userId}`);
+    let isFollowing = false;
+    if (follows.has(photographerId)) {
+      follows.delete(photographerId);
+    } else {
+      follows.add(photographerId);
+      isFollowing = true;
+    }
+    saveLocalSet(`follows_${userId}`, follows);
+    return isFollowing;
+  }
 
   const { data: existing } = await supabase!
     .from("user_follows")
@@ -966,7 +1035,10 @@ export async function toggleFollow(userId: string, photographerId: string): Prom
 }
 
 export async function fetchFollowerCount(photographerId: string): Promise<number> {
-  if (!isSupabaseConfigured) return 0;
+  if (!isSupabaseConfigured) {
+    // If not configured, we'll try to find their profile's follower string or return 0
+    return 0; // We can leave it as 0 since mock UI already uses profile.followers
+  }
   const { count } = await supabase!
     .from("user_follows")
     .select("follower_id", { count: "exact", head: true })

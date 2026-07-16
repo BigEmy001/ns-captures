@@ -147,6 +147,9 @@ export function Dashboard() {
   const [exifFocalLength, setExifFocalLength] = useState("");
   const [exifAperture, setExifAperture] = useState("");
   const [exifShutterSpeed, setExifShutterSpeed] = useState("");
+  const [uploadOrientation, setUploadOrientation] = useState<Orientation>("portrait");
+  const [uploadRatio, setUploadRatio] = useState("aspect-[4/5]");
+  const [uploadColor, setUploadColor] = useState("#9a6b3f");
 
   // Accept brief state
   const [acceptedBriefs, setAcceptedBriefs] = useState<Record<string, boolean>>({});
@@ -195,6 +198,60 @@ export function Dashboard() {
     processFile(file);
   };
 
+  const analyzeImage = (file: File): Promise<{ ratio: string; orientation: Orientation; color: string }> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.src = objectUrl;
+      img.onload = () => {
+        const width = img.width;
+        const height = img.height;
+        const ratioVal = width / height;
+        
+        let orientation: Orientation = "square";
+        let ratio = "aspect-square";
+        
+        if (ratioVal > 1.25) {
+          orientation = "landscape";
+          if (ratioVal > 1.55) {
+            ratio = "aspect-[16/9]";
+          } else {
+            ratio = "aspect-[3/2]";
+          }
+        } else if (ratioVal < 0.8) {
+          orientation = "portrait";
+          if (ratioVal < 0.6) {
+            ratio = "aspect-[9/16]";
+          } else {
+            ratio = "aspect-[4/5]";
+          }
+        }
+        
+        let color = "#9a6b3f";
+        try {
+          const canvas = document.createElement("canvas");
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            canvas.width = 1;
+            canvas.height = 1;
+            ctx.drawImage(img, 0, 0, 1, 1);
+            const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+            color = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+          }
+        } catch (err) {
+          console.error("Failed to extract color", err);
+        }
+        
+        URL.revokeObjectURL(objectUrl);
+        resolve({ ratio, orientation, color });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve({ ratio: "aspect-[4/5]", orientation: "portrait", color: "#9a6b3f" });
+      };
+    });
+  };
+
   const processFile = async (file: File) => {
     clearPendingUploadWork();
     if (objectUrlRef.current) {
@@ -206,6 +263,13 @@ export function Dashboard() {
     setUploadFileName(file.name);
     setUploadProgress(0);
     setUploadStep(1);
+
+    // Analyze dimensions, aspect ratio, orientation and dominant color dynamically
+    analyzeImage(file).then(({ ratio, orientation, color }) => {
+      setUploadRatio(ratio);
+      setUploadOrientation(orientation);
+      setUploadColor(color);
+    });
 
     // Extract EXIF data from the file
     let exifData = { camera: "", lens: "", iso: 0, focalLength: "", aperture: "", shutterSpeed: "", location: "" };
@@ -340,9 +404,9 @@ export function Dashboard() {
       license: "COMMERCIAL",
       category: uploadCategory,
       location: uploadLocation || "",
-      color: "#9a6b3f",
-      orientation: "portrait",
-      ratio: "aspect-[4/5]",
+      color: uploadColor,
+      orientation: uploadOrientation,
+      ratio: uploadRatio,
       price: Math.max(Number(uploadPrice) || 1000, 1000),
       downloads: 0,
       views: 0,
@@ -352,6 +416,9 @@ export function Dashboard() {
       iso: uploadIso || 0,
       keywords: [uploadCategory.toLowerCase(), "new-release"],
       image: imageUrl,
+      aperture: exifAperture || undefined,
+      shutterSpeed: exifShutterSpeed || undefined,
+      focalLength: exifFocalLength || undefined,
     };
 
     // Save to Supabase
@@ -401,6 +468,9 @@ export function Dashboard() {
     setExifFocalLength("");
     setExifAperture("");
     setExifShutterSpeed("");
+    setUploadOrientation("portrait");
+    setUploadRatio("aspect-[4/5]");
+    setUploadColor("#9a6b3f");
   };
 
   const handlePriceUpdate = async (photoId: string) => {

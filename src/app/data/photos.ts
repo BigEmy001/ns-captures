@@ -25,6 +25,9 @@ export interface Photo {
   keywords: string[];
   image: string;
   createdAt?: string;
+  aperture?: string;
+  shutterSpeed?: string;
+  focalLength?: string;
 }
 
 const u = (id: string, w = 1080) =>
@@ -5791,10 +5794,19 @@ export interface Photographer {
 }
 
 export const photographers: Photographer[] = [
-  { id: "namnso", name: "Namnso Ukpanah", location: "Lagos, Nigeria", specialty: "Editorial", followers: "24.1k", images: 412, avatar: photos[8].image, verified: true, cover: photos[8].image, gear: ["Sony A7 IV", "35mm f/1.4", "85mm f/1.8"], bio: "Editorial and documentary photographer based in Lagos, drawn to unhurried portraits of everyday life across West Africa." },
-  { id: "jessica-felicio", name: "Jessica Felicio", location: "Lisbon, Portugal", specialty: "Lifestyle", followers: "31.6k", images: 508, avatar: photos[1].image, verified: true, cover: photos[1].image, gear: ["Sony A7 IV", "50mm f/1.8"], bio: "Lifestyle photographer capturing joy, movement and light. Believer in imagery that feels lived-in, not staged." },
-  { id: "prince-akachi", name: "Prince Akachi", location: "Lagos, Nigeria", specialty: "Culture", followers: "18.9k", images: 287, avatar: photos[5].image, verified: true, cover: photos[5].image, gear: ["Leica Q2", "28mm f/1.7"], bio: "Documenting culture, tradition and colour across Nigeria. Every frame is a small act of preservation." },
-  { id: "godfred-kwakye", name: "Godfred Kwakye", location: "Accra, Ghana", specialty: "Portrait", followers: "12.4k", images: 194, avatar: photos[0].image, verified: true, cover: photos[0].image, gear: ["Canon EOS R5", "85mm f/1.4"], bio: "Portrait photographer from Accra with a love for texture, gold light and quiet confidence." },
+  { id: "namnso-ukpanah", name: "Namnso Ukpanah", location: "Lagos, Nigeria", specialty: "Editorial", followers: "24.1k", images: 8, avatar: photos[8].image, verified: true, cover: photos[8].image, gear: ["Sony A7 IV", "35mm f/1.4", "85mm f/1.8"], bio: "Editorial and documentary photographer based in Lagos, drawn to unhurried portraits of everyday life across West Africa." },
+  { id: "jessica-felicio", name: "Jessica Felicio", location: "Lisbon, Portugal", specialty: "Lifestyle", followers: "31.6k", images: 1, avatar: photos[1].image, verified: true, cover: photos[1].image, gear: ["Sony A7 IV", "50mm f/1.8"], bio: "Lifestyle photographer capturing joy, movement and light. Believer in imagery that feels lived-in, not staged." },
+  { id: "prince-akachi", name: "Prince Akachi", location: "Lagos, Nigeria", specialty: "Culture", followers: "18.9k", images: 2, avatar: photos[5].image, verified: true, cover: photos[5].image, gear: ["Leica Q2", "28mm f/1.7"], bio: "Documenting culture, tradition and colour across Nigeria. Every frame is a small act of preservation." },
+  { id: "godfred-kwakye", name: "Godfred Kwakye", location: "Accra, Ghana", specialty: "Portrait", followers: "12.4k", images: 1, avatar: photos[0].image, verified: true, cover: photos[0].image, gear: ["Canon EOS R5", "85mm f/1.4"], bio: "Portrait photographer from Accra with a love for texture, gold light and quiet confidence." },
+  { id: "divine-effiong", name: "Divine Effiong", location: "Lagos, Nigeria", specialty: "Portrait", followers: "10.2k", images: 9, avatar: "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Nikon Z6", "105mm f/2.8"], bio: "Portrait photographer based in Lagos, Nigeria, contributing to the NS CAPTURES archive." },
+  { id: "moon-bouy", name: "Moon Bouy", location: "Nairobi, Kenya", specialty: "Fashion", followers: "9.4k", images: 9, avatar: "https://images.unsplash.com/photo-1711464669343-2596d0f1b526?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1711464669343-2596d0f1b526?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Fujifilm X-T4", "56mm f/1.2"], bio: "Fashion photographer based in Nairobi, Kenya, contributing to the NS CAPTURES archive." },
+  { id: "sinitta-leunen", name: "Sinitta Leunen", location: "Amsterdam, NL", specialty: "Portrait", followers: "10.8k", images: 9, avatar: "https://images.unsplash.com/photo-1619694770795-e21c58464159?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1619694770795-e21c58464159?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Canon EOS R6", "35mm f/1.8"], bio: "Portrait photographer based in Amsterdam, NL, contributing to the NS CAPTURES archive." },
+  { id: "tony-luginsland", name: "Tony Luginsland", location: "Berlin, Germany", specialty: "Fashion", followers: "1.1k", images: 1, avatar: "https://images.unsplash.com/photo-1584805164144-ab4169cea20d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1584805164144-ab4169cea20d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Sony A7R V", "85mm f/1.8"], bio: "Fashion photographer based in Berlin, Germany, contributing to the NS CAPTURES archive." },
+  { id: "leroy-skalstad", name: "Leroy Skalstad", location: "Chicago, USA", specialty: "Documentary", followers: "3.7k", images: 1, avatar: "https://images.unsplash.com/photo-1699903905361-4d408679753f?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1699903905361-4d408679753f?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Leica M11", "50mm f/2"], bio: "Documentary photographer based in Chicago, USA, contributing to the NS CAPTURES archive." },
+  { id: "onaopemipo-oladipupo", name: "Onaopemipo Oladipupo", location: "Lagos, Nigeria", specialty: "Architecture", followers: "3.5k", images: 1, avatar: "https://images.unsplash.com/photo-1749058387715-1efad0eadc8c?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1749058387715-1efad0eadc8c?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["DJI Mavic 3", "24mm f/2.8"], bio: "Architecture photographer based in Lagos, Nigeria, contributing to the NS CAPTURES archive." },
+  { id: "stephen-olatunde", name: "Stephen Olatunde", location: "Lagos, Nigeria", specialty: "Architecture", followers: "1.8k", images: 8, avatar: "https://images.unsplash.com/photo-1559833064-6f4573ec1ac9?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1559833064-6f4573ec1ac9?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Canon EOS R", "16-35mm f/4"], bio: "Architecture photographer based in Lagos, Nigeria, contributing to the NS CAPTURES archive." },
+  { id: "emmanuel-ikwuegbu", name: "Emmanuel Ikwuegbu", location: "Lagos, Nigeria", specialty: "Architecture", followers: "3.6k", images: 9, avatar: "https://images.unsplash.com/photo-1640475167310-9112316627fa?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1640475167310-9112316627fa?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Sony A7 III", "35mm f/1.4"], bio: "Architecture photographer based in Lagos, Nigeria, contributing to the NS CAPTURES archive." },
+  { id: "zainab-lawal", name: "Zainab Lawal", location: "Lagos, Nigeria", specialty: "Architecture", followers: "1.0k", images: 9, avatar: "https://images.unsplash.com/photo-1658394818344-20f0f11a9121?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1658394818344-20f0f11a9121?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["iPhone 15 Pro", "24mm f/1.78"], bio: "Architecture photographer based in Lagos, Nigeria, contributing to the NS CAPTURES archive." },
   // MIGRATED_PHOTOGRAPHERS_START
   {
     id: "patrick-watson-quine",
@@ -5926,21 +5938,21 @@ export const adminUsers: AdminUser[] = [
   { id: "U-1088", name: "Spam Account", email: "noreply@bots.io", role: "Buyer", status: "Suspended", joined: "Jun 2026" },
   // MIGRATED_ADMIN_USERS_START
   {
-  "id": "U-1090",
-  "name": "Patrick Watson Quine",
-  "email": "patrick@ns.co",
-  "role": "Photographer",
-  "status": "Active",
-  "joined": "Jul 2026"
-},
-    {
-  "id": "U-1092",
-  "name": "Lexmond Dennis",
-  "email": "lexmond@ns.co",
-  "role": "Photographer",
-  "status": "Active",
-  "joined": "Jul 2026"
-},
+    id: "U-1090",
+    name: "Patrick Watson Quine",
+    email: "patrick@ns.co",
+    role: "Photographer",
+    status: "Active",
+    joined: "Jul 2026"
+  },
+  {
+    id: "U-1092",
+    name: "Lexmond Dennis",
+    email: "lexmond@ns.co",
+    role: "Photographer",
+    status: "Active",
+    joined: "Jul 2026"
+  },
   // MIGRATED_ADMIN_USERS_END
 ];
 

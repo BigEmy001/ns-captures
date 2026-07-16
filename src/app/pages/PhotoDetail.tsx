@@ -144,9 +144,12 @@ export function PhotoDetail() {
               {[
                 { icon: Camera, label: "CAMERA BODY", value: photo.camera },
                 { icon: Aperture, label: "OPTICS/LENS", value: photo.lens },
-                { icon: null, label: "ISO SENSITIVITY", value: String(photo.iso) },
+                { icon: null, label: "ISO SENSITIVITY", value: photo.iso ? String(photo.iso) : "" },
+                { icon: null, label: "APERTURE", value: photo.aperture },
+                { icon: null, label: "SHUTTER SPEED", value: photo.shutterSpeed },
+                { icon: null, label: "FOCAL LENGTH", value: photo.focalLength },
                 { icon: null, label: "LICENSING RIGHTS", value: photo.license },
-              ].map((e) => (
+              ].filter((e) => e.value).map((e) => (
                 <div key={e.label} className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4 rounded-xl">
                   <p className="font-mono text-[9px] tracking-[0.1em] text-[#758078]">{e.label}</p>
                   <p className="mt-1.5 text-sm font-semibold truncate" title={e.value}>{e.value}</p>

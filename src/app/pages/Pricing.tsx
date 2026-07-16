@@ -94,7 +94,9 @@ export function Pricing() {
                 <button className={`w-full py-3 text-sm font-semibold ${p.featured ? "bg-white text-[#1e4a3f]" : "border border-[#1e4a3f] text-[#1e4a3f]"}`}>{p.cta}</button>
               </Link>
             ) : (
-              <button className={`mt-8 w-full py-3 text-sm font-semibold ${p.featured ? "bg-white text-[#1e4a3f]" : "bg-[#1e4a3f] text-white"}`}>{p.cta}</button>
+              <Link to="/signup" className="mt-8">
+                <button className={`w-full py-3 text-sm font-semibold ${p.featured ? "bg-white text-[#1e4a3f]" : "bg-[#1e4a3f] text-white"}`}>{p.cta}</button>
+              </Link>
             )}
           </div>
         ))}

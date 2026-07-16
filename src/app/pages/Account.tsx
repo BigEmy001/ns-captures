@@ -288,7 +288,18 @@ export function Account() {
                         <td className="px-6 py-4 text-[#6b716d] text-xs">{pur.date}</td>
                         <td className="px-6 py-4 text-right">
                           <button
-                            onClick={() => toast.success("Download started")}
+                            onClick={() => {
+                              if (p?.image) {
+                                const a = document.createElement("a");
+                                a.href = p.image;
+                                a.download = `NS-CAPTURES-${p.id}.jpg`;
+                                a.target = "_blank";
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                toast.success("Download started");
+                              }
+                            }}
                             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3.5 py-1.5 rounded-full transition-all duration-200"
                           >
                             <Download className="size-3.5" /> Download
