@@ -102,6 +102,22 @@ const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
       downloadsLeft: "Unlimited",
     },
   },
+  // MIGRATED_USERS_START
+  "patrick@ns.co": {
+    password: "password123",
+    user: {
+      "id": "U-1090",
+      "name": "Patrick Watson Quine",
+      "email": "patrick@ns.co",
+      "role": "Photographer",
+      "plan": "Contributor",
+      "company": "Patrick Watson Quine Photography",
+      "avatar": "https://res.cloudinary.com/odu5iecy/image/upload/v1784203446/ns-captures/AM%20Downtown%20Closeup%20C-1.jpg",
+      "memberSince": "Jul 2026",
+      "downloadsLeft": "N/A"
+}
+  },
+  // MIGRATED_USERS_END
 };
 
 const userRoles: UserRole[] = ["Buyer", "Photographer", "Enterprise", "Admin", "Guest"];
