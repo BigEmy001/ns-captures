@@ -69,6 +69,39 @@ export async function sendContributorAcknowledgment(email: string, name: string)
 <p style="margin:16px 0 0;">${btn("https://www.nscaptures.com", "Explore NS CAPTURES")}</p>`);
 }
 
+export async function sendContributorSubmissionStatus(
+  to: string,
+  name: string,
+  status: "new" | "reviewing" | "approved" | "rejected" | "blocked",
+  adminNote?: string,
+) {
+  const safeName = escapeHtml(name);
+  const safeNote = adminNote ? escapeHtml(adminNote) : "";
+
+  const titleByStatus: Record<typeof status, string> = {
+    new: "Submission Received",
+    reviewing: "Submission In Review",
+    approved: "Submission Approved",
+    rejected: "Submission Update",
+    blocked: "Submission Closed",
+  };
+
+  const messageByStatus: Record<typeof status, string> = {
+    new: "Your portfolio submission has been received and queued for review.",
+    reviewing: "Your portfolio submission is currently under review by our curation team.",
+    approved: "Your portfolio has been approved. Our acquisitions team will contact you with next steps.",
+    rejected: "Your submission was not approved at this stage. You can refine and submit again.",
+    blocked: "Your submission has been closed by our compliance team. Contact support for clarification.",
+  };
+
+  await send(to, `${titleByStatus[status]} — NS CAPTURES`, `
+<h1 style="margin:0;font-size:24px;line-height:26px;font-weight:400;color:#333333;font-family:inherit;">${titleByStatus[status]}</h1>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Hi ${safeName},</p>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">${messageByStatus[status]}</p>
+${safeNote ? `<p style="margin:16px 0 0;font-size:14px;line-height:20px;color:#666666;font-family:inherit;"><strong>Admin note:</strong> ${safeNote}</p>` : ""}
+<p style="margin:16px 0 0;">${btn("https://www.nscaptures.com/contribute", "Contributor Portal")}</p>`);
+}
+
 export async function sendVerificationStatus(
   to: string,
   userName: string,

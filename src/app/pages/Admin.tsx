@@ -16,7 +16,7 @@ import { supabase } from "../../lib/supabase";
 import { getPhoto } from "../data/photos";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
 import { logActivity, fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, fetchContributorSubmissions, updateContributorSubmissionStatus, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument, type ContributorSubmission } from "../data/db";
-import { sendVerificationStatus } from "../../lib/email";
+import { sendContributorSubmissionStatus, sendVerificationStatus } from "../../lib/email";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -1363,6 +1363,9 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                                 if (!ok) {
                                   toast.error("Failed to update submission");
                                   return;
+                                }
+                                if (nextStatus !== sub.status) {
+                                  await sendContributorSubmissionStatus(sub.email, sub.fullName, nextStatus, note);
                                 }
                                 setContributorSubmissions((prev) => prev.map((x) => x.id === sub.id ? { ...x, status: nextStatus, adminNote: note } : x));
                                 toast.success(`Submission marked as ${nextStatus}`);
