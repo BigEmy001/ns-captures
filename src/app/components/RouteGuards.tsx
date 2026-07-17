@@ -56,6 +56,10 @@ export function PhotographerRoute() {
   if (!user || (user.role !== "Photographer" && user.role !== "Admin")) {
     return <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />;
   }
+  
+  if (user.role !== "Admin" && user.verificationStatus !== "verified") {
+    return <Navigate to="/account?tab=verification" replace />;
+  }
 
   return <Outlet />;
 }
@@ -67,6 +71,10 @@ export function EnterpriseRoute() {
   if (isLoading) return null;
   if (!user || (user.role !== "Enterprise" && user.role !== "Admin")) {
     return <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />;
+  }
+
+  if (user.role !== "Admin" && user.verificationStatus !== "verified") {
+    return <Navigate to="/account?tab=verification" replace />;
   }
 
   return <Outlet />;

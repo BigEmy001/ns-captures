@@ -37,11 +37,11 @@ const initialPhotos: Photo[] = [
   {
     id: "afro-earrings",
     title: "Afro, in gold",
-    photographerId: "godfred-kwakye",
-    photographer: "Godfred Kwakye",
+    photographerId: "elena-rossi",
+    photographer: "Elena Rossi",
     license: "EDITORIAL",
     category: "Portrait",
-    location: "Accra, Ghana",
+    location: "Milan, Italy",
     color: "#9a6b3f",
     orientation: "portrait",
     ratio: "aspect-[4/5]",
@@ -79,11 +79,11 @@ const initialPhotos: Photo[] = [
   {
     id: "flower-ear",
     title: "Bloom study",
-    photographerId: "divine-effiong",
-    photographer: "Divine Effiong",
+    photographerId: "chloe-dupont",
+    photographer: "Chloe Dupont",
     license: "ROYALTY FREE",
     category: "Portrait",
-    location: "Lagos, Nigeria",
+    location: "London, UK",
     color: "#7d8a5f",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
@@ -100,11 +100,11 @@ const initialPhotos: Photo[] = [
   {
     id: "man-wall",
     title: "Against the wall",
-    photographerId: "moon-bouy",
-    photographer: "Moon Bouy",
+    photographerId: "yuki-tanaka",
+    photographer: "Yuki Tanaka",
     license: "COMMERCIAL",
     category: "Fashion",
-    location: "Nairobi, Kenya",
+    location: "Tokyo, Japan",
     color: "#8a8577",
     orientation: "portrait",
     ratio: "aspect-[4/5]",
@@ -142,11 +142,11 @@ const initialPhotos: Photo[] = [
   {
     id: "orange-headdress",
     title: "Ceremony",
-    photographerId: "prince-akachi",
-    photographer: "Prince Akachi",
+    photographerId: "mateo-silva",
+    photographer: "Mateo Silva",
     license: "EXCLUSIVE",
     category: "Culture",
-    location: "Lagos, Nigeria",
+    location: "London, UK",
     color: "#a55b2c",
     orientation: "portrait",
     ratio: "aspect-[2/3]",
@@ -205,11 +205,11 @@ const initialPhotos: Photo[] = [
   {
     id: "lagos-skyline",
     title: "Light on Lagos",
-    photographerId: "onaopemipo-oladipupo",
-    photographer: "Onaopemipo Oladipupo",
+    photographerId: "liam-oconnor",
+    photographer: "Liam O'Connor",
     license: "ROYALTY FREE",
     category: "Architecture",
-    location: "Lagos, Nigeria",
+    location: "London, UK",
     color: "#8b96a0",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
@@ -226,11 +226,11 @@ const initialPhotos: Photo[] = [
   {
     id: "lagos-daytime",
     title: "Marina, midday",
-    photographerId: "stephen-olatunde",
-    photographer: "Stephen Olatunde",
+    photographerId: "sofia-martinez",
+    photographer: "Sofia Martinez",
     license: "COMMERCIAL",
     category: "Architecture",
-    location: "Lagos, Nigeria",
+    location: "London, UK",
     color: "#9aa3ab",
     orientation: "landscape",
     ratio: "aspect-[3/2]",
@@ -247,11 +247,11 @@ const initialPhotos: Photo[] = [
   {
     id: "lagos-bw-skyline",
     title: "Grid, monochrome",
-    photographerId: "emmanuel-ikwuegbu",
-    photographer: "Emmanuel Ikwuegbu",
+    photographerId: "lucas-wagner",
+    photographer: "Lucas Wagner",
     license: "EDITORIAL",
     category: "Architecture",
-    location: "Lagos, Nigeria",
+    location: "London, UK",
     color: "#7a7a7a",
     orientation: "portrait",
     ratio: "aspect-[2/3]",
@@ -268,11 +268,11 @@ const initialPhotos: Photo[] = [
   {
     id: "rooftop-city",
     title: "From the roof",
-    photographerId: "zainab-lawal",
-    photographer: "Zainab Lawal",
+    photographerId: "amira-hassan",
+    photographer: "Amira Hassan",
     license: "COMMERCIAL",
     category: "Architecture",
-    location: "Lagos, Nigeria",
+    location: "London, UK",
     color: "#95928a",
     orientation: "portrait",
     ratio: "aspect-[3/4]",
@@ -289,8 +289,8 @@ const initialPhotos: Photo[] = [
   {
     id: "desert-road",
     title: "Sands of Time",
-    photographerId: "zainab-lawal",
-    photographer: "Zainab Lawal",
+    photographerId: "amira-hassan",
+    photographer: "Amira Hassan",
     license: "ROYALTY FREE",
     category: "Landscape",
     location: "Namib Desert, Namibia",
@@ -310,8 +310,8 @@ const initialPhotos: Photo[] = [
   {
     id: "concrete-shadows",
     title: "Light & Angle",
-    photographerId: "emmanuel-ikwuegbu",
-    photographer: "Emmanuel Ikwuegbu",
+    photographerId: "lucas-wagner",
+    photographer: "Lucas Wagner",
     license: "COMMERCIAL",
     category: "Architecture",
     location: "Berlin, Germany",
@@ -331,11 +331,11 @@ const initialPhotos: Photo[] = [
   {
     id: "yellow-studio",
     title: "Monochrome study in yellow",
-    photographerId: "prince-akachi",
-    photographer: "Prince Akachi",
+    photographerId: "mateo-silva",
+    photographer: "Mateo Silva",
     license: "EDITORIAL",
     category: "Portrait",
-    location: "Accra, Ghana",
+    location: "Milan, Italy",
     color: "#e5b839",
     orientation: "portrait",
     ratio: "aspect-[4/5]",
@@ -373,11 +373,11 @@ const initialPhotos: Photo[] = [
   {
     id: "retro-car",
     title: "Midnight cruiser",
-    photographerId: "moon-bouy",
-    photographer: "Moon Bouy",
+    photographerId: "yuki-tanaka",
+    photographer: "Yuki Tanaka",
     license: "EXCLUSIVE",
     category: "Lifestyle",
-    location: "Nairobi, Kenya",
+    location: "Tokyo, Japan",
     color: "#232a35",
     orientation: "portrait",
     ratio: "aspect-[2/3]",
@@ -394,11 +394,11 @@ const initialPhotos: Photo[] = [
   {
     id: "plant-leaf",
     title: "Ficus geometry",
-    photographerId: "divine-effiong",
-    photographer: "Divine Effiong",
+    photographerId: "chloe-dupont",
+    photographer: "Chloe Dupont",
     license: "ROYALTY FREE",
     category: "Lifestyle",
-    location: "Lagos, Nigeria",
+    location: "London, UK",
     color: "#3e5140",
     orientation: "square",
     ratio: "aspect-square",
@@ -5735,12 +5735,12 @@ const generatedPhotos: Photo[] = unsplashIds.map((uid, index) => {
   const cameras = ["Sony A7R V", "Canon EOS R5", "Nikon Z7 II", "Fujifilm GFX 100S", "Leica M11-P"];
   const lenses = ["50mm f/1.2", "85mm f/1.4", "24-70mm f/2.8", "35mm f/1.4", "90mm f/2.8 Macro"];
   const locations = [
-    "Lagos, Nigeria", "Nairobi, Kenya", "Cape Town, South Africa", "Accra, Ghana",
+    "London, UK", "Tokyo, Japan", "New York, USA", "Milan, Italy",
     "Berlin, Germany", "Paris, France", "Tokyo, Japan", "New York, USA", "London, UK"
   ];
   const photographers = [
-    "Namnso Ukpanah", "Moon Bouy", "Divine Effiong", "Sinitta Leunen",
-    "Emmanuel Ikwuegbu", "Zainab Lawal", "Stephen Olatunde"
+    "James Anderson", "Yuki Tanaka", "Chloe Dupont", "Sinitta Leunen",
+    "Lucas Wagner", "Amira Hassan", "Sofia Martinez"
   ];
 
   const category = categoriesList[index % categoriesList.length];
@@ -9838,7 +9838,7 @@ export const collections: Collection[] = [
   {
     id: "new-perspectives",
     title: "New Perspectives",
-    curator: "Namnso Ukpanah",
+    curator: "James Anderson",
     count: 210,
     description: "Emerging photographers reframing the everyday.",
     cover: [photos[0].image, photos[3].image, photos[6].image],
@@ -9868,19 +9868,19 @@ export interface Photographer {
 }
 
 export const photographers: Photographer[] = [
-  { id: "namnso-ukpanah", name: "Namnso Ukpanah", location: "Lagos, Nigeria", specialty: "Editorial", followers: "24.1k", images: 8, avatar: photos[8].image, verified: true, cover: photos[8].image, gear: ["Sony A7 IV", "35mm f/1.4", "85mm f/1.8"], bio: "Editorial and documentary photographer based in Lagos, drawn to unhurried portraits of everyday life across West Africa." },
+  { id: "james-anderson", name: "James Anderson", location: "London, UK", specialty: "Editorial", followers: "24.1k", images: 8, avatar: photos[8].image, verified: true, cover: photos[8].image, gear: ["Sony A7 IV", "35mm f/1.4", "85mm f/1.8"], bio: "Editorial and documentary photographer based in Lagos, drawn to unhurried portraits of everyday life across West Africa." },
   { id: "jessica-felicio", name: "Jessica Felicio", location: "Lisbon, Portugal", specialty: "Lifestyle", followers: "31.6k", images: 1, avatar: photos[1].image, verified: true, cover: photos[1].image, gear: ["Sony A7 IV", "50mm f/1.8"], bio: "Lifestyle photographer capturing joy, movement and light. Believer in imagery that feels lived-in, not staged." },
-  { id: "prince-akachi", name: "Prince Akachi", location: "Lagos, Nigeria", specialty: "Culture", followers: "18.9k", images: 2, avatar: photos[5].image, verified: true, cover: photos[5].image, gear: ["Leica Q2", "28mm f/1.7"], bio: "Documenting culture, tradition and colour across Nigeria. Every frame is a small act of preservation." },
-  { id: "godfred-kwakye", name: "Godfred Kwakye", location: "Accra, Ghana", specialty: "Portrait", followers: "12.4k", images: 1, avatar: photos[0].image, verified: true, cover: photos[0].image, gear: ["Canon EOS R5", "85mm f/1.4"], bio: "Portrait photographer from Accra with a love for texture, gold light and quiet confidence." },
-  { id: "divine-effiong", name: "Divine Effiong", location: "Lagos, Nigeria", specialty: "Portrait", followers: "10.2k", images: 9, avatar: "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Nikon Z6", "105mm f/2.8"], bio: "Portrait photographer based in Lagos, Nigeria, contributing to the NS CAPTURES archive." },
-  { id: "moon-bouy", name: "Moon Bouy", location: "Nairobi, Kenya", specialty: "Fashion", followers: "9.4k", images: 9, avatar: "https://images.unsplash.com/photo-1711464669343-2596d0f1b526?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1711464669343-2596d0f1b526?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Fujifilm X-T4", "56mm f/1.2"], bio: "Fashion photographer based in Nairobi, Kenya, contributing to the NS CAPTURES archive." },
+  { id: "mateo-silva", name: "Mateo Silva", location: "London, UK", specialty: "Culture", followers: "18.9k", images: 2, avatar: photos[5].image, verified: true, cover: photos[5].image, gear: ["Leica Q2", "28mm f/1.7"], bio: "Documenting culture, tradition and colour across Nigeria. Every frame is a small act of preservation." },
+  { id: "elena-rossi", name: "Elena Rossi", location: "Milan, Italy", specialty: "Portrait", followers: "12.4k", images: 1, avatar: photos[0].image, verified: true, cover: photos[0].image, gear: ["Canon EOS R5", "85mm f/1.4"], bio: "Portrait photographer from Accra with a love for texture, gold light and quiet confidence." },
+  { id: "chloe-dupont", name: "Chloe Dupont", location: "London, UK", specialty: "Portrait", followers: "10.2k", images: 9, avatar: "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Nikon Z6", "105mm f/2.8"], bio: "Portrait photographer based in London, UK, contributing to the NS CAPTURES archive." },
+  { id: "yuki-tanaka", name: "Yuki Tanaka", location: "Tokyo, Japan", specialty: "Fashion", followers: "9.4k", images: 9, avatar: "https://images.unsplash.com/photo-1711464669343-2596d0f1b526?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1711464669343-2596d0f1b526?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Fujifilm X-T4", "56mm f/1.2"], bio: "Fashion photographer based in Tokyo, Japan, contributing to the NS CAPTURES archive." },
   { id: "sinitta-leunen", name: "Sinitta Leunen", location: "Amsterdam, NL", specialty: "Portrait", followers: "10.8k", images: 9, avatar: "https://images.unsplash.com/photo-1619694770795-e21c58464159?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1619694770795-e21c58464159?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Canon EOS R6", "35mm f/1.8"], bio: "Portrait photographer based in Amsterdam, NL, contributing to the NS CAPTURES archive." },
   { id: "tony-luginsland", name: "Tony Luginsland", location: "Berlin, Germany", specialty: "Fashion", followers: "1.1k", images: 1, avatar: "https://images.unsplash.com/photo-1584805164144-ab4169cea20d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1584805164144-ab4169cea20d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Sony A7R V", "85mm f/1.8"], bio: "Fashion photographer based in Berlin, Germany, contributing to the NS CAPTURES archive." },
   { id: "leroy-skalstad", name: "Leroy Skalstad", location: "Chicago, USA", specialty: "Documentary", followers: "3.7k", images: 1, avatar: "https://images.unsplash.com/photo-1699903905361-4d408679753f?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1699903905361-4d408679753f?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Leica M11", "50mm f/2"], bio: "Documentary photographer based in Chicago, USA, contributing to the NS CAPTURES archive." },
-  { id: "onaopemipo-oladipupo", name: "Onaopemipo Oladipupo", location: "Lagos, Nigeria", specialty: "Architecture", followers: "3.5k", images: 1, avatar: "https://images.unsplash.com/photo-1749058387715-1efad0eadc8c?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1749058387715-1efad0eadc8c?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["DJI Mavic 3", "24mm f/2.8"], bio: "Architecture photographer based in Lagos, Nigeria, contributing to the NS CAPTURES archive." },
-  { id: "stephen-olatunde", name: "Stephen Olatunde", location: "Lagos, Nigeria", specialty: "Architecture", followers: "1.8k", images: 8, avatar: "https://images.unsplash.com/photo-1559833064-6f4573ec1ac9?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1559833064-6f4573ec1ac9?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Canon EOS R", "16-35mm f/4"], bio: "Architecture photographer based in Lagos, Nigeria, contributing to the NS CAPTURES archive." },
-  { id: "emmanuel-ikwuegbu", name: "Emmanuel Ikwuegbu", location: "Lagos, Nigeria", specialty: "Architecture", followers: "3.6k", images: 9, avatar: "https://images.unsplash.com/photo-1640475167310-9112316627fa?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1640475167310-9112316627fa?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Sony A7 III", "35mm f/1.4"], bio: "Architecture photographer based in Lagos, Nigeria, contributing to the NS CAPTURES archive." },
-  { id: "zainab-lawal", name: "Zainab Lawal", location: "Lagos, Nigeria", specialty: "Architecture", followers: "1.0k", images: 9, avatar: "https://images.unsplash.com/photo-1658394818344-20f0f11a9121?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1658394818344-20f0f11a9121?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["iPhone 15 Pro", "24mm f/1.78"], bio: "Architecture photographer based in Lagos, Nigeria, contributing to the NS CAPTURES archive." },
+  { id: "liam-oconnor", name: "Liam O'Connor", location: "London, UK", specialty: "Architecture", followers: "3.5k", images: 1, avatar: "https://images.unsplash.com/photo-1749058387715-1efad0eadc8c?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1749058387715-1efad0eadc8c?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["DJI Mavic 3", "24mm f/2.8"], bio: "Architecture photographer based in London, UK, contributing to the NS CAPTURES archive." },
+  { id: "sofia-martinez", name: "Sofia Martinez", location: "London, UK", specialty: "Architecture", followers: "1.8k", images: 8, avatar: "https://images.unsplash.com/photo-1559833064-6f4573ec1ac9?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1559833064-6f4573ec1ac9?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Canon EOS R", "16-35mm f/4"], bio: "Architecture photographer based in London, UK, contributing to the NS CAPTURES archive." },
+  { id: "lucas-wagner", name: "Lucas Wagner", location: "London, UK", specialty: "Architecture", followers: "3.6k", images: 9, avatar: "https://images.unsplash.com/photo-1640475167310-9112316627fa?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1640475167310-9112316627fa?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["Sony A7 III", "35mm f/1.4"], bio: "Architecture photographer based in London, UK, contributing to the NS CAPTURES archive." },
+  { id: "amira-hassan", name: "Amira Hassan", location: "London, UK", specialty: "Architecture", followers: "1.0k", images: 9, avatar: "https://images.unsplash.com/photo-1658394818344-20f0f11a9121?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", verified: true, cover: "https://images.unsplash.com/photo-1658394818344-20f0f11a9121?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080", gear: ["iPhone 15 Pro", "24mm f/1.78"], bio: "Architecture photographer based in London, UK, contributing to the NS CAPTURES archive." },
   // MIGRATED_PHOTOGRAPHERS_START
   {
     id: "patrick-watson-quine",
@@ -9932,9 +9932,9 @@ export interface Brief {
 }
 
 export const briefs: Brief[] = [
-  { id: "047", title: "River work, Lagos", location: "Lagos, Nigeria", license: "COMMERCIAL", budget: 600, delivery: "72 hours", status: "MATCHING", description: "Traditional fishermen on the water at daybreak — human, documentary, unhurried." },
-  { id: "046", title: "Fintech office, Lagos", location: "Lagos, Nigeria", license: "COMMERCIAL", budget: 1200, delivery: "5 days", status: "IN PROGRESS", description: "A young African entrepreneur working inside a modern fintech office." },
-  { id: "045", title: "Market colour study", location: "Kano, Nigeria", license: "EDITORIAL", budget: 450, delivery: "48 hours", status: "DELIVERED", description: "Textiles and produce, saturated and close, in an open-air market." },
+  { id: "047", title: "River work, Thames", location: "London, UK", license: "COMMERCIAL", budget: 600, delivery: "72 hours", status: "MATCHING", description: "Riverboat workers on the water at daybreak — human, documentary, unhurried." },
+  { id: "046", title: "Fintech office, London", location: "London, UK", license: "COMMERCIAL", budget: 1200, delivery: "5 days", status: "IN PROGRESS", description: "A young European entrepreneur working inside a modern fintech office." },
+  { id: "045", title: "Market colour study, Paris", location: "Paris, France", license: "EDITORIAL", budget: 450, delivery: "48 hours", status: "DELIVERED", description: "Textiles and produce, saturated and close, in an open-air market." },
 ];
 
 // The signed-in user (buyer) — powers the account/profile area.
@@ -9947,7 +9947,7 @@ export interface Purchase {
 }
 
 export const userPurchases: Purchase[] = [
-  { id: "INV-2041", photoId: "lagos-skyline", license: "COMMERCIAL", price: 190, date: "Jul 09, 2026" },
+  { id: "INV-2041", photoId: "london-skyline", license: "COMMERCIAL", price: 190, date: "Jul 09, 2026" },
   { id: "INV-2038", photoId: "smiling-black-top", license: "EXTENDED", price: 768, date: "Jul 02, 2026" },
   { id: "INV-2033", photoId: "orange-headdress", license: "EDITORIAL", price: 476, date: "Jun 21, 2026" },
 ];
@@ -9991,7 +9991,7 @@ export const mockActivity: ActivityItem[] = [
   { id: "a2", type: "purchase", title: "License purchased: Bloom study", date: new Date("2026-07-08"), desc: "ROYALTY FREE license · $180" },
   { id: "a3", type: "collection", title: "Created collection: Cityscapes", date: new Date("2026-07-01"), desc: "18 images added" },
   { id: "a4", type: "like", title: "Liked: The in-between", date: new Date("2026-06-25"), desc: "Added to your favorites" },
-  { id: "a5", type: "login", title: "New sign-in from Lagos, Nigeria", date: new Date("2026-06-21"), desc: "Chrome on macOS" },
+  { id: "a5", type: "login", title: "New sign-in from London, UK", date: new Date("2026-06-21"), desc: "Chrome on macOS" },
   { id: "a6", type: "plan", title: "Plan renewed: Studio ($49/mo)", date: new Date("2026-06-08"), desc: "Next billing: Sep 1, 2026" },
 ];
 
@@ -10000,6 +10000,9 @@ export interface AdminUser {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  dob?: string;
+  occupation?: string;
   role: "Buyer" | "Photographer" | "Enterprise" | "Admin";
   status: "Active" | "Pending" | "Suspended";
   joined: string;
@@ -10007,8 +10010,8 @@ export interface AdminUser {
 
 export const adminUsers: AdminUser[] = [
   { id: "U-1042", name: "Amara Okafor", email: "amara@mainlandstudio.co", role: "Enterprise", status: "Active", joined: "Mar 2025" },
-  { id: "U-1044", name: "Namnso Ukpanah", email: "namnso@ns.co", role: "Photographer", status: "Active", joined: "Jan 2024" },
-  { id: "U-1051", name: "Divine Effiong", email: "divine@studio.ng", role: "Photographer", status: "Pending", joined: "Jul 2026" },
+  { id: "U-1044", name: "James Anderson", email: "namnso@ns.co", role: "Photographer", status: "Active", joined: "Jan 2024" },
+  { id: "U-1051", name: "Chloe Dupont", email: "divine@studio.ng", role: "Photographer", status: "Pending", joined: "Jul 2026" },
   { id: "U-1067", name: "Daniel Okoro", email: "daniel@paystack.co", role: "Buyer", status: "Active", joined: "Feb 2026" },
   { id: "U-1088", name: "Spam Account", email: "noreply@bots.io", role: "Buyer", status: "Suspended", joined: "Jun 2026" },
   // MIGRATED_ADMIN_USERS_START
@@ -10040,7 +10043,7 @@ export interface ModerationItem {
 }
 
 export const moderationQueue: ModerationItem[] = [
-  { id: "M-301", photoId: "flower-ear", photographer: "Divine Effiong", reason: "New contributor — first upload", submitted: "2h ago" },
-  { id: "M-302", photoId: "man-wall", photographer: "Moon Bouy", reason: "Keyword review", submitted: "5h ago" },
+  { id: "M-301", photoId: "flower-ear", photographer: "Chloe Dupont", reason: "New contributor — first upload", submitted: "2h ago" },
+  { id: "M-302", photoId: "man-wall", photographer: "Yuki Tanaka", reason: "Keyword review", submitted: "5h ago" },
   { id: "M-303", photoId: "floral-shirt", photographer: "Tony Luginsland", reason: "License change request", submitted: "1d ago" },
 ];

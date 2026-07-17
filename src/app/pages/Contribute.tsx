@@ -29,15 +29,6 @@ export function Contribute() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // Live Ticker State (Simulating live stats)
-  const [lastDisbursedTime, setLastDisbursedTime] = useState(14);
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLastDisbursedTime((prev) => (prev > 1 ? prev - 1 : 59));
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanName = fullName.trim();
@@ -176,22 +167,10 @@ export function Contribute() {
 
   return (
     <div className="bg-[#fcfcfa] text-[#18211f]">
-      {/* 1. Header & Live Acquisition Ticker */}
+      {/* 1. Header */}
       <section className="bg-[#182e27] text-[#f4f1e9] py-14 px-5 sm:px-8 lg:px-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[#17372f]/80 to-transparent" />
         <div className="relative z-10 mx-auto max-w-[1440px]">
-          <div className="flex flex-wrap items-center justify-between gap-6 border-b border-white/10 pb-6 mb-8">
-            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
-              <span className="h-2 w-2 rounded-full bg-green-400 animate-ping" />
-              <span className="font-mono text-[10px] tracking-[0.16em] uppercase">Acquisition Ticker</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-y-2 gap-x-6 text-xs text-white/70">
-              <div>Total Assets: <strong className="text-white">1,742,800+</strong></div>
-              <div>Active Photographers: <strong className="text-white">12,400+ Globally</strong></div>
-              <div>Last Disbursement: <strong className="text-white">£13,845 (35mm Architecture) – {lastDisbursedTime}m ago</strong></div>
-            </div>
-          </div>
-          
           <p className="font-mono text-xs tracking-[0.24em] text-white/50">ACQUISITION & CURATION</p>
           <h1 className="mt-4 max-w-4xl font-serif text-4xl sm:text-6xl leading-[1.05] tracking-tight">
             Acquire & License High-End Visual Assets

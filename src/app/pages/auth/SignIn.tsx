@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { AuthLayout, AuthField, SocialButtons } from "./AuthLayout";
+import { AuthLayout, AuthField } from "./AuthLayout";
 import { useAuth } from "../../context/AuthContext";
 import { isValidEmail } from "../../../lib/validation";
 
@@ -93,11 +93,6 @@ export function SignIn() {
           {isLoading ? "Signing in..." : "Sign in"}
         </button>
       </form>
-
-      <div className="my-6 flex items-center gap-3 text-xs text-[#9aa09b]">
-        <span className="h-px flex-1 bg-[#ececec]" /> or continue with <span className="h-px flex-1 bg-[#ececec]" />
-      </div>
-      <SocialButtons />
     </AuthLayout>
   );
 }

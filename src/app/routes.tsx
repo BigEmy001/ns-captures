@@ -22,6 +22,8 @@ const SignUp = lazy(() => import("./pages/auth/SignUp").then(m => ({ default: m.
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword").then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword").then(m => ({ default: m.ResetPassword })));
 const AdminLogin = lazy(() => import("./pages/auth/AdminLogin").then(m => ({ default: m.AdminLogin })));
+const About = lazy(() => import("./pages/About").then(m => ({ default: m.About })));
+const Contact = lazy(() => import("./pages/Contact").then(m => ({ default: m.Contact })));
 
 const fallback = (
   <div className="flex items-center justify-center min-h-screen">
@@ -43,6 +45,8 @@ export const router = createBrowserRouter([
       { path: "requests", element: <Suspense fallback={fallback}><Requests /></Suspense> },
       { path: "pricing", element: <Suspense fallback={fallback}><Pricing /></Suspense> },
       { path: "contribute", element: <Suspense fallback={fallback}><Contribute /></Suspense> },
+      { path: "about", element: <Suspense fallback={fallback}><About /></Suspense> },
+      { path: "contact", element: <Suspense fallback={fallback}><Contact /></Suspense> },
       {
         path: "signin",
         Component: GuestRoute,

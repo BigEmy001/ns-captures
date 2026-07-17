@@ -298,7 +298,7 @@ export async function createBrief(brief: { title: string; location: string; lice
 export async function fetchAdminUsers(): Promise<AdminUser[]> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, email, role, status, created_at")
+    .select("id, name, email, role, status, created_at, phone, dob, occupation")
     .order("created_at", { ascending: false });
 
   if (error || !data || data.length === 0) return [];
@@ -307,6 +307,9 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
     id: p.id,
     name: p.name || "Unknown",
     email: p.email || `${p.name?.toLowerCase().replace(/\s+/g, ".") || "user"}@nscaptures.com`,
+    phone: p.phone,
+    dob: p.dob,
+    occupation: p.occupation,
     role: (p.role || "Buyer") as AdminUser["role"],
     status: (p.status || "Active") as AdminUser["status"],
     joined: p.created_at
@@ -1707,7 +1710,8 @@ export async function uploadVerificationDocument(
   userId: string,
   documentType: string,
   documentNumber: string,
-  file: File
+  file: File,
+  kycDetails?: { phone?: string; dob?: string; occupation?: string; fullName?: string }
 ): Promise<VerificationDocument | null> {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
@@ -1741,9 +1745,15 @@ export async function uploadVerificationDocument(
 
   if (error) throw new Error(error.message);
 
+  const profileUpdates: any = { verification_status: "pending" };
+  if (kycDetails?.phone) profileUpdates.phone = kycDetails.phone;
+  if (kycDetails?.dob) profileUpdates.dob = kycDetails.dob;
+  if (kycDetails?.occupation) profileUpdates.occupation = kycDetails.occupation;
+  if (kycDetails?.fullName) profileUpdates.name = kycDetails.fullName;
+
   await supabase
     .from("profiles")
-    .update({ verification_status: "pending" })
+    .update(profileUpdates)
     .eq("id", userId);
 
   return {

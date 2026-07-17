@@ -611,8 +611,39 @@ export function Account() {
               {/* Upload Document */}
               {user?.verificationStatus !== "verified" && (
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                  <h3 className="font-serif text-lg text-[#18211f] mb-4">Submit a Document</h3>
+                  <h3 className="font-serif text-lg text-[#18211f] mb-4">Submit KYC Information</h3>
                   <div className="space-y-4 max-w-lg">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Phone Number</label>
+                        <input
+                          type="text"
+                          placeholder="+1 234 567 8900"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Date of Birth</label>
+                        <input
+                          type="date"
+                          value={dob}
+                          onChange={(e) => setDob(e.target.value)}
+                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Residential Address</label>
+                      <input
+                        type="text"
+                        placeholder="Full address (including city and country)"
+                        value={occupation}
+                        onChange={(e) => setOccupation(e.target.value)}
+                        className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
+                      />
+                    </div>
                     <div>
                       <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Document Type</label>
                       <select
@@ -657,9 +688,12 @@ export function Account() {
                     <button
                       onClick={async () => {
                         if (!uploadDocFile) { toast.error("Please select a file"); return; }
+                        if (!phone || !dob || !occupation) { toast.error("Please fill all KYC details"); return; }
                         setIsUploading(true);
                         try {
-                          const doc = await uploadVerificationDocument(user!.id, uploadDocType, uploadDocNumber, uploadDocFile);
+                          const doc = await uploadVerificationDocument(user!.id, uploadDocType, uploadDocNumber, uploadDocFile, {
+                            phone, dob, occupation
+                          });
                           if (doc) {
                             setDocuments((prev) => [doc, ...prev]);
                             toast.success("Document submitted for verification");

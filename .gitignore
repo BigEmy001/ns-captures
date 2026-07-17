@@ -6,3 +6,4 @@ cloudinary-test.mjs
 .DS_Store
 scratch_upload.mjs
 *.png
+supabase/.temp

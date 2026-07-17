@@ -1201,13 +1201,22 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {verificationDocs.map((doc) => (
+                  {verificationDocs.map((doc) => {
+                    const u = adminUsersList.find((x) => x.id === doc.userId);
+                    return (
                     <div key={doc.id} className="border border-[#ececec]/80 bg-white rounded-2xl p-5 ns-shadow-sm">
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <p className="font-semibold text-[#18211f] capitalize">{doc.documentType.replace(/_/g, " ")}</p>
-                          <p className="text-xs text-[#6b716d]">{doc.userId} · {new Date(doc.submittedAt).toLocaleDateString()}</p>
+                          <p className="text-xs text-[#6b716d]">{u?.name || doc.userId} · {u?.email || ""}</p>
+                          <p className="text-xs text-[#6b716d]">{new Date(doc.submittedAt).toLocaleDateString()}</p>
                           {doc.documentNumber && <p className="text-xs font-mono text-[#4a534e] mt-1"># {doc.documentNumber}</p>}
+                          
+                          <div className="mt-3 p-3 bg-[#f8f9f7] rounded-xl text-xs space-y-1">
+                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">Phone:</span> {u?.phone || "N/A"}</p>
+                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">DOB:</span> {u?.dob || "N/A"}</p>
+                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">Address:</span> {u?.occupation || "N/A"}</p>
+                          </div>
                         </div>
                         <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
                           doc.status === "approved" ? "bg-green-50 text-green-700" :
@@ -1267,7 +1276,8 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

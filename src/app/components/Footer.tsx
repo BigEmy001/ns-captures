@@ -24,10 +24,10 @@ const publicGroups = [
   {
     title: "Company",
     links: [
-      { to: "/dashboard", label: "Photographer dashboard" },
-      { to: "/enterprise", label: "Enterprise portal" },
-      { to: "/account", label: "My account" },
-      { to: "/admin", label: "Admin console" },
+      { to: "/about", label: "About Us" },
+      { to: "/contact", label: "Contact & Support" },
+      { to: "/dashboard", label: "Photographer Portal" },
+      { to: "/enterprise", label: "Enterprise Portal" },
     ],
   },
 ];
@@ -51,10 +51,10 @@ const buyerGroups = [
     ],
   },
   {
-    title: "Platform",
+    title: "Company",
     links: [
-      { to: "/pricing", label: "Licensing" },
-      { to: "/enterprise", label: "Upgrade to Enterprise" },
+      { to: "/about", label: "About Us" },
+      { to: "/contact", label: "Contact & Support" },
       { to: "/contribute", label: "Become a contributor" },
     ],
   },
@@ -78,9 +78,10 @@ const photographerGroups = [
     ],
   },
   {
-    title: "Platform",
+    title: "Company",
     links: [
-      { to: "/requests", label: "Creative Briefs" },
+      { to: "/about", label: "About Us" },
+      { to: "/contact", label: "Contact & Support" },
       { to: "/pricing", label: "Licensing Rates" },
       { to: "/contribute", label: "Contributor Guide" },
     ],
@@ -106,10 +107,11 @@ const enterpriseGroups = [
     ],
   },
   {
-    title: "Platform",
+    title: "Company",
     links: [
+      { to: "/about", label: "About Us" },
+      { to: "/contact", label: "Contact & Support" },
       { to: "/pricing", label: "Licensing" },
-      { to: "/contribute", label: "Become a contributor" },
     ],
   },
 ];
@@ -126,9 +128,10 @@ const adminGroups = [
     ],
   },
   {
-    title: "Platform",
+    title: "Company",
     links: [
-      { to: "/search", label: "Library" },
+      { to: "/about", label: "About Us" },
+      { to: "/contact", label: "Contact & Support" },
       { to: "/admin?tab=reports", label: "Reports" },
       { to: "/admin?tab=logs", label: "System Logs" },
     ],
@@ -179,9 +182,17 @@ export function Footer() {
             </div>
           ))}
         </div>
-        <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-white/45 sm:flex-row sm:items-center sm:justify-between">
+        
+        {/* Legal Compliance Notice */}
+        <div className="mt-12 border-t border-white/10 pt-8">
+          <p className="text-[11px] leading-relaxed text-white/40 max-w-5xl">
+            <strong>Regulatory Compliance Notice:</strong> NS CAPTURES operates under strict compliance with international copyright frameworks, digital asset monetization standards, and cross-border commercial trade regulations. All submitted portfolios undergo mandatory authorship tracing and metadata tracking to protect legal licensees. Vendor profile setup, secure asset encryption, and final payment disbursements are processed exclusively in tandem with certified legal counsel and corporate compliance clearing houses.
+          </p>
+        </div>
+
+        <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 text-white/45 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono text-[10px] tracking-[0.14em]">© 2026 NS CAPTURES</p>
-          <p className="text-xs">Photography licensed via Unsplash contributors.</p>
+          <p className="text-xs">Photography licensed via global contributors.</p>
         </div>
       </div>
     </footer>

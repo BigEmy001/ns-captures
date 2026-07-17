@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { AuthLayout, AuthField, SocialButtons } from "./AuthLayout";
+import { AuthLayout, AuthField } from "./AuthLayout";
 import { useAuth } from "../../context/AuthContext";
 import { isStrongPassword, isValidEmail } from "../../../lib/validation";
 
@@ -61,7 +61,7 @@ export function SignUp() {
           <div>
             <AuthField
               label="First name"
-              placeholder="Ada"
+              placeholder="Jane"
               value={firstName}
               onChange={(e) => { setFirstName(e.target.value); clearError("firstName"); }}
             />
@@ -70,7 +70,7 @@ export function SignUp() {
           <div>
             <AuthField
               label="Last name"
-              placeholder="Obi"
+              placeholder="Doe"
               value={lastName}
               onChange={(e) => { setLastName(e.target.value); clearError("lastName"); }}
             />
@@ -117,11 +117,6 @@ export function SignUp() {
           {isLoading ? "Creating account..." : "Create account"}
         </button>
       </form>
-
-      <div className="my-6 flex items-center gap-3 text-xs text-[#9aa09b]">
-        <span className="h-px flex-1 bg-[#ececec]" /> or sign up with <span className="h-px flex-1 bg-[#ececec]" />
-      </div>
-      <SocialButtons />
     </AuthLayout>
   );
 }

@@ -69,6 +69,8 @@ const getLinksForRole = (role: UserRole) => {
 const getExploreItems = (role: UserRole): DropdownItem[] => {
   const base: DropdownItem[] = [
     { label: "Become a Contributor", icon: Award, to: "/contribute" },
+    { label: "About Us", icon: Flag, to: "/about" },
+    { label: "Contact & Support", icon: LifeBuoy, to: "/contact" },
   ];
   if (role === "Buyer" || role === "Enterprise") {
     base.push({ label: "Enterprise Portal", icon: Sparkles, to: "/enterprise" });
@@ -509,6 +511,26 @@ export function Navbar() {
                       {l.label}
                     </Link>
                   ))}
+                  {user?.role !== "Admin" && (
+                    <div className="pt-4 mt-2 flex flex-col space-y-4 border-t border-white/10">
+                      <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Explore</p>
+                      {exploreItems.map((item, i) => {
+                        if (item.divider) return null;
+                        const Icon = item.icon || ArrowRight;
+                        return (
+                          <Link
+                            key={i}
+                            to={item.to || "#"}
+                            onClick={() => setMenu(false)}
+                            className="flex items-center gap-3 text-lg text-white/90 hover:text-white transition-colors"
+                          >
+                            <Icon className="size-5 text-[#1e4a3f]" />
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
                 </nav>
 
                 <div className="border-t border-white/10 pt-8 grid grid-cols-2 gap-4 text-xs text-white/70">
@@ -536,7 +558,7 @@ export function Navbar() {
                       </>
                     ) : (
                       <Link to="/signin" onClick={() => setMenu(false)} className="hover:text-white">
-                        Sign In / Join
+                        Sign In
                       </Link>
                     )}
                   </div>
@@ -549,8 +571,8 @@ export function Navbar() {
                         Sign out
                       </button>
                     ) : (
-                      <Link to="/signin" onClick={() => setMenu(false)} className="hover:text-white">
-                        Sign In / Join
+                      <Link to="/signup" onClick={() => setMenu(false)} className="hover:text-white">
+                        Join
                       </Link>
                     )}
                   </div>
@@ -572,7 +594,7 @@ export function Navbar() {
                 )}
                 <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-white/40">
                   <span>NS CAPTURES © 2026</span>
-                  <span>LAGOS, NIGERIA</span>
+                  <span>LONDON, UK</span>
                 </div>
               </div>
             </motion.div>
