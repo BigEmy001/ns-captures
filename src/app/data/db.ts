@@ -1610,20 +1610,24 @@ export async function uploadVerificationDocument(
   documentNumber: string,
   file: File
 ): Promise<VerificationDocument | null> {
-  const ext = file.name.split(".").pop();
-  const filePath = `verification/${userId}/${Date.now()}.${ext}`;
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
-  const { error: uploadError } = await supabase.storage
-    .from("documents")
-    .upload(filePath, file);
-
-  if (uploadError) throw new Error(uploadError.message);
-
-  const { data: urlData } = supabase.storage
-    .from("documents")
-    .getPublicUrl(filePath);
-
-  const fileUrl = urlData?.publicUrl || "";
+  let fileUrl = "";
+  if (cloudName && uploadPreset) {
+    const fd = new FormData();
+    fd.append("upload_preset", uploadPreset);
+    fd.append("file", file);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: fd,
+    });
+    if (!res.ok) throw new Error("Document upload to Cloudinary failed");
+    const json = await res.json();
+    fileUrl = json.secure_url;
+  } else {
+    throw new Error("Cloudinary is not configured. Add VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.");
+  }
 
   const { data, error } = await supabase
     .from("verification_documents")

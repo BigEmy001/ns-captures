@@ -67,38 +67,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        try {
+    supabase.auth.getSession()
+      .then(async ({ data: { session } }) => {
+        if (session?.user) {
           const { data: profile } = await supabase
             .from("profiles")
             .select("*")
             .eq("id", session.user.id)
             .single();
           setUser(supabaseUserToAuthUser(session.user, profile));
-        } catch (err) {
-          console.error("Failed to load profile", err);
         }
-      }
-      setIsLoading(false);
-    });
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.error("Supabase unavailable:", err.message);
+        setIsLoading(false);
+      });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === "SIGNED_IN" && session?.user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", session.user.id)
-            .single();
-          setUser(supabaseUserToAuthUser(session.user, profile));
-        } else if (event === "SIGNED_OUT") {
-          setUser(null);
+    let subscription: { unsubscribe: () => void } | null = null;
+    try {
+      const sub = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (event === "SIGNED_IN" && session?.user) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", session.user.id)
+              .single();
+            setUser(supabaseUserToAuthUser(session.user, profile));
+          } else if (event === "SIGNED_OUT") {
+            setUser(null);
+          }
         }
-      }
-    );
+      );
+      subscription = sub.data.subscription;
+    } catch (err) {
+      console.error("Supabase auth unavailable:", (err as Error).message);
+    }
 
-    return () => subscription.unsubscribe();
+    return () => subscription?.unsubscribe();
   }, []);
 
   useEffect(() => {
