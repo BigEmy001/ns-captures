@@ -7,6 +7,7 @@ import {
   AdminUser,
   ModerationItem,
   License,
+  photos as localPhotos,
 } from "../data/photos";
 
 // ============================================================
@@ -191,7 +192,9 @@ export async function fetchPhotos(): Promise<Photo[]> {
     .select("*")
     .order("uploaded_at", { ascending: false });
 
-  if (error || !data || data.length === 0) return [];
+  if (error || !data || data.length === 0) {
+    return localPhotos.filter((p) => p.image.includes("res.cloudinary.com"));
+  }
 
   return data.map((r) => rowToPhoto(r));
 }
@@ -203,7 +206,8 @@ export async function fetchPhoto(id: string): Promise<Photo | undefined> {
     .eq("id", id)
     .single();
 
-  return data ? rowToPhoto(data) : undefined;
+  if (data) return rowToPhoto(data);
+  return localPhotos.find((p) => p.id === id);
 }
 
 export async function fetchPhotosByPhotographer(photographerId: string): Promise<Photo[]> {
@@ -213,7 +217,11 @@ export async function fetchPhotosByPhotographer(photographerId: string): Promise
     .eq("photographer_id", photographerId)
     .order("uploaded_at", { ascending: false });
 
-  if (!data) return [];
+  if (!data || data.length === 0) {
+    return localPhotos.filter(
+      (p) => p.photographerId === photographerId && p.image.includes("res.cloudinary.com"),
+    );
+  }
   return data.map((r) => rowToPhoto(r));
 }
 
