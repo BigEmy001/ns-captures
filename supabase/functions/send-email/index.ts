@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { SmtpClient } from "https://deno.land/x/smtp@v0.7.1/mod.ts";
+import nodemailer from "npm:nodemailer";
 
 const encoder = new TextEncoder();
 
@@ -78,22 +78,22 @@ serve(async (req) => {
       });
     }
 
-    const client = new SmtpClient();
-    await client.connectTLS({
-      hostname: smtpHost,
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
       port: parseInt(smtpPort),
-      username: smtpUser,
-      password: smtpPass,
+      secure: parseInt(smtpPort) === 465, // true for 465, false for other ports
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
     });
 
-    await client.send({
+    await transporter.sendMail({
       from: `"NS CAPTURES" <${smtpUser}>`,
       to: to,
       subject: subject,
       html: buildHtml(body),
     });
-
-    await client.close();
 
     return new Response(JSON.stringify({ ok: true }), { 
       status: 200,
