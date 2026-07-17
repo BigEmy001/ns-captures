@@ -193,7 +193,7 @@ export async function fetchPhotos(): Promise<Photo[]> {
     .order("uploaded_at", { ascending: false });
 
   if (error || !data || data.length === 0) {
-    return localPhotos.filter((p) => p.image.includes("res.cloudinary.com"));
+    return localPhotos;
   }
 
   return data.map((r) => rowToPhoto(r));
@@ -218,9 +218,7 @@ export async function fetchPhotosByPhotographer(photographerId: string): Promise
     .order("uploaded_at", { ascending: false });
 
   if (!data || data.length === 0) {
-    return localPhotos.filter(
-      (p) => p.photographerId === photographerId && p.image.includes("res.cloudinary.com"),
-    );
+    return localPhotos.filter((p) => p.photographerId === photographerId);
   }
   return data.map((r) => rowToPhoto(r));
 }
