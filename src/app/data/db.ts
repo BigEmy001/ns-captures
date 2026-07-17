@@ -1,18 +1,5 @@
-// Data access layer — wraps Supabase queries with fallback to local mock data.
-// Every function returns the same shape the UI already expects.
-
-import { supabase, isSupabaseConfigured } from "../../lib/supabase";
+import { supabase } from "../../lib/supabase";
 import {
-  photos as mockPhotos,
-  photographers as mockPhotographers,
-  collections as mockCollections,
-  briefs as mockBriefs,
-  adminUsers as mockAdminUsers,
-  moderationQueue as mockModerationQueue,
-  userPurchases as mockUserPurchases,
-  userCollections as mockUserCollections,
-  mockLicenses as mockLicenses,
-  mockActivity as mockActivity,
   Photo,
   Photographer,
   Collection,
@@ -85,14 +72,12 @@ export interface SiteSettingsRow {
 // ============================================================
 
 export async function fetchPhotographers(): Promise<Photographer[]> {
-  if (!isSupabaseConfigured) return mockPhotographers;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("photographers")
     .select("*")
     .order("name");
 
-  if (error || !data || data.length === 0) return mockPhotographers;
+  if (error || !data || data.length === 0) return [];
 
   return data.map((p: any) => ({
     id: p.id,
@@ -100,7 +85,7 @@ export async function fetchPhotographers(): Promise<Photographer[]> {
     location: p.location || "",
     specialty: p.specialty || "",
     followers: p.followers || "0",
-    images: 0, // computed separately
+    images: 0,
     avatar: p.avatar || "",
     bio: p.bio || "",
     cover: p.cover || p.avatar || "",
@@ -110,37 +95,13 @@ export async function fetchPhotographers(): Promise<Photographer[]> {
 }
 
 export async function fetchPhotographer(id: string): Promise<Photographer | undefined> {
-  if (!isSupabaseConfigured) {
-    // Replicate the original getPhotographer logic
-    const known = mockPhotographers.find((p) => p.id === id);
-    const shots = mockPhotos.filter((p) => p.photographerId === id);
-    if (known) return { ...known, images: shots.length || known.images };
-    if (shots.length === 0) return undefined;
-    const first = shots[0];
-    const totalLikes = shots.reduce((s, p) => s + p.likes, 0);
-    return {
-      id,
-      name: first.photographer,
-      location: first.location,
-      specialty: first.category,
-      followers: `${(totalLikes / 1000).toFixed(1)}k`,
-      images: shots.length,
-      avatar: first.image,
-      cover: first.image,
-      verified: true,
-      gear: [first.camera, first.lens],
-      bio: `${first.category} photographer based in ${first.location}, contributing to the NS CAPTURES archive.`,
-    };
-  }
-
-  const { data: photographer } = await supabase!
+  const { data: photographer } = await supabase
     .from("photographers")
     .select("*")
     .eq("id", id)
     .single();
 
-  // Count their photos
-  const { count } = await supabase!
+  const { count } = await supabase
     .from("photos")
     .select("id", { count: "exact", head: true })
     .eq("photographer_id", id);
@@ -163,8 +124,7 @@ export async function fetchPhotographer(id: string): Promise<Photographer | unde
     };
   }
 
-  // Auto-generate profile from photos (same logic as original)
-  const { data: shots } = await supabase!
+  const { data: shots } = await supabase
     .from("photos")
     .select("*")
     .eq("photographer_id", id)
@@ -173,7 +133,7 @@ export async function fetchPhotographer(id: string): Promise<Photographer | unde
   if (!shots || shots.length === 0) return undefined;
 
   const first = shots[0];
-  const { count: likeCount } = await supabase!
+  const { count: likeCount } = await supabase
     .from("photos")
     .select("id", { count: "exact", head: true })
     .eq("photographer_id", id);
@@ -226,24 +186,18 @@ function rowToPhoto(row: any): Photo {
 }
 
 export async function fetchPhotos(): Promise<Photo[]> {
-  if (!isSupabaseConfigured) return mockPhotos;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("photos")
     .select("*")
     .order("uploaded_at", { ascending: false });
 
-  if (error || !data || data.length === 0) return mockPhotos;
+  if (error || !data || data.length === 0) return [];
 
-  return data.map(rowToPhoto);
+  return data.map((r) => rowToPhoto(r));
 }
 
 export async function fetchPhoto(id: string): Promise<Photo | undefined> {
-  if (!isSupabaseConfigured) {
-    return mockPhotos.find((p) => p.id === id);
-  }
-
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("photos")
     .select("*")
     .eq("id", id)
@@ -253,18 +207,14 @@ export async function fetchPhoto(id: string): Promise<Photo | undefined> {
 }
 
 export async function fetchPhotosByPhotographer(photographerId: string): Promise<Photo[]> {
-  if (!isSupabaseConfigured) {
-    return mockPhotos.filter((p) => p.photographerId === photographerId);
-  }
-
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("photos")
     .select("*")
     .eq("photographer_id", photographerId)
     .order("uploaded_at", { ascending: false });
 
   if (!data) return [];
-  return data.map(rowToPhoto);
+  return data.map((r) => rowToPhoto(r));
 }
 
 // ============================================================
@@ -272,13 +222,11 @@ export async function fetchPhotosByPhotographer(photographerId: string): Promise
 // ============================================================
 
 export async function fetchCollections(): Promise<Collection[]> {
-  if (!isSupabaseConfigured) return mockCollections;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("collections")
     .select("*");
 
-  if (error || !data || data.length === 0) return mockCollections;
+  if (error || !data || data.length === 0) return [];
 
   return data.map((c: any) => ({
     id: c.id,
@@ -295,13 +243,11 @@ export async function fetchCollections(): Promise<Collection[]> {
 // ============================================================
 
 export async function fetchBriefs(): Promise<Brief[]> {
-  if (!isSupabaseConfigured) return mockBriefs;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("briefs")
     .select("*");
 
-  if (error || !data || data.length === 0) return mockBriefs;
+  if (error || !data || data.length === 0) return [];
 
   return data.map((b: any) => ({
     id: b.id,
@@ -320,12 +266,8 @@ export async function fetchBriefs(): Promise<Brief[]> {
 // ============================================================
 
 export async function createBrief(brief: { title: string; location: string; license: string; budget: number; description: string }): Promise<Brief | null> {
-  if (!isSupabaseConfigured) {
-    return { id: `BRF-${Date.now().toString(36)}`, ...brief, delivery: "30 days", status: "OPEN" };
-  }
-
   const id = `BRF-${Date.now().toString(36)}`;
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("briefs")
     .insert({
       id,
@@ -348,14 +290,12 @@ export async function createBrief(brief: { title: string; location: string; lice
 // ============================================================
 
 export async function fetchAdminUsers(): Promise<AdminUser[]> {
-  if (!isSupabaseConfigured) return mockAdminUsers;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("profiles")
     .select("id, name, email, role, status, created_at")
     .order("created_at", { ascending: false });
 
-  if (error || !data || data.length === 0) return mockAdminUsers;
+  if (error || !data || data.length === 0) return [];
 
   return data.map((p: any, i: number) => ({
     id: p.id,
@@ -370,13 +310,11 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
 }
 
 export async function fetchModerationQueue(): Promise<ModerationItem[]> {
-  if (!isSupabaseConfigured) return mockModerationQueue;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("moderation_queue")
     .select("*");
 
-  if (error || !data || data.length === 0) return mockModerationQueue;
+  if (error || !data || data.length === 0) return [];
 
   return data.map((m: any) => ({
     id: m.id,
@@ -392,20 +330,11 @@ export async function fetchModerationQueue(): Promise<ModerationItem[]> {
 // ============================================================
 
 export async function fetchPlatformStats() {
-  if (!isSupabaseConfigured) {
-    return {
-      totalUsers: 12410,
-      photographers: 1204,
-      assets: 84200,
-      revenue: 142000,
-    };
-  }
-
   const [usersCount, photosCount, photographerCount, purchasesSum] = await Promise.all([
-    supabase!.from("profiles").select("id", { count: "exact", head: true }),
-    supabase!.from("photos").select("id", { count: "exact", head: true }),
-    supabase!.from("profiles").select("id", { count: "exact", head: true }).eq("role", "Photographer"),
-    supabase!.from("purchases").select("price"),
+    supabase.from("profiles").select("id", { count: "exact", head: true }),
+    supabase.from("photos").select("id", { count: "exact", head: true }),
+    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "Photographer"),
+    supabase.from("purchases").select("price"),
   ]);
 
   const revenue = (purchasesSum.data || []).reduce((sum: number, p: any) => sum + (p.price || 0), 0);
@@ -423,16 +352,13 @@ export async function fetchPlatformStats() {
 // ============================================================
 
 export async function fetchPurchases(userId: string): Promise<Purchase[]> {
-  if (!isSupabaseConfigured) return mockUserPurchases;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("purchases")
     .select("*")
     .eq("user_id", userId)
     .order("date", { ascending: false });
 
-  if (error || !data || data.length === 0) return mockUserPurchases;
-
+  if (error || !data) return [];
   return data.map((r: any) => ({
     id: r.id,
     userId: r.user_id,
@@ -444,10 +370,9 @@ export async function fetchPurchases(userId: string): Promise<Purchase[]> {
 }
 
 export async function createPurchase(purchase: Omit<Purchase, "id">): Promise<Purchase | null> {
-  if (!isSupabaseConfigured) return null;
-
   const id = `INV-${Date.now().toString(36).toUpperCase()}`;
-  const { data, error } = await supabase!
+
+  const { data, error } = await supabase
     .from("purchases")
     .insert({ id, user_id: purchase.userId, photo_id: purchase.photoId, license: purchase.license, price: purchase.price, date: purchase.date })
     .select()
@@ -458,14 +383,12 @@ export async function createPurchase(purchase: Omit<Purchase, "id">): Promise<Pu
 }
 
 export async function fetchAllPurchases(): Promise<Purchase[]> {
-  if (!isSupabaseConfigured) return mockUserPurchases;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("purchases")
     .select("*")
     .order("date", { ascending: false });
 
-  if (error || !data) return mockUserPurchases;
+  if (error || !data) return [];
   return data.map((r: any) => ({
     id: r.id, userId: r.user_id, photoId: r.photo_id, license: r.license, price: r.price, date: r.date,
   }));
@@ -476,16 +399,13 @@ export async function fetchAllPurchases(): Promise<Purchase[]> {
 // ============================================================
 
 export async function fetchLicenses(userId: string): Promise<LicenseRecord[]> {
-  if (!isSupabaseConfigured) return mockLicenses;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("licenses")
     .select("*")
     .eq("user_id", userId)
     .order("purchased_at", { ascending: false });
 
-  if (error || !data || data.length === 0) return mockLicenses;
-
+  if (error || !data) return [];
   return data.map((r: any) => ({
     id: r.id,
     userId: r.user_id,
@@ -500,10 +420,9 @@ export async function fetchLicenses(userId: string): Promise<LicenseRecord[]> {
 }
 
 export async function createLicense(lic: Omit<LicenseRecord, "id">): Promise<LicenseRecord | null> {
-  if (!isSupabaseConfigured) return null;
-
   const id = `LIC-${Date.now().toString(36).toUpperCase()}`;
-  const { data, error } = await supabase!
+
+  const { data, error } = await supabase
     .from("licenses")
     .insert({
       id, user_id: lic.userId, photo_id: lic.photoId, title: lic.title,
@@ -522,9 +441,7 @@ export async function createLicense(lic: Omit<LicenseRecord, "id">): Promise<Lic
 // ============================================================
 
 export async function fetchPayouts(photographerId: string): Promise<Payout[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("payouts")
     .select("*")
     .eq("photographer_id", photographerId)
@@ -537,9 +454,7 @@ export async function fetchPayouts(photographerId: string): Promise<Payout[]> {
 }
 
 export async function fetchAllPayouts(): Promise<Payout[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("payouts")
     .select("*")
     .order("date", { ascending: false });
@@ -551,10 +466,8 @@ export async function fetchAllPayouts(): Promise<Payout[]> {
 }
 
 export async function createPayout(payout: Omit<Payout, "id">): Promise<Payout | null> {
-  if (!isSupabaseConfigured) return null;
-
   const id = `PAY-${Date.now().toString(36).toUpperCase()}`;
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("payouts")
     .insert({ id, photographer_id: payout.photographerId, user_id: payout.userId, date: payout.date, method: payout.method, amount: payout.amount, status: payout.status })
     .select()
@@ -569,26 +482,21 @@ export async function createPayout(payout: Omit<Payout, "id">): Promise<Payout |
 // ============================================================
 
 export async function fetchActivity(userId: string): Promise<ActivityLogItem[]> {
-  if (!isSupabaseConfigured) return mockActivity;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("activity_log")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (error || !data || data.length === 0) return mockActivity;
-
+  if (error || !data) return [];
   return data.map((r: any) => ({
     id: r.id, userId: r.user_id, type: r.type, title: r.title, desc: r.desc || "", createdAt: r.created_at,
   }));
 }
 
 export async function logActivity(entry: Omit<ActivityLogItem, "id" | "createdAt">): Promise<void> {
-  if (!isSupabaseConfigured) return;
-
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("activity_log")
     .insert({ user_id: entry.userId, type: entry.type, title: entry.title, desc: entry.desc });
 
@@ -600,9 +508,7 @@ export async function logActivity(entry: Omit<ActivityLogItem, "id" | "createdAt
 // ============================================================
 
 export async function fetchCollectionPhotos(collectionId: string): Promise<string[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("collection_photos")
     .select("photo_id")
     .eq("collection_id", collectionId)
@@ -613,10 +519,7 @@ export async function fetchCollectionPhotos(collectionId: string): Promise<strin
 }
 
 export async function addPhotoToCollection(collectionId: string, photoId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-
-  // Get next position
-  const { data: existing } = await supabase!
+  const { data: existing } = await supabase
     .from("collection_photos")
     .select("position")
     .eq("collection_id", collectionId)
@@ -625,19 +528,17 @@ export async function addPhotoToCollection(collectionId: string, photoId: string
 
   const nextPos = existing && existing.length > 0 ? (existing[0] as any).position + 1 : 0;
 
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("collection_photos")
     .insert({ collection_id: collectionId, photo_id: photoId, position: nextPos });
 
   if (error) { console.error("addPhotoToCollection", error); return false; }
 
-  // Update collection count
-  await supabase!.rpc("increment_collection_count", { cid: collectionId }).catch(() => {
-    // Fallback: manually update count
-    supabase!.from("collection_photos").select("photo_id", { count: "exact", head: true })
+  await supabase.rpc("increment_collection_count", { cid: collectionId }).catch(() => {
+    supabase.from("collection_photos").select("photo_id", { count: "exact", head: true })
       .eq("collection_id", collectionId)
       .then(({ count }) => {
-        supabase!.from("collections").update({ count: count || 0 }).eq("id", collectionId);
+        supabase.from("collections").update({ count: count || 0 }).eq("id", collectionId);
       });
   });
 
@@ -645,9 +546,7 @@ export async function addPhotoToCollection(collectionId: string, photoId: string
 }
 
 export async function removePhotoFromCollection(collectionId: string, photoId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("collection_photos")
     .delete()
     .eq("collection_id", collectionId)
@@ -655,13 +554,12 @@ export async function removePhotoFromCollection(collectionId: string, photoId: s
 
   if (error) { console.error("removePhotoFromCollection", error); return false; }
 
-  // Update collection count
-  const { count } = await supabase!
+  const { count } = await supabase
     .from("collection_photos")
     .select("photo_id", { count: "exact", head: true })
     .eq("collection_id", collectionId);
 
-  await supabase!.from("collections").update({ count: count || 0 }).eq("id", collectionId);
+  await supabase.from("collections").update({ count: count || 0 }).eq("id", collectionId);
 
   return true;
 }
@@ -685,9 +583,7 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     moderationRequired: true,
   };
 
-  if (!isSupabaseConfigured) return defaults;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("site_settings")
     .select("*")
     .eq("id", 1)
@@ -711,9 +607,7 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
 }
 
 export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("site_settings")
     .upsert({
       id: 1,
@@ -738,9 +632,7 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
 // ============================================================
 
 export async function updatePhotoPrice(photoId: string, price: number): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("photos")
     .update({ price })
     .eq("id", photoId);
@@ -754,9 +646,7 @@ export async function updatePhotoPrice(photoId: string, price: number): Promise<
 // ============================================================
 
 export async function createPhoto(photo: Omit<Photo, "downloads" | "views" | "likes">): Promise<Photo | null> {
-  if (!isSupabaseConfigured) return null;
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("photos")
     .insert({
       id: photo.id,
@@ -804,9 +694,7 @@ export interface PhotographerProfileSettings {
 }
 
 export async function fetchPhotographerProfileSettings(userId: string): Promise<PhotographerProfileSettings | null> {
-  if (!isSupabaseConfigured) return null;
-
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("photographer_profiles")
     .select("*")
     .eq("user_id", userId)
@@ -824,9 +712,7 @@ export async function fetchPhotographerProfileSettings(userId: string): Promise<
 }
 
 export async function upsertPhotographerProfileSettings(settings: PhotographerProfileSettings): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("photographer_profiles")
     .upsert({
       user_id: settings.userId,
@@ -847,39 +733,17 @@ export async function upsertPhotographerProfileSettings(settings: PhotographerPr
 // ============================================================
 
 export async function incrementPhotoDownloads(photoId: string): Promise<void> {
-  if (!isSupabaseConfigured) return;
-
-  const { data } = await supabase!
-    .from("photos")
-    .select("downloads")
-    .eq("id", photoId)
-    .single();
-
-  if (data) {
-    await supabase!
-      .from("photos")
-      .update({ downloads: (data.downloads || 0) + 1 })
-      .eq("id", photoId);
-  }
+  const { data } = await supabase.from("photos").select("downloads").eq("id", photoId).single();
+  if (data) await supabase.from("photos").update({ downloads: (data.downloads || 0) + 1 }).eq("id", photoId);
 }
 
 // ============================================================
-// LOCAL STORAGE HELPERS FOR MOCK MODE
+// INCREMENT PHOTO VIEWS
 // ============================================================
 
-function getLocalSet(key: string): Set<string> {
-  if (typeof window === "undefined") return new Set();
-  try {
-    return new Set(JSON.parse(localStorage.getItem(key) || "[]"));
-  } catch {
-    return new Set();
-  }
-}
-
-function saveLocalSet(key: string, set: Set<string>) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(key, JSON.stringify(Array.from(set)));
-  }
+export async function incrementPhotoViews(photoId: string): Promise<void> {
+  const { data } = await supabase.from("photos").select("views").eq("id", photoId).single();
+  if (data) await supabase.from("photos").update({ views: (data.views || 0) + 1 }).eq("id", photoId);
 }
 
 // ============================================================
@@ -887,11 +751,7 @@ function saveLocalSet(key: string, set: Set<string>) {
 // ============================================================
 
 export async function hasUserLikedPhoto(userId: string, photoId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) {
-    const likes = getLocalSet(`likes_${userId}`);
-    return likes.has(photoId);
-  }
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("user_likes")
     .select("photo_id")
     .eq("user_id", userId)
@@ -901,20 +761,7 @@ export async function hasUserLikedPhoto(userId: string, photoId: string): Promis
 }
 
 export async function toggleLike(userId: string, photoId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) {
-    const likes = getLocalSet(`likes_${userId}`);
-    let isLiked = false;
-    if (likes.has(photoId)) {
-      likes.delete(photoId);
-    } else {
-      likes.add(photoId);
-      isLiked = true;
-    }
-    saveLocalSet(`likes_${userId}`, likes);
-    return isLiked;
-  }
-
-  const { data: existing } = await supabase!
+  const { data: existing } = await supabase
     .from("user_likes")
     .select("photo_id")
     .eq("user_id", userId)
@@ -922,16 +769,15 @@ export async function toggleLike(userId: string, photoId: string): Promise<boole
     .maybeSingle();
 
   if (existing) {
-    await supabase!.from("user_likes").delete().eq("user_id", userId).eq("photo_id", photoId);
-    // Decrement likes on photos table
-    const { data: photo } = await supabase!.from("photos").select("likes").eq("id", photoId).single();
-    if (photo) await supabase!.from("photos").update({ likes: Math.max((photo.likes || 1) - 1, 0) }).eq("id", photoId);
-    return false; // unliked
+    await supabase.from("user_likes").delete().eq("user_id", userId).eq("photo_id", photoId);
+    const { data: photo } = await supabase.from("photos").select("likes").eq("id", photoId).single();
+    if (photo) await supabase.from("photos").update({ likes: Math.max((photo.likes || 1) - 1, 0) }).eq("id", photoId);
+    return false;
   } else {
-    await supabase!.from("user_likes").insert({ user_id: userId, photo_id: photoId });
-    const { data: photo } = await supabase!.from("photos").select("likes").eq("id", photoId).single();
-    if (photo) await supabase!.from("photos").update({ likes: (photo.likes || 0) + 1 }).eq("id", photoId);
-    return true; // liked
+    await supabase.from("user_likes").insert({ user_id: userId, photo_id: photoId });
+    const { data: photo } = await supabase.from("photos").select("likes").eq("id", photoId).single();
+    if (photo) await supabase.from("photos").update({ likes: (photo.likes || 0) + 1 }).eq("id", photoId);
+    return true;
   }
 }
 
@@ -940,11 +786,7 @@ export async function toggleLike(userId: string, photoId: string): Promise<boole
 // ============================================================
 
 export async function hasUserSavedPhoto(userId: string, photoId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) {
-    const saves = getLocalSet(`saves_${userId}`);
-    return saves.has(photoId);
-  }
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("user_saves")
     .select("photo_id")
     .eq("user_id", userId)
@@ -954,20 +796,7 @@ export async function hasUserSavedPhoto(userId: string, photoId: string): Promis
 }
 
 export async function toggleSave(userId: string, photoId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) {
-    const saves = getLocalSet(`saves_${userId}`);
-    let isSaved = false;
-    if (saves.has(photoId)) {
-      saves.delete(photoId);
-    } else {
-      saves.add(photoId);
-      isSaved = true;
-    }
-    saveLocalSet(`saves_${userId}`, saves);
-    return isSaved;
-  }
-
-  const { data: existing } = await supabase!
+  const { data: existing } = await supabase
     .from("user_saves")
     .select("photo_id")
     .eq("user_id", userId)
@@ -975,19 +804,16 @@ export async function toggleSave(userId: string, photoId: string): Promise<boole
     .maybeSingle();
 
   if (existing) {
-    await supabase!.from("user_saves").delete().eq("user_id", userId).eq("photo_id", photoId);
-    return false; // unsaved
+    await supabase.from("user_saves").delete().eq("user_id", userId).eq("photo_id", photoId);
+    return false;
   } else {
-    await supabase!.from("user_saves").insert({ user_id: userId, photo_id: photoId });
-    return true; // saved
+    await supabase.from("user_saves").insert({ user_id: userId, photo_id: photoId });
+    return true;
   }
 }
 
 export async function fetchUserSavedPhotoIds(userId: string): Promise<string[]> {
-  if (!isSupabaseConfigured) {
-    return Array.from(getLocalSet(`saves_${userId}`));
-  }
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("user_saves")
     .select("photo_id")
     .eq("user_id", userId);
@@ -999,11 +825,7 @@ export async function fetchUserSavedPhotoIds(userId: string): Promise<string[]> 
 // ============================================================
 
 export async function hasUserFollowedPhotographer(userId: string, photographerId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) {
-    const follows = getLocalSet(`follows_${userId}`);
-    return follows.has(photographerId);
-  }
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("user_follows")
     .select("following_id")
     .eq("follower_id", userId)
@@ -1013,20 +835,7 @@ export async function hasUserFollowedPhotographer(userId: string, photographerId
 }
 
 export async function toggleFollow(userId: string, photographerId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) {
-    const follows = getLocalSet(`follows_${userId}`);
-    let isFollowing = false;
-    if (follows.has(photographerId)) {
-      follows.delete(photographerId);
-    } else {
-      follows.add(photographerId);
-      isFollowing = true;
-    }
-    saveLocalSet(`follows_${userId}`, follows);
-    return isFollowing;
-  }
-
-  const { data: existing } = await supabase!
+  const { data: existing } = await supabase
     .from("user_follows")
     .select("following_id")
     .eq("follower_id", userId)
@@ -1034,20 +843,16 @@ export async function toggleFollow(userId: string, photographerId: string): Prom
     .maybeSingle();
 
   if (existing) {
-    await supabase!.from("user_follows").delete().eq("follower_id", userId).eq("following_id", photographerId);
-    return false; // unfollowed
+    await supabase.from("user_follows").delete().eq("follower_id", userId).eq("following_id", photographerId);
+    return false;
   } else {
-    await supabase!.from("user_follows").insert({ follower_id: userId, following_id: photographerId });
-    return true; // followed
+    await supabase.from("user_follows").insert({ follower_id: userId, following_id: photographerId });
+    return true;
   }
 }
 
 export async function fetchFollowerCount(photographerId: string): Promise<number> {
-  if (!isSupabaseConfigured) {
-    // If not configured, we'll try to find their profile's follower string or return 0
-    return 0; // We can leave it as 0 since mock UI already uses profile.followers
-  }
-  const { count } = await supabase!
+  const { count } = await supabase
     .from("user_follows")
     .select("follower_id", { count: "exact", head: true })
     .eq("following_id", photographerId);
@@ -1059,10 +864,6 @@ export async function fetchFollowerCount(photographerId: string): Promise<number
 // ============================================================
 
 export async function createContributorInterest(email: string): Promise<boolean> {
-  if (!isSupabaseConfigured) {
-    await logActivity({ userId: `CONTRIBUTE-${email}`, type: "contribute", title: "Contributor application", desc: email });
-    return true;
-  }
   await logActivity({ userId: `CONTRIBUTE-${email}`, type: "contribute", title: "Contributor application", desc: email });
   return true;
 }
@@ -1080,9 +881,7 @@ export interface AdminLogEntry {
 }
 
 export async function fetchAdminLogs(limit = 50): Promise<AdminLogEntry[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("activity_log")
     .select("*")
     .order("created_at", { ascending: false })
@@ -1104,9 +903,7 @@ export async function fetchAdminLogs(limit = 50): Promise<AdminLogEntry[]> {
 // ============================================================
 
 export async function fetchMonthlyGrowth(): Promise<{ m: string; v: number }[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("profiles")
     .select("created_at");
 
@@ -1129,9 +926,7 @@ export async function fetchMonthlyGrowth(): Promise<{ m: string; v: number }[]> 
 // ============================================================
 
 export async function fetchMonthlyRevenue(): Promise<{ m: string; v: number }[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("purchases")
     .select("price, date");
 
@@ -1154,9 +949,7 @@ export async function fetchMonthlyRevenue(): Promise<{ m: string; v: number }[]>
 // ============================================================
 
 export async function fetchCategoryStats(): Promise<{ name: string; downloads: number }[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("photos")
     .select("category, downloads");
 
@@ -1177,9 +970,7 @@ export async function fetchCategoryStats(): Promise<{ name: string; downloads: n
 // ============================================================
 
 export async function fetchUserGrowthPerMonth(): Promise<{ m: string; v: number }[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("profiles")
     .select("created_at");
 
@@ -1188,7 +979,6 @@ export async function fetchUserGrowthPerMonth(): Promise<{ m: string; v: number 
   const months: Record<string, number> = {};
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-  // Cumulative growth
   const sorted = data.map((r: any) => new Date(r.created_at).getTime()).sort((a, b) => a - b);
   let cumulative = 0;
   const monthlyCounts: Record<string, number> = {};
@@ -1199,7 +989,6 @@ export async function fetchUserGrowthPerMonth(): Promise<{ m: string; v: number 
     monthlyCounts[key] = (monthlyCounts[key] || 0) + 1;
   });
 
-  // Build cumulative array
   const allMonths = Object.keys(monthlyCounts);
   allMonths.forEach((m) => {
     cumulative += monthlyCounts[m];
@@ -1221,9 +1010,7 @@ export async function fetchPhotographerStats(photographerId: string): Promise<{
   photoCount: number;
   avgPrice: number;
 }> {
-  if (!isSupabaseConfigured) return { totalRevenue: 0, totalDownloads: 0, totalViews: 0, totalLikes: 0, photoCount: 0, avgPrice: 0 };
-
-  const { data: photos } = await supabase!
+  const { data: photos } = await supabase
     .from("photos")
     .select("id, downloads, views, likes, price")
     .eq("photographer_id", photographerId);
@@ -1235,8 +1022,7 @@ export async function fetchPhotographerStats(photographerId: string): Promise<{
   const totalLikes = photos.reduce((s: number, p: any) => s + (p.likes || 0), 0);
   const avgPrice = photos.reduce((s: number, p: any) => s + (p.price || 0), 0) / photos.length;
 
-  // Revenue from purchases where this photographer's photos were bought
-  const { data: purchases } = await supabase!
+  const { data: purchases } = await supabase
     .from("purchases")
     .select("price, photo_id");
 
@@ -1253,10 +1039,7 @@ export async function fetchPhotographerStats(photographerId: string): Promise<{
 // ============================================================
 
 export async function fetchPhotographerMonthlyRevenue(photographerId: string): Promise<{ m: string; v: number }[]> {
-  if (!isSupabaseConfigured) return [];
-
-  // Get photographer's photo IDs
-  const { data: photos } = await supabase!
+  const { data: photos } = await supabase
     .from("photos")
     .select("id")
     .eq("photographer_id", photographerId);
@@ -1265,7 +1048,7 @@ export async function fetchPhotographerMonthlyRevenue(photographerId: string): P
 
   const photoIds = photos.map((p: any) => p.id);
 
-  const { data: purchases } = await supabase!
+  const { data: purchases } = await supabase
     .from("purchases")
     .select("price, date, photo_id")
     .in("photo_id", photoIds);
@@ -1289,19 +1072,15 @@ export async function fetchPhotographerMonthlyRevenue(photographerId: string): P
 // ============================================================
 
 export async function fetchPhotographerWeeklyDownloads(photographerId: string): Promise<{ m: string; v: number }[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data: photos } = await supabase!
+  const { data: photos } = await supabase
     .from("photos")
     .select("id, downloads")
     .eq("photographer_id", photographerId);
 
   if (!photos || photos.length === 0) return [];
 
-  // Approximate weekly distribution from total downloads
   const total = photos.reduce((s: number, p: any) => s + (p.downloads || 0), 0);
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  // Distribute roughly with weekend lower
   const weights = [0.16, 0.15, 0.14, 0.15, 0.16, 0.12, 0.12];
   return days.map((d, i) => ({ m: d, v: Math.round(total * weights[i] / 7) }));
 }
@@ -1311,9 +1090,7 @@ export async function fetchPhotographerWeeklyDownloads(photographerId: string): 
 // ============================================================
 
 export async function fetchPhotographerTopCategories(photographerId: string): Promise<{ name: string; pct: string }[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data: photos } = await supabase!
+  const { data: photos } = await supabase
     .from("photos")
     .select("category, downloads")
     .eq("photographer_id", photographerId);
@@ -1343,15 +1120,13 @@ export async function fetchUserPurchaseStats(userId: string): Promise<{
   totalLicenses: number;
   recentPurchases: Purchase[];
 }> {
-  if (!isSupabaseConfigured) return { totalSpent: 0, totalPurchases: 0, totalLicenses: 0, recentPurchases: [] };
-
-  const { data: purchases } = await supabase!
+  const { data: purchases } = await supabase
     .from("purchases")
     .select("*")
     .eq("user_id", userId)
     .order("date", { ascending: false });
 
-  const { data: licenses } = await supabase!
+  const { data: licenses } = await supabase
     .from("licenses")
     .select("id")
     .eq("user_id", userId);
@@ -1375,12 +1150,10 @@ export async function fetchUserPurchaseStats(userId: string): Promise<{
 export function getOptimizedImageUrl(url: string, width = 600): string {
   if (!url) return "";
 
-  // Handle Unsplash image resizing
   if (url.includes("images.unsplash.com")) {
     try {
       const urlObj = new URL(url);
       urlObj.searchParams.set("w", String(width));
-      // Auto format and compress
       urlObj.searchParams.set("auto", "format");
       urlObj.searchParams.set("fit", "crop");
       urlObj.searchParams.set("q", "80");
@@ -1390,7 +1163,6 @@ export function getOptimizedImageUrl(url: string, width = 600): string {
     }
   }
 
-  // Handle Cloudinary image resizing/compression
   if (url.includes("res.cloudinary.com")) {
     const idx = url.indexOf("/upload/");
     if (idx !== -1) {
@@ -1406,7 +1178,6 @@ export function getOptimizedImageUrl(url: string, width = 600): string {
 export function getFullQualityImageUrl(url: string): string {
   if (!url) return "";
 
-  // Handle Unsplash - strip query params to get original raw master resolution
   if (url.includes("images.unsplash.com")) {
     try {
       const urlObj = new URL(url);
@@ -1421,7 +1192,6 @@ export function getFullQualityImageUrl(url: string): string {
     }
   }
 
-  // For Cloudinary, remove any inserted optimization subpaths
   if (url.includes("res.cloudinary.com")) {
     return url.replace(/\/w_\d+,c_limit,f_auto\//, "/");
   }
@@ -1433,6 +1203,12 @@ export function getFullQualityImageUrl(url: string): string {
 // PAYMENT METHODS — photographer accepted methods
 // ============================================================
 
+export interface CryptoWalletEntry {
+  coin: string;
+  network: string;
+  address: string;
+}
+
 export interface PhotographerPaymentMethod {
   id: string;
   photographerId: string;
@@ -1441,30 +1217,13 @@ export interface PhotographerPaymentMethod {
   details: Record<string, unknown>;
 }
 
-// Mock fallback for payment methods
-const mockPaymentMethods: Record<string, PhotographerPaymentMethod[]> = {
-  "patrick-watson-quine": [
-    { id: "pm-1", photographerId: "patrick-watson-quine", method: "card", enabled: true, details: {} },
-    { id: "pm-2", photographerId: "patrick-watson-quine", method: "paypal", enabled: true, details: { email: "patrick@paypal.me" } },
-  ],
-  "lexmond-dennis": [
-    { id: "pm-3", photographerId: "lexmond-dennis", method: "card", enabled: true, details: {} },
-    { id: "pm-4", photographerId: "lexmond-dennis", method: "crypto", enabled: true, details: { wallet: "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD78" } },
-  ],
-};
-
 export async function fetchPaymentMethods(photographerId: string): Promise<PhotographerPaymentMethod[]> {
-  if (!isSupabaseConfigured) return mockPaymentMethods[photographerId] || [
-    { id: "pm-default", photographerId, method: "card", enabled: true, details: {} },
-  ];
-
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("photographer_payment_methods")
     .select("*")
     .eq("photographer_id", photographerId);
 
   if (!data || data.length === 0) {
-    // Return defaults if none configured
     return [
       { id: `pm-${photographerId}-card`, photographerId, method: "card", enabled: true, details: {} },
     ];
@@ -1485,9 +1244,7 @@ export async function upsertPaymentMethod(
   enabled: boolean,
   details: Record<string, unknown> = {}
 ): Promise<boolean> {
-  if (!isSupabaseConfigured) return true;
-
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("photographer_payment_methods")
     .upsert(
       { photographer_id: photographerId, method, enabled, details },
@@ -1498,9 +1255,7 @@ export async function upsertPaymentMethod(
 }
 
 export async function fetchAllPaymentMethods(): Promise<PhotographerPaymentMethod[]> {
-  if (!isSupabaseConfigured) return Object.values(mockPaymentMethods).flat();
-
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("photographer_payment_methods")
     .select("*");
 
@@ -1537,21 +1292,7 @@ export async function createPayoutRequest(
   method: "card" | "crypto" | "paypal",
   details: Record<string, unknown> = {}
 ): Promise<PayoutRequest | null> {
-  if (!isSupabaseConfigured) {
-    return {
-      id: `PR-${Date.now().toString(36)}`,
-      photographerId,
-      amount,
-      method,
-      details,
-      status: "PENDING",
-      adminNote: "",
-      requestedAt: new Date().toISOString(),
-      processedAt: null,
-    };
-  }
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from("payout_requests")
     .insert({
       photographer_id: photographerId,
@@ -1578,9 +1319,7 @@ export async function createPayoutRequest(
 }
 
 export async function fetchPayoutRequests(photographerId?: string): Promise<PayoutRequest[]> {
-  if (!isSupabaseConfigured) return [];
-
-  let query = supabase!.from("payout_requests").select("*").order("requested_at", { ascending: false });
+  let query = supabase.from("payout_requests").select("*").order("requested_at", { ascending: false });
   if (photographerId) query = query.eq("photographer_id", photographerId);
 
   const { data } = await query;
@@ -1604,9 +1343,7 @@ export async function updatePayoutRequestStatus(
   status: "APPROVED" | "REJECTED" | "PAID",
   adminNote: string = ""
 ): Promise<boolean> {
-  if (!isSupabaseConfigured) return true;
-
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("payout_requests")
     .update({ status, admin_note: adminNote, processed_at: new Date().toISOString() })
     .eq("id", id);
@@ -1625,10 +1362,8 @@ export async function createPurchaseWithMethod(
   price: number,
   paymentMethod: string
 ): Promise<boolean> {
-  if (!isSupabaseConfigured) return true;
-
   const id = `PUR-${Date.now().toString(36)}`;
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("purchases")
     .insert({
       id,
@@ -1647,9 +1382,7 @@ export async function createPurchaseWithMethod(
 // ============================================================
 
 export async function deletePhoto(photoId: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("photos")
     .delete()
     .eq("id", photoId);
@@ -1663,18 +1396,15 @@ export async function deletePhoto(photoId: string): Promise<boolean> {
 // ============================================================
 
 export async function updateUserRole(userId: string, newRole: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("profiles")
     .update({ role: newRole })
     .eq("id", userId);
 
   if (error) { console.error("updateUserRole", error); return false; }
 
-  // If promoting to Photographer, ensure they have a slug and directory entry
   if (newRole === "Photographer") {
-    const { data: profile } = await supabase!
+    const { data: profile } = await supabase
       .from("profiles")
       .select("slug, name")
       .eq("id", userId)
@@ -1687,17 +1417,16 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
         .replace(/^-|-$/g, "")
         + "-" + userId.slice(0, 8);
 
-      await supabase!.from("profiles").update({ slug }).eq("id", userId);
+      await supabase.from("profiles").update({ slug }).eq("id", userId);
 
-      // Also create a photographer directory entry
-      const { data: existing } = await supabase!
+      const { data: existing } = await supabase
         .from("photographers")
         .select("id")
         .eq("id", slug)
         .single();
 
       if (!existing) {
-        await supabase!.from("photographers").insert({
+        await supabase.from("photographers").insert({
           id: slug,
           name: profile.name,
           location: "",
@@ -1721,16 +1450,14 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
 // ============================================================
 
 export async function resolveModeration(moderationId: string, approve: boolean): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-
   if (approve) {
-    const { error } = await supabase!
+    const { error } = await supabase
       .from("moderation_queue")
       .delete()
       .eq("id", moderationId);
     if (error) { console.error("resolveModeration (delete)", error); return false; }
   } else {
-    const { error } = await supabase!
+    const { error } = await supabase
       .from("moderation_queue")
       .update({ status: "rejected" })
       .eq("id", moderationId);
@@ -1745,9 +1472,7 @@ export async function resolveModeration(moderationId: string, approve: boolean):
 // ============================================================
 
 export async function updateBriefStatus(briefId: string, status: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("briefs")
     .update({ status })
     .eq("id", briefId);
@@ -1761,9 +1486,7 @@ export async function updateBriefStatus(briefId: string, status: string): Promis
 // ============================================================
 
 export async function updateUserStatus(userId: string, status: string): Promise<boolean> {
-  if (!isSupabaseConfigured) return false;
-
-  const { error } = await supabase!
+  const { error } = await supabase
     .from("profiles")
     .update({ status })
     .eq("id", userId);
@@ -1784,9 +1507,7 @@ export interface FollowerInfo {
 }
 
 export async function fetchFollowers(photographerId: string): Promise<FollowerInfo[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("user_follows")
     .select("follower_id, following_id")
     .eq("following_id", photographerId)
@@ -1794,11 +1515,10 @@ export async function fetchFollowers(photographerId: string): Promise<FollowerIn
 
   if (!data) return [];
 
-  // Enrich with profile names
   const followerIds = [...new Set(data.map((r: any) => r.follower_id))];
   if (followerIds.length === 0) return [];
 
-  const { data: profiles } = await supabase!
+  const { data: profiles } = await supabase
     .from("profiles")
     .select("id, name, avatar")
     .in("id", followerIds);
@@ -1818,9 +1538,7 @@ export async function fetchFollowers(photographerId: string): Promise<FollowerIn
 // ============================================================
 
 export async function fetchFollowing(photographerId: string): Promise<FollowerInfo[]> {
-  if (!isSupabaseConfigured) return [];
-
-  const { data } = await supabase!
+  const { data } = await supabase
     .from("user_follows")
     .select("follower_id, following_id")
     .eq("follower_id", photographerId)
@@ -1831,7 +1549,7 @@ export async function fetchFollowing(photographerId: string): Promise<FollowerIn
   const followingIds = [...new Set(data.map((r: any) => r.following_id))];
   if (followingIds.length === 0) return [];
 
-  const { data: profiles } = await supabase!
+  const { data: profiles } = await supabase
     .from("profiles")
     .select("id, name, avatar")
     .in("id", followingIds);

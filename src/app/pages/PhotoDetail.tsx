@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { fetchPhoto, type Photo, getOptimizedImageUrl } from "../data/db";
-import { photos as allPhotos, getPhoto } from "../data/photos";
+import { photos as allPhotos } from "../data/photos";
 import { NotFound } from "./NotFound";
 import { addToCart } from "../data/cart";
 import { useAuth } from "../context/AuthContext";
@@ -32,10 +32,9 @@ export function PhotoDetail() {
   useEffect(() => {
     if (!id) return;
     fetchPhoto(id).then((p) => {
-      setPhoto(p || getPhoto(id) || null);
+      setPhoto(p || null);
       setLoading(false);
     }).catch(() => {
-      setPhoto(getPhoto(id) || null);
       setLoading(false);
     });
   }, [id]);

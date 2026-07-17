@@ -93,7 +93,7 @@ const getMoreItems = (role: UserRole, user: { id: string; name: string; email: s
   }
   const items: DropdownItem[] = [
     { label: "My Account", icon: User, to: "/account" },
-    { label: "Settings", icon: Settings, to: "/account" },
+    { label: "Settings", icon: Settings, to: "/account?tab=security" },
   ];
   if (role === "Photographer") {
     items.push({ label: "Dashboard", icon: Camera, to: "/dashboard" });
@@ -747,12 +747,29 @@ export function Navbar() {
                   {selectedPaymentMethod === "crypto" && (
                     <div className="bg-[#f8f9f7] rounded-xl p-4 border border-[#ececec]/60">
                       <p className="text-xs font-semibold text-[#18211f] mb-2">Crypto Payment</p>
-                      <p className="text-[11px] text-[#6b716d]">Send the exact amount to the wallet address below. Include your order ID in the transaction memo.</p>
+                      <p className="text-[11px] text-[#6b716d]">Send the exact amount to one of the wallet addresses below. Include your order ID in the transaction memo.</p>
                       {Object.entries(photographerPaymentDetails).map(([pid, pd]) => (
                         pd.method === "crypto" && (
-                          <div key={pid} className="mt-2 p-2 bg-white rounded-lg border border-[#ececec]/40">
-                            <p className="text-[10px] text-[#6b716d] uppercase">{pid.replace(/-/g, " ")}</p>
-                            <p className="text-xs font-mono text-[#18211f] break-all">{String(pd.details.wallet || "Not configured")}</p>
+                          <div key={pid} className="mt-2 space-y-2">
+                            {(() => {
+                              const wallets = pd.details.wallets as { coin: string; network: string; address: string }[] | undefined;
+                              if (wallets && wallets.length > 0) {
+                                return wallets.map((w, i) => (
+                                  <div key={i} className="p-2 bg-white rounded-lg border border-[#ececec]/40">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                      <span className="text-[10px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">{w.coin}</span>
+                                      <span className="text-[9px] text-[#6b716d] uppercase tracking-wider">{w.network}</span>
+                                    </div>
+                                    <p className="text-xs font-mono text-[#18211f] break-all">{w.address || "Not configured"}</p>
+                                  </div>
+                                ));
+                              }
+                              return (
+                                <div className="p-2 bg-white rounded-lg border border-[#ececec]/40">
+                                  <p className="text-xs font-mono text-[#18211f] break-all">{String(pd.details.wallet || "Not configured")}</p>
+                                </div>
+                              );
+                            })()}
                           </div>
                         )
                       ))}

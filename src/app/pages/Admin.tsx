@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Eyebrow, Badge, Button } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { useAuth } from "../context/AuthContext";
-import { supabase, isSupabaseConfigured } from "../../lib/supabase";
+import { supabase } from "../../lib/supabase";
 import { adminUsers as fallbackAdminUsers, moderationQueue as fallbackModerationQueue, getPhoto, photos as fallbackPhotos, type AdminUser, type ModerationItem } from "../data/photos";
 import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
 
@@ -1028,13 +1028,9 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
           <div className="mt-4 flex flex-wrap gap-2.5">
             <button 
               onClick={async () => {
-                if (isSupabaseConfigured && supabase) {
-                  const { error } = await supabase.auth.resetPasswordForEmail(user.email);
-                  if (error) toast.error(error.message);
-                  else toast.success(`Password reset email sent to ${user.email}`);
-                } else {
-                  toast.success(`Password reset link would be sent to ${user.email}`);
-                }
+                const { error } = await supabase.auth.resetPasswordForEmail(user.email);
+                if (error) toast.error(error.message);
+                else toast.success(`Password reset email sent to ${user.email}`);
               }}
               className="flex items-center gap-1.5 rounded-full border border-[#ececec] bg-white px-4 py-2 text-xs font-semibold text-[#4a534e] hover:border-[#1e4a3f] transition-all shadow-sm cursor-pointer"
             >
@@ -1145,7 +1141,7 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                       {userPurchasesList.length > 0 ? userPurchasesList.map((pur) => (
                         <tr key={pur.id} className="hover:bg-[#FAF9F5] transition duration-150">
                           <td className="px-4 py-3 font-semibold text-[#18211f]">{pur.id}</td>
-                          <td className="px-4 py-3 text-[#6b716d] max-w-[120px] truncate" title={pur.title}>{pur.title}</td>
+                          <td className="px-4 py-3 text-[#6b716d] max-w-[120px] truncate" title={pur.photoId}>{assets.find(a => a.id === pur.photoId)?.title || pur.photoId}</td>
                           <td className="px-4 py-3"><Badge tone="muted" size="sm">{pur.license}</Badge></td>
                           <td className="px-4 py-3 text-right font-semibold text-[#18211f]">${pur.price}</td>
                         </tr>

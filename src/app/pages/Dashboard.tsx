@@ -10,8 +10,8 @@ import {
 import exifr from "exifr";
 import { Eyebrow, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
-import { photos as fallbackPhotos, briefs as fallbackBriefs, photographers as fallbackPhotographers, type Photo, type License, type Orientation } from "../data/photos";
-import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, deletePhoto, updateBriefStatus, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout, getOptimizedImageUrl, fetchPaymentMethods, upsertPaymentMethod, createPayoutRequest, fetchPayoutRequests, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
+import { type Photo, type License, type Orientation, type Photographer, type Brief } from "../data/photos";
+import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, deletePhoto, updateBriefStatus, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout, getOptimizedImageUrl, fetchPaymentMethods, upsertPaymentMethod, createPayoutRequest, fetchPayoutRequests, type PhotographerPaymentMethod, type PayoutRequest, type CryptoWalletEntry } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
@@ -24,6 +24,25 @@ const nav = [
   { id: "payment-methods", label: "Payment Methods", icon: Wallet },
   { id: "followers", label: "Followers", icon: Users },
   { id: "settings", label: "Settings", icon: Settings },
+];
+
+const COINS = [
+  { symbol: "BTC", name: "Bitcoin", networks: ["Bitcoin", "Lightning"] },
+  { symbol: "ETH", name: "Ethereum", networks: ["ERC20", "Arbitrum", "Optimism", "Base"] },
+  { symbol: "USDT", name: "Tether", networks: ["ERC20", "TRC20", "BEP20", "Solana", "Polygon", "Avalanche C"] },
+  { symbol: "USDC", name: "USD Coin", networks: ["ERC20", "TRC20", "BEP20", "Solana", "Polygon", "Avalanche C", "Base"] },
+  { symbol: "SOL", name: "Solana", networks: ["Solana"] },
+  { symbol: "LTC", name: "Litecoin", networks: ["Litecoin"] },
+  { symbol: "XRP", name: "Ripple", networks: ["XRP Ledger"] },
+  { symbol: "BCH", name: "Bitcoin Cash", networks: ["Bitcoin Cash"] },
+  { symbol: "BNB", name: "BNB", networks: ["BEP20", "BEP2"] },
+  { symbol: "MATIC", name: "Polygon", networks: ["Polygon"] },
+  { symbol: "AVAX", name: "Avalanche", networks: ["Avalanche C", "Avalanche X"] },
+  { symbol: "TRX", name: "Tron", networks: ["TRC20"] },
+  { symbol: "ADA", name: "Cardano", networks: ["Cardano"] },
+  { symbol: "DOT", name: "Polkadot", networks: ["Polkadot"] },
+  { symbol: "DOGE", name: "Dogecoin", networks: ["Dogecoin"] },
+  { symbol: "DAI", name: "Dai", networks: ["ERC20", "Polygon", "Optimism"] },
 ];
 
 const CustomTooltip = ({ active, payload, label, prefix = "" }: any) => {
@@ -54,9 +73,9 @@ export function Dashboard() {
   const { user } = useAuth();
 
   // Supabase data
-  const [photos, setPhotos] = useState(fallbackPhotos);
-  const [briefs, setBriefs] = useState(fallbackBriefs);
-  const [photographers, setPhotographers] = useState(fallbackPhotographers);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [briefs, setBriefs] = useState<Brief[]>([]);
+  const [photographers, setPhotographers] = useState<Photographer[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -80,7 +99,7 @@ export function Dashboard() {
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
   const [payoutRequestAmount, setPayoutRequestAmount] = useState("");
   const [payoutRequestMethod, setPayoutRequestMethod] = useState<"card" | "crypto" | "paypal">("card");
-  const [cryptoWallet, setCryptoWallet] = useState("");
+  const [cryptoWallets, setCryptoWallets] = useState<CryptoWalletEntry[]>([]);
   const [paypalEmail, setPaypalEmail] = useState("");
 
   // Photographer dashboard data
@@ -108,9 +127,16 @@ export function Dashboard() {
       fetchFollowerCount(photographerId).then(setFollowerCount).catch(() => {});
       fetchPaymentMethods(photographerId).then((methods) => {
         setPaymentMethods(methods);
-        // Pre-fill details from existing methods
         methods.forEach((m) => {
-          if (m.method === "crypto" && m.details.wallet) setCryptoWallet(String(m.details.wallet));
+          if (m.method === "crypto") {
+            const wallets = (m.details.wallets as CryptoWalletEntry[] | undefined) || [];
+            if (wallets.length > 0) {
+              setCryptoWallets(wallets);
+            } else if (m.details.wallet) {
+              // Migrate from old single-wallet format
+              setCryptoWallets([{ coin: "ETH", network: "ERC20", address: String(m.details.wallet) }]);
+            }
+          }
           if (m.method === "paypal" && m.details.email) setPaypalEmail(String(m.details.email));
         });
       }).catch(() => {});
@@ -547,7 +573,7 @@ export function Dashboard() {
           onSelect={setActive}
           header={() => (
             <div className="flex min-w-0 items-center gap-3">
-              <img src={user?.avatar || photos[8]?.image || ""} alt="" loading="lazy" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
+              <img src={user?.avatar || photos[0]?.image || ""} alt="" loading="lazy" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{user?.name || "Photographer"}</p>
                 <p className="text-xs text-[#6b716d]">Verified · {user?.company || "Contributor"}</p>
@@ -1033,31 +1059,24 @@ export function Dashboard() {
                   </div>
 
                   {/* Crypto */}
-                  <div className="flex items-center justify-between p-4 rounded-xl border border-[#ececec]/60 hover:border-[#1e4a3f]/20 transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 font-bold text-sm">ETH</div>
-                      <div>
-                        <p className="text-sm font-semibold text-[#18211f]">Cryptocurrency</p>
-                        <p className="text-xs text-[#6b716d]">BTC, ETH, USDT — manual verification</p>
+                  <div className="p-4 rounded-xl border border-[#ececec]/60 hover:border-[#1e4a3f]/20 transition-all space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 font-bold text-sm">₿</div>
+                        <div>
+                          <p className="text-sm font-semibold text-[#18211f]">Cryptocurrency</p>
+                          <p className="text-xs text-[#6b716d]">BTC, ETH, USDT, SOL, and more — manual verification</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="text"
-                        placeholder="Wallet address"
-                        value={cryptoWallet}
-                        onChange={(e) => setCryptoWallet(e.target.value)}
-                        className="w-48 text-xs border border-[#ececec] rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40"
-                      />
                       <button
                         onClick={async () => {
                           const method = paymentMethods.find((m) => m.method === "crypto");
                           const newEnabled = !(method?.enabled ?? false);
-                          await upsertPaymentMethod(photographerId, "crypto", newEnabled, { wallet: cryptoWallet });
+                          await upsertPaymentMethod(photographerId, "crypto", newEnabled, { wallets: cryptoWallets });
                           setPaymentMethods((prev) => {
                             const exists = prev.find((m) => m.method === "crypto");
-                            if (exists) return prev.map((m) => m.method === "crypto" ? { ...m, enabled: newEnabled, details: { wallet: cryptoWallet } } : m);
-                            return [...prev, { id: `pm-${photographerId}-crypto`, photographerId, method: "crypto", enabled: newEnabled, details: { wallet: cryptoWallet } }];
+                            if (exists) return prev.map((m) => m.method === "crypto" ? { ...m, enabled: newEnabled, details: { wallets: cryptoWallets } } : m);
+                            return [...prev, { id: `pm-${photographerId}-crypto`, photographerId, method: "crypto", enabled: newEnabled, details: { wallets: cryptoWallets } }];
                           });
                           toast.success(newEnabled ? "Crypto payments enabled" : "Crypto payments disabled");
                         }}
@@ -1070,6 +1089,78 @@ export function Dashboard() {
                         }`} />
                       </button>
                     </div>
+
+                    {cryptoWallets.map((wallet, i) => (
+                      <div key={i} className="flex flex-wrap items-end gap-2 p-3 rounded-lg bg-[#f8f9f7] border border-[#ececec]/40">
+                        <div className="flex-1 min-w-[100px]">
+                          <label className="text-[10px] font-medium text-[#6b716d] mb-1 block">Coin</label>
+                          <select
+                            value={wallet.coin}
+                            onChange={(e) => {
+                              const coin = COINS.find((c) => c.symbol === e.target.value);
+                              setCryptoWallets((prev) => {
+                                const next = [...prev];
+                                next[i] = { ...next[i], coin: e.target.value, network: coin?.networks[0] || "ERC20" };
+                                return next;
+                              });
+                            }}
+                            className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40 bg-white"
+                          >
+                            {COINS.map((c) => (
+                              <option key={c.symbol} value={c.symbol}>{c.symbol} — {c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex-1 min-w-[100px]">
+                          <label className="text-[10px] font-medium text-[#6b716d] mb-1 block">Network</label>
+                          <select
+                            value={wallet.network}
+                            onChange={(e) => {
+                              setCryptoWallets((prev) => {
+                                const next = [...prev];
+                                next[i] = { ...next[i], network: e.target.value };
+                                return next;
+                              });
+                            }}
+                            className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40 bg-white"
+                          >
+                            {(COINS.find((c) => c.symbol === wallet.coin)?.networks || ["ERC20"]).map((net) => (
+                              <option key={net} value={net}>{net}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex-[2] min-w-[150px]">
+                          <label className="text-[10px] font-medium text-[#6b716d] mb-1 block">Wallet Address</label>
+                          <input
+                            type="text"
+                            placeholder="0x... or address"
+                            value={wallet.address}
+                            onChange={(e) => {
+                              setCryptoWallets((prev) => {
+                                const next = [...prev];
+                                next[i] = { ...next[i], address: e.target.value };
+                                return next;
+                              });
+                            }}
+                            className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40 font-mono"
+                          />
+                        </div>
+                        <button
+                          onClick={() => setCryptoWallets((prev) => prev.filter((_, j) => j !== i))}
+                          className="p-1.5 text-[#b91c1c] hover:bg-red-50 rounded-lg transition-colors"
+                          title="Remove wallet"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
+                    ))}
+
+                    <button
+                      onClick={() => setCryptoWallets((prev) => [...prev, { coin: "ETH", network: "ERC20", address: "" }])}
+                      className="flex items-center gap-1.5 text-xs font-medium text-[#1e4a3f] hover:text-[#123b31] transition-colors"
+                    >
+                      <Plus className="size-3.5" /> Add another wallet
+                    </button>
                   </div>
 
                   {/* PayPal */}
@@ -1150,7 +1241,7 @@ export function Dashboard() {
                       const amount = parseInt(payoutRequestAmount, 10);
                       if (!amount || amount < 100) { toast.error("Minimum payout is $100"); return; }
                       const req = await createPayoutRequest(photographerId, amount, payoutRequestMethod, {
-                        wallet: payoutRequestMethod === "crypto" ? cryptoWallet : undefined,
+                        wallets: payoutRequestMethod === "crypto" ? cryptoWallets : undefined,
                         email: payoutRequestMethod === "paypal" ? paypalEmail : undefined,
                       });
                       if (req) {

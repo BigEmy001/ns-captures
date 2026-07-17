@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Bell, Shield, FileText, TrendingUp, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Bell, Shield, FileText, TrendingUp, AlertCircle, Eye, EyeOff, User } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
@@ -10,12 +10,12 @@ import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
 
 const nav = [
-  { id: "overview", label: "Overview", icon: Settings },
+  { id: "overview", label: "Profile", icon: User },
   { id: "collections", label: "Collections", icon: FolderHeart },
   { id: "downloads", label: "Downloads", icon: Download },
   { id: "licenses", label: "Licenses", icon: FileText },
   { id: "activity", label: "Activity", icon: Bell },
-  { id: "security", label: "Security", icon: Shield },
+  { id: "security", label: "Settings", icon: Settings },
   { id: "billing", label: "Billing", icon: CreditCard },
 ];
 
@@ -260,6 +260,13 @@ export function Account() {
 
           {active === "downloads" && (
             <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
+              {purchases.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Download className="size-10 text-[#9aa09b] mx-auto mb-3" />
+                  <p className="font-serif text-lg text-[#18211f]">No downloads yet</p>
+                  <p className="mt-1 text-sm text-[#6b716d]">Purchased photos will appear here for download.</p>
+                </div>
+              ) : (
               <table className="w-full min-w-[560px] text-left text-sm">
                 <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.12em] text-[#8a8f89] uppercase border-b border-[#ececec]">
                   <tr>
@@ -310,11 +317,19 @@ export function Account() {
                   })}
                 </tbody>
               </table>
+              )}
             </div>
           )}
 
           {active === "licenses" && (
             <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
+              {licenses.length === 0 ? (
+                <div className="p-8 text-center">
+                  <FileText className="size-10 text-[#9aa09b] mx-auto mb-3" />
+                  <p className="font-serif text-lg text-[#18211f]">No licenses yet</p>
+                  <p className="mt-1 text-sm text-[#6b716d]">Licenses for purchased photos will appear here.</p>
+                </div>
+              ) : (
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.12em] text-[#8a8f89] uppercase border-b border-[#ececec]">
                   <tr>
@@ -360,12 +375,20 @@ export function Account() {
                   })}
                 </tbody>
               </table>
+              )}
             </div>
           )}
 
           {active === "activity" && (
             <div className="space-y-3">
-              {activity.map((a) => {
+              {activity.length === 0 ? (
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-8 ns-shadow-sm text-center">
+                  <Bell className="size-10 text-[#9aa09b] mx-auto mb-3" />
+                  <p className="font-serif text-lg text-[#18211f]">No activity yet</p>
+                  <p className="mt-1 text-sm text-[#6b716d]">Your recent actions will appear here.</p>
+                </div>
+              ) : (
+              activity.map((a) => {
                 const iconMap = {
                   download: <Download className="size-5 text-[#1e4a3f]" />,
                   purchase: <TrendingUp className="size-5 text-[#1e4a3f]" />,
@@ -391,7 +414,8 @@ export function Account() {
                     </time>
                   </div>
                 );
-              })}
+              })
+              )}
             </div>
           )}
 

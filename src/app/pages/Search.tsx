@@ -16,7 +16,7 @@ export function SearchPage() {
 
   const [query, setQuery] = useState(q);
   const [category, setCategory] = useState(params.get("cat") ?? "All");
-  const [photos, setPhotos] = useState(fallbackPhotos);
+  const [photos, setPhotos] = useState<Photo[]>(fallbackPhotos);
 
   useEffect(() => {
     fetchPhotos().then(setPhotos).catch(() => {});
