@@ -36,23 +36,60 @@ export function SearchPage() {
     setActiveLicenses((prev) => (prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l]));
 
   const results = useMemo(() => {
-    let list = photos.filter((p) => {
-      const matchesQ =
-        !query ||
-        [p.title, p.photographer, p.location, p.category, ...(p.keywords || [])]
-          .join(" ")
-          .toLowerCase()
-          .includes(query.toLowerCase());
-      const matchesCat = category === "All" || p.category === category;
-      const matchesLicense = activeLicenses.length === 0 || activeLicenses.includes(p.license);
-      const matchesOrient = !orientation || p.orientation === orientation;
-      const matchesPrice = p.price <= maxPrice;
-      return matchesQ && matchesCat && matchesLicense && matchesOrient && matchesPrice;
+    const tokens = query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    const scored = photos
+      .filter((p) => {
+        const matchesCat = category === "All" || p.category === category;
+        const matchesLicense = activeLicenses.length === 0 || activeLicenses.includes(p.license);
+        const matchesOrient = !orientation || p.orientation === orientation;
+        const matchesPrice = p.price <= maxPrice;
+        if (!(matchesCat && matchesLicense && matchesOrient && matchesPrice)) return false;
+
+        if (tokens.length === 0) return true;
+
+        const searchable = [
+          p.title,
+          p.photographer,
+          p.location,
+          p.category,
+          p.id,
+          ...(p.keywords || []),
+        ]
+          .filter(Boolean)
+          .map((s) => s.toLowerCase());
+
+        return tokens.every((token) =>
+          searchable.some((field) => field.includes(token)),
+        );
+      })
+      .map((p) => {
+        let score = 0;
+        if (tokens.length > 0) {
+          const lower = [p.title, p.photographer, p.location, p.category, ...(p.keywords || [])]
+            .filter(Boolean)
+            .map((s) => s.toLowerCase());
+
+          for (const token of tokens) {
+            if (lower[0]?.includes(token)) score += 4;
+            if (lower[1]?.includes(token)) score += 3;
+            if (lower.slice(2).some((f) => f.includes(token))) score += 1;
+          }
+        }
+        return { photo: p, score };
+      });
+
+    scored.sort((a, b) => {
+      if (tokens.length > 0 && a.score !== b.score) return b.score - a.score;
+      if (sort === "priceLow") return a.photo.price - b.photo.price;
+      if (sort === "new") return b.photo.id.localeCompare(a.photo.id);
+      return b.photo.downloads - a.photo.downloads;
     });
-    if (sort === "priceLow") list = [...list].sort((a, b) => a.price - b.price);
-    if (sort === "new") list = [...list].sort((a, b) => b.id.localeCompare(a.id));
-    if (sort === "popular") list = [...list].sort((a, b) => b.downloads - a.downloads);
-    return list;
+
+    return scored.map((s) => s.photo);
   }, [query, category, activeLicenses, orientation, maxPrice, sort, photos]);
 
   const submit = (e: React.FormEvent) => {
