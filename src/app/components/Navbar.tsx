@@ -125,8 +125,12 @@ export function Navbar() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [checkoutStatus, setCheckoutStatus] = useState<"idle" | "loading" | "success">("idle");
+  const [checkoutStep, setCheckoutStep] = useState<"select-method" | "payment-details" | "confirm">("select-method");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "crypto" | "paypal">("card");
-  const [availableMethods, setAvailableMethods] = useState<{ method: string; enabled: boolean }[]>([]);
+  const [availableMethods, setAvailableMethods] = useState<{ method: string; enabled: boolean; details: Record<string, unknown> }[]>([]);
+  const [photographerPaymentDetails, setPhotographerPaymentDetails] = useState<Record<string, { method: string; details: Record<string, unknown> }>>({});
+  const [receiptFiles, setReceiptFiles] = useState<Record<string, File | null>>({});
+  const [isPaying, setIsPaying] = useState(false);
 
   // Search Visibility State
   const { pathname } = useLocation();
@@ -200,22 +204,27 @@ export function Navbar() {
     const loadMethods = async () => {
       try {
         const photographers = await fetchPhotographers();
-        const photographerIds = [...new Set(
+        const uniquePhotographerIds = [...new Set(
           cartItems.map((item) => {
             const match = photographers.find((p) => p.name === item.photographer);
             return match?.id || item.photographer?.toLowerCase().replace(/[^a-z0-9]+/g, "-");
           }).filter(Boolean)
         )];
-        const allMethods: { method: string; enabled: boolean }[] = [];
-        for (const pid of photographerIds) {
+        const allMethods: { method: string; enabled: boolean; details: Record<string, unknown> }[] = [];
+        const detailsMap: Record<string, { method: string; details: Record<string, unknown> }> = {};
+        for (const pid of uniquePhotographerIds) {
           const methods = await fetchPaymentMethods(pid);
           methods.filter((m) => m.enabled).forEach((m) => {
             if (!allMethods.find((am) => am.method === m.method)) {
-              allMethods.push({ method: m.method, enabled: true });
+              allMethods.push({ method: m.method, enabled: true, details: m.details });
+            }
+            if (!detailsMap[pid]) {
+              detailsMap[pid] = { method: m.method, details: m.details };
             }
           });
         }
         if (allMethods.length > 0) setAvailableMethods(allMethods);
+        setPhotographerPaymentDetails(detailsMap);
       } catch {}
     };
     loadMethods();
@@ -235,10 +244,9 @@ export function Navbar() {
       navigate("/signin", { state: { from: "/account" } });
       return;
     }
-    setCheckoutStatus("loading");
+    setIsPaying(true);
 
     const now = new Date().toISOString();
-    const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
 
     for (const item of cartItems) {
       try {
@@ -252,7 +260,7 @@ export function Navbar() {
           licenseType: item.license,
           price: item.price,
           purchasedAt: now,
-          expiresAt: "Perpetual",
+          expiresAt: "Pending verification",
           downloads: 0,
         });
 
@@ -261,19 +269,21 @@ export function Navbar() {
         await logActivity({
           userId: user!.id,
           type: "purchase",
-          title: `License purchased: ${photo?.title || item.title}`,
-          desc: `${item.license} license for $${item.price}`,
+          title: `Payment submitted: ${photo?.title || item.title}`,
+          desc: `${item.license} license for $${item.price} via ${selectedPaymentMethod}`,
         });
       } catch {}
     }
 
+    setIsPaying(false);
     setCheckoutStatus("success");
     setTimeout(() => {
-      toast.success("License acquired successfully!", {
-        description: `Acquired licenses for ${cartItems.length} photos.`,
+      toast.success("Payment submitted!", {
+        description: `Your payment is pending verification. You'll be notified once confirmed.`,
       });
       clearCart();
       setCheckoutStatus("idle");
+      setCheckoutStep("select-method");
       setCartOpen(false);
       navigate("/account");
     }, 1500);
@@ -557,7 +567,7 @@ export function Navbar() {
         className={`fixed inset-0 z-50 bg-black/45 backdrop-blur-sm transition-opacity duration-300 ${
           cartOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
-        onClick={() => checkoutStatus === "idle" && setCartOpen(false)}
+        onClick={() => { if (checkoutStatus === "idle") { setCartOpen(false); setCheckoutStep("select-method"); } }}
       />
 
       {/* Cart Drawer */}
@@ -574,7 +584,7 @@ export function Navbar() {
             <span className="font-mono text-xs text-[#758078]">({cartItems.length})</span>
           </div>
           <button
-            onClick={() => setCartOpen(false)}
+            onClick={() => { setCartOpen(false); setCheckoutStep("select-method"); }}
             disabled={checkoutStatus !== "idle"}
             className="p-1 hover:bg-[#FAF9F5] rounded-full transition-colors cursor-pointer"
           >
@@ -664,49 +674,135 @@ export function Navbar() {
                 <span>Subtotal</span>
                 <span className="text-[#18211f] font-semibold">${subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between text-xs">
-                <span>Licensing fees</span>
-                <span className="text-[#1e7a4f]">Tax included</span>
-              </div>
               <div className="flex justify-between border-t border-[#ececec]/60 pt-3 text-base text-[#18211f]">
                 <span className="font-serif">Total Due</span>
                 <span className="font-serif font-bold text-lg">${subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
 
-            {/* Payment Method Selector */}
-            <div>
-              <p className="text-xs font-medium text-[#6b716d] mb-2">Payment Method</p>
-              <div className="flex gap-2">
-                {[
-                  { id: "card" as const, label: "Card", icon: "💳" },
-                  { id: "crypto" as const, label: "Crypto", icon: "₿" },
-                  { id: "paypal" as const, label: "PayPal", icon: "PP" },
-                ].filter((m) => availableMethods.length === 0 || availableMethods.find((am) => am.method === m.id)).map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => setSelectedPaymentMethod(m.id)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
-                      selectedPaymentMethod === m.id
-                        ? "bg-[#1e4a3f] text-white border-[#1e4a3f]"
-                        : "bg-white text-[#6b716d] border-[#ececec] hover:border-[#1e4a3f]/30"
-                    }`}
-                  >
-                    <span className="text-sm">{m.icon}</span> {m.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* STEP 1: Select Payment Method */}
+            {checkoutStep === "select-method" && (
+              <>
+                <div>
+                  <p className="text-xs font-medium text-[#6b716d] mb-2">Pay with</p>
+                  <div className="flex gap-2">
+                    {[
+                      { id: "card" as const, label: "Bank Transfer", icon: "🏦" },
+                      { id: "crypto" as const, label: "Crypto", icon: "₿" },
+                      { id: "paypal" as const, label: "PayPal", icon: "PP" },
+                    ].filter((m) => availableMethods.length === 0 || availableMethods.find((am) => am.method === m.id)).map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => setSelectedPaymentMethod(m.id)}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+                          selectedPaymentMethod === m.id
+                            ? "bg-[#1e4a3f] text-white border-[#1e4a3f]"
+                            : "bg-white text-[#6b716d] border-[#ececec] hover:border-[#1e4a3f]/30"
+                        }`}
+                      >
+                        <span className="text-sm">{m.icon}</span> {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setCheckoutStep("payment-details")}
+                  className="w-full flex items-center justify-center gap-2 bg-[#1e4a3f] hover:bg-[#123b31] text-white py-3 rounded-full text-sm font-semibold shadow-md transition duration-200 cursor-pointer"
+                >
+                  Continue to Payment Details
+                </button>
+              </>
+            )}
 
-            <button
-              onClick={handleCheckout}
-              className="w-full flex items-center justify-center gap-2 bg-[#1e4a3f] hover:bg-[#123b31] text-white py-3 rounded-full text-sm font-semibold shadow-md transition duration-200 hover:-translate-y-0.5 cursor-pointer"
-            >
-              <ShieldCheck className="size-4" /> Secure Checkout
-            </button>
-            <p className="text-[10px] text-center text-[#8a8f89] flex items-center justify-center gap-1">
-              <Lock className="size-3 text-[#1e4a3f]" /> Encrypted 256-bit SSL transaction
-            </p>
+            {/* STEP 2: Show Payment Details + Receipt Upload */}
+            {checkoutStep === "payment-details" && (
+              <>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-[#18211f] uppercase tracking-wider">Payment Instructions</p>
+                    <button onClick={() => setCheckoutStep("select-method")} className="text-[10px] text-[#1e4a3f] hover:underline">Change method</button>
+                  </div>
+
+                  {selectedPaymentMethod === "card" && (
+                    <div className="bg-[#f8f9f7] rounded-xl p-4 border border-[#ececec]/60">
+                      <p className="text-xs font-semibold text-[#18211f] mb-2">Bank Transfer Details</p>
+                      <p className="text-[11px] text-[#6b716d]">Transfer the total amount to the photographer's bank account. Reference your order ID after payment.</p>
+                      <div className="mt-3 space-y-1.5">
+                        <p className="text-xs text-[#18211f]">Bank: <span className="font-medium">Provided by photographer</span></p>
+                        <p className="text-xs text-[#18211f]">Account: <span className="font-medium">Shown on order confirmation</span></p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPaymentMethod === "crypto" && (
+                    <div className="bg-[#f8f9f7] rounded-xl p-4 border border-[#ececec]/60">
+                      <p className="text-xs font-semibold text-[#18211f] mb-2">Crypto Payment</p>
+                      <p className="text-[11px] text-[#6b716d]">Send the exact amount to the wallet address below. Include your order ID in the transaction memo.</p>
+                      {Object.entries(photographerPaymentDetails).map(([pid, pd]) => (
+                        pd.method === "crypto" && (
+                          <div key={pid} className="mt-2 p-2 bg-white rounded-lg border border-[#ececec]/40">
+                            <p className="text-[10px] text-[#6b716d] uppercase">{pid.replace(/-/g, " ")}</p>
+                            <p className="text-xs font-mono text-[#18211f] break-all">{String(pd.details.wallet || "Not configured")}</p>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedPaymentMethod === "paypal" && (
+                    <div className="bg-[#f8f9f7] rounded-xl p-4 border border-[#ececec]/60">
+                      <p className="text-xs font-semibold text-[#18211f] mb-2">PayPal Payment</p>
+                      <p className="text-[11px] text-[#6b716d]">Send payment to the PayPal address below. Use "Friends & Family" to avoid fees.</p>
+                      {Object.entries(photographerPaymentDetails).map(([pid, pd]) => (
+                        pd.method === "paypal" && (
+                          <div key={pid} className="mt-2 p-2 bg-white rounded-lg border border-[#ececec]/40">
+                            <p className="text-[10px] text-[#6b716d] uppercase">{pid.replace(/-/g, " ")}</p>
+                            <p className="text-xs font-mono text-[#18211f]">{String(pd.details.email || "Not configured")}</p>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Receipt Upload */}
+                  <div>
+                    <p className="text-xs font-medium text-[#6b716d] mb-1.5">Upload Receipt (optional)</p>
+                    <label className="flex items-center gap-2 p-3 border border-dashed border-[#ececec] rounded-xl hover:border-[#1e4a3f]/40 transition-colors cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setReceiptFiles({ ...receiptFiles, ["all"]: file });
+                            toast.success("Receipt attached");
+                          }
+                        }}
+                      />
+                      <span className="text-xs text-[#6b716d]">
+                        {receiptFiles["all"] ? `✓ ${receiptFiles["all"]!.name}` : "Click to attach payment receipt"}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleCheckout}
+                  disabled={isPaying}
+                  className="w-full flex items-center justify-center gap-2 bg-[#1e4a3f] hover:bg-[#123b31] disabled:opacity-60 text-white py-3 rounded-full text-sm font-semibold shadow-md transition duration-200 cursor-pointer"
+                >
+                  {isPaying ? (
+                    <><Loader2 className="size-4 animate-spin" /> Processing...</>
+                  ) : (
+                    <><CheckCircle className="size-4" /> I Have Paid</>
+                  )}
+                </button>
+                <p className="text-[10px] text-center text-[#8a8f89]">
+                  Your payment will be verified within 24 hours. Licenses are granted upon confirmation.
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>
