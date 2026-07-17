@@ -31,7 +31,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<void>;
-  signup: (data: { firstName: string; lastName: string; email: string; password: string }) => Promise<void>;
+  signup: (data: { firstName: string; lastName: string; email: string; password: string; role?: string }) => Promise<{ needsEmailConfirmation: boolean }>;
   logout: () => void;
   updateProfile: (data: Partial<AuthUser>) => Promise<void>;
   changePassword: (current: string, next: string) => Promise<void>;
@@ -193,9 +193,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigate(from, { replace: true });
   }, [location.state, navigate]);
 
-  const signup = useCallback(async (data: { firstName: string; lastName: string; email: string; password: string }) => {
+  const signup = useCallback(async (data: { firstName: string; lastName: string; email: string; password: string; role?: string }) => {
     if (!isSupabaseReady()) {
-      throw new Error("Account service is still being configured. Please try again shortly.");
+      toast.error("Database connection unavailable", { description: "Please check your environment variables." });
+      return { needsEmailConfirmation: false };
     }
 
     const normalized = normalizeEmail(data.email);
@@ -222,7 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       options: {
         data: {
           name: `${firstName} ${lastName}`,
-          role: "Buyer",
+          role: data.role || "Buyer",
           plan: "Starter",
         },
       },
@@ -240,9 +241,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const authUser = supabaseUserToAuthUser(authData.user, profile);
         setUser(authUser);
         navigate("/account", { replace: true });
+        return { needsEmailConfirmation: false };
       }
-      toast.success("Account created", { description: authData.session ? "Welcome to NS CAPTURES!" : "Check your email to confirm your account." });
+      return { needsEmailConfirmation: true };
     }
+    return { needsEmailConfirmation: false };
   }, [navigate]);
 
   const logout = useCallback(async () => {
