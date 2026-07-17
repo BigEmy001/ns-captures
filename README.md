@@ -42,10 +42,10 @@ A complete email-first system that bridges independent photographers and NS CAPT
 
 ### **Email Service**
 ```bash
-SEND_HOST=mail.privateemail.com
-SEND_PORT=465
-SEND_USER=support@nscaptures.com
-SEND_PASS=[PrivateEmail password]
+SEND_HOST
+SEND_PORT
+SEND_USER
+SEND_PASS
 ```
 
 ### **Email Content**
@@ -114,29 +114,26 @@ SEND_PASS=[PrivateEmail password]
 
 ### Prerequisites
 ```bash
-# PrivateEmail SMTP credentials
-SMTP_HOST=mail.privateemail.com
-SMTP_PORT=465
-SMTP_USER=support@nscaptures.com
-SMTP_PASS=[your-privateemail-password]
+# Configure these as environment secrets (never commit real values)
+SMTP_HOST
+SMTP_PORT
+SMTP_USER
+SMTP_PASS
 ```
 
 ### Environment Variables
 ```bash
-# Supabase Edge Function configuration
-SMTP_HOST=mail.privateemail.com
-SMTP_PORT=465
-SMTP_USER=support@nscaptures.com
-SMTP_PASS=[privateemailPassword]
+# Supabase Edge Function required keys
+SMTP_HOST
+SMTP_PORT
+SMTP_USER
+SMTP_PASS
 ```
 
 ### Installation
 ```bash
-# Nuxt 3/Native App
-uenv add SMTP_HOST=mail.privateemail.com
-env add SMTP_PORT=465
-evn add SMTP_USER=support@nscaptures.com
-env add SMTP_PASS=[yourPassword]
+# Set SMTP host/user/port through your platform or Supabase secrets
+# Set SMTP_PASS only in your secret manager (not in source files)
 
 # Build & Deploy
 npm run build

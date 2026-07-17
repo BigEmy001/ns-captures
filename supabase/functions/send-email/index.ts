@@ -53,16 +53,25 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing required fields: to, subject, body" }), { status: 400 });
     }
 
+    const smtpHost = Deno.env.get("SMTP_HOST");
+    const smtpPort = Deno.env.get("SMTP_PORT");
+    const smtpUser = Deno.env.get("SMTP_USER");
+    const smtpPass = Deno.env.get("SMTP_PASS");
+
+    if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
+      return new Response(JSON.stringify({ error: "SMTP is not configured" }), { status: 500 });
+    }
+
     const client = new SmtpClient();
     await client.connectTLS({
-      hostname: Deno.env.get("SMTP_HOST") || "mail.privateemail.com",
-      port: parseInt(Deno.env.get("SMTP_PORT") || "465"),
-      username: Deno.env.get("SMTP_USER") || "support@nscaptures.com",
-      password: Deno.env.get("SMTP_PASS") || "",
+      hostname: smtpHost,
+      port: parseInt(smtpPort),
+      username: smtpUser,
+      password: smtpPass,
     });
 
     await client.send({
-      from: `"NS CAPTURES" <${Deno.env.get("SMTP_USER") || "support@nscaptures.com"}>`,
+      from: `"NS CAPTURES" <${smtpUser}>`,
       to: to,
       subject: subject,
       html: buildHtml(body),
