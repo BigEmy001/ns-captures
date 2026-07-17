@@ -1217,7 +1217,7 @@ export async function fetchPhotographerStats(photographerId: string): Promise<{
 
   const { data: photos } = await supabase!
     .from("photos")
-    .select("downloads, views, likes, price")
+    .select("id, downloads, views, likes, price")
     .eq("photographer_id", photographerId);
 
   if (!photos || photos.length === 0) return { totalRevenue: 0, totalDownloads: 0, totalViews: 0, totalLikes: 0, photoCount: 0, avgPrice: 0 };

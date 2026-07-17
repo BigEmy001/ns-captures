@@ -7,6 +7,8 @@ export type UserRole = "Buyer" | "Photographer" | "Enterprise" | "Admin" | "Gues
 
 export interface AuthUser {
   id: string;
+  /** Stable photographer identifier; never derive ownership from name. */
+  slug?: string;
   name: string;
   email: string;
   role: UserRole;
@@ -54,6 +56,7 @@ const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
     password: "password123",
     user: {
       id: "U-1044",
+      slug: "namnso-ukpanah",
       name: "Namnso Ukpanah",
       email: "namnso@ns.co",
       role: "Photographer",
@@ -68,6 +71,7 @@ const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
     password: "password123",
     user: {
       id: "U-1051",
+      slug: "divine-effiong",
       name: "Divine Effiong",
       email: "divine@studio.ng",
       role: "Photographer",
@@ -110,6 +114,7 @@ const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
     password: "password123",
     user: {
       id: "U-1090",
+      slug: "patrick-watson-quine",
       name: "Patrick Watson Quine",
       email: "patrick@ns.co",
       role: "Photographer",
@@ -124,6 +129,7 @@ const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
     password: "password123",
     user: {
       id: "U-1092",
+      slug: "lexmond-dennis",
       name: "Lexmond Dennis",
       email: "lexmond@ns.co",
       role: "Photographer",
@@ -157,6 +163,7 @@ const MOCK_USERS: Record<string, { password: string; user: AuthUser }> = {
 function supabaseUserToAuthUser(supabaseUser: any, profile: any): AuthUser {
   return {
     id: supabaseUser.id,
+    slug: profile?.slug || undefined,
     name: profile?.name || supabaseUser.email?.split("@")[0] || "User",
     email: supabaseUser.email || "",
     role: (profile?.role as UserRole) || "Buyer",
@@ -441,14 +448,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ----------------------------------------------------------
   const updateProfile = useCallback(async (data: Partial<AuthUser>) => {
     if (!user) return;
-    const { id: _id, role: _role, ...editableData } = data;
+    const { id: _id, role: _role, slug: _slug, ...editableData } = data;
 
     if (isSupabaseConfigured && supabase) {
+      if (editableData.email && editableData.email !== user.email) {
+        const { error: emailError } = await supabase.auth.updateUser({ email: editableData.email });
+        if (emailError) throw new Error(emailError.message);
+      }
       const { error } = await supabase
         .from("profiles")
         .update({
           name: editableData.name,
-          email: editableData.email,
           company: editableData.company,
           avatar: editableData.avatar,
         })
@@ -456,7 +466,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw new Error(error.message);
 
-      const updated = { ...user, ...editableData };
+      if (user.role === "Photographer" && user.slug && editableData.name) {
+        await supabase
+          .from("photographers")
+          .update({ name: editableData.name })
+          .eq("id", user.slug);
+      }
+
+      const updated = { ...user, ...editableData, slug: user.slug };
       setUser(updated);
       toast.success("Profile saved");
     } else {

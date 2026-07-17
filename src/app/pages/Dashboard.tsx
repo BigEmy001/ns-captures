@@ -91,8 +91,8 @@ export function Dashboard() {
   const [followerCount, setFollowerCount] = useState(0);
 
   // Dynamically resolve the photographerId and photographerProfile
-  const photographerProfile = photographers.find(p => p.name.toLowerCase() === user?.name.toLowerCase());
-  const photographerId = photographerProfile ? photographerProfile.id : user?.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "";
+  const photographerProfile = photographers.find(p => p.id === user?.slug);
+  const photographerId = user?.slug || photographerProfile?.id || "";
 
   // Dynamic Portfolio state (starts with this photographer's photos)
   const [portfolioPhotos, setPortfolioPhotos] = useState<Photo[]>([]);
@@ -116,7 +116,7 @@ export function Dashboard() {
       }).catch(() => {});
       fetchPayoutRequests(photographerId).then(setPayoutRequests).catch(() => {});
     }
-  }, [photographerId]);
+  }, [photographerId, photos]);
 
   // Upload wizard states
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -439,18 +439,18 @@ export function Dashboard() {
       focalLength: exifFocalLength || undefined,
     };
 
-    // Save to Supabase
+    // Save to Supabase using the stable photographer slug.
     const saved = await createPhoto(newPhotoItem);
     if (saved) {
       setPortfolioPhotos((prev) => [saved, ...prev]);
+      toast.success("Photo published!", {
+        description: `"${uploadTitle || "Untitled Frame"}" is now visible under your portfolio.`,
+      });
     } else {
-      // Fallback: add locally if Supabase fails
-      setPortfolioPhotos((prev) => [newPhotoItem, ...prev]);
+      toast.error("Photo was not published", {
+        description: "The upload could not be saved. Check your connection and try again.",
+      });
     }
-
-    toast.success("Photo published!", {
-      description: `"${uploadTitle || "Untitled Frame"}" is now visible under your portfolio.`,
-    });
   };
 
   const handleAcceptBrief = (briefId: string) => {
@@ -1248,8 +1248,8 @@ export function Dashboard() {
                           location,
                           specialty,
                           bio,
-                          bankName: "",
-                          bankAccountLast4: "",
+                          bankName: profileSettings.bankName,
+                          bankAccountLast4: profileSettings.bankAccountLast4,
                         });
                         if (ok) toast.success("Settings saved to database");
                         else toast.success("Settings saved");
