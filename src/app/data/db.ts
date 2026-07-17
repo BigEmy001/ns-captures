@@ -352,13 +352,21 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
 
   const { data, error } = await supabase!
     .from("profiles")
-    .select("id, name, role, created_at");
+    .select("id, name, email, role, created_at")
+    .order("created_at", { ascending: false });
 
   if (error || !data || data.length === 0) return mockAdminUsers;
 
-  // Also fetch auth emails via admin API (not available from client)
-  // Fall back to mock for email data
-  return mockAdminUsers;
+  return data.map((p: any, i: number) => ({
+    id: p.id,
+    name: p.name || "Unknown",
+    email: p.email || `${p.name?.toLowerCase().replace(/\s+/g, ".") || "user"}@ns-captures.com`,
+    role: (p.role || "Buyer") as AdminUser["role"],
+    status: "Active" as AdminUser["status"],
+    joined: p.created_at
+      ? new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+      : "Unknown",
+  }));
 }
 
 export async function fetchModerationQueue(): Promise<ModerationItem[]> {
