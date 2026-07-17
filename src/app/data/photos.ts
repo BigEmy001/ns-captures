@@ -5627,7 +5627,7 @@ const initialPhotos: Photo[] = [
 const unsplashIds = [
   "1506744038136-46273834b3fb", // Yosemite
   "1470071459604-3b5ec3a7fe05", // Landscape
-  "1472214222541-d510753a4907", // Green meadow
+  "1619694770795-e21c58464159", // Green meadow
   "1501854140801-50d01698950b", // Mountain range
   "1441974231531-c6227db76b6e", // Forest trees
   "1447752875215-b2761acb3c5d", // Forest path
@@ -5655,12 +5655,12 @@ const unsplashIds = [
   "1618005182384-a83a8bd57fbe", // Abstract fluid art
   "1618221195710-dd6b41faaea6", // Luxury couch
   "1618221381711-42ca8ab6e908", // Clean bathroom
-  "1628157582853-a796fa650a6a", // Portrait studio
+  "1593351799227-75df2026356b", // Portrait studio
   "1633356122544-f134324a6cee", // Coding monitor
   "1682687220063-4742bd7fd538", // Desert dunes
-  "1682687220067-167e4167e416", // Canyon rocks
-  "1682687220115-ff9c5deb0cd9", // Namibia sunset
-  "1682687220742-147007145960", // Portugal cliffs
+  "1711464669343-2596d0f1b526", // Canyon rocks
+  "1527201987695-67c06571957e", // Namibia sunset
+  "1532076904124-d4e8fe7fbbec", // Portugal cliffs
   "1707343843437-caacff5cfa74", // Abstract geometric structure
   "1517841905240-472988babdf9", // Street portrait girl
   "1539571696357-5a69c17a67c6", // Candid man laughing
@@ -5673,7 +5673,7 @@ const unsplashIds = [
   "1500648767791-00dcc994a43e", // Black model studio
   "1519085360753-af0119f7cbe7", // Executive portrait
   "1524504388940-b1c1722653e1", // Street style photo
-  "1529626455594-4ff0802cfb72", // Model posing outdoors
+  "1584805164144-ab4169cea20d", // Model posing outdoors
   "1531746020798-e6953c6e8e04", // Studio portrait red background
 ];
 
