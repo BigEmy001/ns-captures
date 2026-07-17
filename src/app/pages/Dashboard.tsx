@@ -11,7 +11,7 @@ import exifr from "exifr";
 import { Eyebrow, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { photos as fallbackPhotos, briefs as fallbackBriefs, photographers as fallbackPhotographers, type Photo, type License, type Orientation } from "../data/photos";
-import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout, getOptimizedImageUrl } from "../data/db";
+import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout, getOptimizedImageUrl, fetchPaymentMethods, upsertPaymentMethod, createPayoutRequest, fetchPayoutRequests, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ const nav = [
   { id: "analytics", label: "Analytics", icon: TrendingUp },
   { id: "requests", label: "Requests", icon: Inbox },
   { id: "payouts", label: "Payouts", icon: Wallet },
+  { id: "payment-methods", label: "Payment Methods", icon: Wallet },
   { id: "followers", label: "Followers", icon: Users },
   { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -74,6 +75,14 @@ export function Dashboard() {
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editingPriceValue, setEditingPriceValue] = useState<string>("");
 
+  // Payment methods
+  const [paymentMethods, setPaymentMethods] = useState<PhotographerPaymentMethod[]>([]);
+  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
+  const [payoutRequestAmount, setPayoutRequestAmount] = useState("");
+  const [payoutRequestMethod, setPayoutRequestMethod] = useState<"card" | "crypto" | "paypal">("card");
+  const [cryptoWallet, setCryptoWallet] = useState("");
+  const [paypalEmail, setPaypalEmail] = useState("");
+
   // Photographer dashboard data
   const [revenueData, setRevenueData] = useState<{ m: string; v: number }[]>([]);
   const [downloadsData, setDownloadsData] = useState<{ m: string; v: number }[]>([]);
@@ -97,6 +106,15 @@ export function Dashboard() {
       fetchPhotographerStats(photographerId).then(setPhotographerStats).catch(() => {});
       fetchPhotographerTopCategories(photographerId).then(setTopCategories).catch(() => {});
       fetchFollowerCount(photographerId).then(setFollowerCount).catch(() => {});
+      fetchPaymentMethods(photographerId).then((methods) => {
+        setPaymentMethods(methods);
+        // Pre-fill details from existing methods
+        methods.forEach((m) => {
+          if (m.method === "crypto" && m.details.wallet) setCryptoWallet(String(m.details.wallet));
+          if (m.method === "paypal" && m.details.email) setPaypalEmail(String(m.details.email));
+        });
+      }).catch(() => {});
+      fetchPayoutRequests(photographerId).then(setPayoutRequests).catch(() => {});
     }
   }, [photographerId]);
 
@@ -540,6 +558,7 @@ export function Dashboard() {
                 {active === "analytics" && "Earnings & Metrics"}
                 {active === "requests" && "Creative Briefs"}
                 {active === "payouts" && "Payout Settings"}
+                {active === "payment-methods" && "Payment Methods"}
                 {active === "followers" && "Audience"}
                 {active === "settings" && "Profile settings"}
               </h1>
@@ -962,7 +981,205 @@ export function Dashboard() {
             </div>
           )}
 
-          {/* 6. FOLLOWERS VIEW */}
+          {/* 6. PAYMENT METHODS VIEW */}
+          {active === "payment-methods" && (
+            <div className="mt-8 space-y-6">
+              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                <h3 className="mb-1 font-serif text-lg text-[#18211f]">Accepted Payment Methods</h3>
+                <p className="text-xs text-[#6b716d] mb-6">Toggle which payment methods buyers can use to purchase your photos.</p>
+
+                <div className="space-y-4">
+                  {/* Card */}
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-[#ececec]/60 hover:border-[#1e4a3f]/20 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-sm">VISA</div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#18211f]">Credit / Debit Card</p>
+                        <p className="text-xs text-[#6b716d]">Visa, Mastercard, AMEX via Stripe</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const method = paymentMethods.find((m) => m.method === "card");
+                        const newEnabled = !(method?.enabled ?? true);
+                        await upsertPaymentMethod(photographerId, "card", newEnabled);
+                        setPaymentMethods((prev) => {
+                          const exists = prev.find((m) => m.method === "card");
+                          if (exists) return prev.map((m) => m.method === "card" ? { ...m, enabled: newEnabled } : m);
+                          return [...prev, { id: `pm-${photographerId}-card`, photographerId, method: "card", enabled: newEnabled, details: {} }];
+                        });
+                        toast.success(newEnabled ? "Card payments enabled" : "Card payments disabled");
+                      }}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        paymentMethods.find((m) => m.method === "card")?.enabled !== false ? "bg-[#1e4a3f]" : "bg-gray-300"
+                      }`}
+                    >
+                      <span className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
+                        paymentMethods.find((m) => m.method === "card")?.enabled !== false ? "translate-x-6" : "translate-x-1"
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Crypto */}
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-[#ececec]/60 hover:border-[#1e4a3f]/20 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 font-bold text-sm">ETH</div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#18211f]">Cryptocurrency</p>
+                        <p className="text-xs text-[#6b716d]">BTC, ETH, USDT — manual verification</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="text"
+                        placeholder="Wallet address"
+                        value={cryptoWallet}
+                        onChange={(e) => setCryptoWallet(e.target.value)}
+                        className="w-48 text-xs border border-[#ececec] rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40"
+                      />
+                      <button
+                        onClick={async () => {
+                          const method = paymentMethods.find((m) => m.method === "crypto");
+                          const newEnabled = !(method?.enabled ?? false);
+                          await upsertPaymentMethod(photographerId, "crypto", newEnabled, { wallet: cryptoWallet });
+                          setPaymentMethods((prev) => {
+                            const exists = prev.find((m) => m.method === "crypto");
+                            if (exists) return prev.map((m) => m.method === "crypto" ? { ...m, enabled: newEnabled, details: { wallet: cryptoWallet } } : m);
+                            return [...prev, { id: `pm-${photographerId}-crypto`, photographerId, method: "crypto", enabled: newEnabled, details: { wallet: cryptoWallet } }];
+                          });
+                          toast.success(newEnabled ? "Crypto payments enabled" : "Crypto payments disabled");
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          paymentMethods.find((m) => m.method === "crypto")?.enabled ? "bg-[#1e4a3f]" : "bg-gray-300"
+                        }`}
+                      >
+                        <span className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
+                          paymentMethods.find((m) => m.method === "crypto")?.enabled ? "translate-x-6" : "translate-x-1"
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* PayPal */}
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-[#ececec]/60 hover:border-[#1e4a3f]/20 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-800 font-bold text-sm">PP</div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#18211f]">PayPal</p>
+                        <p className="text-xs text-[#6b716d]">Direct PayPal.me or email transfer</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="text"
+                        placeholder="PayPal email or link"
+                        value={paypalEmail}
+                        onChange={(e) => setPaypalEmail(e.target.value)}
+                        className="w-48 text-xs border border-[#ececec] rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40"
+                      />
+                      <button
+                        onClick={async () => {
+                          const method = paymentMethods.find((m) => m.method === "paypal");
+                          const newEnabled = !(method?.enabled ?? false);
+                          await upsertPaymentMethod(photographerId, "paypal", newEnabled, { email: paypalEmail });
+                          setPaymentMethods((prev) => {
+                            const exists = prev.find((m) => m.method === "paypal");
+                            if (exists) return prev.map((m) => m.method === "paypal" ? { ...m, enabled: newEnabled, details: { email: paypalEmail } } : m);
+                            return [...prev, { id: `pm-${photographerId}-paypal`, photographerId, method: "paypal", enabled: newEnabled, details: { email: paypalEmail } }];
+                          });
+                          toast.success(newEnabled ? "PayPal payments enabled" : "PayPal payments disabled");
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          paymentMethods.find((m) => m.method === "paypal")?.enabled ? "bg-[#1e4a3f]" : "bg-gray-300"
+                        }`}
+                      >
+                        <span className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
+                          paymentMethods.find((m) => m.method === "paypal")?.enabled ? "translate-x-6" : "translate-x-1"
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Request Payout */}
+              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                <h3 className="mb-1 font-serif text-lg text-[#18211f]">Request Payout</h3>
+                <p className="text-xs text-[#6b716d] mb-6">Request a payout of your earned revenue. Admin will review and process.</p>
+
+                <div className="flex flex-wrap items-end gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-[#6b716d] mb-1 block">Amount ($)</label>
+                    <input
+                      type="number"
+                      min="100"
+                      placeholder="Min $100"
+                      value={payoutRequestAmount}
+                      onChange={(e) => setPayoutRequestAmount(e.target.value)}
+                      className="w-40 text-sm border border-[#ececec] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#1e4a3f]/40"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-[#6b716d] mb-1 block">Method</label>
+                    <select
+                      value={payoutRequestMethod}
+                      onChange={(e) => setPayoutRequestMethod(e.target.value as "card" | "crypto" | "paypal")}
+                      className="text-sm border border-[#ececec] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#1e4a3f]/40 bg-white"
+                    >
+                      {paymentMethods.filter((m) => m.enabled).map((m) => (
+                        <option key={m.method} value={m.method}>
+                          {m.method === "card" ? "Bank Transfer (Card)" : m.method === "crypto" ? "Crypto Wallet" : "PayPal"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const amount = parseInt(payoutRequestAmount, 10);
+                      if (!amount || amount < 100) { toast.error("Minimum payout is $100"); return; }
+                      const req = await createPayoutRequest(photographerId, amount, payoutRequestMethod, {
+                        wallet: payoutRequestMethod === "crypto" ? cryptoWallet : undefined,
+                        email: payoutRequestMethod === "paypal" ? paypalEmail : undefined,
+                      });
+                      if (req) {
+                        setPayoutRequests((prev) => [req, ...prev]);
+                        setPayoutRequestAmount("");
+                        toast.success("Payout request submitted");
+                      }
+                    }}
+                    className="bg-[#1e4a3f] text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-[#163a30] transition-colors"
+                  >
+                    Submit Request
+                  </button>
+                </div>
+
+                {payoutRequests.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="text-xs font-semibold text-[#6b716d] uppercase tracking-wider mb-3">Your Requests</h4>
+                    <div className="space-y-2">
+                      {payoutRequests.map((pr) => (
+                        <div key={pr.id} className="flex items-center justify-between p-3 rounded-lg bg-[#FAF9F5] border border-[#ececec]/40">
+                          <div>
+                            <p className="text-sm font-medium text-[#18211f]">${pr.amount.toLocaleString()} — {pr.method === "card" ? "Bank Transfer" : pr.method === "crypto" ? "Crypto" : "PayPal"}</p>
+                            <p className="text-xs text-[#6b716d]">{new Date(pr.requestedAt).toLocaleDateString()}</p>
+                          </div>
+                          <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                            pr.status === "APPROVED" || pr.status === "PAID" ? "bg-green-50 text-green-700" :
+                            pr.status === "REJECTED" ? "bg-red-50 text-red-600" :
+                            "bg-amber-50 text-amber-700"
+                          }`}>
+                            {pr.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 7. FOLLOWERS VIEW */}
           {active === "followers" && (
             <div className="mt-8">
               {followerCount === 0 ? (

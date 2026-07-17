@@ -1419,3 +1419,216 @@ export function getFullQualityImageUrl(url: string): string {
 
   return url;
 }
+
+// ============================================================
+// PAYMENT METHODS — photographer accepted methods
+// ============================================================
+
+export interface PhotographerPaymentMethod {
+  id: string;
+  photographerId: string;
+  method: "card" | "crypto" | "paypal";
+  enabled: boolean;
+  details: Record<string, unknown>;
+}
+
+// Mock fallback for payment methods
+const mockPaymentMethods: Record<string, PhotographerPaymentMethod[]> = {
+  "patrick-watson-quine": [
+    { id: "pm-1", photographerId: "patrick-watson-quine", method: "card", enabled: true, details: {} },
+    { id: "pm-2", photographerId: "patrick-watson-quine", method: "paypal", enabled: true, details: { email: "patrick@paypal.me" } },
+  ],
+  "lexmond-dennis": [
+    { id: "pm-3", photographerId: "lexmond-dennis", method: "card", enabled: true, details: {} },
+    { id: "pm-4", photographerId: "lexmond-dennis", method: "crypto", enabled: true, details: { wallet: "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD78" } },
+  ],
+};
+
+export async function fetchPaymentMethods(photographerId: string): Promise<PhotographerPaymentMethod[]> {
+  if (!isSupabaseConfigured) return mockPaymentMethods[photographerId] || [
+    { id: "pm-default", photographerId, method: "card", enabled: true, details: {} },
+  ];
+
+  const { data } = await supabase!
+    .from("photographer_payment_methods")
+    .select("*")
+    .eq("photographer_id", photographerId);
+
+  if (!data || data.length === 0) {
+    // Return defaults if none configured
+    return [
+      { id: `pm-${photographerId}-card`, photographerId, method: "card", enabled: true, details: {} },
+    ];
+  }
+
+  return data.map((r) => ({
+    id: r.id,
+    photographerId: r.photographer_id,
+    method: r.method,
+    enabled: r.enabled,
+    details: r.details || {},
+  }));
+}
+
+export async function upsertPaymentMethod(
+  photographerId: string,
+  method: "card" | "crypto" | "paypal",
+  enabled: boolean,
+  details: Record<string, unknown> = {}
+): Promise<boolean> {
+  if (!isSupabaseConfigured) return true;
+
+  const { error } = await supabase!
+    .from("photographer_payment_methods")
+    .upsert(
+      { photographer_id: photographerId, method, enabled, details },
+      { onConflict: "photographer_id,method" }
+    );
+
+  return !error;
+}
+
+export async function fetchAllPaymentMethods(): Promise<PhotographerPaymentMethod[]> {
+  if (!isSupabaseConfigured) return Object.values(mockPaymentMethods).flat();
+
+  const { data } = await supabase!
+    .from("photographer_payment_methods")
+    .select("*");
+
+  if (!data) return [];
+
+  return data.map((r) => ({
+    id: r.id,
+    photographerId: r.photographer_id,
+    method: r.method,
+    enabled: r.enabled,
+    details: r.details || {},
+  }));
+}
+
+// ============================================================
+// PAYOUT REQUESTS
+// ============================================================
+
+export interface PayoutRequest {
+  id: string;
+  photographerId: string;
+  amount: number;
+  method: "card" | "crypto" | "paypal";
+  details: Record<string, unknown>;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "PAID";
+  adminNote: string;
+  requestedAt: string;
+  processedAt: string | null;
+}
+
+export async function createPayoutRequest(
+  photographerId: string,
+  amount: number,
+  method: "card" | "crypto" | "paypal",
+  details: Record<string, unknown> = {}
+): Promise<PayoutRequest | null> {
+  if (!isSupabaseConfigured) {
+    return {
+      id: `PR-${Date.now().toString(36)}`,
+      photographerId,
+      amount,
+      method,
+      details,
+      status: "PENDING",
+      adminNote: "",
+      requestedAt: new Date().toISOString(),
+      processedAt: null,
+    };
+  }
+
+  const { data, error } = await supabase!
+    .from("payout_requests")
+    .insert({
+      photographer_id: photographerId,
+      amount,
+      method,
+      details,
+    })
+    .select()
+    .single();
+
+  if (error) { console.error("createPayoutRequest", error); return null; }
+
+  return {
+    id: data.id,
+    photographerId: data.photographer_id,
+    amount: data.amount,
+    method: data.method,
+    details: data.details || {},
+    status: data.status,
+    adminNote: data.admin_note || "",
+    requestedAt: data.requested_at,
+    processedAt: data.processed_at,
+  };
+}
+
+export async function fetchPayoutRequests(photographerId?: string): Promise<PayoutRequest[]> {
+  if (!isSupabaseConfigured) return [];
+
+  let query = supabase!.from("payout_requests").select("*").order("requested_at", { ascending: false });
+  if (photographerId) query = query.eq("photographer_id", photographerId);
+
+  const { data } = await query;
+  if (!data) return [];
+
+  return data.map((r) => ({
+    id: r.id,
+    photographerId: r.photographer_id,
+    amount: r.amount,
+    method: r.method,
+    details: r.details || {},
+    status: r.status,
+    adminNote: r.admin_note || "",
+    requestedAt: r.requested_at,
+    processedAt: r.processed_at,
+  }));
+}
+
+export async function updatePayoutRequestStatus(
+  id: string,
+  status: "APPROVED" | "REJECTED" | "PAID",
+  adminNote: string = ""
+): Promise<boolean> {
+  if (!isSupabaseConfigured) return true;
+
+  const { error } = await supabase!
+    .from("payout_requests")
+    .update({ status, admin_note: adminNote, processed_at: new Date().toISOString() })
+    .eq("id", id);
+
+  return !error;
+}
+
+// ============================================================
+// PURCHASE WITH PAYMENT METHOD
+// ============================================================
+
+export async function createPurchaseWithMethod(
+  userId: string,
+  photoId: string,
+  license: string,
+  price: number,
+  paymentMethod: string
+): Promise<boolean> {
+  if (!isSupabaseConfigured) return true;
+
+  const id = `PUR-${Date.now().toString(36)}`;
+  const { error } = await supabase!
+    .from("purchases")
+    .insert({
+      id,
+      user_id: userId,
+      photo_id: photoId,
+      license,
+      price,
+      payment_method: paymentMethod,
+    });
+
+  return !error;
+}

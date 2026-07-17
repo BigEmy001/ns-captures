@@ -10,7 +10,7 @@ import { Monogram } from "./ui";
 import { Dropdown, DropdownItem } from "./Dropdown";
 import { useRequest } from "./RequestModal";
 import { getCart, removeFromCart, clearCart, CartItem } from "../data/cart";
-import { createPurchase, createLicense, logActivity, incrementPhotoDownloads, fetchPhoto } from "../data/db";
+import { createPurchase, createPurchaseWithMethod, createLicense, logActivity, incrementPhotoDownloads, fetchPhoto, fetchPhotographers, fetchPaymentMethods } from "../data/db";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, UserRole } from "../context/AuthContext";
@@ -125,6 +125,8 @@ export function Navbar() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [checkoutStatus, setCheckoutStatus] = useState<"idle" | "loading" | "success">("idle");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "crypto" | "paypal">("card");
+  const [availableMethods, setAvailableMethods] = useState<{ method: string; enabled: boolean }[]>([]);
 
   // Search Visibility State
   const { pathname } = useLocation();
@@ -192,6 +194,33 @@ export function Navbar() {
     };
   }, []);
 
+  // Load available payment methods from cart photographers
+  useEffect(() => {
+    if (cartItems.length === 0 || !cartOpen) return;
+    const loadMethods = async () => {
+      try {
+        const photographers = await fetchPhotographers();
+        const photographerIds = [...new Set(
+          cartItems.map((item) => {
+            const match = photographers.find((p) => p.name === item.photographer);
+            return match?.id || item.photographer?.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+          }).filter(Boolean)
+        )];
+        const allMethods: { method: string; enabled: boolean }[] = [];
+        for (const pid of photographerIds) {
+          const methods = await fetchPaymentMethods(pid);
+          methods.filter((m) => m.enabled).forEach((m) => {
+            if (!allMethods.find((am) => am.method === m.method)) {
+              allMethods.push({ method: m.method, enabled: true });
+            }
+          });
+        }
+        if (allMethods.length > 0) setAvailableMethods(allMethods);
+      } catch {}
+    };
+    loadMethods();
+  }, [cartItems, cartOpen]);
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     navigate(`/search?q=${encodeURIComponent(q)}`);
@@ -213,13 +242,7 @@ export function Navbar() {
 
     for (const item of cartItems) {
       try {
-        await createPurchase({
-          userId: user!.id,
-          photoId: item.photoId,
-          license: item.license,
-          price: item.price,
-          date: dateStr,
-        });
+        await createPurchaseWithMethod(user!.id, item.photoId, item.license, item.price, selectedPaymentMethod);
 
         const photo = await fetchPhoto(item.photoId);
         await createLicense({
@@ -648,6 +671,30 @@ export function Navbar() {
               <div className="flex justify-between border-t border-[#ececec]/60 pt-3 text-base text-[#18211f]">
                 <span className="font-serif">Total Due</span>
                 <span className="font-serif font-bold text-lg">${subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+
+            {/* Payment Method Selector */}
+            <div>
+              <p className="text-xs font-medium text-[#6b716d] mb-2">Payment Method</p>
+              <div className="flex gap-2">
+                {[
+                  { id: "card" as const, label: "Card", icon: "💳" },
+                  { id: "crypto" as const, label: "Crypto", icon: "₿" },
+                  { id: "paypal" as const, label: "PayPal", icon: "PP" },
+                ].filter((m) => availableMethods.length === 0 || availableMethods.find((am) => am.method === m.id)).map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setSelectedPaymentMethod(m.id)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+                      selectedPaymentMethod === m.id
+                        ? "bg-[#1e4a3f] text-white border-[#1e4a3f]"
+                        : "bg-white text-[#6b716d] border-[#ececec] hover:border-[#1e4a3f]/30"
+                    }`}
+                  >
+                    <span className="text-sm">{m.icon}</span> {m.label}
+                  </button>
+                ))}
               </div>
             </div>
 

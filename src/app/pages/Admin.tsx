@@ -13,7 +13,7 @@ import { Eyebrow, Badge, Button } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { useAuth } from "../context/AuthContext";
 import { adminUsers as fallbackAdminUsers, moderationQueue as fallbackModerationQueue, getPhoto, photos as fallbackPhotos, type AdminUser, type ModerationItem } from "../data/photos";
-import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry } from "../data/db";
+import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -85,6 +85,8 @@ export function Admin() {
   const [revenueGrowth, setRevenueGrowth] = useState<{ m: string; v: number }[]>([]);
   const [adminLogs, setAdminLogs] = useState<AdminLogEntry[]>([]);
   const [categoryStats, setCategoryStats] = useState<{ name: string; downloads: number }[]>([]);
+  const [allPaymentMethods, setAllPaymentMethods] = useState<PhotographerPaymentMethod[]>([]);
+  const [payoutRequestList, setPayoutRequestList] = useState<PayoutRequest[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -108,6 +110,8 @@ export function Admin() {
     fetchMonthlyRevenue().then(setRevenueGrowth).catch(() => {});
     fetchAdminLogs().then(setAdminLogs).catch(() => {});
     fetchCategoryStats().then(setCategoryStats).catch(() => {});
+    fetchAllPaymentMethods().then(setAllPaymentMethods).catch(() => {});
+    fetchPayoutRequests().then(setPayoutRequestList).catch(() => {});
   }, []);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
@@ -590,6 +594,102 @@ export function Admin() {
                         <tr>
                           <td colSpan={6} className="px-6 py-8 text-center text-sm text-[#6b716d]">No payouts yet</td>
                         </tr>
+                      )}
+                    </tbody>
+                   </table>
+                </div>
+              </div>
+
+              {/* Payment Methods by Photographer */}
+              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                <h3 className="mb-4 font-serif text-lg text-[#18211f]">Payment Methods by Photographer</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[#ececec]/60">
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Photographer</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Card</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Crypto</th>
+                        <th className="px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">PayPal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const photographerIds = [...new Set(allPaymentMethods.map((m) => m.photographerId))];
+                        if (photographerIds.length === 0) {
+                          return <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-[#6b716d]">No payment methods configured yet</td></tr>;
+                        }
+                        return photographerIds.map((pid) => {
+                          const methods = allPaymentMethods.filter((m) => m.photographerId === pid);
+                          return (
+                            <tr key={pid} className="border-b border-[#ececec]/30 hover:bg-[#FAF9F5]">
+                              <td className="px-4 py-3 font-medium text-[#18211f]">{pid.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
+                              <td className="px-4 py-3 text-center">{methods.find((m) => m.method === "card")?.enabled ? "✅" : "—"}</td>
+                              <td className="px-4 py-3 text-center">{methods.find((m) => m.method === "crypto")?.enabled ? "✅" : "—"}</td>
+                              <td className="px-4 py-3 text-center">{methods.find((m) => m.method === "paypal")?.enabled ? "✅" : "—"}</td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Payout Requests */}
+              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                <h3 className="mb-4 font-serif text-lg text-[#18211f]">Payout Requests</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[#ececec]/60">
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Photographer</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Amount</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Method</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Status</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Date</th>
+                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payoutRequestList.length > 0 ? payoutRequestList.map((pr) => (
+                        <tr key={pr.id} className="border-b border-[#ececec]/30 hover:bg-[#FAF9F5]">
+                          <td className="px-4 py-3 font-medium text-[#18211f]">{pr.photographerId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
+                          <td className="px-4 py-3 font-semibold text-[#18211f]">${pr.amount.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-[#6b716d] capitalize">{pr.method === "card" ? "Bank Transfer" : pr.method === "crypto" ? "Crypto Wallet" : "PayPal"}</td>
+                          <td className="px-4 py-3">
+                            <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                              pr.status === "APPROVED" || pr.status === "PAID" ? "bg-green-50 text-green-700" :
+                              pr.status === "REJECTED" ? "bg-red-50 text-red-600" :
+                              "bg-amber-50 text-amber-700"
+                            }`}>{pr.status}</span>
+                          </td>
+                          <td className="px-4 py-3 text-[#6b716d] text-xs">{new Date(pr.requestedAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 text-right">
+                            {pr.status === "PENDING" && (
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={async () => {
+                                    await updatePayoutRequestStatus(pr.id, "APPROVED");
+                                    setPayoutRequestList((prev) => prev.map((r) => r.id === pr.id ? { ...r, status: "APPROVED" } : r));
+                                    toast.success("Payout approved");
+                                  }}
+                                  className="text-xs font-semibold text-green-600 hover:text-green-700 px-2 py-1 rounded-lg hover:bg-green-50"
+                                >Approve</button>
+                                <button
+                                  onClick={async () => {
+                                    await updatePayoutRequestStatus(pr.id, "REJECTED");
+                                    setPayoutRequestList((prev) => prev.map((r) => r.id === pr.id ? { ...r, status: "REJECTED" } : r));
+                                    toast.error("Payout rejected");
+                                  }}
+                                  className="text-xs font-semibold text-red-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50"
+                                >Reject</button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )) : (
+                        <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-[#6b716d]">No payout requests yet</td></tr>
                       )}
                     </tbody>
                   </table>
