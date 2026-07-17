@@ -876,6 +876,99 @@ export async function createContributorInterest(email: string): Promise<boolean>
   return true;
 }
 
+export interface ContributorSubmission {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  country: string;
+  preferredChannel: string;
+  invitationCode: string;
+  portfolioLink: string;
+  gearDescription: string;
+  status: "new" | "reviewing" | "approved" | "rejected" | "blocked";
+  adminNote: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function createContributorSubmission(input: {
+  fullName: string;
+  email: string;
+  phone: string;
+  country: string;
+  preferredChannel: string;
+  invitationCode?: string;
+  portfolioLink: string;
+  gearDescription: string;
+}): Promise<boolean> {
+  const { error } = await supabase
+    .from("contributor_submissions")
+    .insert({
+      full_name: input.fullName,
+      email: input.email,
+      phone: input.phone,
+      country: input.country,
+      preferred_channel: input.preferredChannel,
+      invitation_code: input.invitationCode || null,
+      portfolio_link: input.portfolioLink,
+      gear_description: input.gearDescription,
+    });
+
+  if (error) {
+    console.error("createContributorSubmission", error);
+    return false;
+  }
+
+  return true;
+}
+
+export async function fetchContributorSubmissions(): Promise<ContributorSubmission[]> {
+  const { data, error } = await supabase
+    .from("contributor_submissions")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    console.error("fetchContributorSubmissions", error);
+    return [];
+  }
+
+  return data.map((row: any) => ({
+    id: row.id,
+    fullName: row.full_name || "",
+    email: row.email || "",
+    phone: row.phone || "",
+    country: row.country || "",
+    preferredChannel: row.preferred_channel || "",
+    invitationCode: row.invitation_code || "",
+    portfolioLink: row.portfolio_link || "",
+    gearDescription: row.gear_description || "",
+    status: (row.status || "new") as ContributorSubmission["status"],
+    adminNote: row.admin_note || "",
+    createdAt: row.created_at || "",
+    updatedAt: row.updated_at || "",
+  }));
+}
+
+export async function updateContributorSubmissionStatus(
+  id: string,
+  status: ContributorSubmission["status"],
+  adminNote = "",
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("contributor_submissions")
+    .update({ status, admin_note: adminNote || null, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) {
+    console.error("updateContributorSubmissionStatus", error);
+    return false;
+  }
+
+  return true;
+}
+
 // ============================================================
 // ADMIN: ACTIVITY LOGS (system logs from activity_log)
 // ============================================================

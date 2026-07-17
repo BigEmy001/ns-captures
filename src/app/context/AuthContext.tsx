@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { toast } from "sonner";
-import { supabase } from "../../lib/supabase";
+import { isSupabaseReady, supabase } from "../../lib/supabase";
 import { isStrongPassword, isValidEmail, normalizeEmail } from "../../lib/validation";
 
 export type UserRole = "Buyer" | "Photographer" | "Enterprise" | "Admin" | "Guest";
@@ -194,6 +194,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [location.state, navigate]);
 
   const signup = useCallback(async (data: { firstName: string; lastName: string; email: string; password: string }) => {
+    if (!isSupabaseReady()) {
+      throw new Error("Account service is still being configured. Please try again shortly.");
+    }
+
     const normalized = normalizeEmail(data.email);
     const firstName = data.firstName.trim();
     const lastName = data.lastName.trim();

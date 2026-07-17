@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, PartnerButton } from "../components/ui";
-import { logActivity } from "../data/db";
+import { createContributorSubmission, logActivity } from "../data/db";
 import { sendContributorAcknowledgment, sendAdminNotification } from "../../lib/email";
 import { escapeHtml, isValidEmail, isValidHttpsUrl, isValidPhone, normalizeEmail } from "../../lib/validation";
 
@@ -78,6 +78,21 @@ export function Contribute() {
 
     setSubmitting(true);
     try {
+      const stored = await createContributorSubmission({
+        fullName: cleanName,
+        email: cleanEmail,
+        phone: cleanPhone,
+        country,
+        preferredChannel,
+        invitationCode: cleanInvitation,
+        portfolioLink: cleanPortfolio,
+        gearDescription: cleanGear,
+      });
+
+      if (!stored) {
+        throw new Error("Unable to store submission");
+      }
+
       // 1. Log the full portfolio application details in system logs
       await logActivity({
         userId: `CONTRIBUTE-${cleanEmail}`,

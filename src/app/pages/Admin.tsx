@@ -15,7 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { getPhoto } from "../data/photos";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
-import { logActivity, fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument } from "../data/db";
+import { logActivity, fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, fetchContributorSubmissions, updateContributorSubmissionStatus, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument, type ContributorSubmission } from "../data/db";
 import { sendVerificationStatus } from "../../lib/email";
 
 const nav = [
@@ -25,6 +25,7 @@ const nav = [
   { id: "assets", label: "Assets", icon: ImageIcon },
   { id: "payments", label: "Payments", icon: DollarSign },
   { id: "verification", label: "Verification", icon: ShieldCheck },
+  { id: "submissions", label: "Submissions", icon: Mail },
   { id: "reports", label: "Reports", icon: FileBarChart },
   { id: "logs", label: "System Logs", icon: Logs },
   { id: "settings", label: "Settings", icon: Settings },
@@ -92,6 +93,7 @@ export function Admin() {
   const [allPaymentMethods, setAllPaymentMethods] = useState<PhotographerPaymentMethod[]>([]);
   const [payoutRequestList, setPayoutRequestList] = useState<PayoutRequest[]>([]);
   const [verificationDocs, setVerificationDocs] = useState<VerificationDocument[]>([]);
+  const [contributorSubmissions, setContributorSubmissions] = useState<ContributorSubmission[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -118,12 +120,15 @@ export function Admin() {
     fetchAllPaymentMethods().then(setAllPaymentMethods).catch(() => toast.error("Something went wrong"));
     fetchPayoutRequests().then(setPayoutRequestList).catch(() => toast.error("Something went wrong"));
     fetchAllVerificationDocuments().then(setVerificationDocs).catch(() => toast.error("Something went wrong"));
+    fetchContributorSubmissions().then(setContributorSubmissions).catch(() => toast.error("Something went wrong"));
   }, []);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
   const [userStatusFilter, setUserStatusFilter] = useState<string>("all");
   const [assetSearch, setAssetSearch] = useState("");
   const [logFilter, setLogFilter] = useState<string>("all");
+  const [submissionSearch, setSubmissionSearch] = useState("");
+  const [submissionStatusFilter, setSubmissionStatusFilter] = useState<string>("all");
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const changeUserRole = useCallback(async (userId: string, newRole: AdminUser["role"]) => {
     const ok = await updateUserRole(userId, newRole);
@@ -198,6 +203,16 @@ export function Admin() {
   const filteredLogs = logFilter === "all"
     ? adminLogs
     : adminLogs.filter((l) => l.level === logFilter);
+
+  const filteredSubmissions = contributorSubmissions.filter((s) => {
+    const q = submissionSearch.toLowerCase();
+    const matchesSearch =
+      s.fullName.toLowerCase().includes(q) ||
+      s.email.toLowerCase().includes(q) ||
+      s.country.toLowerCase().includes(q);
+    const matchesStatus = submissionStatusFilter === "all" || s.status === submissionStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const handleSettingsSave = async () => {
     const ok = await updateSiteSettings(siteSettingsState);
@@ -1255,6 +1270,118 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Contributor Submissions */}
+          {active === "submissions" && (
+            <div className="mt-8 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Eyebrow>CONTRIBUTOR SUBMISSIONS</Eyebrow>
+                <span className="text-xs text-[#6b716d]">{filteredSubmissions.length} records</span>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
+                <input
+                  value={submissionSearch}
+                  onChange={(e) => setSubmissionSearch(e.target.value)}
+                  placeholder="Search name, email, country"
+                  className="border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
+                />
+                <select
+                  value={submissionStatusFilter}
+                  onChange={(e) => setSubmissionStatusFilter(e.target.value)}
+                  className="border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
+                >
+                  <option value="all">All status</option>
+                  <option value="new">New</option>
+                  <option value="reviewing">Reviewing</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="blocked">Blocked</option>
+                </select>
+              </div>
+
+              <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
+                <table className="w-full min-w-[1100px] text-left text-sm">
+                  <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.12em] text-[#8a8f89] uppercase border-b border-[#ececec]">
+                    <tr>
+                      <th className="px-4 py-3">Submitted</th>
+                      <th className="px-4 py-3">Name</th>
+                      <th className="px-4 py-3">Contact</th>
+                      <th className="px-4 py-3">Location</th>
+                      <th className="px-4 py-3">Portfolio</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Admin Note</th>
+                      <th className="px-4 py-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#ececec]/60">
+                    {filteredSubmissions.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-8 text-center text-sm text-[#6b716d]">No submissions found</td>
+                      </tr>
+                    ) : filteredSubmissions.map((sub) => (
+                      <tr key={sub.id} className="hover:bg-[#FAF9F5] transition duration-150 align-top">
+                        <td className="px-4 py-3 text-xs text-[#6b716d] whitespace-nowrap">{new Date(sub.createdAt).toLocaleString()}</td>
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-[#18211f]">{sub.fullName}</p>
+                          {sub.invitationCode ? <p className="text-[11px] text-[#6b716d]">Ref: {sub.invitationCode}</p> : null}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#4a534e]">
+                          <a href={`mailto:${sub.email}`} className="underline hover:text-[#1e4a3f]">{sub.email}</a>
+                          <p className="mt-1">{sub.phone}</p>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#4a534e]">{sub.country}<p className="mt-1 text-[#6b716d]">{sub.preferredChannel}</p></td>
+                        <td className="px-4 py-3 text-xs">
+                          <a href={sub.portfolioLink} target="_blank" rel="noopener noreferrer" className="underline text-[#1e4a3f] hover:text-[#123b31]">Open Link</a>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                            sub.status === "approved" ? "bg-green-50 text-green-700" :
+                            sub.status === "rejected" || sub.status === "blocked" ? "bg-red-50 text-red-700" :
+                            sub.status === "reviewing" ? "bg-blue-50 text-blue-700" :
+                            "bg-amber-50 text-amber-700"
+                          }`}>{sub.status}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#4a534e] max-w-[260px]">
+                          <input
+                            id={`submission-note-${sub.id}`}
+                            defaultValue={sub.adminNote}
+                            placeholder="Add note"
+                            className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-2">
+                            <select
+                              value={sub.status}
+                              onChange={async (e) => {
+                                const nextStatus = e.target.value as ContributorSubmission["status"];
+                                const note = (document.getElementById(`submission-note-${sub.id}`) as HTMLInputElement)?.value || "";
+                                const ok = await updateContributorSubmissionStatus(sub.id, nextStatus, note);
+                                if (!ok) {
+                                  toast.error("Failed to update submission");
+                                  return;
+                                }
+                                setContributorSubmissions((prev) => prev.map((x) => x.id === sub.id ? { ...x, status: nextStatus, adminNote: note } : x));
+                                toast.success(`Submission marked as ${nextStatus}`);
+                              }}
+                              className="border border-[#ececec] rounded-lg bg-white px-2.5 py-1.5 text-xs outline-none"
+                            >
+                              <option value="new">New</option>
+                              <option value="reviewing">Reviewing</option>
+                              <option value="approved">Approved</option>
+                              <option value="rejected">Rejected</option>
+                              <option value="blocked">Blocked</option>
+                            </select>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
