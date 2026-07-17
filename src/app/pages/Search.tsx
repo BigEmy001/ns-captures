@@ -28,7 +28,7 @@ export function SearchPage() {
   }, [params]);
   const [activeLicenses, setActiveLicenses] = useState<License[]>([]);
   const [orientation, setOrientation] = useState<Orientation | null>(null);
-  const [maxPrice, setMaxPrice] = useState(1000);
+  const [maxPrice, setMaxPrice] = useState(2000);
   const [sort, setSort] = useState<"popular" | "new" | "priceLow">("popular");
   const [drawer, setDrawer] = useState(false);
 
@@ -68,7 +68,7 @@ export function SearchPage() {
   const clearAll = () => {
     setActiveLicenses([]);
     setOrientation(null);
-    setMaxPrice(1000);
+    setMaxPrice(2000);
     setCategory("All");
     const next = new URLSearchParams(params);
     next.delete("cat");
@@ -111,10 +111,10 @@ export function SearchPage() {
       </div>
       <div>
         <p className="mb-3 font-mono text-[10px] tracking-[0.14em] text-[#758078]">MAX PRICE — ${maxPrice}</p>
-        <input
+          <input
           type="range"
           min={100}
-          max={1000}
+          max={2000}
           step={10}
           value={maxPrice}
           onChange={(e) => setMaxPrice(Number(e.target.value))}
