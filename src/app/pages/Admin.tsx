@@ -564,6 +564,52 @@ export function Admin() {
                   </div>
                 ))}
               </div>
+
+              {/* Earnings by Photographer */}
+              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                <h3 className="mb-4 font-serif text-lg text-[#18211f]">Earnings by Photographer</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[#ececec]/60">
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Photographer</th>
+                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Sales</th>
+                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Revenue</th>
+                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">70% Share</th>
+                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Platform Fee</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        // Build earnings per photographer from purchases + photos
+                        const earningsMap: Record<string, { sales: number; revenue: number }> = {};
+                        for (const purchase of adminPurchases) {
+                          const photo = assetsList.find((a) => a.id === purchase.photoId);
+                          const pid = photo?.photographerId || "unknown";
+                          if (!earningsMap[pid]) earningsMap[pid] = { sales: 0, revenue: 0 };
+                          earningsMap[pid].sales += 1;
+                          earningsMap[pid].revenue += purchase.price || 0;
+                        }
+                        const entries = Object.entries(earningsMap).sort((a, b) => b[1].revenue - a[1].revenue);
+                        if (entries.length === 0) {
+                          return <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[#6b716d]">No sales data yet</td></tr>;
+                        }
+                        const platformFee = siteSettingsState.platformFee || 20;
+                        return entries.map(([pid, data]) => (
+                          <tr key={pid} className="border-b border-[#ececec]/30 hover:bg-[#FAF9F5]">
+                            <td className="px-4 py-3 font-medium text-[#18211f]">{pid.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
+                            <td className="px-4 py-3 text-right text-[#6b716d]">{data.sales}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-[#18211f]">${data.revenue.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right text-green-600 font-medium">${Math.round(data.revenue * 0.7).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right text-[#6b716d]">${Math.round(data.revenue * platformFee / 100).toLocaleString()}</td>
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
                 <h3 className="mb-4 font-serif text-lg text-[#18211f]">Recent payouts</h3>
                 <div className="overflow-hidden">
