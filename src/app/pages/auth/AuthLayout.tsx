@@ -1,7 +1,8 @@
 import { ReactNode, useState } from "react";
 import { Link } from "react-router";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Monogram } from "../../components/ui";
+import { supabase } from "../../../lib/supabase";
 
 const showcase =
   "https://images.unsplash.com/photo-1711464669343-2596d0f1b526?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1400";
@@ -96,16 +97,32 @@ export function AuthField({
 }
 
 export function SocialButtons() {
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const handleOAuth = async (provider: "google" | "apple") => {
+    setLoading(provider);
+    await supabase.auth.signInWithOAuth({ provider });
+    setLoading(null);
+  };
+
   return (
     <div className="grid grid-cols-2 gap-3">
-      {["Google", "Apple"].map((p) => (
-        <button
-          key={p}
-          className="flex items-center justify-center gap-2 rounded-lg border border-[#e2e2e2] bg-white py-2.5 text-sm font-semibold text-[#333935] transition hover:bg-[#f6f6f6]"
-        >
-          {p}
-        </button>
-      ))}
+      <button
+        onClick={() => handleOAuth("google")}
+        disabled={!!loading}
+        className="flex items-center justify-center gap-2 rounded-lg border border-[#e2e2e2] bg-white py-2.5 text-sm font-semibold text-[#333935] transition hover:bg-[#f6f6f6] disabled:opacity-50"
+      >
+        {loading === "google" ? <Loader2 className="size-4 animate-spin" /> : null}
+        Google
+      </button>
+      <button
+        onClick={() => handleOAuth("apple")}
+        disabled={!!loading}
+        className="flex items-center justify-center gap-2 rounded-lg border border-[#e2e2e2] bg-white py-2.5 text-sm font-semibold text-[#333935] transition hover:bg-[#f6f6f6] disabled:opacity-50"
+      >
+        {loading === "apple" ? <Loader2 className="size-4 animate-spin" /> : null}
+        Apple
+      </button>
     </div>
   );
 }

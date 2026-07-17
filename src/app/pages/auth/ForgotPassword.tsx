@@ -1,17 +1,26 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { ArrowLeft, MailCheck } from "lucide-react";
+import { ArrowLeft, MailCheck, Loader2 } from "lucide-react";
 import { AuthLayout, AuthField } from "./AuthLayout";
+import { supabase } from "../../../lib/supabase";
 
 export function ForgotPassword() {
   const [sent, setSent] = useState(false);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) { setError("Email is required"); return; }
     if (!email.includes("@")) { setError("Enter a valid email address"); return; }
+    setIsLoading(true);
+    setError("");
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setIsLoading(false);
+    if (err) { setError(err.message); return; }
     setSent(true);
   };
 
@@ -60,9 +69,10 @@ export function ForgotPassword() {
           </div>
           <button
             type="submit"
-            className="w-full rounded-full bg-[#1e4a3f] py-3 text-sm font-semibold text-white transition hover:bg-[#123b31]"
+            disabled={isLoading}
+            className="w-full rounded-full bg-[#1e4a3f] py-3 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Send reset link
+            {isLoading ? <span className="flex items-center justify-center gap-2"><Loader2 className="size-4 animate-spin" /> Sending...</span> : "Send reset link"}
           </button>
           <Link
             to="/signin"

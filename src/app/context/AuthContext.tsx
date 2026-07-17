@@ -57,12 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-        setUser(supabaseUserToAuthUser(session.user, profile));
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
+          setUser(supabaseUserToAuthUser(session.user, profile));
+        } catch (err) {
+          console.error("Failed to load profile", err);
+        }
       }
       setIsLoading(false);
     });
@@ -166,23 +170,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw new Error(error.message);
 
     if (authData.user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authData.user.id)
-        .single();
+      if (authData.session) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", authData.user.id)
+          .single();
 
-      const authUser = supabaseUserToAuthUser(authData.user, profile);
-      setUser(authUser);
-      toast.success("Account created", { description: "Welcome to NS CAPTURES!" });
-      navigate("/account", { replace: true });
+        const authUser = supabaseUserToAuthUser(authData.user, profile);
+        setUser(authUser);
+        navigate("/account", { replace: true });
+      }
+      toast.success("Account created", { description: authData.session ? "Welcome to NS CAPTURES!" : "Check your email to confirm your account." });
     }
   }, [navigate]);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem("ns-auth");
-    sessionStorage.removeItem("ns-auth");
     setUser(null);
     toast("Signed out");
     navigate("/signin", { replace: true });

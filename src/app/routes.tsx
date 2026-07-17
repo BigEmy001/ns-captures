@@ -20,6 +20,7 @@ const NotFound = lazy(() => import("./pages/NotFound").then(m => ({ default: m.N
 const SignIn = lazy(() => import("./pages/auth/SignIn").then(m => ({ default: m.SignIn })));
 const SignUp = lazy(() => import("./pages/auth/SignUp").then(m => ({ default: m.SignUp })));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword").then(m => ({ default: m.ForgotPassword })));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword").then(m => ({ default: m.ResetPassword })));
 const AdminLogin = lazy(() => import("./pages/auth/AdminLogin").then(m => ({ default: m.AdminLogin })));
 
 const fallback = (
@@ -56,6 +57,10 @@ export const router = createBrowserRouter([
         path: "forgot-password",
         Component: GuestRoute,
         children: [{ index: true, element: <Suspense fallback={fallback}><ForgotPassword /></Suspense> }],
+      },
+      {
+        path: "reset-password",
+        children: [{ index: true, element: <Suspense fallback={fallback}><ResetPassword /></Suspense> }],
       },
       {
         path: "account",

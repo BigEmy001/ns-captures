@@ -11,9 +11,20 @@ export function AdminLogin() {
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  const validate = () => {
+    const next: typeof errors = {};
+    if (!email.trim()) next.email = "Email is required";
+    else if (!email.includes("@")) next.email = "Enter a valid email address";
+    if (!password) next.password = "Password is required";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     setIsLoading(true);
     try {
       await login(email, password, remember);
@@ -36,20 +47,26 @@ export function AdminLogin() {
       }
     >
       <form onSubmit={submit} className="space-y-4">
-        <AuthField
-          label="Email"
-          type="email"
-          placeholder="admin@ns.co"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <AuthField
-          label="Password"
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div>
+          <AuthField
+            label="Email"
+            type="email"
+            placeholder="admin@ns.co"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
+          />
+          {errors.email && <p className="mt-1 text-xs text-[#d4183d]">{errors.email}</p>}
+        </div>
+        <div>
+          <AuthField
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
+          />
+          {errors.password && <p className="mt-1 text-xs text-[#d4183d]">{errors.password}</p>}
+        </div>
         <label className="flex items-center gap-2 text-sm text-[#4a534e]">
           <input
             type="checkbox"
