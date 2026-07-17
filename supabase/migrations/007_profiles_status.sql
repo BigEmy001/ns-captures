@@ -28,3 +28,11 @@ begin
   return new;
 end;
 $$ language plpgsql security definer;
+
+-- Admin RLS override for profiles (needed for role/status changes)
+create policy "Admins can update all profiles"
+  on public.profiles for update
+  using (exists (select 1 from public.profiles where id = auth.uid() and role = 'Admin'));
+
+-- Add status column to moderation_queue for approve/reject workflow
+alter table public.moderation_queue add column if not exists status text not null default 'pending';

@@ -10,7 +10,7 @@ import { Monogram } from "./ui";
 import { Dropdown, DropdownItem } from "./Dropdown";
 import { useRequest } from "./RequestModal";
 import { getCart, removeFromCart, clearCart, CartItem } from "../data/cart";
-import { createPurchase, createPurchaseWithMethod, createLicense, logActivity, incrementPhotoDownloads, fetchPhoto, fetchPhotographers, fetchPaymentMethods } from "../data/db";
+import { createPurchaseWithMethod, createLicense, logActivity, incrementPhotoDownloads, fetchPhoto, fetchPhotographers, fetchPaymentMethods } from "../data/db";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, UserRole } from "../context/AuthContext";
