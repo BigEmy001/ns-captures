@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import {
   LayoutDashboard, Users, Image as ImageIcon, ShieldAlert, DollarSign, FileBarChart,
   Check, X, MoreHorizontal, Search, Filter, Trash2, Settings, Logs, Building2, UserCheck, UserX,
-  Download, Eye, Edit, ChevronDown, Mail, Key, FolderHeart, Heart, LogOut,
+  Download, Eye, Edit, ChevronDown, Mail, Key, FolderHeart, Heart, LogOut, ShieldCheck, ShieldOff,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -15,7 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { getPhoto } from "../data/photos";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
-import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
+import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument } from "../data/db";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -23,6 +23,7 @@ const nav = [
   { id: "moderation", label: "Moderation", icon: ShieldAlert },
   { id: "assets", label: "Assets", icon: ImageIcon },
   { id: "payments", label: "Payments", icon: DollarSign },
+  { id: "verification", label: "Verification", icon: ShieldCheck },
   { id: "reports", label: "Reports", icon: FileBarChart },
   { id: "logs", label: "System Logs", icon: Logs },
   { id: "settings", label: "Settings", icon: Settings },
@@ -89,6 +90,7 @@ export function Admin() {
   const [categoryStats, setCategoryStats] = useState<{ name: string; downloads: number }[]>([]);
   const [allPaymentMethods, setAllPaymentMethods] = useState<PhotographerPaymentMethod[]>([]);
   const [payoutRequestList, setPayoutRequestList] = useState<PayoutRequest[]>([]);
+  const [verificationDocs, setVerificationDocs] = useState<VerificationDocument[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -114,6 +116,7 @@ export function Admin() {
     fetchCategoryStats().then(setCategoryStats).catch(() => toast.error("Something went wrong"));
     fetchAllPaymentMethods().then(setAllPaymentMethods).catch(() => toast.error("Something went wrong"));
     fetchPayoutRequests().then(setPayoutRequestList).catch(() => toast.error("Something went wrong"));
+    fetchAllVerificationDocuments().then(setVerificationDocs).catch(() => toast.error("Something went wrong"));
   }, []);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
@@ -1164,6 +1167,89 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                   <p className="text-xs text-[#6b716d]">No collections yet</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Verification */}
+          {active === "verification" && (
+            <div className="mt-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <Eyebrow>VERIFICATION REQUESTS</Eyebrow>
+                <span className="text-xs text-[#6b716d]">{verificationDocs.filter((d) => d.status === "pending").length} pending</span>
+              </div>
+              {verificationDocs.length === 0 ? (
+                <div className="border border-dashed border-[#ececec] bg-white rounded-2xl p-8 text-center">
+                  <ShieldCheck className="size-8 text-[#9aa09b] mx-auto mb-2" />
+                  <p className="font-serif text-lg text-[#18211f]">No verification requests</p>
+                  <p className="text-sm text-[#6b716d] mt-1">Documents submitted by users will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {verificationDocs.map((doc) => (
+                    <div key={doc.id} className="border border-[#ececec]/80 bg-white rounded-2xl p-5 ns-shadow-sm">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <p className="font-semibold text-[#18211f] capitalize">{doc.documentType.replace(/_/g, " ")}</p>
+                          <p className="text-xs text-[#6b716d]">{doc.userId} · {new Date(doc.submittedAt).toLocaleDateString()}</p>
+                          {doc.documentNumber && <p className="text-xs font-mono text-[#4a534e] mt-1"># {doc.documentNumber}</p>}
+                        </div>
+                        <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                          doc.status === "approved" ? "bg-green-50 text-green-700" :
+                          doc.status === "rejected" ? "bg-red-50 text-red-700" :
+                          "bg-amber-50 text-amber-700"
+                        }`}>{doc.status}</span>
+                      </div>
+                      {doc.fileUrl && (
+                        <a
+                          href={doc.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3 py-1.5 rounded-full transition-colors mb-3"
+                        >
+                          <Eye className="size-3.5" /> View Document
+                        </a>
+                      )}
+                      {doc.status === "pending" && (
+                        <div className="border-t border-[#ececec]/60 pt-3 mt-3 space-y-3">
+                          <input
+                            id={`note-${doc.id}`}
+                            placeholder="Admin note (optional)"
+                            className="w-full text-sm border border-[#ececec] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#1e4a3f]/40"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={async () => {
+                                const note = (document.getElementById(`note-${doc.id}`) as HTMLInputElement)?.value || "";
+                                const ok = await reviewVerificationDocument(doc.id, "approved", note, user!.id);
+                                if (ok) {
+                                  setVerificationDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "approved", adminNote: note } : d));
+                                  toast.success("Document approved");
+                                }
+                              }}
+                              className="flex items-center gap-1.5 bg-green-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-green-700 transition-colors"
+                            >
+                              <Check className="size-3.5" /> Approve
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const note = (document.getElementById(`note-${doc.id}`) as HTMLInputElement)?.value || "";
+                                const ok = await reviewVerificationDocument(doc.id, "rejected", note, user!.id);
+                                if (ok) {
+                                  setVerificationDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "rejected", adminNote: note } : d));
+                                  toast.success("Document rejected");
+                                }
+                              }}
+                              className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-red-700 transition-colors"
+                            >
+                              <X className="size-3.5" /> Reject
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

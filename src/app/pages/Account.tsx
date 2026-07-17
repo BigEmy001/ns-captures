@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Bell, Shield, FileText, TrendingUp, AlertCircle, Eye, EyeOff, User } from "lucide-react";
+import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Bell, Shield, FileText, TrendingUp, AlertCircle, Eye, EyeOff, User, ShieldCheck, ShieldOff, Upload, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
-import { fetchPhoto, fetchPurchases, fetchLicenses, fetchActivity, fetchUserPurchaseStats, fetchUserSavedPhotoIds, type Purchase, type LicenseRecord, type ActivityLogItem, getOptimizedImageUrl, getFullQualityImageUrl } from "../data/db";
+import { fetchPhoto, fetchPurchases, fetchLicenses, fetchActivity, fetchUserPurchaseStats, fetchUserSavedPhotoIds, fetchVerificationDocuments, uploadVerificationDocument, type Purchase, type LicenseRecord, type ActivityLogItem, type VerificationDocument, getOptimizedImageUrl, getFullQualityImageUrl } from "../data/db";
 import type { Photo } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
@@ -15,6 +15,7 @@ const nav = [
   { id: "downloads", label: "Downloads", icon: Download },
   { id: "licenses", label: "Licenses", icon: FileText },
   { id: "activity", label: "Activity", icon: Bell },
+  { id: "verification", label: "Verification", icon: ShieldCheck },
   { id: "security", label: "Settings", icon: Settings },
   { id: "billing", label: "Billing", icon: CreditCard },
 ];
@@ -47,6 +48,16 @@ export function Account() {
   const [activity, setActivity] = useState<ActivityLogItem[]>([]);
   const [purchaseStats, setPurchaseStats] = useState({ totalSpent: 0, totalPurchases: 0, totalLicenses: 0, recentPurchases: [] });
   const [savedPhotoIds, setSavedPhotoIds] = useState<string[]>([]);
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [occupation, setOccupation] = useState(user?.occupation || "");
+  const [dob, setDob] = useState(user?.dob || "");
+  const [socialLinks, setSocialLinks] = useState<Record<string, string>>(user?.socialLinks || { instagram: "", twitter: "", linkedin: "", website: "" });
+  const [references, setReferences] = useState<{ name: string; email: string; phone: string; relationship: string }[]>(user?.references || []);
+  const [documents, setDocuments] = useState<VerificationDocument[]>([]);
+  const [uploadDocType, setUploadDocType] = useState("passport");
+  const [uploadDocNumber, setUploadDocNumber] = useState("");
+  const [uploadDocFile, setUploadDocFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -63,6 +74,7 @@ export function Account() {
 
     fetchUserPurchaseStats(user.id).then(setPurchaseStats).catch(() => toast.error("Something went wrong"));
     fetchUserSavedPhotoIds(user.id).then(setSavedPhotoIds).catch(() => toast.error("Something went wrong"));
+    fetchVerificationDocuments(user.id).then(setDocuments).catch(() => toast.error("Something went wrong"));
   }, [user?.id]);
 
   useEffect(() => {
@@ -85,7 +97,14 @@ export function Account() {
   const handleProfileSave = async () => {
     if (isAuthenticated) {
       try {
-        await updateProfile(profileData);
+        await updateProfile({
+          ...profileData,
+          phone,
+          occupation,
+          dob,
+          socialLinks,
+          references,
+        });
       } catch (err: any) {
         toast.error(err.message || "Failed to update profile");
       }
@@ -219,6 +238,78 @@ export function Account() {
                        {user?.role || "Buyer"}
                      </p>
                    </div>
+                  <Field label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <Field label="Occupation" value={occupation} onChange={(e) => setOccupation(e.target.value)} />
+                  <Field label="Date of Birth" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
+                </div>
+                <div className="mt-6">
+                  <h4 className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase mb-3">Social Profiles</h4>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {["instagram", "twitter", "linkedin", "website"].map((platform) => (
+                      <label key={platform} className="block">
+                        <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{platform}</span>
+                        <input
+                          type="text"
+                          placeholder={platform === "website" ? "https://your-site.com" : `@${platform}`}
+                          value={socialLinks[platform] || ""}
+                          onChange={(e) => setSocialLinks((prev) => ({ ...prev, [platform]: e.target.value }))}
+                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">References</h4>
+                    <button
+                      onClick={() => setReferences((prev) => [...prev, { name: "", email: "", phone: "", relationship: "" }])}
+                      className="flex items-center gap-1 text-xs font-semibold text-[#1e4a3f] hover:text-[#123b31] transition-colors"
+                    >
+                      <Plus className="size-3.5" /> Add reference
+                    </button>
+                  </div>
+                  {references.length === 0 ? (
+                    <p className="text-xs text-[#6b716d]">No references added yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {references.map((ref, i) => (
+                        <div key={i} className="flex flex-wrap items-end gap-3 p-4 rounded-xl border border-[#ececec]/60 bg-[#f8f9f7]">
+                          <div className="flex-1 min-w-[140px]">
+                            <span className="text-[10px] font-medium text-[#6b716d] mb-1 block">Name</span>
+                            <input type="text" placeholder="Full name" value={ref.name}
+                              onChange={(e) => { const next = [...references]; next[i] = { ...next[i], name: e.target.value }; setReferences(next); }}
+                              className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40 bg-white" />
+                          </div>
+                          <div className="flex-1 min-w-[140px]">
+                            <span className="text-[10px] font-medium text-[#6b716d] mb-1 block">Email</span>
+                            <input type="email" placeholder="email@example.com" value={ref.email}
+                              onChange={(e) => { const next = [...references]; next[i] = { ...next[i], email: e.target.value }; setReferences(next); }}
+                              className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40 bg-white" />
+                          </div>
+                          <div className="flex-1 min-w-[100px]">
+                            <span className="text-[10px] font-medium text-[#6b716d] mb-1 block">Phone</span>
+                            <input type="text" placeholder="+1 234 567 8900" value={ref.phone}
+                              onChange={(e) => { const next = [...references]; next[i] = { ...next[i], phone: e.target.value }; setReferences(next); }}
+                              className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40 bg-white" />
+                          </div>
+                          <div className="flex-1 min-w-[100px]">
+                            <span className="text-[10px] font-medium text-[#6b716d] mb-1 block">Relationship</span>
+                            <input type="text" placeholder="Colleague, client..." value={ref.relationship}
+                              onChange={(e) => { const next = [...references]; next[i] = { ...next[i], relationship: e.target.value }; setReferences(next); }}
+                              className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40 bg-white" />
+                          </div>
+                          <button
+                            onClick={() => setReferences((prev) => prev.filter((_, j) => j !== i))}
+                            className="p-1.5 text-[#b91c1c] hover:bg-red-50 rounded-lg transition-colors"
+                            title="Remove reference"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="mt-8 flex justify-end">
                   <Button onClick={handleProfileSave}>Save changes</Button>
@@ -455,6 +546,141 @@ export function Account() {
                   </button>
                 </form>
               </div>
+            </div>
+          )}
+
+          {active === "verification" && (
+            <div className="space-y-6">
+              {/* Verification Status */}
+              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-serif text-xl text-[#18211f]">Identity Verification</h3>
+                    <p className="text-sm text-[#6b716d] mt-1">Verify your identity to unlock full platform features.</p>
+                  </div>
+                  <span className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-full ${
+                    user?.verificationStatus === "verified" ? "bg-green-50 text-green-700" :
+                    user?.verificationStatus === "pending" ? "bg-amber-50 text-amber-700" :
+                    user?.verificationStatus === "rejected" ? "bg-red-50 text-red-700" :
+                    "bg-gray-50 text-gray-500"
+                  }`}>
+                    {user?.verificationStatus === "verified" ? <ShieldCheck className="size-3.5" /> :
+                     user?.verificationStatus === "rejected" ? <ShieldOff className="size-3.5" /> : null}
+                    {user?.verificationStatus || "unverified"}
+                  </span>
+                </div>
+
+                {user?.verificationStatus === "verified" ? (
+                  <div className="bg-[#eef7f0] border border-[#d7e6da] rounded-xl p-4 text-sm text-[#1e4a3f]">
+                    Your identity has been verified. Thank you!
+                  </div>
+                ) : user?.verificationStatus === "pending" ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                    Your documents are being reviewed. We'll notify you once verified.
+                  </div>
+                ) : user?.verificationStatus === "rejected" ? (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+                    Your verification was rejected. Please submit new documents below. Check the admin note on your previous submission.
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Submitted Documents */}
+              {documents.length > 0 && (
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <h3 className="font-serif text-lg text-[#18211f] mb-4">Submitted Documents</h3>
+                  <div className="space-y-3">
+                    {documents.map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between p-4 rounded-xl border border-[#ececec]/60">
+                        <div>
+                          <p className="text-sm font-semibold text-[#18211f] capitalize">{doc.documentType.replace(/_/g, " ")}</p>
+                          <p className="text-xs text-[#6b716d]">Submitted {new Date(doc.submittedAt).toLocaleDateString()}</p>
+                          {doc.adminNote && <p className="text-xs text-[#d4183d] mt-1">Note: {doc.adminNote}</p>}
+                        </div>
+                        <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                          doc.status === "approved" ? "bg-green-50 text-green-700" :
+                          doc.status === "rejected" ? "bg-red-50 text-red-700" :
+                          "bg-amber-50 text-amber-700"
+                        }`}>{doc.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Document */}
+              {user?.verificationStatus !== "verified" && (
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <h3 className="font-serif text-lg text-[#18211f] mb-4">Submit a Document</h3>
+                  <div className="space-y-4 max-w-lg">
+                    <div>
+                      <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Document Type</label>
+                      <select
+                        value={uploadDocType}
+                        onChange={(e) => setUploadDocType(e.target.value)}
+                        className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
+                      >
+                        <option value="passport">Passport</option>
+                        <option value="drivers_license">Driver's License</option>
+                        <option value="national_id">National ID</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Document Number (optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. A12345678"
+                        value={uploadDocNumber}
+                        onChange={(e) => setUploadDocNumber(e.target.value)}
+                        className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Upload File</label>
+                      <label className="mt-2 flex items-center justify-center gap-2 p-6 border-2 border-dashed border-[#ececec] rounded-xl hover:border-[#1e4a3f]/40 transition-colors cursor-pointer bg-[#f8f9f7]">
+                        <input
+                          type="file"
+                          accept="image/*,.pdf"
+                          className="hidden"
+                          onChange={(e) => setUploadDocFile(e.target.files?.[0] || null)}
+                        />
+                        {uploadDocFile ? (
+                          <span className="text-sm text-[#1e4a3f] font-medium">{uploadDocFile.name}</span>
+                        ) : (
+                          <span className="text-sm text-[#6b716d] flex items-center gap-2">
+                            <Upload className="size-5" /> Click to upload ID document (image or PDF)
+                          </span>
+                        )}
+                      </label>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (!uploadDocFile) { toast.error("Please select a file"); return; }
+                        setIsUploading(true);
+                        try {
+                          const doc = await uploadVerificationDocument(user!.id, uploadDocType, uploadDocNumber, uploadDocFile);
+                          if (doc) {
+                            setDocuments((prev) => [doc, ...prev]);
+                            toast.success("Document submitted for verification");
+                            setUploadDocFile(null);
+                            setUploadDocNumber("");
+                            setUploadDocType("passport");
+                          }
+                        } catch (err: any) {
+                          toast.error(err.message || "Upload failed");
+                        } finally {
+                          setIsUploading(false);
+                        }
+                      }}
+                      disabled={isUploading}
+                      className="w-full rounded-full bg-[#1e4a3f] py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isUploading ? "Uploading..." : "Submit for Verification"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

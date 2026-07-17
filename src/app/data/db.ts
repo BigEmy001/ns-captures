@@ -1563,3 +1563,152 @@ export async function fetchFollowing(photographerId: string): Promise<FollowerIn
     avatar: profileMap.get(r.following_id)?.avatar || "",
   }));
 }
+
+// ============================================================
+// VERIFICATION DOCUMENTS
+// ============================================================
+
+export interface VerificationDocument {
+  id: string;
+  userId: string;
+  documentType: string;
+  documentNumber: string;
+  fileUrl: string;
+  status: "pending" | "approved" | "rejected";
+  adminNote: string;
+  submittedAt: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+}
+
+export async function fetchVerificationDocuments(userId: string): Promise<VerificationDocument[]> {
+  const { data } = await supabase
+    .from("verification_documents")
+    .select("*")
+    .eq("user_id", userId)
+    .order("submitted_at", { ascending: false });
+
+  if (!data) return [];
+
+  return data.map((r: any) => ({
+    id: r.id,
+    userId: r.user_id,
+    documentType: r.document_type,
+    documentNumber: r.document_number || "",
+    fileUrl: r.file_url,
+    status: r.status,
+    adminNote: r.admin_note || "",
+    submittedAt: r.submitted_at,
+    reviewedAt: r.reviewed_at,
+    reviewedBy: r.reviewed_by,
+  }));
+}
+
+export async function uploadVerificationDocument(
+  userId: string,
+  documentType: string,
+  documentNumber: string,
+  file: File
+): Promise<VerificationDocument | null> {
+  const ext = file.name.split(".").pop();
+  const filePath = `verification/${userId}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("documents")
+    .upload(filePath, file);
+
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data: urlData } = supabase.storage
+    .from("documents")
+    .getPublicUrl(filePath);
+
+  const fileUrl = urlData?.publicUrl || "";
+
+  const { data, error } = await supabase
+    .from("verification_documents")
+    .insert({
+      user_id: userId,
+      document_type: documentType,
+      document_number: documentNumber,
+      file_url: fileUrl,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  await supabase
+    .from("profiles")
+    .update({ verification_status: "pending" })
+    .eq("id", userId);
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    documentType: data.document_type,
+    documentNumber: data.document_number || "",
+    fileUrl: data.file_url,
+    status: data.status,
+    adminNote: data.admin_note || "",
+    submittedAt: data.submitted_at,
+    reviewedAt: data.reviewed_at,
+    reviewedBy: data.reviewed_by,
+  };
+}
+
+export async function fetchAllVerificationDocuments(): Promise<VerificationDocument[]> {
+  const { data } = await supabase
+    .from("verification_documents")
+    .select("*")
+    .order("submitted_at", { ascending: false });
+
+  if (!data) return [];
+
+  return data.map((r: any) => ({
+    id: r.id,
+    userId: r.user_id,
+    documentType: r.document_type,
+    documentNumber: r.document_number || "",
+    fileUrl: r.file_url,
+    status: r.status,
+    adminNote: r.admin_note || "",
+    submittedAt: r.submitted_at,
+    reviewedAt: r.reviewed_at,
+    reviewedBy: r.reviewed_by,
+  }));
+}
+
+export async function reviewVerificationDocument(
+  documentId: string,
+  status: "approved" | "rejected",
+  adminNote: string,
+  reviewedBy: string
+): Promise<boolean> {
+  const { data: doc } = await supabase
+    .from("verification_documents")
+    .select("user_id")
+    .eq("id", documentId)
+    .single();
+
+  if (!doc) return false;
+
+  const { error } = await supabase
+    .from("verification_documents")
+    .update({
+      status,
+      admin_note: adminNote,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: reviewedBy,
+    })
+    .eq("id", documentId);
+
+  if (error) return false;
+
+  await supabase
+    .from("profiles")
+    .update({ verification_status: status === "approved" ? "verified" : "rejected" })
+    .eq("id", doc.user_id);
+
+  return true;
+}

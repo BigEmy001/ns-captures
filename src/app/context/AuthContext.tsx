@@ -16,6 +16,12 @@ export interface AuthUser {
   avatar?: string;
   memberSince?: string;
   downloadsLeft?: string;
+  phone?: string;
+  occupation?: string;
+  dob?: string;
+  socialLinks?: Record<string, string>;
+  references?: { name: string; email: string; phone: string; relationship: string }[];
+  verificationStatus?: string;
 }
 
 interface AuthContextType {
@@ -45,6 +51,12 @@ function supabaseUserToAuthUser(supabaseUser: any, profile: any): AuthUser {
     avatar: profile?.avatar || "",
     memberSince: profile?.member_since || "",
     downloadsLeft: profile?.downloads_left || "50",
+    phone: profile?.phone || "",
+    occupation: profile?.occupation || "",
+    dob: profile?.dob || "",
+    socialLinks: profile?.social_links || {},
+    references: profile?.profile_references || [],
+    verificationStatus: profile?.verification_status || "unverified",
   };
 }
 
@@ -194,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = useCallback(async (data: Partial<AuthUser>) => {
     if (!user) return;
-    const { id: _id, role: _role, slug: _slug, ...editableData } = data;
+    const { id: _id, role: _role, slug: _slug, verificationStatus: _vs, ...editableData } = data;
 
     if (editableData.email && editableData.email !== user.email) {
       const { error: emailError } = await supabase.auth.updateUser({ email: editableData.email });
@@ -206,6 +218,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: editableData.name,
         company: editableData.company,
         avatar: editableData.avatar,
+        phone: editableData.phone,
+        occupation: editableData.occupation,
+        dob: editableData.dob,
+        social_links: editableData.socialLinks,
+        profile_references: editableData.references,
       })
       .eq("id", user.id);
 
@@ -218,7 +235,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("id", user.slug);
     }
 
-    const updated = { ...user, ...editableData, slug: user.slug };
+    const updated = { ...user, ...editableData, verificationStatus: user.verificationStatus, slug: user.slug };
     setUser(updated);
     toast.success("Profile saved");
   }, [user]);
