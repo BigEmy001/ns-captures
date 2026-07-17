@@ -2,8 +2,13 @@ import { createContext, useContext, useState, ReactNode } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "./ui";
-import { licenses } from "../data/photos";
 import { createBrief } from "../data/db";
+
+const licenseOptions = [
+  { id: "standard", label: "Standard License", price: 99 },
+  { id: "extended", label: "Extended License", price: 249 },
+  { id: "commercial", label: "Commercial License", price: 499 },
+];
 
 const RequestCtx = createContext<() => void>(() => {});
 export const useRequest = () => useContext(RequestCtx);
@@ -19,7 +24,7 @@ export function RequestProvider({ children }: { children: ReactNode }) {
 }
 
 function RequestModal({ onClose }: { onClose: () => void }) {
-  const [license, setLicense] = useState(licenses[0]);
+  const [license, setLicense] = useState(licenseOptions[0].id);
   const [licenseOpen, setLicenseOpen] = useState(false);
   const [budget, setBudget] = useState(600);
   const [brief, setBrief] = useState("");
@@ -77,20 +82,20 @@ function RequestModal({ onClose }: { onClose: () => void }) {
               onClick={() => setLicenseOpen((v) => !v)}
               className="flex w-full items-center justify-between border border-[#ececec] px-3 py-3 text-left text-xs text-[#68706b]"
             >
-              {license} <ChevronDown className="size-3" />
+              {licenseOptions.find((l) => l.id === license)?.label || license} <ChevronDown className="size-3" />
             </button>
             {licenseOpen && (
               <div className="absolute z-10 mt-1 w-full border border-[#ececec] bg-white shadow-lg">
-                {licenses.map((l) => (
+                {licenseOptions.map((l) => (
                   <button
-                    key={l}
+                    key={l.id}
                     onClick={() => {
-                      setLicense(l);
+                      setLicense(l.id);
                       setLicenseOpen(false);
                     }}
                     className="block w-full px-3 py-2 text-left text-xs hover:bg-[#e7ebe2]"
                   >
-                    {l}
+                    {l.label}
                   </button>
                 ))}
               </div>

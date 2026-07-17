@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Eyebrow } from "../components/ui";
-import { collections as fallbackCollections } from "../data/photos";
 import { fetchCollections, getOptimizedImageUrl } from "../data/db";
 import type { Collection } from "../data/photos";
 
 export function Collections() {
-  const [collections, setCollections] = useState<Collection[]>(fallbackCollections);
+  const [collections, setCollections] = useState<Collection[]>([]);
 
   useEffect(() => {
     fetchCollections().then(setCollections);

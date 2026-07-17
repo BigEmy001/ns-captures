@@ -427,7 +427,7 @@ export function Navbar() {
                 )}
               </button>
             )}
-            <button onClick={() => setMenu((v) => !v)}>
+            <button onClick={() => setMenu((v) => !v)} aria-label="Open menu">
               {menu ? <X className="size-6" /> : <Menu className="size-6" />}
             </button>
           </div>
@@ -597,6 +597,7 @@ export function Navbar() {
             onClick={() => { setCartOpen(false); setCheckoutStep("select-method"); }}
             disabled={checkoutStatus !== "idle"}
             className="p-1 hover:bg-[#FAF9F5] rounded-full transition-colors cursor-pointer"
+            aria-label="Close cart"
           >
             <X className="size-5 text-[#6b716d]" />
           </button>

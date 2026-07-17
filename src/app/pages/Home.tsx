@@ -7,7 +7,8 @@ import { TopicRail } from "../components/TopicRail";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow, Button, Badge, PartnerButton } from "../components/ui";
 import { useRequest } from "../components/RequestModal";
-import { photos as fallbackPhotos, collections as fallbackCollections, photographers as fallbackPhotographers, briefs as fallbackBriefs } from "../data/photos";
+import { toast } from "sonner";
+import type { Photo, Collection, Photographer, Brief } from "../data/photos";
 import { fetchPhotos, fetchCollections, fetchPhotographers, fetchBriefs, getOptimizedImageUrl } from "../data/db";
 import { AnimatedRays } from "../components/ui/animated-rays";
 
@@ -24,17 +25,17 @@ const companies = ["MERIDIAN", "PALMWINE", "NORTHWIND", "STUDIO LINE", "CONTINEN
 
 export function Home() {
   const openRequest = useRequest();
-  const [photos, setPhotos] = useState(fallbackPhotos);
-  const [collections, setCollections] = useState(fallbackCollections);
-  const [photographers, setPhotographers] = useState(fallbackPhotographers);
-  const [briefs, setBriefs] = useState(fallbackBriefs);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [photographers, setPhotographers] = useState<Photographer[]>([]);
+  const [briefs, setBriefs] = useState<Brief[]>([]);
 
   useEffect(() => {
     Promise.all([
-      fetchPhotos().catch(() => {}),
-      fetchCollections().catch(() => {}),
-      fetchPhotographers().catch(() => {}),
-      fetchBriefs().catch(() => {}),
+      fetchPhotos().catch(() => toast.error("Something went wrong")),
+      fetchCollections().catch(() => toast.error("Something went wrong")),
+      fetchPhotographers().catch(() => toast.error("Something went wrong")),
+      fetchBriefs().catch(() => toast.error("Something went wrong")),
     ]).then(([photos, collections, photographers, briefs]) => {
       if (photos) setPhotos(photos);
       if (collections) setCollections(collections);

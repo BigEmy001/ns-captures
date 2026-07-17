@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { useRequest } from "../components/RequestModal";
-import { photos, collections } from "../data/photos";
 
 const features = [
   { icon: FolderKanban, title: "Projects & briefs", body: "Organise creative work into projects with approval workflows." },
@@ -91,9 +90,7 @@ export function Enterprise() {
                 </ul>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {photos.slice(0, 4).map((p) => (
-                  <img key={p.id} src={p.image} alt="" loading="lazy" className="aspect-square w-full object-cover" />
-                ))}
+                {[]}
               </div>
             </div>
           </section>
@@ -107,9 +104,7 @@ export function Enterprise() {
               <h1 className="mt-2 font-serif text-3xl sm:text-4xl">Team workspace</h1>
             </div>
             <div className="flex -space-x-2">
-              {photos.slice(0, 5).map((p) => (
-                <img key={p.id} src={p.image} alt="" loading="lazy" className="size-9 rounded-full border-2 border-[#ffffff] object-cover" />
-              ))}
+              {[]}
               <span className="grid size-9 place-items-center rounded-full border-2 border-[#ffffff] bg-[#1e4a3f] text-xs text-white">+8</span>
             </div>
           </div>
@@ -152,15 +147,7 @@ export function Enterprise() {
                 <h3 className="font-serif text-xl">Brand libraries</h3>
               </div>
               <div className="space-y-3">
-                {collections.slice(0, 3).map((c) => (
-                  <div key={c.id} className="flex items-center gap-3">
-                    <img src={c.cover[0]} alt="" loading="lazy" className="size-12 object-cover" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold">{c.title}</p>
-                      <p className="text-xs text-[#6b716d]">{c.count} assets</p>
-                    </div>
-                  </div>
-                ))}
+                {[]}
               </div>
             </div>
           </div>

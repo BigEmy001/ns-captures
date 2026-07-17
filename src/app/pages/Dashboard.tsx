@@ -79,9 +79,9 @@ export function Dashboard() {
 
   useEffect(() => {
     Promise.all([
-      fetchPhotos().catch(() => {}),
-      fetchBriefs().catch(() => {}),
-      fetchPhotographers().catch(() => {}),
+      fetchPhotos().catch(() => toast.error("Something went wrong")),
+      fetchBriefs().catch(() => toast.error("Something went wrong")),
+      fetchPhotographers().catch(() => toast.error("Something went wrong")),
     ]).then(([photos, briefs, photographers]) => {
       if (photos) setPhotos(photos);
       if (briefs) setBriefs(briefs);
@@ -119,12 +119,12 @@ export function Dashboard() {
   useEffect(() => {
     if (photographerId) {
       setPortfolioPhotos(photos.filter((p) => p.photographerId === photographerId));
-      fetchPayouts(photographerId).then(setPayouts).catch(() => {});
-      fetchPhotographerMonthlyRevenue(photographerId).then(setRevenueData).catch(() => {});
-      fetchPhotographerWeeklyDownloads(photographerId).then(setDownloadsData).catch(() => {});
-      fetchPhotographerStats(photographerId).then(setPhotographerStats).catch(() => {});
-      fetchPhotographerTopCategories(photographerId).then(setTopCategories).catch(() => {});
-      fetchFollowerCount(photographerId).then(setFollowerCount).catch(() => {});
+      fetchPayouts(photographerId).then(setPayouts).catch(() => toast.error("Something went wrong"));
+      fetchPhotographerMonthlyRevenue(photographerId).then(setRevenueData).catch(() => toast.error("Something went wrong"));
+      fetchPhotographerWeeklyDownloads(photographerId).then(setDownloadsData).catch(() => toast.error("Something went wrong"));
+      fetchPhotographerStats(photographerId).then(setPhotographerStats).catch(() => toast.error("Something went wrong"));
+      fetchPhotographerTopCategories(photographerId).then(setTopCategories).catch(() => toast.error("Something went wrong"));
+      fetchFollowerCount(photographerId).then(setFollowerCount).catch(() => toast.error("Something went wrong"));
       fetchPaymentMethods(photographerId).then((methods) => {
         setPaymentMethods(methods);
         methods.forEach((m) => {
@@ -139,8 +139,8 @@ export function Dashboard() {
           }
           if (m.method === "paypal" && m.details.email) setPaypalEmail(String(m.details.email));
         });
-      }).catch(() => {});
-      fetchPayoutRequests(photographerId).then(setPayoutRequests).catch(() => {});
+      }).catch(() => toast.error("Something went wrong"));
+      fetchPayoutRequests(photographerId).then(setPayoutRequests).catch(() => toast.error("Something went wrong"));
     }
   }, [photographerId, photos]);
 

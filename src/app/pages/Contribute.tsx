@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Upload, DollarSign, Globe, BadgeCheck, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, PartnerButton } from "../components/ui";
-import { photos } from "../data/photos";
 import { logActivity } from "../data/db";
 
 const perks = [
@@ -18,9 +17,7 @@ export function Contribute() {
     <div>
       <section className="relative overflow-hidden bg-[#213e35] text-[#ffffff]">
         <div className="absolute inset-0 grid grid-cols-4 opacity-25">
-          {photos.slice(0, 8).map((p) => (
-            <img key={p.id} src={p.image} alt="" loading="lazy" className="size-full object-cover" />
-          ))}
+          {[]}
         </div>
         <div className="absolute inset-0 bg-[#17372f]/70" />
         <div className="relative z-10 mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12">

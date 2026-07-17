@@ -87,6 +87,7 @@ export function AuthField({
             onClick={() => setShow(!show)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9aa09b] hover:text-[#333935]"
             tabIndex={-1}
+            aria-label={show ? "Hide password" : "Show password"}
           >
             {show ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
@@ -110,6 +111,7 @@ export function SocialButtons() {
       <button
         onClick={() => handleOAuth("google")}
         disabled={!!loading}
+        aria-label="Continue with Google"
         className="flex items-center justify-center gap-2 rounded-lg border border-[#e2e2e2] bg-white py-2.5 text-sm font-semibold text-[#333935] transition hover:bg-[#f6f6f6] disabled:opacity-50"
       >
         {loading === "google" ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -118,6 +120,7 @@ export function SocialButtons() {
       <button
         onClick={() => handleOAuth("apple")}
         disabled={!!loading}
+        aria-label="Continue with Apple"
         className="flex items-center justify-center gap-2 rounded-lg border border-[#e2e2e2] bg-white py-2.5 text-sm font-semibold text-[#333935] transition hover:bg-[#f6f6f6] disabled:opacity-50"
       >
         {loading === "apple" ? <Loader2 className="size-4 animate-spin" /> : null}

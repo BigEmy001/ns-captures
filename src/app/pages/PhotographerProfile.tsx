@@ -32,8 +32,8 @@ export function PhotographerProfile() {
         setShots(photos);
         const count = await fetchFollowerCount(id ?? "");
         if (count > 0) setFollowerCount(count);
-        fetchFollowers(id ?? "").then(setFollowers).catch(() => {});
-        fetchFollowing(id ?? "").then(setFollowingList).catch(() => {});
+        fetchFollowers(id ?? "").then(setFollowers).catch(() => toast.error("Failed to load data"));
+        fetchFollowing(id ?? "").then(setFollowingList).catch(() => toast.error("Failed to load data"));
       }
     };
     load();
@@ -51,7 +51,7 @@ export function PhotographerProfile() {
 
   const totalDownloads = shots.reduce((s, p) => s + p.downloads, 0);
   const totalViews = shots.reduce((s, p) => s + p.views, 0);
-  const followingCount = 34;
+  const followingCount = 0;
 
   const sorted = [...shots].sort((a, b) => (sort === "popular" ? b.downloads - a.downloads : 0));
 
@@ -117,13 +117,11 @@ export function PhotographerProfile() {
       </div>
 
       {/* Stat strip */}
-      <div className="mt-8 grid grid-cols-2 divide-[#ececec] border border-[#ececec] bg-[#ffffff] ns-shadow-sm sm:grid-cols-3 lg:grid-cols-6 lg:divide-x">
+      <div className="mt-8 grid grid-cols-2 divide-[#ececec] border border-[#ececec] bg-[#ffffff] ns-shadow-sm sm:grid-cols-3 lg:grid-cols-4 lg:divide-x">
         <StatCell value={compact(totalViews)} label="Total views" />
-        <StatCell value="1" label="30-day rank" />
         <StatCell value={compact(totalDownloads)} label="Downloads" />
         <StatCell value={photographer.followers} label="Followers" muted />
         <StatCell value={String(shots.length)} label="Published" muted />
-        <StatCell value="0" label="Meetups" muted />
       </div>
 
       {/* Tabs + filters */}

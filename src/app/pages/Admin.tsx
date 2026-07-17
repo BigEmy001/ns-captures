@@ -13,7 +13,8 @@ import { Eyebrow, Badge, Button } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabase";
-import { adminUsers as fallbackAdminUsers, moderationQueue as fallbackModerationQueue, getPhoto, photos as fallbackPhotos, type AdminUser, type ModerationItem } from "../data/photos";
+import { getPhoto } from "../data/photos";
+import type { AdminUser, ModerationItem, Photo } from "../data/photos";
 import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
 
 const nav = [
@@ -74,9 +75,9 @@ export function Admin() {
   };
 
   // Supabase data
-  const [queue, setQueue] = useState(fallbackModerationQueue);
-  const [adminUsersList, setAdminUsersList] = useState(fallbackAdminUsers);
-  const [assetsList, setAssetsList] = useState(fallbackPhotos);
+  const [queue, setQueue] = useState<ModerationItem[]>([]);
+  const [adminUsersList, setAdminUsersList] = useState<AdminUser[]>([]);
+  const [assetsList, setAssetsList] = useState<Photo[]>([]);
   const [siteSettingsState, setSiteSettingsState] = useState<SiteSettingsRow>(defaultSiteSettings);
   const [adminPayouts, setAdminPayouts] = useState<Payout[]>([]);
   const [adminPurchases, setAdminPurchases] = useState<Purchase[]>([]);
@@ -91,13 +92,13 @@ export function Admin() {
 
   useEffect(() => {
     Promise.all([
-      fetchModerationQueue().catch(() => {}),
-      fetchAdminUsers().catch(() => {}),
-      fetchPhotos().catch(() => {}),
-      fetchSiteSettings().catch(() => {}),
-      fetchAllPayouts().catch(() => {}),
-      fetchAllPurchases().catch(() => {}),
-      fetchPlatformStats().catch(() => {}),
+      fetchModerationQueue().catch(() => toast.error("Something went wrong")),
+      fetchAdminUsers().catch(() => toast.error("Something went wrong")),
+      fetchPhotos().catch(() => toast.error("Something went wrong")),
+      fetchSiteSettings().catch(() => toast.error("Something went wrong")),
+      fetchAllPayouts().catch(() => toast.error("Something went wrong")),
+      fetchAllPurchases().catch(() => toast.error("Something went wrong")),
+      fetchPlatformStats().catch(() => toast.error("Something went wrong")),
     ]).then(([queue, users, photos, settings, payouts, purchases, stats]) => {
       if (queue) setQueue(queue);
       if (users) setAdminUsersList(users);
@@ -107,12 +108,12 @@ export function Admin() {
       if (purchases) setAdminPurchases(purchases);
       if (stats) { setPlatformRevenue(stats.revenue); setPlatformStats(stats); }
     });
-    fetchUserGrowthPerMonth().then(setUserGrowth).catch(() => {});
-    fetchMonthlyRevenue().then(setRevenueGrowth).catch(() => {});
-    fetchAdminLogs().then(setAdminLogs).catch(() => {});
-    fetchCategoryStats().then(setCategoryStats).catch(() => {});
-    fetchAllPaymentMethods().then(setAllPaymentMethods).catch(() => {});
-    fetchPayoutRequests().then(setPayoutRequestList).catch(() => {});
+    fetchUserGrowthPerMonth().then(setUserGrowth).catch(() => toast.error("Something went wrong"));
+    fetchMonthlyRevenue().then(setRevenueGrowth).catch(() => toast.error("Something went wrong"));
+    fetchAdminLogs().then(setAdminLogs).catch(() => toast.error("Something went wrong"));
+    fetchCategoryStats().then(setCategoryStats).catch(() => toast.error("Something went wrong"));
+    fetchAllPaymentMethods().then(setAllPaymentMethods).catch(() => toast.error("Something went wrong"));
+    fetchPayoutRequests().then(setPayoutRequestList).catch(() => toast.error("Something went wrong"));
   }, []);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
@@ -947,7 +948,7 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
   const [userPurchasesList, setUserPurchasesList] = useState<Purchase[]>([]);
 
   useEffect(() => {
-    fetchPurchases(user.id).then(setUserPurchasesList).catch(() => {});
+    fetchPurchases(user.id).then(setUserPurchasesList).catch(() => toast.error("Failed to load data"));
   }, [user.id]);
   
   // Robustly query photographer photos using ID, name, or slug match

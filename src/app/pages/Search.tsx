@@ -4,8 +4,9 @@ import { Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow } from "../components/ui";
-import { photos as fallbackPhotos, categories, licenses, License, Orientation, Photo } from "../data/photos";
+import { categories, licenses, License, Orientation, Photo } from "../data/photos";
 import { fetchPhotos } from "../data/db";
+import { toast } from "sonner";
 
 const orientations: Orientation[] = ["portrait", "landscape", "square"];
 
@@ -16,10 +17,10 @@ export function SearchPage() {
 
   const [query, setQuery] = useState(q);
   const [category, setCategory] = useState(params.get("cat") ?? "All");
-  const [photos, setPhotos] = useState<Photo[]>(fallbackPhotos);
+  const [photos, setPhotos] = useState<Photo[]>([]);
 
   useEffect(() => {
-    fetchPhotos().then(setPhotos).catch(() => {});
+    fetchPhotos().then(setPhotos).catch(() => toast.error("Something went wrong"));
   }, []);
 
   useEffect(() => {

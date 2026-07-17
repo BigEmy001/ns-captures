@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { photos } from "../data/photos";
 
 interface Topic {
   label: string;
@@ -8,17 +7,17 @@ interface Topic {
 }
 
 const popular: Topic[] = [
-  { label: "Lagos", count: "48k", image: photos[8].image },
-  { label: "Portrait", count: "63k", image: photos[0].image },
-  { label: "Architecture", count: "31k", image: photos[10].image },
-  { label: "Fashion", count: "22k", image: photos[3].image },
+  { label: "Lagos", count: "48k", image: "" },
+  { label: "Portrait", count: "63k", image: "" },
+  { label: "Architecture", count: "31k", image: "" },
+  { label: "Fashion", count: "22k", image: "" },
 ];
 
 const trending: Topic[] = [
-  { label: "West Africa", count: "12k", image: photos[5].image },
-  { label: "Documentary", count: "9k", image: photos[7].image },
-  { label: "Minimal", count: "7k", image: photos[11].image },
-  { label: "Golden hour", count: "5k", image: photos[2].image },
+  { label: "West Africa", count: "12k", image: "" },
+  { label: "Documentary", count: "9k", image: "" },
+  { label: "Minimal", count: "7k", image: "" },
+  { label: "Golden hour", count: "5k", image: "" },
 ];
 
 function Column({ title, topics }: { title: string; topics: Topic[] }) {

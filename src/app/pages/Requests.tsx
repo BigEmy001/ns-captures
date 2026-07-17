@@ -3,7 +3,6 @@ import { Link } from "react-router";
 import { ArrowRight, Send, Users, ShieldCheck } from "lucide-react";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { useRequest } from "../components/RequestModal";
-import { briefs as fallbackBriefs } from "../data/photos";
 import { fetchBriefs } from "../data/db";
 import type { Brief } from "../data/photos";
 
@@ -15,7 +14,7 @@ const steps = [
 
 export function Requests() {
   const openRequest = useRequest();
-  const [briefs, setBriefs] = useState<Brief[]>(fallbackBriefs);
+  const [briefs, setBriefs] = useState<Brief[]>([]);
 
   useEffect(() => {
     fetchBriefs().then(setBriefs);

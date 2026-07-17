@@ -52,17 +52,17 @@ export function Account() {
     if (!user?.id) return;
 
     Promise.all([
-      fetchPurchases(user.id).catch(() => {}),
-      fetchLicenses(user.id).catch(() => {}),
-      fetchActivity(user.id).catch(() => {}),
+      fetchPurchases(user.id).catch(() => toast.error("Something went wrong")),
+      fetchLicenses(user.id).catch(() => toast.error("Something went wrong")),
+      fetchActivity(user.id).catch(() => toast.error("Something went wrong")),
     ]).then(([purchases, licenses, activity]) => {
       if (purchases) setPurchases(purchases);
       if (licenses) setLicenses(licenses);
       if (activity) setActivity(activity);
     });
 
-    fetchUserPurchaseStats(user.id).then(setPurchaseStats).catch(() => {});
-    fetchUserSavedPhotoIds(user.id).then(setSavedPhotoIds).catch(() => {});
+    fetchUserPurchaseStats(user.id).then(setPurchaseStats).catch(() => toast.error("Something went wrong"));
+    fetchUserSavedPhotoIds(user.id).then(setSavedPhotoIds).catch(() => toast.error("Something went wrong"));
   }, [user?.id]);
 
   useEffect(() => {
