@@ -11,7 +11,7 @@ import exifr from "exifr";
 import { Eyebrow, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { photos as fallbackPhotos, briefs as fallbackBriefs, photographers as fallbackPhotographers, type Photo, type License, type Orientation } from "../data/photos";
-import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout, getOptimizedImageUrl, fetchPaymentMethods, upsertPaymentMethod, createPayoutRequest, fetchPayoutRequests, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
+import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, deletePhoto, updateBriefStatus, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout, getOptimizedImageUrl, fetchPaymentMethods, upsertPaymentMethod, createPayoutRequest, fetchPayoutRequests, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
@@ -194,11 +194,18 @@ export function Dashboard() {
     }
   }, [user, profileSettingsLoaded]);
 
-  const handleDeletePhoto = (id: string) => {
-    setPortfolioPhotos((prev) => prev.filter((p) => p.id !== id));
-    toast.error("Photo removed", {
-      description: "The asset was successfully deleted from your public archive.",
-    });
+  const handleDeletePhoto = async (id: string) => {
+    const ok = await deletePhoto(id);
+    if (ok) {
+      setPortfolioPhotos((prev) => prev.filter((p) => p.id !== id));
+      toast.error("Photo removed", {
+        description: "The asset was successfully deleted from your public archive.",
+      });
+    } else {
+      toast.error("Failed to delete photo", {
+        description: "Could not remove the asset from the database.",
+      });
+    }
   };
 
   const handleFileDrop = (e: React.DragEvent) => {
@@ -453,15 +460,20 @@ export function Dashboard() {
     }
   };
 
-  const handleAcceptBrief = (briefId: string) => {
+  const handleAcceptBrief = async (briefId: string) => {
     setAcceptingId(briefId);
-    setTimeout(() => {
+    const ok = await updateBriefStatus(briefId, "accepted");
+    setAcceptingId(null);
+    if (ok) {
       setAcceptedBriefs((prev) => ({ ...prev, [briefId]: true }));
-      setAcceptingId(null);
       toast.success("Brief Accepted!", {
         description: "You have been matched. Review the onboarding files sent to your email.",
       });
-    }, 1200);
+    } else {
+      toast.error("Failed to accept brief", {
+        description: "Could not update the brief status.",
+      });
+    }
   };
 
   const resetUploadWizard = () => {

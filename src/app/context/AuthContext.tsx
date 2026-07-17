@@ -501,6 +501,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) throw new Error("Not authenticated");
 
     if (isSupabaseConfigured && supabase) {
+      // Verify current password by re-authenticating
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: current,
+      });
+      if (signInError) throw new Error("Current password is incorrect");
+
       const { error } = await supabase.auth.updateUser({ password: next });
       if (error) throw new Error(error.message);
       toast.success("Password updated");

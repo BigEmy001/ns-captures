@@ -1640,3 +1640,117 @@ export async function createPurchaseWithMethod(
 
   return !error;
 }
+
+// ============================================================
+// DELETE PHOTO (admin or photographer)
+// ============================================================
+
+export async function deletePhoto(photoId: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+
+  const { error } = await supabase!
+    .from("photos")
+    .delete()
+    .eq("id", photoId);
+
+  if (error) { console.error("deletePhoto", error); return false; }
+  return true;
+}
+
+// ============================================================
+// UPDATE USER ROLE (admin only) — syncs slug/profile for Photographer
+// ============================================================
+
+export async function updateUserRole(userId: string, newRole: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+
+  const { error } = await supabase!
+    .from("profiles")
+    .update({ role: newRole })
+    .eq("id", userId);
+
+  if (error) { console.error("updateUserRole", error); return false; }
+
+  // If promoting to Photographer, ensure they have a slug and directory entry
+  if (newRole === "Photographer") {
+    const { data: profile } = await supabase!
+      .from("profiles")
+      .select("slug, name")
+      .eq("id", userId)
+      .single();
+
+    if (profile && !profile.slug) {
+      const slug = profile.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        + "-" + userId.slice(0, 8);
+
+      await supabase!.from("profiles").update({ slug }).eq("id", userId);
+
+      // Also create a photographer directory entry
+      const { data: existing } = await supabase!
+        .from("photographers")
+        .select("id")
+        .eq("id", slug)
+        .single();
+
+      if (!existing) {
+        await supabase!.from("photographers").insert({
+          id: slug,
+          name: profile.name,
+          location: "",
+          specialty: "",
+          followers: "0",
+          avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
+          bio: "",
+          cover: "",
+          verified: false,
+          gear: [],
+        });
+      }
+    }
+  }
+
+  return true;
+}
+
+// ============================================================
+// RESOLVE MODERATION ITEM
+// ============================================================
+
+export async function resolveModeration(moderationId: string, approve: boolean): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+
+  if (approve) {
+    const { error } = await supabase!
+      .from("moderation_queue")
+      .delete()
+      .eq("id", moderationId);
+    if (error) { console.error("resolveModeration (delete)", error); return false; }
+  } else {
+    const { error } = await supabase!
+      .from("moderation_queue")
+      .update({ status: "rejected" })
+      .eq("id", moderationId);
+    if (error) { console.error("resolveModeration (reject)", error); return false; }
+  }
+
+  return true;
+}
+
+// ============================================================
+// UPDATE BRIEF STATUS (photographer accepts a brief)
+// ============================================================
+
+export async function updateBriefStatus(briefId: string, status: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+
+  const { error } = await supabase!
+    .from("briefs")
+    .update({ status })
+    .eq("id", briefId);
+
+  if (error) { console.error("updateBriefStatus", error); return false; }
+  return true;
+}

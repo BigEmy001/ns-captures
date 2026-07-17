@@ -13,7 +13,7 @@ import { Eyebrow, Badge, Button } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { useAuth } from "../context/AuthContext";
 import { adminUsers as fallbackAdminUsers, moderationQueue as fallbackModerationQueue, getPhoto, photos as fallbackPhotos, type AdminUser, type ModerationItem } from "../data/photos";
-import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
+import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, resolveModeration, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -119,9 +119,14 @@ export function Admin() {
   const [assetSearch, setAssetSearch] = useState("");
   const [logFilter, setLogFilter] = useState<string>("all");
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  const changeUserRole = useCallback((userId: string, newRole: AdminUser["role"]) => {
-    setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
-    toast.success(`Role updated to ${newRole}`);
+  const changeUserRole = useCallback(async (userId: string, newRole: AdminUser["role"]) => {
+    const ok = await updateUserRole(userId, newRole);
+    if (ok) {
+      setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
+      toast.success(`Role updated to ${newRole}`);
+    } else {
+      toast.error("Failed to update role");
+    }
   }, []);
 
   const changeUserStatus = useCallback((userId: string, newStatus: AdminUser["status"]) => {
@@ -129,10 +134,15 @@ export function Admin() {
     toast.success(`Status updated to ${newStatus}`);
   }, []);
 
-  const deleteAsset = useCallback((photoId: string) => {
+  const deleteAsset = useCallback(async (photoId: string) => {
     if (confirm("Delete this asset permanently?")) {
-      setAssetsList((prev) => prev.filter((p) => p.id !== photoId));
-      toast.success("Asset deleted");
+      const ok = await deletePhoto(photoId);
+      if (ok) {
+        setAssetsList((prev) => prev.filter((p) => p.id !== photoId));
+        toast.success("Asset deleted");
+      } else {
+        toast.error("Failed to delete asset");
+      }
     }
   }, []);
 
@@ -150,9 +160,14 @@ export function Admin() {
     deleteAsset(photoId);
   }, [deleteAsset]);
 
-  const resolve = (id: string, approve: boolean) => {
-    setQueue((q) => q.filter((m) => m.id !== id));
-    toast[approve ? "success" : "error"](approve ? "Asset approved" : "Asset rejected");
+  const resolve = async (id: string, approve: boolean) => {
+    const ok = await resolveModeration(id, approve);
+    if (ok) {
+      setQueue((q) => q.filter((m) => m.id !== id));
+      toast[approve ? "success" : "error"](approve ? "Asset approved" : "Asset rejected");
+    } else {
+      toast.error("Failed to resolve moderation item");
+    }
   };
 
   const filteredUsers = adminUsersList.filter((u) => {
@@ -178,7 +193,7 @@ export function Admin() {
     if (ok) {
       toast.success("Settings saved to database");
     } else {
-      toast.success("Settings saved");
+      toast.error("Failed to save settings");
     }
   };
 
