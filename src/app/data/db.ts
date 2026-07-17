@@ -1392,10 +1392,11 @@ export function getOptimizedImageUrl(url: string, width = 600): string {
 
   // Handle Cloudinary image resizing/compression
   if (url.includes("res.cloudinary.com")) {
-    const match = url.match(/\/upload\/(v\d+\/)?/);
-    if (match) {
-      const insertIndex = url.indexOf(match[0]) + match[0].length;
-      return url.slice(0, insertIndex) + `w_${width},c_limit,q_auto,f_auto/` + url.slice(insertIndex);
+    const idx = url.indexOf("/upload/");
+    if (idx !== -1) {
+      const prefix = url.slice(0, idx + 8);
+      const rest = url.slice(idx + 8);
+      return prefix + `w_${width},c_limit,f_auto/` + rest;
     }
   }
 
@@ -1422,7 +1423,7 @@ export function getFullQualityImageUrl(url: string): string {
 
   // For Cloudinary, remove any inserted optimization subpaths
   if (url.includes("res.cloudinary.com")) {
-    return url.replace(/\/w_\d+,c_limit,q_auto,f_auto\//, "/");
+    return url.replace(/\/w_\d+,c_limit,f_auto\//, "/");
   }
 
   return url;
