@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AuthLayout, AuthField, SocialButtons } from "./AuthLayout";
 import { useAuth } from "../../context/AuthContext";
+import { isValidEmail } from "../../../lib/validation";
 
 export function SignIn() {
   const { login } = useAuth();
@@ -15,7 +16,7 @@ export function SignIn() {
   const validate = () => {
     const next: { email?: string; password?: string } = {};
     if (!email.trim()) next.email = "Email is required";
-    else if (!email.includes("@")) next.email = "Enter a valid email address";
+    else if (!isValidEmail(email)) next.email = "Enter a valid email address";
     if (!password) next.password = "Password is required";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -54,6 +55,7 @@ export function SignIn() {
             type="email"
             placeholder="you@studio.com"
             value={email}
+            autoComplete="email"
             onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
           />
           {errors.email && <p className="mt-1 text-xs text-[#d4183d]">{errors.email}</p>}
@@ -64,6 +66,7 @@ export function SignIn() {
             type="password"
             placeholder="••••••••"
             value={password}
+            autoComplete="current-password"
             onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
             trailing={
               <Link to="/forgot-password" className="font-normal text-[#1e4a3f] hover:underline">

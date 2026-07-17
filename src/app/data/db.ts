@@ -300,7 +300,7 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
   return data.map((p: any, i: number) => ({
     id: p.id,
     name: p.name || "Unknown",
-    email: p.email || `${p.name?.toLowerCase().replace(/\s+/g, ".") || "user"}@ns-captures.com`,
+    email: p.email || `${p.name?.toLowerCase().replace(/\s+/g, ".") || "user"}@nscaptures.com`,
     role: (p.role || "Buyer") as AdminUser["role"],
     status: (p.status || "Active") as AdminUser["status"],
     joined: p.created_at
@@ -572,8 +572,8 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
   const defaults: SiteSettingsRow = {
     id: 1,
     siteName: "NS CAPTURES",
-    siteUrl: "https://ns-captures.com",
-    supportEmail: "support@ns-captures.com",
+    siteUrl: "https://www.nscaptures.com",
+    supportEmail: "support@nscaptures.com",
     platformFee: 20,
     defaultCommission: 70,
     minPrice: 1000,

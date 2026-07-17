@@ -51,7 +51,7 @@ lines.push("");
 
 // Site settings
 lines.push("-- Site settings");
-lines.push(`INSERT INTO public.site_settings (id, site_name, site_url, support_email, platform_fee, default_commission, min_price, max_file_size) VALUES (1, 'NS CAPTURES', 'https://ns-captures.com', 'support@ns-captures.com', 20, 70, 100, 100);`);
+lines.push(`INSERT INTO public.site_settings (id, site_name, site_url, support_email, platform_fee, default_commission, min_price, max_file_size) VALUES (1, 'NS CAPTURES', 'https://www.nscaptures.com', 'support@nscaptures.com', 20, 70, 100, 100);`);
 lines.push("");
 
 console.log(lines.join("\n"));

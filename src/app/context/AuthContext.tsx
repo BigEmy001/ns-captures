@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { useNavigate, useLocation } from "react-router";
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
+import { isStrongPassword, isValidEmail, normalizeEmail } from "../../lib/validation";
 
 export type UserRole = "Buyer" | "Photographer" | "Enterprise" | "Admin" | "Guest";
 
@@ -22,6 +23,7 @@ export interface AuthUser {
   socialLinks?: Record<string, string>;
   references?: { name: string; email: string; phone: string; relationship: string }[];
   verificationStatus?: string;
+  status?: string;
 }
 
 interface AuthContextType {
@@ -57,6 +59,7 @@ function supabaseUserToAuthUser(supabaseUser: any, profile: any): AuthUser {
     socialLinks: profile?.social_links || {},
     references: profile?.profile_references || [],
     verificationStatus: profile?.verification_status || "unverified",
+    status: profile?.status || "Active",
   };
 }
 
@@ -75,7 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .select("*")
             .eq("id", session.user.id)
             .single();
-          setUser(supabaseUserToAuthUser(session.user, profile));
+          if (profile?.status === "Suspended") {
+            await supabase.auth.signOut();
+            setUser(null);
+            toast.error("Your account has been suspended. Contact support@nscaptures.com.");
+          } else {
+            setUser(supabaseUserToAuthUser(session.user, profile));
+          }
         }
         setIsLoading(false);
       })
@@ -94,7 +103,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .select("*")
               .eq("id", session.user.id)
               .single();
-            setUser(supabaseUserToAuthUser(session.user, profile));
+            if (profile?.status === "Suspended") {
+              await supabase.auth.signOut();
+              setUser(null);
+              toast.error("Your account has been suspended. Contact support@nscaptures.com.");
+            } else {
+              setUser(supabaseUserToAuthUser(session.user, profile));
+            }
           } else if (event === "SIGNED_OUT") {
             setUser(null);
           }
@@ -144,7 +159,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, navigate]);
 
   const login = useCallback(async (email: string, password: string, remember?: boolean) => {
-    const normalized = email.toLowerCase().trim();
+    const normalized = normalizeEmail(email);
+    if (!isValidEmail(normalized)) throw new Error("Enter a valid email address.");
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: normalized,
@@ -157,6 +173,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("*")
       .eq("id", data.user.id)
       .single();
+
+    if (profile?.status === "Suspended") {
+      await supabase.auth.signOut();
+      throw new Error("Your account has been suspended. Contact support@nscaptures.com.");
+    }
 
     const authUser = supabaseUserToAuthUser(data.user, profile);
     setUser(authUser);
@@ -173,14 +194,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [location.state, navigate]);
 
   const signup = useCallback(async (data: { firstName: string; lastName: string; email: string; password: string }) => {
-    const normalized = data.email.toLowerCase().trim();
+    const normalized = normalizeEmail(data.email);
+    const firstName = data.firstName.trim();
+    const lastName = data.lastName.trim();
+
+    if (!isValidEmail(normalized)) throw new Error("Enter a valid email address.");
+    if (!firstName || !lastName) throw new Error("First name and last name are required.");
+    if (!isStrongPassword(data.password)) throw new Error("Use at least 10 characters with letters and numbers.");
+
+    const { data: siteConfig } = await supabase
+      .from("site_settings")
+      .select("signup_enabled")
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (siteConfig?.signup_enabled === false) {
+      throw new Error("New account registration is temporarily disabled. Please try again later.");
+    }
 
     const { data: authData, error } = await supabase.auth.signUp({
       email: normalized,
       password: data.password,
       options: {
         data: {
-          name: `${data.firstName} ${data.lastName}`,
+          name: `${firstName} ${lastName}`,
           role: "Buyer",
           plan: "Starter",
         },

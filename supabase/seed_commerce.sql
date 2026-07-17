@@ -14,7 +14,7 @@
 INSERT INTO public.photographers (id, name, location, specialty, followers, avatar, bio, verified, gear) VALUES ('divine-effiong', 'Divine Effiong', 'Calabar, Nigeria', 'Portrait', '1.2k', 'https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150', 'Portrait photographer capturing stories of identity and expression.', FALSE, ARRAY['Canon EOS R6']) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.site_settings (id, site_name, site_url, support_email, platform_fee, default_commission, min_price, max_file_size, maintenance_mode, signup_enabled, moderation_required)
-VALUES (1, 'NS CAPTURES', 'https://ns-captures.com', 'support@ns-captures.com', 20, 70, 1000, 100, false, true, true)
+VALUES (1, 'NS CAPTURES', 'https://nscaptures.com', 'support@nscaptures.com', 20, 70, 1000, 100, false, true, true)
 ON CONFLICT (id) DO UPDATE SET
   site_name = EXCLUDED.site_name,
   site_url = EXCLUDED.site_url,

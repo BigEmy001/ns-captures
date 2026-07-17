@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AuthLayout, AuthField, SocialButtons } from "./AuthLayout";
 import { useAuth } from "../../context/AuthContext";
+import { isStrongPassword, isValidEmail } from "../../../lib/validation";
 
 export function SignUp() {
   const { signup } = useAuth();
@@ -19,9 +20,9 @@ export function SignUp() {
     if (!firstName.trim()) next.firstName = "First name is required";
     if (!lastName.trim()) next.lastName = "Last name is required";
     if (!email.trim()) next.email = "Email is required";
-    else if (!email.includes("@")) next.email = "Enter a valid email address";
+    else if (!isValidEmail(email)) next.email = "Enter a valid email address";
     if (!password) next.password = "Password is required";
-    else if (password.length < 8) next.password = "Password must be at least 8 characters";
+    else if (!isStrongPassword(password)) next.password = "Use at least 10 characters with letters and numbers";
     if (!terms) next.terms = "You must agree to the terms";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -82,6 +83,7 @@ export function SignUp() {
             type="email"
             placeholder="you@studio.com"
             value={email}
+            autoComplete="email"
             onChange={(e) => { setEmail(e.target.value); clearError("email"); }}
           />
           {errors.email && <p className="mt-1 text-xs text-[#d4183d]">{errors.email}</p>}
@@ -90,8 +92,9 @@ export function SignUp() {
           <AuthField
             label="Password"
             type="password"
-            placeholder="At least 8 characters"
+            placeholder="At least 10 characters"
             value={password}
+            autoComplete="new-password"
             onChange={(e) => { setPassword(e.target.value); clearError("password"); }}
           />
           {errors.password && <p className="mt-1 text-xs text-[#d4183d]">{errors.password}</p>}

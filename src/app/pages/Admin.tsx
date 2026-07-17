@@ -15,7 +15,8 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { getPhoto } from "../data/photos";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
-import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument } from "../data/db";
+import { logActivity, fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument } from "../data/db";
+import { sendVerificationStatus } from "../../lib/email";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -52,8 +53,8 @@ const logLevelColor = (level: string) =>
 const defaultSiteSettings: SiteSettingsRow = {
   id: 1,
   siteName: "NS CAPTURES",
-  siteUrl: "https://ns-captures.com",
-  supportEmail: "support@ns-captures.com",
+  siteUrl: "https://www.nscaptures.com",
+  supportEmail: "support@nscaptures.com",
   platformFee: 20,
   defaultCommission: 70,
   minPrice: 1000,
@@ -1223,6 +1224,8 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                                 const ok = await reviewVerificationDocument(doc.id, "approved", note, user!.id);
                                 if (ok) {
                                   setVerificationDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "approved", adminNote: note } : d));
+                                  const u = adminUsersList.find((x) => x.id === doc.userId);
+                                  if (u) sendVerificationStatus(u.email, u.name, "approved");
                                   toast.success("Document approved");
                                 }
                               }}
@@ -1236,6 +1239,8 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                                 const ok = await reviewVerificationDocument(doc.id, "rejected", note, user!.id);
                                 if (ok) {
                                   setVerificationDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "rejected", adminNote: note } : d));
+                                  const u = adminUsersList.find((x) => x.id === doc.userId);
+                                  if (u) sendVerificationStatus(u.email, u.name, "rejected", note || "Please review and resubmit with correct documentation.");
                                   toast.success("Document rejected");
                                 }
                               }}

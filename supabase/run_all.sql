@@ -53,7 +53,7 @@ INSERT INTO public.briefs (id, title, location, license, budget, delivery, statu
 INSERT INTO public.briefs (id, title, location, license, budget, delivery, status, description) VALUES ('045', 'Market colour study', 'Kano, Nigeria', 'EDITORIAL', 450, '48 hours', 'DELIVERED', 'Textiles and produce, saturated and close, in an open-air market.');
 
 -- Site settings
-INSERT INTO public.site_settings (id, site_name, site_url, support_email, platform_fee, default_commission, min_price, max_file_size) VALUES (1, 'NS CAPTURES', 'https://ns-captures.com', 'support@ns-captures.com', 20, 70, 100, 100);
+INSERT INTO public.site_settings (id, site_name, site_url, support_email, platform_fee, default_commission, min_price, max_file_size) VALUES (1, 'NS CAPTURES', 'https://nscaptures.com', 'support@nscaptures.com', 20, 70, 100, 100);
 
 -- ============================================================
 -- ALL PHOTOS (initial + migrated + generated)
@@ -388,4 +388,3 @@ INSERT INTO public.photos (id, title, photographer_id, photographer_name, licens
 ('generated-1524504388940-b1c1722653e1', 'Study in Landscape no. 48', 'zainab-lawal', 'Zainab Lawal', 'EDITORIAL', 'Landscape', 'Cape Town, South Africa', '#555555', 'landscape', 'aspect-[3/2]', 465, 2235, 30000, 609, 'Nikon Z7 II', '24-70mm f/2.8', 400, ARRAY['landscape','creative','editorial','global-release'], 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080', NULL),
 ('generated-1529626455594-4ff0802cfb72', 'Study in Portrait no. 49', 'stephen-olatunde', 'Stephen Olatunde', 'COMMERCIAL', 'Portrait', 'Accra, Ghana', '#555555', 'portrait', 'aspect-[3/4]', 510, 2280, 30600, 621, 'Fujifilm GFX 100S', '35mm f/1.4', 100, ARRAY['portrait','creative','editorial','global-release'], 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb72?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080', NULL),
 ('generated-1531746020798-e6953c6e8e04', 'Study in Lifestyle no. 50', 'namnso-ukpanah', 'Namnso Ukpanah', 'ROYALTY FREE', 'Lifestyle', 'Berlin, Germany', '#555555', 'landscape', 'aspect-[3/2]', 555, 2325, 31200, 633, 'Leica M11-P', '90mm f/2.8 Macro', 200, ARRAY['lifestyle','creative','editorial','global-release'], 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080', NULL);
-

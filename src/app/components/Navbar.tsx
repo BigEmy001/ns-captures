@@ -11,6 +11,7 @@ import { Dropdown, DropdownItem } from "./Dropdown";
 import { useRequest } from "./RequestModal";
 import { getCart, removeFromCart, clearCart, CartItem } from "../data/cart";
 import { createPurchaseWithMethod, createLicense, logActivity, incrementPhotoDownloads, fetchPhoto, fetchPhotographers, fetchPaymentMethods } from "../data/db";
+import { sendPurchaseReceipt, sendLicenseConfirmation } from "../../lib/email";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, UserRole } from "../context/AuthContext";
@@ -286,6 +287,12 @@ export function Navbar() {
       });
     } else {
       setCheckoutStatus("success");
+      const items = cartItems.map((i) => ({ title: i.title, license: i.license, price: i.price }));
+      const total = items.reduce((s, i) => s + i.price, 0);
+      sendPurchaseReceipt(user!.email, user!.name, items, total);
+      for (const item of items) {
+        sendLicenseConfirmation(user!.email, user!.name, item.title, item.license);
+      }
       setTimeout(() => {
         toast.success("Payment submitted!", {
           description: `Your payment is pending verification. You'll be notified once confirmed.`,

@@ -4,6 +4,7 @@ import { AuthLayout, AuthField } from "./AuthLayout";
 import { supabase } from "../../../lib/supabase";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { isStrongPassword } from "../../../lib/validation";
 
 export function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -14,21 +15,22 @@ export function ResetPassword() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    const sub = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "PASSWORD_RECOVERY" || session?.access_token) {
         setReady(true);
       }
     });
     const hash = window.location.hash;
-    if (hash && hash.includes("access_token") || hash.includes("type=recovery")) {
+    if (hash && (hash.includes("access_token") || hash.includes("type=recovery"))) {
       setReady(true);
     }
+    return () => sub.data.subscription.unsubscribe();
   }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password.length < 8) { setError("Password must be at least 8 characters"); return; }
+    if (!isStrongPassword(password)) { setError("Use at least 10 characters with letters and numbers"); return; }
     if (password !== confirm) { setError("Passwords do not match"); return; }
     setIsLoading(true);
     const { error: err } = await supabase.auth.updateUser({ password });
@@ -50,15 +52,16 @@ export function ResetPassword() {
     <AuthLayout
       eyebrow="RESET PASSWORD"
       title="Choose a new password"
-      subtitle="Must be at least 8 characters."
+      subtitle="Use at least 10 characters with letters and numbers."
     >
       <form onSubmit={submit} className="space-y-4">
         <div>
           <AuthField
             label="New Password"
             type="password"
-            placeholder="At least 8 characters"
+            placeholder="At least 10 characters"
             value={password}
+            autoComplete="new-password"
             onChange={(e) => { setPassword(e.target.value); setError(""); }}
           />
         </div>
@@ -68,6 +71,7 @@ export function ResetPassword() {
             type="password"
             placeholder="Repeat your password"
             value={confirm}
+            autoComplete="new-password"
             onChange={(e) => { setConfirm(e.target.value); setError(""); }}
           />
         </div>

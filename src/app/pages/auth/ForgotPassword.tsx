@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { ArrowLeft, MailCheck, Loader2 } from "lucide-react";
 import { AuthLayout, AuthField } from "./AuthLayout";
 import { supabase } from "../../../lib/supabase";
+import { isValidEmail, normalizeEmail } from "../../../lib/validation";
 
 export function ForgotPassword() {
   const [sent, setSent] = useState(false);
@@ -13,10 +14,10 @@ export function ForgotPassword() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) { setError("Email is required"); return; }
-    if (!email.includes("@")) { setError("Enter a valid email address"); return; }
+    if (!isValidEmail(email)) { setError("Enter a valid email address"); return; }
     setIsLoading(true);
     setError("");
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    const { error: err } = await supabase.auth.resetPasswordForEmail(normalizeEmail(email), {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setIsLoading(false);
@@ -63,6 +64,7 @@ export function ForgotPassword() {
               type="email"
               placeholder="you@studio.com"
               value={email}
+              autoComplete="email"
               onChange={(e) => { setEmail(e.target.value); setError(""); }}
             />
             {error && <p className="mt-1 text-xs text-[#d4183d]">{error}</p>}

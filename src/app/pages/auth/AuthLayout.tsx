@@ -56,6 +56,10 @@ export function AuthField({
   trailing,
   value,
   onChange,
+  autoComplete,
+  maxLength,
+  minLength,
+  inputMode,
 }: {
   label: string;
   type?: string;
@@ -63,6 +67,10 @@ export function AuthField({
   trailing?: ReactNode;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  autoComplete?: string;
+  maxLength?: number;
+  minLength?: number;
+  inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
 }) {
   const [show, setShow] = useState(false);
   const isPassword = type === "password";
@@ -79,6 +87,10 @@ export function AuthField({
           placeholder={placeholder}
           value={value}
           onChange={onChange}
+          autoComplete={autoComplete}
+          maxLength={maxLength}
+          minLength={minLength}
+          inputMode={inputMode}
           className="w-full rounded-lg border border-[#e2e2e2] bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
         />
         {isPassword && (
