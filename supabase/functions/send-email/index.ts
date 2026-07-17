@@ -45,12 +45,25 @@ ${body}
 </body>
 </html>`;
 }
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   try {
     const { to, subject, body } = await req.json();
     if (!to || !subject || !body) {
-      return new Response(JSON.stringify({ error: "Missing required fields: to, subject, body" }), { status: 400 });
+      return new Response(JSON.stringify({ error: "Missing required fields: to, subject, body" }), { 
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
     }
 
     const smtpHost = Deno.env.get("SMTP_HOST");
@@ -59,7 +72,10 @@ serve(async (req) => {
     const smtpPass = Deno.env.get("SMTP_PASS");
 
     if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
-      return new Response(JSON.stringify({ error: "SMTP is not configured" }), { status: 500 });
+      return new Response(JSON.stringify({ error: "SMTP is not configured" }), { 
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
     }
 
     const client = new SmtpClient();
@@ -79,8 +95,14 @@ serve(async (req) => {
 
     await client.close();
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    return new Response(JSON.stringify({ ok: true }), { 
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), { status: 500 });
+    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), { 
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
   }
 });
