@@ -248,6 +248,7 @@ export function Navbar() {
 
     const now = new Date().toISOString();
 
+    let hasError = false;
     for (const item of cartItems) {
       try {
         await createPurchaseWithMethod(user!.id, item.photoId, item.license, item.price, selectedPaymentMethod);
@@ -272,21 +273,30 @@ export function Navbar() {
           title: `Payment submitted: ${photo?.title || item.title}`,
           desc: `${item.license} license for $${item.price} via ${selectedPaymentMethod}`,
         });
-      } catch {}
+      } catch (err) {
+        console.error("checkout error for", item.photoId, err);
+        hasError = true;
+      }
     }
 
     setIsPaying(false);
-    setCheckoutStatus("success");
-    setTimeout(() => {
-      toast.success("Payment submitted!", {
-        description: `Your payment is pending verification. You'll be notified once confirmed.`,
+    if (hasError) {
+      toast.error("Some items failed", {
+        description: "Not all items could be processed. Check your purchases and try again.",
       });
-      clearCart();
-      setCheckoutStatus("idle");
-      setCheckoutStep("select-method");
-      setCartOpen(false);
-      navigate("/account");
-    }, 1500);
+    } else {
+      setCheckoutStatus("success");
+      setTimeout(() => {
+        toast.success("Payment submitted!", {
+          description: `Your payment is pending verification. You'll be notified once confirmed.`,
+        });
+        clearCart();
+        setCheckoutStatus("idle");
+        setCheckoutStep("select-method");
+        setCartOpen(false);
+        navigate("/account");
+      }, 1500);
+    }
   };
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);

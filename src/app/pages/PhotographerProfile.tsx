@@ -10,7 +10,7 @@ import { useRequest } from "../components/RequestModal";
 import { fetchPhotographer, fetchPhotosByPhotographer, type Photographer, type Photo, getOptimizedImageUrl } from "../data/db";
 import { NotFound } from "./NotFound";
 import { useAuth } from "../context/AuthContext";
-import { toggleFollow, hasUserFollowedPhotographer, fetchFollowerCount } from "../data/db";
+import { toggleFollow, hasUserFollowedPhotographer, fetchFollowerCount, fetchFollowers, fetchFollowing, type FollowerInfo } from "../data/db";
 
 type Tab = "highlights" | "gallery" | "collections" | "statistics" | "followers" | "following";
 
@@ -19,7 +19,9 @@ export function PhotographerProfile() {
   const { user } = useAuth();
   const [photographer, setPhotographer] = useState<Photographer | null>(null);
   const [shots, setShots] = useState<Photo[]>([]);
-  const [followerCount, setFollowerCount] = useState(551);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followers, setFollowers] = useState<FollowerInfo[]>([]);
+  const [followingList, setFollowingList] = useState<FollowerInfo[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -30,6 +32,8 @@ export function PhotographerProfile() {
         setShots(photos);
         const count = await fetchFollowerCount(id ?? "");
         if (count > 0) setFollowerCount(count);
+        fetchFollowers(id ?? "").then(setFollowers).catch(() => {});
+        fetchFollowing(id ?? "").then(setFollowingList).catch(() => {});
       }
     };
     load();
@@ -48,14 +52,6 @@ export function PhotographerProfile() {
   const totalDownloads = shots.reduce((s, p) => s + p.downloads, 0);
   const totalViews = shots.reduce((s, p) => s + p.views, 0);
   const followingCount = 34;
-  const mockFollowersData = [
-    { name: "Sarah Jenkins", role: "Creative Director", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop" },
-    { name: "David Kojo", role: "Art Buyer", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop" },
-    { name: "Elena Rostova", role: "Lead Designer", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop" },
-    { name: "Marcus Tunde", role: "Publisher", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop" },
-    { name: "Amara Okafor", role: "Photographer", avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&h=150&fit=crop" },
-    { name: "Chen Wei", role: "Editor", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop" },
-  ];
 
   const sorted = [...shots].sort((a, b) => (sort === "popular" ? b.downloads - a.downloads : 0));
 
@@ -214,21 +210,17 @@ export function PhotographerProfile() {
 
         {(tab === "followers" || tab === "following") && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(tab === "followers" ? mockFollowersData : []).map((f, i) => (
-              <div key={f.name} className="flex items-center gap-3 border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4">
-                <img src={f.avatar} alt={f.name} loading="lazy" className="size-11 rounded-full object-cover" />
+            {(tab === "followers" ? followers : followingList).map((f) => (
+              <div key={f.followerId + f.followingId} className="flex items-center gap-3 border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4">
+                <img src={f.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop"} alt={f.name} loading="lazy" className="size-11 rounded-full object-cover" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{f.name}</p>
-                  <p className="text-xs text-[#6b716d]">{f.role}</p>
                 </div>
                 <button onClick={() => toast(tab === "following" ? "Unfollowed" : `Following ${f.name}`)} className="text-xs font-semibold text-[#1e4a3f]">
                   {tab === "following" ? "Following" : "Follow"}
                 </button>
               </div>
             ))}
-            {tab === "following" && (
-              <p key="more" className="text-sm text-[#8a8f89] col-span-full">…and {followingCount} more.</p>
-            )}
             {tab === "followers" && (
               <p key="more" className="text-sm text-[#8a8f89] col-span-full">…and {followerCount} more.</p>
             )}

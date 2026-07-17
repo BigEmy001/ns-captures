@@ -352,7 +352,7 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
 
   const { data, error } = await supabase!
     .from("profiles")
-    .select("id, name, email, role, created_at")
+    .select("id, name, email, role, status, created_at")
     .order("created_at", { ascending: false });
 
   if (error || !data || data.length === 0) return mockAdminUsers;
@@ -362,7 +362,7 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
     name: p.name || "Unknown",
     email: p.email || `${p.name?.toLowerCase().replace(/\s+/g, ".") || "user"}@ns-captures.com`,
     role: (p.role || "Buyer") as AdminUser["role"],
-    status: "Active" as AdminUser["status"],
+    status: (p.status || "Active") as AdminUser["status"],
     joined: p.created_at
       ? new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
       : "Unknown",
@@ -1753,4 +1753,94 @@ export async function updateBriefStatus(briefId: string, status: string): Promis
 
   if (error) { console.error("updateBriefStatus", error); return false; }
   return true;
+}
+
+// ============================================================
+// UPDATE USER STATUS (admin toggles Active/Pending/Suspended)
+// ============================================================
+
+export async function updateUserStatus(userId: string, status: string): Promise<boolean> {
+  if (!isSupabaseConfigured) return false;
+
+  const { error } = await supabase!
+    .from("profiles")
+    .update({ status })
+    .eq("id", userId);
+
+  if (error) { console.error("updateUserStatus", error); return false; }
+  return true;
+}
+
+// ============================================================
+// FETCH FOLLOWERS (for a photographer profile)
+// ============================================================
+
+export interface FollowerInfo {
+  followerId: string;
+  followingId: string;
+  name: string;
+  avatar: string;
+}
+
+export async function fetchFollowers(photographerId: string): Promise<FollowerInfo[]> {
+  if (!isSupabaseConfigured) return [];
+
+  const { data } = await supabase!
+    .from("user_follows")
+    .select("follower_id, following_id")
+    .eq("following_id", photographerId)
+    .limit(50);
+
+  if (!data) return [];
+
+  // Enrich with profile names
+  const followerIds = [...new Set(data.map((r: any) => r.follower_id))];
+  if (followerIds.length === 0) return [];
+
+  const { data: profiles } = await supabase!
+    .from("profiles")
+    .select("id, name, avatar")
+    .in("id", followerIds);
+
+  const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+
+  return data.map((r: any) => ({
+    followerId: r.follower_id,
+    followingId: r.following_id,
+    name: profileMap.get(r.follower_id)?.name || r.follower_id,
+    avatar: profileMap.get(r.follower_id)?.avatar || "",
+  }));
+}
+
+// ============================================================
+// FETCH FOLLOWING (who a photographer follows)
+// ============================================================
+
+export async function fetchFollowing(photographerId: string): Promise<FollowerInfo[]> {
+  if (!isSupabaseConfigured) return [];
+
+  const { data } = await supabase!
+    .from("user_follows")
+    .select("follower_id, following_id")
+    .eq("follower_id", photographerId)
+    .limit(50);
+
+  if (!data) return [];
+
+  const followingIds = [...new Set(data.map((r: any) => r.following_id))];
+  if (followingIds.length === 0) return [];
+
+  const { data: profiles } = await supabase!
+    .from("profiles")
+    .select("id, name, avatar")
+    .in("id", followingIds);
+
+  const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+
+  return data.map((r: any) => ({
+    followerId: r.follower_id,
+    followingId: r.following_id,
+    name: profileMap.get(r.following_id)?.name || r.following_id,
+    avatar: profileMap.get(r.following_id)?.avatar || "",
+  }));
 }

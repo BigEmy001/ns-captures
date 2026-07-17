@@ -12,8 +12,9 @@ import { toast } from "sonner";
 import { Eyebrow, Badge, Button } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { useAuth } from "../context/AuthContext";
+import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import { adminUsers as fallbackAdminUsers, moderationQueue as fallbackModerationQueue, getPhoto, photos as fallbackPhotos, type AdminUser, type ModerationItem } from "../data/photos";
-import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, resolveModeration, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
+import { fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest } from "../data/db";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -129,9 +130,14 @@ export function Admin() {
     }
   }, []);
 
-  const changeUserStatus = useCallback((userId: string, newStatus: AdminUser["status"]) => {
-    setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, status: newStatus } : u));
-    toast.success(`Status updated to ${newStatus}`);
+  const changeUserStatus = useCallback(async (userId: string, newStatus: AdminUser["status"]) => {
+    const ok = await updateUserStatus(userId, newStatus);
+    if (ok) {
+      setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, status: newStatus } : u));
+      toast.success(`Status updated to ${newStatus}`);
+    } else {
+      toast.error("Failed to update status");
+    }
   }, []);
 
   const deleteAsset = useCallback(async (photoId: string) => {
@@ -1021,13 +1027,23 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
           </div>
           <div className="mt-4 flex flex-wrap gap-2.5">
             <button 
-              onClick={() => toast.success(`Password reset link sent to ${user.email}`)}
+              onClick={async () => {
+                if (isSupabaseConfigured && supabase) {
+                  const { error } = await supabase.auth.resetPasswordForEmail(user.email);
+                  if (error) toast.error(error.message);
+                  else toast.success(`Password reset email sent to ${user.email}`);
+                } else {
+                  toast.success(`Password reset link would be sent to ${user.email}`);
+                }
+              }}
               className="flex items-center gap-1.5 rounded-full border border-[#ececec] bg-white px-4 py-2 text-xs font-semibold text-[#4a534e] hover:border-[#1e4a3f] transition-all shadow-sm cursor-pointer"
             >
               <Key className="size-3.5" /> Reset Password
             </button>
             <button 
-              onClick={() => toast.success(`Contact panel opened for ${user.name}`)}
+              onClick={() => {
+                window.location.href = `mailto:${user.email}?subject=NS%20CAPTURES%20-%20Account%20Notice`;
+              }}
               className="flex items-center gap-1.5 rounded-full border border-[#ececec] bg-white px-4 py-2 text-xs font-semibold text-[#4a534e] hover:border-[#1e4a3f] transition-all shadow-sm cursor-pointer"
             >
               <Mail className="size-3.5" /> Email User
