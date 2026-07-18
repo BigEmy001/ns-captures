@@ -174,7 +174,7 @@ export function Home() {
               <p className="mt-2 text-sm leading-6 text-[#68706b]">{firstBrief.description}</p>
               <div className="mt-7 grid grid-cols-3 gap-3 border-t border-[#ececec] pt-5">
                 <div><p className="font-mono text-[9px] text-[#758078]">LICENSE</p><p className="mt-1 text-xs font-semibold">{firstBrief.license}</p></div>
-                <div><p className="font-mono text-[9px] text-[#758078]">BUDGET</p><p className="mt-1 text-xs font-semibold">${firstBrief.budget}</p></div>
+                <div><p className="font-mono text-[9px] text-[#758078]">BUDGET</p><p className="mt-1 text-xs font-semibold">£{firstBrief.budget}</p></div>
                 <div><p className="font-mono text-[9px] text-[#758078]">DELIVERY</p><p className="mt-1 text-xs font-semibold">{firstBrief.delivery}</p></div>
               </div>
             </>

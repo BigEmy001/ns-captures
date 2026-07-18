@@ -692,7 +692,7 @@ export function Navbar() {
                     </span>
                   </div>
                   <p className="text-xs text-[#6d746e]">by {item.photographer}</p>
-                  <p className="font-serif text-sm text-[#18211f] font-medium">${item.price}</p>
+                  <p className="font-serif text-sm text-[#18211f] font-medium">£{item.price}</p>
                 </div>
                 <button
                   onClick={() => removeFromCart(item.id)}
@@ -712,11 +712,11 @@ export function Navbar() {
             <div className="space-y-2 text-sm text-[#6b716d]">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="text-[#18211f] font-semibold">${subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-[#18211f] font-semibold">£{subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between border-t border-[#ececec]/60 pt-3 text-base text-[#18211f]">
                 <span className="font-serif">Total Due</span>
-                <span className="font-serif font-bold text-lg">${subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="font-serif font-bold text-lg">£{subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
 

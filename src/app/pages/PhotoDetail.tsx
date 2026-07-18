@@ -171,7 +171,7 @@ export function PhotoDetail() {
                   }`}
                 >
                   <span className="text-sm font-semibold capitalize">{o.id.toLowerCase()}</span>
-                  <span className="font-serif text-lg">${o.price}</span>
+                  <span className="font-serif text-lg">£{o.price}</span>
                 </button>
               ))}
             </div>
@@ -185,7 +185,7 @@ export function PhotoDetail() {
 
             <div className="mt-6 flex items-center justify-between border-t border-[#ececec] pt-5">
               <span className="text-sm text-[#6b716d]">Total</span>
-              <span className="font-serif text-3xl">${current.price}</span>
+              <span className="font-serif text-3xl">£{current.price}</span>
             </div>
             <Button
               onClick={() => {

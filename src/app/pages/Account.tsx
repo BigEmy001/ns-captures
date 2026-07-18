@@ -799,7 +799,7 @@ export function Account() {
                         <tr key={pur.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
                           <td className="px-6 py-4 font-semibold text-[#18211f]">{pur.id}</td>
                           <td className="px-6 py-4 text-[#6b716d] text-xs">{pur.date}</td>
-                          <td className="px-6 py-4 text-[#18211f]">${pur.price}</td>
+                          <td className="px-6 py-4 text-[#18211f]">£{pur.price}</td>
                           <td className="px-6 py-4 text-right">
                             <button
                               onClick={() => toast("Receipt downloaded")}

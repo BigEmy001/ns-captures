@@ -657,9 +657,9 @@ export function Admin() {
                           <tr key={pid} className="border-b border-[#ececec]/30 hover:bg-[#FAF9F5]">
                             <td className="px-4 py-3 font-medium text-[#18211f]">{pid.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
                             <td className="px-4 py-3 text-right text-[#6b716d]">{data.sales}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-[#18211f]">${data.revenue.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-right text-green-600 font-medium">${Math.round(data.revenue * 0.7).toLocaleString()}</td>
-                            <td className="px-4 py-3 text-right text-[#6b716d]">${Math.round(data.revenue * platformFee / 100).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-[#18211f]">£{data.revenue.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right text-green-600 font-medium">£{Math.round(data.revenue * 0.7).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right text-[#6b716d]">£{Math.round(data.revenue * platformFee / 100).toLocaleString()}</td>
                           </tr>
                         ));
                       })()}
@@ -688,7 +688,7 @@ export function Admin() {
                           <td className="px-6 py-4 font-semibold text-[#18211f]">{p.id}</td>
                           <td className="px-6 py-4 text-[#6b716d]">{p.date}</td>
                           <td className="px-6 py-4 text-[#6b716d]">{p.photographerId}</td>
-                          <td className="px-6 py-4 text-[#18211f] font-semibold">${p.amount.toLocaleString()}</td>
+                          <td className="px-6 py-4 text-[#18211f] font-semibold">£{p.amount.toLocaleString()}</td>
                           <td className="px-6 py-4">
                             <span className="bg-[#dce8df] text-[#1e7a4f] px-2 py-0.5 rounded-full font-bold text-[9px]">{p.status}</span>
                           </td>
@@ -759,7 +759,7 @@ export function Admin() {
                       {payoutRequestList.length > 0 ? payoutRequestList.map((pr) => (
                         <tr key={pr.id} className="border-b border-[#ececec]/30 hover:bg-[#FAF9F5]">
                           <td className="px-4 py-3 font-medium text-[#18211f]">{pr.photographerId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
-                          <td className="px-4 py-3 font-semibold text-[#18211f]">${pr.amount.toLocaleString()}</td>
+                          <td className="px-4 py-3 font-semibold text-[#18211f]">£{pr.amount.toLocaleString()}</td>
                           <td className="px-4 py-3 text-[#6b716d] capitalize">{pr.method === "card" ? "Bank Transfer" : pr.method === "crypto" ? "Crypto Wallet" : "PayPal"}</td>
                           <td className="px-4 py-3">
                             <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
@@ -1191,7 +1191,7 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                               </div>
                             </td>
                             <td className="px-4 py-3 text-xs text-[#6b716d]">{pur.license}</td>
-                            <td className="px-4 py-3 text-sm font-medium text-[#18211f]">${(pur.price || 0).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-[#18211f]">£{(pur.price || 0).toLocaleString()}</td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
                                 pur.status === "APPROVED" ? "bg-green-50 text-green-700" : 

@@ -712,7 +712,7 @@ export function Dashboard() {
                           <p className="truncate text-sm font-semibold text-[#18211f]">{p.title}</p>
                           <p className="text-xs text-[#6b716d]">{p.downloads.toLocaleString()} downloads</p>
                         </div>
-                        <span className="font-serif text-base text-[#1e4a3f] font-semibold">${(p.downloads * p.price / 100).toFixed(0)}</span>
+                        <span className="font-serif text-base text-[#1e4a3f] font-semibold">£{(p.downloads * p.price / 100).toFixed(0)}</span>
                       </div>
                     ))}
                   </div>
@@ -729,7 +729,7 @@ export function Dashboard() {
                           <p className="text-sm font-semibold text-[#18211f] truncate">{b.title}</p>
                           <Badge tone={b.status === "DELIVERED" ? "muted" : "green"}>{b.status}</Badge>
                         </div>
-                        <p className="mt-2 text-xs text-[#6b716d] font-mono">${b.budget} · {b.delivery}</p>
+                        <p className="mt-2 text-xs text-[#6b716d] font-mono">£{b.budget} · {b.delivery}</p>
                       </div>
                     ))}
                   </div>
@@ -815,7 +815,7 @@ export function Dashboard() {
                               className="hover:text-[#1e4a3f] hover:underline cursor-pointer transition"
                               title="Click to edit price"
                             >
-                              ${p.price.toLocaleString()} License
+                              £{p.price.toLocaleString()} License
                             </button>
                           )}
                           <span className="text-[#1e7a4f] bg-[#dce8df] px-2 py-0.5 rounded font-semibold uppercase text-[9px]">
@@ -840,7 +840,7 @@ export function Dashboard() {
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Average License Fee</p>
-                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">${photographerStats.avgPrice.toLocaleString()}.00</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">£{photographerStats.avgPrice.toLocaleString()}.00</p>
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Total Likes</p>
@@ -909,7 +909,7 @@ export function Dashboard() {
                     </div>
                     <div className="font-mono text-right text-sm">
                       <p className="text-xs text-[#758078]">BUDGET</p>
-                      <p className="font-serif text-2xl font-bold text-[#1e4a3f]">${b.budget}</p>
+                      <p className="font-serif text-2xl font-bold text-[#1e4a3f]">£{b.budget}</p>
                     </div>
                   </div>
 
@@ -963,7 +963,7 @@ export function Dashboard() {
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Gross Lifetime Sales</p>
-                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">${photographerStats.totalRevenue.toLocaleString()}</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">£{photographerStats.totalRevenue.toLocaleString()}</p>
                   <p className="text-xs text-[#1e7a4f] mt-1.5">70% average royalties</p>
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
@@ -1267,7 +1267,7 @@ export function Dashboard() {
                       {payoutRequests.map((pr) => (
                         <div key={pr.id} className="flex items-center justify-between p-3 rounded-lg bg-[#FAF9F5] border border-[#ececec]/40">
                           <div>
-                            <p className="text-sm font-medium text-[#18211f]">${pr.amount.toLocaleString()} — {pr.method === "card" ? "Bank Transfer" : pr.method === "crypto" ? "Crypto" : "PayPal"}</p>
+                            <p className="text-sm font-medium text-[#18211f]">£{pr.amount.toLocaleString()} — {pr.method === "card" ? "Bank Transfer" : pr.method === "crypto" ? "Crypto" : "PayPal"}</p>
                             <p className="text-xs text-[#6b716d]">{new Date(pr.requestedAt).toLocaleDateString()}</p>
                           </div>
                           <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${

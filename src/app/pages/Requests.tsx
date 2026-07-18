@@ -74,7 +74,7 @@ export function Requests() {
                 <p className="mt-2 text-sm leading-6 text-[#68706b]">{b.description}</p>
                 <div className="mt-6 grid grid-cols-3 gap-3 border-t border-[#ececec] pt-4">
                   <div><p className="font-mono text-[9px] text-[#758078]">LICENSE</p><p className="mt-1 text-xs font-semibold capitalize">{b.license.toLowerCase()}</p></div>
-                  <div><p className="font-mono text-[9px] text-[#758078]">BUDGET</p><p className="mt-1 text-xs font-semibold">${b.budget}</p></div>
+                  <div><p className="font-mono text-[9px] text-[#758078]">BUDGET</p><p className="mt-1 text-xs font-semibold">£{b.budget}</p></div>
                   <div><p className="font-mono text-[9px] text-[#758078]">DELIVERY</p><p className="mt-1 text-xs font-semibold">{b.delivery}</p></div>
                 </div>
               </div>

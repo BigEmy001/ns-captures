@@ -57,7 +57,7 @@ export function PhotoCard({ item }: { item: Photo }) {
           </Link>
         </div>
         <span className="pt-1 font-mono text-[9px] tracking-[0.1em] text-[#637167]">
-          ${item.price}
+          £{item.price}
         </span>
       </div>
     </article>

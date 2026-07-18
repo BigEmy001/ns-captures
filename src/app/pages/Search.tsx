@@ -148,7 +148,7 @@ export function SearchPage() {
         </div>
       </div>
       <div>
-        <p className="mb-3 font-mono text-[10px] tracking-[0.14em] text-[#758078]">MAX PRICE — ${maxPrice}</p>
+        <p className="mb-3 font-mono text-[10px] tracking-[0.14em] text-[#758078]">MAX PRICE — £{maxPrice}</p>
           <input
           type="range"
           min={100}

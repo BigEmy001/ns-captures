@@ -42,7 +42,7 @@ export function Pricing() {
                     <p className="mt-1.5 text-xs text-[#8a8f89] max-w-md leading-relaxed font-normal">{r.details}</p>
                   </td>
                   <td className="px-6 py-5 text-[#6b716d] text-sm">{r.usage}</td>
-                  <td className="px-6 py-5 text-right font-serif text-2xl text-[#1e4a3f] font-semibold">${r.from}</td>
+                  <td className="px-6 py-5 text-right font-serif text-2xl text-[#1e4a3f] font-semibold">£{r.from}</td>
                 </tr>
               ))}
             </tbody>
