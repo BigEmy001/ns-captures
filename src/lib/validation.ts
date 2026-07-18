@@ -30,7 +30,8 @@ export function isValidHttpsUrl(input: string): boolean {
 }
 
 export function escapeHtml(input: string): string {
-  return input
+  if (!input) return "";
+  return String(input)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")

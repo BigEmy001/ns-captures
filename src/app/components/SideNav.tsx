@@ -5,6 +5,7 @@ export interface SideNavItem {
   id: string;
   label: string;
   icon: LucideIcon;
+  badge?: number;
 }
 
 /**
@@ -46,7 +47,7 @@ export function SideNav({
               key={n.id}
               onClick={() => onSelect(n.id)}
               title={collapsed ? n.label : undefined}
-              className={`flex w-full items-center rounded-lg py-2.5 text-sm transition ${
+              className={`relative flex w-full items-center rounded-lg py-2.5 text-sm transition ${
                 collapsed ? "justify-center px-0" : "gap-3 px-3"
               } ${
                 active === n.id
@@ -56,6 +57,16 @@ export function SideNav({
             >
               <n.icon className="size-[18px] shrink-0" />
               {!collapsed && n.label}
+              
+              {n.badge && n.badge > 0 ? (
+                !collapsed ? (
+                  <span className="ml-auto flex size-5 items-center justify-center rounded-full bg-[#d4183d] text-[10px] font-bold text-white">
+                    {n.badge > 99 ? "99+" : n.badge}
+                  </span>
+                ) : (
+                  <div className="absolute right-1 top-1 size-2 rounded-full bg-[#d4183d]" />
+                )
+              ) : null}
             </button>
           ))}
         </nav>

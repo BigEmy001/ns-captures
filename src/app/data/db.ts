@@ -374,8 +374,9 @@ export async function fetchPurchases(userId: string): Promise<Purchase[]> {
     userId: r.user_id,
     photoId: r.photo_id,
     license: r.license,
-    price: r.price,
+    price: r.price || 0,
     date: r.date,
+    status: r.status || "PENDING",
   }));
 }
 
@@ -400,7 +401,7 @@ export async function fetchAllPurchases(): Promise<Purchase[]> {
 
   if (error || !data) return [];
   return data.map((r: any) => ({
-    id: r.id, userId: r.user_id, photoId: r.photo_id, license: r.license, price: r.price, date: r.date,
+    id: r.id, userId: r.user_id, photoId: r.photo_id, license: r.license, price: r.price || 0, date: r.date, status: r.status || "PENDING",
   }));
 }
 
@@ -1511,6 +1512,15 @@ export async function approvePurchase(purchaseId: string, photoId: string, userI
 
   return true;
 }
+
+export async function rejectPurchase(purchaseId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("purchases")
+    .update({ status: "REJECTED" })
+    .eq("id", purchaseId);
+  return !error;
+}
+
 
 // ============================================================
 // DELETE PHOTO (admin or photographer)

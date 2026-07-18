@@ -89,6 +89,20 @@ export async function sendPurchaseApprovedNotification(buyerEmail: string, buyer
   return sendEmail(buyerEmail, subject, html);
 }
 
+export async function sendPurchaseRejectedNotification(buyerEmail: string, buyerName: string, photoTitle: string) {
+  const subject = "Purchase Update: Payment Not Received";
+  const html = `
+    <div style="text-align:center; padding:20px;">
+      <h1 style="color:#d4183d;">Payment Verification Failed</h1>
+      <p style="font-size:16px; color:#6b716d;">Hi ${escapeHtml(buyerName)},</p>
+      <p style="font-size:16px; color:#6b716d;">We were unable to verify the payment for your purchase of <strong>${escapeHtml(photoTitle)}</strong>.</p>
+      <p style="font-size:16px; color:#6b716d;">As a result, the transaction has been rejected and the license has not been activated.</p>
+      <p style="font-size:16px; color:#6b716d;">If you believe this is an error, please reply to this email to contact support.</p>
+    </div>
+  `;
+  return sendEmail(buyerEmail, subject, html);
+}
+
 function btn(url: string, label: string): string {
   return `<table cellpadding="0" cellspacing="0" style="margin:0;"><tr><td style="background-color:#1e4a3f;border-radius:44px;padding:12px 32px;">
 <a href="${url}" style="display:block;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;text-transform:uppercase;letter-spacing:0.5px;font-family:inherit;">${label}</a>

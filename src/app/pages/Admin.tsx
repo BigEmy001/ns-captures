@@ -15,8 +15,8 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { getPhoto } from "../data/photos";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
-import { sendContributorSubmissionStatus, sendVerificationStatus, sendPurchaseApprovedNotification } from "../../lib/email";
-import { logActivity, fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, approvePurchase, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, fetchContributorSubmissions, updateContributorSubmissionStatus, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument, type ContributorSubmission } from "../data/db";
+import { sendContributorSubmissionStatus, sendVerificationStatus, sendPurchaseApprovedNotification, sendPurchaseRejectedNotification } from "../../lib/email";
+import { logActivity, fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, approvePurchase, rejectPurchase, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, fetchContributorSubmissions, updateContributorSubmissionStatus, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument, type ContributorSubmission } from "../data/db";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -223,11 +223,23 @@ export function Admin() {
     }
   };
 
+  const pendingCounts: Record<string, number> = {
+    moderation: queue.filter(m => m.status === "PENDING").length,
+    payments: payoutRequestList.filter(p => p.status === "PENDING").length + adminPurchases.filter(p => p.status === "PENDING").length,
+    verification: verificationDocs.filter(d => d.status === "pending").length,
+    submissions: contributorSubmissions.filter(s => s.status === "new" || s.status === "reviewing").length,
+  };
+
+  const navWithBadges = nav.map(item => ({
+    ...item,
+    badge: pendingCounts[item.id] || 0
+  }));
+
   return (
     <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
       <div className="mx-auto flex max-w-[1440px] gap-8 px-5 sm:px-8 lg:px-12">
         <SideNav
-          items={nav}
+          items={navWithBadges}
           active={active}
           onSelect={setActive}
           header={() => (
@@ -259,17 +271,22 @@ export function Admin() {
 
           {/* Mobile nav */}
           <div className="mt-6 flex gap-2 overflow-x-auto pb-2 md:hidden">
-            {nav.map((n) => (
+            {navWithBadges.map((n) => (
               <button
                 key={n.id}
                 onClick={() => setActive(n.id)}
-                className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-200 flex items-center gap-2 ${
                   active === n.id
                     ? "border-[#1e4a3f] bg-[#1e4a3f] text-white"
                     : "border-[#ececec] bg-white text-[#6b716d]"
                 }`}
               >
                 {n.label}
+                {n.badge && n.badge > 0 ? (
+                  <span className={`flex size-4 items-center justify-center rounded-full text-[9px] ${active === n.id ? "bg-white text-[#1e4a3f]" : "bg-[#d4183d] text-white"}`}>
+                    {n.badge > 99 ? "99+" : n.badge}
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>
@@ -1174,31 +1191,50 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                               </div>
                             </td>
                             <td className="px-4 py-3 text-xs text-[#6b716d]">{pur.license}</td>
-                            <td className="px-4 py-3 text-sm font-medium text-[#18211f]">${pur.price.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-[#18211f]">${(pur.price || 0).toLocaleString()}</td>
                             <td className="px-4 py-3">
                               <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                pur.status === "APPROVED" ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"
+                                pur.status === "APPROVED" ? "bg-green-50 text-green-700" : 
+                                pur.status === "REJECTED" ? "bg-red-50 text-red-700" : 
+                                "bg-yellow-50 text-yellow-700"
                               }`}>
                                 {pur.status || "PENDING"}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-right">
-                              {pur.status !== "APPROVED" && (
-                                <button
-                                  onClick={async () => {
-                                    const ok = await approvePurchase(pur.id, pur.photoId, pur.userId);
-                                    if (ok) {
-                                      setUserPurchasesList(prev => prev.map(p => p.id === pur.id ? { ...p, status: "APPROVED" } : p));
-                                      toast.success("Purchase approved", { description: "License activated and buyer notified." });
-                                      sendPurchaseApprovedNotification(user.email, user.name, photo?.title || "your photo");
-                                    } else {
-                                      toast.error("Approval failed");
-                                    }
-                                  }}
-                                  className="text-xs text-[#1e4a3f] font-semibold hover:underline"
-                                >
-                                  Approve
-                                </button>
+                              {pur.status !== "APPROVED" && pur.status !== "REJECTED" && (
+                                <div className="flex justify-end gap-3">
+                                  <button
+                                    onClick={async () => {
+                                      const ok = await rejectPurchase(pur.id);
+                                      if (ok) {
+                                        setUserPurchasesList(prev => prev.map(p => p.id === pur.id ? { ...p, status: "REJECTED" } : p));
+                                        toast.success("Purchase rejected");
+                                        sendPurchaseRejectedNotification(user.email, user.name || "Customer", photo?.title || "your photo");
+                                      } else {
+                                        toast.error("Rejection failed");
+                                      }
+                                    }}
+                                    className="text-xs text-[#d4183d] font-semibold hover:underline"
+                                  >
+                                    Reject
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      const ok = await approvePurchase(pur.id, pur.photoId, pur.userId);
+                                      if (ok) {
+                                        setUserPurchasesList(prev => prev.map(p => p.id === pur.id ? { ...p, status: "APPROVED" } : p));
+                                        toast.success("Purchase approved", { description: "License activated and buyer notified." });
+                                        sendPurchaseApprovedNotification(user.email, user.name || "Customer", photo?.title || "your photo");
+                                      } else {
+                                        toast.error("Approval failed");
+                                      }
+                                    }}
+                                    className="text-xs text-[#1e4a3f] font-semibold hover:underline"
+                                  >
+                                    Approve
+                                  </button>
+                                </div>
                               )}
                             </td>
                           </tr>
