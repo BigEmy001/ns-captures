@@ -1393,7 +1393,8 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                       <th className="px-4 py-3">Submitted</th>
                       <th className="px-4 py-3">Name</th>
                       <th className="px-4 py-3">Contact</th>
-                      <th className="px-4 py-3">Location</th>
+                      <th className="px-4 py-3">Location & Contact</th>
+                      <th className="px-4 py-3">Social</th>
                       <th className="px-4 py-3">Portfolio</th>
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Admin Note</th>
@@ -1417,6 +1418,13 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                           <p className="mt-1">{sub.phone}</p>
                         </td>
                         <td className="px-4 py-3 text-xs text-[#4a534e]">{sub.country}<p className="mt-1 text-[#6b716d]">{sub.preferredChannel}</p></td>
+                        <td className="px-4 py-3 text-xs">
+                          {sub.socialHandle ? (
+                            <a href={sub.socialHandle.startsWith('http') ? sub.socialHandle : `https://instagram.com/${sub.socialHandle.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="underline text-[#1e4a3f] hover:text-[#123b31] truncate max-w-[100px] block">
+                              {sub.socialHandle}
+                            </a>
+                          ) : <span className="text-[#8a8f89]">-</span>}
+                        </td>
                         <td className="px-4 py-3 text-xs">
                           <a href={sub.portfolioLink} target="_blank" rel="noopener noreferrer" className="underline text-[#1e4a3f] hover:text-[#123b31]">Open Link</a>
                         </td>

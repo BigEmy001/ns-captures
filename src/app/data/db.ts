@@ -889,6 +889,7 @@ export interface ContributorSubmission {
   invitationCode: string;
   portfolioLink: string;
   gearDescription: string;
+  socialHandle?: string;
   status: "new" | "reviewing" | "approved" | "rejected" | "blocked";
   adminNote: string;
   createdAt: string;
@@ -904,6 +905,7 @@ export async function createContributorSubmission(input: {
   invitationCode?: string;
   portfolioLink: string;
   gearDescription: string;
+  socialHandle?: string;
 }): Promise<boolean> {
   const { error } = await supabase
     .from("contributor_submissions")
@@ -916,6 +918,7 @@ export async function createContributorSubmission(input: {
       invitation_code: input.invitationCode || null,
       portfolio_link: input.portfolioLink,
       gear_description: input.gearDescription,
+      social_handle: input.socialHandle || null,
     });
 
   if (error) {
@@ -947,9 +950,10 @@ export async function fetchContributorSubmissions(): Promise<ContributorSubmissi
     invitationCode: row.invitation_code || "",
     portfolioLink: row.portfolio_link || "",
     gearDescription: row.gear_description || "",
-    status: (row.status || "new") as ContributorSubmission["status"],
+    socialHandle: row.social_handle || "",
+    status: row.status,
     adminNote: row.admin_note || "",
-    createdAt: row.created_at || "",
+    createdAt: row.created_at,
     updatedAt: row.updated_at || "",
   }));
 }

@@ -25,6 +25,7 @@ export function Contribute() {
   const [invitationCode, setInvitationCode] = useState("");
   const [portfolioLink, setPortfolioLink] = useState("");
   const [gearDescription, setGearDescription] = useState("");
+  const [socialHandle, setSocialHandle] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -37,6 +38,7 @@ export function Contribute() {
     const cleanPortfolio = portfolioLink.trim();
     const cleanGear = gearDescription.trim();
     const cleanInvitation = invitationCode.trim();
+    const cleanSocial = socialHandle.trim();
 
     if (!cleanName || !cleanEmail || !cleanPhone || !cleanPortfolio || !cleanGear) {
       toast.error("Please fill in all required fields.");
@@ -78,6 +80,7 @@ export function Contribute() {
         invitationCode: cleanInvitation,
         portfolioLink: cleanPortfolio,
         gearDescription: cleanGear,
+        socialHandle: cleanSocial,
       });
 
       if (!stored) {
@@ -97,7 +100,8 @@ export function Contribute() {
           preferredChannel,
           invitationCode: cleanInvitation,
           portfolioLink: cleanPortfolio,
-          gearDescription: cleanGear
+          gearDescription: cleanGear,
+          socialHandle: cleanSocial
         }, null, 2)
       });
 
@@ -112,6 +116,7 @@ export function Contribute() {
       const safeInvite = escapeHtml(cleanInvitation || "Not provided");
       const safePortfolio = escapeHtml(cleanPortfolio);
       const safeGear = escapeHtml(cleanGear);
+      const safeSocial = escapeHtml(cleanSocial || "Not provided");
 
       // 3. Trigger administrative notification with complete application details
       const adminMessage = `
@@ -144,6 +149,10 @@ export function Contribute() {
           <tr style="background-color: #f7f7f7;">
             <td style="font-weight: bold; border-bottom: 1px solid #e0e0e0;">Portfolio Folder:</td>
             <td style="border-bottom: 1px solid #e0e0e0;"><a href="${safePortfolio}" target="_blank" rel="noopener noreferrer" style="color: #1e4a3f; font-weight: bold; text-decoration: underline;">Open Link</a></td>
+          </tr>
+          <tr>
+            <td style="font-weight: bold; border-bottom: 1px solid #e0e0e0;">Social Media / Instagram:</td>
+            <td style="border-bottom: 1px solid #e0e0e0;">${safeSocial}</td>
           </tr>
           <tr>
             <td style="font-weight: bold;">Gear &amp; Medium:</td>
@@ -455,6 +464,16 @@ export function Contribute() {
                         onChange={(e) => setInvitationCode(e.target.value)}
                         maxLength={64}
                         placeholder="Optional"
+                        className="w-full bg-[#f8f8f6] border border-[#ececec] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1e4a3f]/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono tracking-wider text-[#59645f] uppercase mb-2">Social Media Handle / Instagram (Optional)</label>
+                      <input
+                        type="text"
+                        value={socialHandle}
+                        onChange={(e) => setSocialHandle(e.target.value)}
+                        placeholder="@username or link"
                         className="w-full bg-[#f8f8f6] border border-[#ececec] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1e4a3f]/50"
                       />
                     </div>
