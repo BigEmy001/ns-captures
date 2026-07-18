@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
-import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Bell, Shield, FileText, TrendingUp, AlertCircle, Eye, EyeOff, User, ShieldCheck, ShieldOff, Upload, Plus, Trash2 } from "lucide-react";
+import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Bell, Shield, FileText, TrendingUp, AlertCircle, Eye, EyeOff, User, ShieldCheck, ShieldOff, Upload, Plus, Trash2, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { SideNav } from "../components/SideNav";
@@ -98,18 +98,58 @@ export function Account() {
     if (isAuthenticated) {
       try {
         await updateProfile({
-          ...profileData,
+          name: profileData.name,
+          email: profileData.email,
+          company: profileData.company,
           phone,
           occupation,
           dob,
           socialLinks,
           references,
         });
-      } catch (err: any) {
-        toast.error(err.message || "Failed to update profile");
+        toast.success("Profile saved");
+      } catch {
+        toast.error("Failed to save profile");
       }
-    } else {
-      toast.success("Profile saved");
+    }
+  };
+
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      toast.error("Upload configuration missing.");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+
+    try {
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.secure_url) {
+        await updateProfile({ avatar: data.secure_url });
+        toast.success("Profile picture updated");
+      } else {
+        toast.error("Failed to upload image");
+      }
+    } catch (error) {
+      toast.error("Upload error");
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -174,11 +214,17 @@ export function Account() {
               src={user?.avatar || ""}
               alt=""
               loading="lazy"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover opacity-50 blur-sm"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute bottom-6 left-6 flex items-center gap-4">
-              <img src={user?.avatar || ""} alt="" loading="lazy" className="size-16 rounded-full object-cover border-2 border-white shadow-md" />
+              <div className="relative group size-16 rounded-full border-2 border-white shadow-md overflow-hidden bg-white">
+                <img src={user?.avatar || ""} alt="" loading="lazy" className="w-full h-full object-cover" />
+                <label className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  {isUploadingAvatar ? <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="size-5" />}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploadingAvatar} />
+                </label>
+              </div>
               <div className="text-white">
                 <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight">{user?.name || "User"}</h1>
                 <p className="text-xs text-white/80 font-mono tracking-wider uppercase mt-1">

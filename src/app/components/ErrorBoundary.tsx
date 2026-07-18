@@ -30,7 +30,7 @@ export function ErrorBoundary() {
       </p>
       
       {/* Error Details */}
-      {import.meta.env.DEV && errorMessage && (
+      {errorMessage && (
         <div className="mt-6 w-full max-w-lg rounded-xl border border-red-100 bg-red-50/30 p-4 text-left">
           <p className="font-mono text-xs font-semibold text-red-800">ERROR DETAILS:</p>
           <p className="mt-2 font-mono text-xs text-red-600 break-words">{errorMessage}</p>

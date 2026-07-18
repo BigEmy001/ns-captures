@@ -380,9 +380,8 @@ export function Contribute() {
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="grid gap-5 sm:grid-cols-2">
                     <div>
-                      <label htmlFor="fullName" className="block text-xs font-mono tracking-wider text-[#59645f] uppercase mb-2">Full Legal Name *</label>
+                      <label className="block text-xs font-mono tracking-wider text-[#59645f] uppercase mb-2">Full Legal Name *</label>
                       <input
-                        id="fullName"
                         type="text"
                         required
                         value={fullName}
@@ -394,9 +393,8 @@ export function Contribute() {
                       />
                     </div>
                     <div>
-                      <label htmlFor="email" className="block text-xs font-mono tracking-wider text-[#59645f] uppercase mb-2">Email Address *</label>
+                      <label className="block text-xs font-mono tracking-wider text-[#59645f] uppercase mb-2">Email Address *</label>
                       <input
-                        id="email"
                         type="email"
                         required
                         value={email}
