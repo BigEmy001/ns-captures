@@ -6,6 +6,7 @@ import { CategoryNav } from "../components/CategoryNav";
 import { TopicRail } from "../components/TopicRail";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow, Button, Badge, PartnerButton } from "../components/ui";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { useRequest } from "../components/RequestModal";
 import { toast } from "sonner";
 import type { Photo, Collection, Photographer, Brief } from "../data/photos";
@@ -45,10 +46,10 @@ export function Home() {
   }, []);
 
   const trendingTags = [
-    photographers[0]?.location || "Worldwide",
-    photographers[1]?.location || "New York, USA",
+    "Portrait",
+    "Lifestyle",
     "Architecture",
-    "Culture",
+    "Fashion",
   ];
 
   const firstBrief = briefs[0];
@@ -77,7 +78,7 @@ export function Home() {
             behind the <em className="italic">idea.</em>
           </h1>
           <p className="mt-6 max-w-lg text-base leading-7 text-white/70">
-            Discover, describe, or commission the exact photograph your work needs — licensed with rights you can trust.
+            Discover or commission the exact photograph your work needs — licensed with rights you can trust.
           </p>
           <div className="mt-8 hero-search-wrapper">
             <HeroSearch />
@@ -202,7 +203,10 @@ export function Home() {
             {photographers.map((p) => (
               <Link key={p.id} to={`/photographer/${p.id}`} className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-5 transition hover:border-[#1e4a3f]">
                 <div className="flex items-center gap-3">
-                  <img src={getOptimizedImageUrl(p.avatar, 100)} alt={p.name} loading="lazy" className="size-12 rounded-full object-cover" />
+                  <Avatar className="size-12">
+                    <AvatarImage src={getOptimizedImageUrl(p.avatar, 100)} alt={p.name} className="object-cover" />
+                    <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-xs">{p.name?.slice(0, 2).toUpperCase() || "NS"}</AvatarFallback>
+                  </Avatar>
                   <div>
                     <h3 className="font-serif text-lg leading-none">{p.name}</h3>
                     <p className="mt-1 text-xs text-[#6b716d]">{p.location}</p>

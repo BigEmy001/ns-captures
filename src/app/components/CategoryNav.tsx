@@ -6,7 +6,7 @@ const items = [
   { label: "Documentary", to: "/search?cat=Documentary" },
   { label: "Portrait", to: "/search?cat=Portrait" },
   { label: "Architecture", to: "/search?cat=Architecture" },
-  { label: "Culture", to: "/search?cat=Culture" },
+  { label: "Lifestyle", to: "/search?cat=Lifestyle" },
   { label: "Fashion", to: "/search?cat=Fashion" },
   { label: "Requests", to: "/requests", badge: "NEW" },
 ];

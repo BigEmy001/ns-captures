@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import exifr from "exifr";
 import { Eyebrow, Badge } from "../components/ui";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { SideNav } from "../components/SideNav";
 import { type Photo, type License, type Orientation, type Photographer, type Brief } from "../data/photos";
 import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, deletePhoto, updateBriefStatus, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout, getOptimizedImageUrl, fetchPaymentMethods, upsertPaymentMethod, createPayoutRequest, fetchPayoutRequests, type PhotographerPaymentMethod, type PayoutRequest, type CryptoWalletEntry } from "../data/db";
@@ -573,7 +574,10 @@ export function Dashboard() {
           onSelect={setActive}
           header={() => (
             <div className="flex min-w-0 items-center gap-3">
-              <img src={user?.avatar || photos[0]?.image || ""} alt="" loading="lazy" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
+              <Avatar className="size-10 ring-2 ring-[#1e4a3f]/10">
+                <AvatarImage src={user?.avatar || photos[0]?.image || ""} alt="" className="object-cover" />
+                <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-xs">{user?.name?.slice(0, 2).toUpperCase() || "NS"}</AvatarFallback>
+              </Avatar>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{user?.name || "Photographer"}</p>
                 <p className="text-xs text-[#6b716d]">Verified · {user?.company || "Contributor"}</p>

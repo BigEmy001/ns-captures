@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Bell, Shield, FileText, TrendingUp, AlertCircle, Eye, EyeOff, User, ShieldCheck, ShieldOff, Upload, Plus, Trash2, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { SideNav } from "../components/SideNav";
 import { fetchPhoto, fetchPurchases, fetchLicenses, fetchActivity, fetchUserPurchaseStats, fetchUserSavedPhotoIds, fetchVerificationDocuments, uploadVerificationDocument, type Purchase, type LicenseRecord, type ActivityLogItem, type VerificationDocument, getOptimizedImageUrl, getFullQualityImageUrl } from "../data/db";
 import type { Photo } from "../data/db";
@@ -219,7 +220,10 @@ export function Account() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute bottom-6 left-6 flex items-center gap-4">
               <div className="relative group size-16 rounded-full border-2 border-white shadow-md overflow-hidden bg-white">
-                <img src={user?.avatar || ""} alt="" loading="lazy" className="w-full h-full object-cover" />
+                <Avatar className="w-full h-full object-cover">
+                  <AvatarImage src={user?.avatar || ""} alt="" loading="lazy" />
+                  <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-xl">{user?.name?.slice(0, 2).toUpperCase() || "NS"}</AvatarFallback>
+                </Avatar>
                 <label className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity cursor-pointer">
                   {isUploadingAvatar ? <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Camera className="size-5" />}
                   <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploadingAvatar} />

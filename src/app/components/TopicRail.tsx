@@ -7,17 +7,17 @@ interface Topic {
 }
 
 const popular: Topic[] = [
-  { label: "Lagos", count: "48k", image: "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150" },
+  { label: "Lifestyle", count: "48k", image: "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150" },
   { label: "Portrait", count: "63k", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150" },
   { label: "Architecture", count: "31k", image: "https://images.unsplash.com/photo-1511818966892-d7d671e672a2?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150" },
   { label: "Fashion", count: "22k", image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150" },
 ];
 
 const trending: Topic[] = [
-  { label: "West Africa", count: "12k", image: "https://images.unsplash.com/photo-1542385151-efd9000785a0?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150" },
+  { label: "Nature", count: "12k", image: "https://images.unsplash.com/photo-1542385151-efd9000785a0?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150" },
   { label: "Documentary", count: "9k", image: "https://images.unsplash.com/photo-1541944743827-e04aa6427c33?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150" },
   { label: "Minimal", count: "7k", image: "https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150" },
-  { label: "Golden hour", count: "5k", image: "https://images.unsplash.com/photo-1472141521881-95d0e87e2e39?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150" },
+  { label: "Street", count: "5k", image: "https://images.unsplash.com/photo-1472141521881-95d0e87e2e39?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150" },
 ];
 
 function Column({ title, topics }: { title: string; topics: Topic[] }) {

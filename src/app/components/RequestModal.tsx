@@ -82,7 +82,7 @@ function RequestModal({ onClose }: { onClose: () => void }) {
         <textarea
           value={brief}
           onChange={(e) => setBrief(e.target.value)}
-          placeholder="e.g. Traditional fishermen in Lagos at dawn"
+          placeholder="e.g. A bustling street market in Tokyo at dusk"
           className="mt-3 h-28 w-full resize-none border border-[#ececec] bg-[#f8f6f0] p-3 text-sm outline-none focus:border-[#1e4a3f]"
         />
         <div className="mt-3 grid grid-cols-2 gap-3">

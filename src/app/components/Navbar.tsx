@@ -513,6 +513,24 @@ export function Navbar() {
                       {l.label}
                     </Link>
                   ))}
+                  {!isAuthenticated && (
+                    <>
+                      <Link
+                        to="/signin"
+                        onClick={() => setMenu(false)}
+                        className="font-serif text-3xl font-light tracking-tight hover:text-white/70 transition-colors duration-200"
+                      >
+                        Sign in
+                      </Link>
+                      <Link
+                        to="/signup"
+                        onClick={() => setMenu(false)}
+                        className="font-serif text-3xl font-light tracking-tight hover:text-white/70 transition-colors duration-200"
+                      >
+                        Join
+                      </Link>
+                    </>
+                  )}
                   {user?.role !== "Admin" && (
                     <div className="pt-4 mt-2 flex flex-col space-y-4 border-t border-white/10">
                       <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Explore</p>
@@ -535,50 +553,38 @@ export function Navbar() {
                   )}
                 </nav>
 
-                <div className="border-t border-white/10 pt-8 grid grid-cols-2 gap-4 text-xs text-white/70">
-                  <div className="space-y-3 flex flex-col">
-                    {isAuthenticated ? (
-                      <>
-                        <Link to="/account" onClick={() => setMenu(false)} className="hover:text-white">
-                          My Account
-                        </Link>
-                        {user?.role === "Photographer" && (
-                          <Link to="/dashboard" onClick={() => setMenu(false)} className="hover:text-white">
-                            Photographer Dashboard
-                          </Link>
-                        )}
-                        {user?.role === "Enterprise" && (
-                          <Link to="/enterprise" onClick={() => setMenu(false)} className="hover:text-white">
-                            Enterprise Portal
-                          </Link>
-                        )}
-                        {user?.role === "Admin" && (
-                          <Link to="/admin" onClick={() => setMenu(false)} className="hover:text-white">
-                            Admin Console
-                          </Link>
-                        )}
-                      </>
-                    ) : (
-                      <Link to="/signin" onClick={() => setMenu(false)} className="hover:text-white">
-                        Sign In
+                {isAuthenticated && (
+                  <div className="border-t border-white/10 pt-8 grid grid-cols-2 gap-4 text-xs text-white/70">
+                    <div className="space-y-3 flex flex-col">
+                      <Link to="/account" onClick={() => setMenu(false)} className="hover:text-white">
+                        My Account
                       </Link>
-                    )}
-                  </div>
-                  <div className="space-y-3 flex flex-col">
-                    {isAuthenticated ? (
+                      {user?.role === "Photographer" && (
+                        <Link to="/dashboard" onClick={() => setMenu(false)} className="hover:text-white">
+                          Photographer Dashboard
+                        </Link>
+                      )}
+                      {user?.role === "Enterprise" && (
+                        <Link to="/enterprise" onClick={() => setMenu(false)} className="hover:text-white">
+                          Enterprise Portal
+                        </Link>
+                      )}
+                      {user?.role === "Admin" && (
+                        <Link to="/admin" onClick={() => setMenu(false)} className="hover:text-white">
+                          Admin Console
+                        </Link>
+                      )}
+                    </div>
+                    <div className="space-y-3 flex flex-col">
                       <button
                         onClick={() => { setMenu(false); logout(); }}
                         className="hover:text-white text-left"
                       >
                         Sign out
                       </button>
-                    ) : (
-                      <Link to="/signup" onClick={() => setMenu(false)} className="hover:text-white">
-                        Join
-                      </Link>
-                    )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Footer / CTA section */}
