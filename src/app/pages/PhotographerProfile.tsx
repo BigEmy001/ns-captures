@@ -56,9 +56,7 @@ export function PhotographerProfile() {
   const sorted = [...shots].sort((a, b) => (sort === "popular" ? b.downloads - a.downloads : 0));
 
   const tabs: { id: Tab; label: string; count?: number; badge?: string }[] = [
-    { id: "highlights", label: "Highlights", count: 0 },
     { id: "gallery", label: "Gallery", count: shots.length },
-    { id: "collections", label: "Collections" },
     { id: "statistics", label: "Statistics", badge: "NEW" },
     { id: "followers", label: "Followers", count: followerCount },
     { id: "following", label: "Following", count: followingCount },

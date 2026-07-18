@@ -13,6 +13,15 @@ export function ErrorBoundary() {
     errorMessage = error.data?.message || error.statusText;
   } else if (error instanceof Error) {
     errorMessage = error.message;
+    
+    // Auto-reload on stale Vite chunks
+    if (
+      errorMessage.includes("Failed to fetch dynamically imported module") ||
+      errorMessage.includes("Importing a module script failed")
+    ) {
+      window.location.reload();
+      return <div className="p-10 text-center font-mono text-sm">Reloading application...</div>;
+    }
   }
 
   return (
