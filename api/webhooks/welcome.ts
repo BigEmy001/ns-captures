@@ -1,38 +1,36 @@
 import nodemailer from "nodemailer";
+import { createClient } from "@supabase/supabase-js";
 
-// Supabase sends a payload like { type: "INSERT", table: "users", record: { email: "...", raw_user_meta_data: { name: "..." } } }
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Optional: Verify a webhook secret from Supabase to ensure security
-  const webhookSecret = process.env.WEBHOOK_SECRET;
+  // 1. Secure the endpoint by verifying the user's JWT token
   const authHeader = req.headers.authorization;
-  if (webhookSecret && authHeader !== `Bearer ${webhookSecret}`) {
-    return res.status(401).json({ error: "Unauthorized" });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized: Missing or invalid Authorization header" });
   }
 
-  const { type, record, old_record } = req.body;
+  const token = authHeader.replace("Bearer ", "");
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
   
-  // We only want to send the welcome email AFTER they verify their email address.
-  // This happens when 'email_confirmed_at' changes from null to a timestamp.
-  if (
-    type !== "UPDATE" || 
-    !record?.email_confirmed_at || 
-    old_record?.email_confirmed_at !== null
-  ) {
-    return res.status(200).json({ message: "Ignored: User has not just confirmed their email" });
+  if (!supabaseUrl || !supabaseKey) {
+    return res.status(500).json({ error: "Server missing Supabase environment variables" });
   }
 
-  if (!record || !record.email) {
-    return res.status(400).json({ error: "Missing user record or email" });
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user || !user.email) {
+    return res.status(401).json({ error: "Unauthorized: Invalid token" });
   }
 
-  const email = record.email;
-  // If the user signed up with a name, it will be in raw_user_meta_data
-  const name = record.raw_user_meta_data?.name || "there";
+  const email = user.email;
+  const name = user.user_metadata?.name || "there";
 
+  // 2. Dispatch the email using Nodemailer
   try {
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,

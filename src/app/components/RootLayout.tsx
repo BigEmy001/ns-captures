@@ -6,6 +6,8 @@ import { Footer } from "./Footer";
 import { RequestProvider } from "./RequestModal";
 import { AuthProvider } from "../context/AuthContext";
 
+import { VerificationWelcomeModal } from "./VerificationWelcomeModal";
+
 export function RootLayout() {
   const { pathname } = useLocation();
 
@@ -23,6 +25,7 @@ export function RootLayout() {
             <Outlet />
           </main>
           <Footer />
+          <VerificationWelcomeModal />
           <Toaster position="bottom-right" />
         </div>
       </RequestProvider>
