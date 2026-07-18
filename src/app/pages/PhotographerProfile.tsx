@@ -184,7 +184,7 @@ export function PhotographerProfile() {
             {[
               { label: "TOTAL VIEWS", value: compact(totalViews) },
               { label: "TOTAL DOWNLOADS", value: compact(totalDownloads) },
-              { label: "AVG. LICENSE PRICE", value: `$${Math.round(shots.reduce((s, p) => s + p.price, 0) / (shots.length || 1))}` },
+              { label: "AVG. LICENSE PRICE", value: `£${Math.round(shots.reduce((s, p) => s + p.price, 0) / (shots.length || 1))}` },
             ].map((s) => (
               <div key={s.label} className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-6">
                 <p className="font-mono text-[9px] tracking-[0.1em] text-[#758078]">{s.label}</p>

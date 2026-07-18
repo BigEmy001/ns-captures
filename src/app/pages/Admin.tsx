@@ -299,7 +299,7 @@ export function Admin() {
                   { label: "TOTAL USERS", value: platformStats.totalUsers.toLocaleString() },
                   { label: "PHOTOGRAPHERS", value: platformStats.photographers.toLocaleString() },
                   { label: "ASSETS", value: platformStats.assets.toLocaleString() },
-                  { label: "REVENUE (MTD)", value: `$${platformRevenue.toLocaleString()}` },
+                  { label: "REVENUE (MTD)", value: `£${platformRevenue.toLocaleString()}` },
                 ].map((s) => (
                   <div key={s.label} className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{s.label}</p>
@@ -342,7 +342,7 @@ export function Admin() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
                       <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                      <Tooltip content={<CustomTooltip prefix="$" />} cursor={{ stroke: "#1e4a3f" }} />
+                      <Tooltip content={<CustomTooltip prefix="£" />} cursor={{ stroke: "#1e4a3f" }} />
                       <Area type="monotone" dataKey="v" stroke="#1e4a3f" strokeWidth={2.5} fill="url(#rev)" />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -612,9 +612,9 @@ export function Admin() {
             <div className="mt-8 space-y-6">
               <div className="grid gap-6 sm:grid-cols-3">
                 {[
-                  { label: "GROSS SALES (MTD)", value: `$${platformRevenue.toLocaleString()}` },
-                  { label: "PAYOUTS DUE", value: `$${adminPayouts.filter((p) => p.status === "PENDING").reduce((s, p) => s + p.amount, 0).toLocaleString()}` },
-                  { label: "PLATFORM FEE", value: `$${Math.round(platformRevenue * (siteSettingsState.platformFee / 100)).toLocaleString()}` },
+                  { label: "GROSS SALES (MTD)", value: `£${platformRevenue.toLocaleString()}` },
+                  { label: "PAYOUTS DUE", value: `£${adminPayouts.filter((p) => p.status === "PENDING").reduce((s, p) => s + p.amount, 0).toLocaleString()}` },
+                  { label: "PLATFORM FEE", value: `£${Math.round(platformRevenue * (siteSettingsState.platformFee / 100)).toLocaleString()}` },
                 ].map((s) => (
                   <div key={s.label} className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{s.label}</p>
@@ -891,7 +891,7 @@ export function Admin() {
                 <h3 className="font-serif text-lg text-[#18211f] mb-6">Licensing & Pricing</h3>
                 <div className="grid gap-6 sm:grid-cols-2">
                   <Field label="Default Commission (%)" type="number" value={String(siteSettingsState.defaultCommission)} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, defaultCommission: Number(e.target.value) })} />
-                  <Field label="Minimum Price ($)" type="number" value={String(siteSettingsState.minPrice)} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, minPrice: Number(e.target.value) })} />
+                  <Field label="Minimum Price (£)" type="number" value={String(siteSettingsState.minPrice)} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, minPrice: Number(e.target.value) })} />
                   <Field label="Max File Size (MB)" type="number" value={String(siteSettingsState.maxFileSize)} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, maxFileSize: Number(e.target.value) })} />
                   <div className="space-y-2">
                     <label className="block">

@@ -268,7 +268,7 @@ export function Navbar() {
           userId: user!.id,
           type: "purchase",
           title: `Payment submitted: ${photo?.title || item.title}`,
-          desc: `${item.license} license for $${item.price} via ${selectedPaymentMethod}`,
+          desc: `${item.license} license for £${item.price} via ${selectedPaymentMethod}`,
         });
 
         // Notify the creator that someone bought their photo

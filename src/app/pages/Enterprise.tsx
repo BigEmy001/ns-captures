@@ -114,7 +114,7 @@ export function Enterprise() {
               { label: "ACTIVE PROJECTS", value: "3" },
               { label: "LICENSED ASSETS", value: "87" },
               { label: "TEAM SEATS", value: "14" },
-              { label: "SPEND (YTD)", value: "$18.4k" },
+              { label: "SPEND (YTD)", value: "£18.4k" },
             ].map((s) => (
               <div key={s.label} className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-5">
                 <p className="font-mono text-[9px] tracking-[0.1em] text-[#758078]">{s.label}</p>

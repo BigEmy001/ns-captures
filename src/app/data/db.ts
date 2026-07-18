@@ -1565,7 +1565,7 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
       const slug = profile.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "")
+        .replace(/^-|-£/g, "")
         + "-" + userId.slice(0, 8);
 
       await supabase.from("profiles").update({ slug }).eq("id", userId);

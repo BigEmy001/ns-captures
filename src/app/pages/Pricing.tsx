@@ -54,7 +54,7 @@ export function Pricing() {
       <div className="mt-16 flex flex-col items-center justify-between gap-6 border border-[#ececec] bg-[#fafafa] p-8 sm:flex-row rounded-2xl shadow-sm">
         <div>
           <h3 className="font-serif text-2xl">Can't find the image you need?</h3>
-          <p className="mt-1 text-sm text-[#59645f]">Commission it with a curated request from $200.</p>
+          <p className="mt-1 text-sm text-[#59645f]">Commission it with a curated request from £200.</p>
         </div>
         <Button onClick={openRequest}>Request a shoot</Button>
       </div>

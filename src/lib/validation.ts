@@ -1,5 +1,5 @@
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
-const PHONE_REGEX = /^\+?[0-9()\-\s]{7,20}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}£/i;
+const PHONE_REGEX = /^\+?[0-9()\-\s]{7,20}£/;
 
 export function normalizeEmail(input: string): string {
   return input.trim().toLowerCase();

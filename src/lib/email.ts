@@ -67,7 +67,7 @@ export async function sendCreatorSaleNotification(creatorEmail: string, creatorN
       <p style="font-size:16px; color:#6b716d;">We're excited to let you know that a buyer just placed an order for your photo: <strong>${escapeHtml(photoTitle)}</strong>.</p>
       <div style="background-color:#f8f9f7; padding:20px; border-radius:8px; margin:20px 0; border:1px solid #dce8df;">
         <p style="margin:0; font-size:14px; color:#1e4a3f; font-weight:bold;">Gross Revenue</p>
-        <p style="margin:5px 0 0 0; font-size:24px; color:#18211f;">$${price.toFixed(2)}</p>
+        <p style="margin:5px 0 0 0; font-size:24px; color:#18211f;">£${price.toFixed(2)}</p>
       </div>
       <p style="font-size:14px; color:#6b716d;">The funds are currently pending admin verification. Once verified, they will be added to your available payout balance.</p>
     </div>
@@ -119,7 +119,7 @@ export async function sendPurchaseReceipt(
   const itemsHtml = items.map((i) =>
     `<tr><td style="padding:6px 0;font-size:14px;color:#333333;">${escapeHtml(i.title)}</td>
 <td style="padding:6px 0;font-size:13px;color:#888888;">${escapeHtml(i.license)}</td>
-<td style="padding:6px 0;font-size:14px;color:#333333;text-align:right;">$${i.price.toFixed(2)}</td></tr>`
+<td style="padding:6px 0;font-size:14px;color:#333333;text-align:right;">£${i.price.toFixed(2)}</td></tr>`
   ).join("");
 
   await send(to, "Your Purchase Receipt — NS CAPTURES", `
@@ -131,7 +131,7 @@ export async function sendPurchaseReceipt(
 <th style="text-align:right;font-size:12px;color:#888888;font-family:inherit;padding:8px 0;border-bottom:1px solid #e0e0e0;">Price</th></tr>
 ${itemsHtml}
 <tr><td colspan="2" style="padding:8px 0;font-size:14px;font-weight:700;color:#1e4a3f;border-top:2px solid #1e4a3f;">Total</td>
-<td style="padding:8px 0;font-size:14px;font-weight:700;color:#1e4a3f;text-align:right;border-top:2px solid #1e4a3f;">$${total.toFixed(2)}</td></tr>
+<td style="padding:8px 0;font-size:14px;font-weight:700;color:#1e4a3f;text-align:right;border-top:2px solid #1e4a3f;">£${total.toFixed(2)}</td></tr>
 </table>
 <p style="margin:20px 0 0;font-size:14px;line-height:20px;color:#888888;font-family:inherit;">View your downloads and licenses in your account dashboard at any time.</p>
 <p style="margin:16px 0 0;">${btn("https://www.nscaptures.com/account", "My Account")}</p>`);

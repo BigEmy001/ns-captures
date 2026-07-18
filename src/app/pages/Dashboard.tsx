@@ -351,7 +351,7 @@ export function Dashboard() {
     if (exifData.shutterSpeed) setExifShutterSpeed(exifData.shutterSpeed);
     if (exifData.location) setUploadLocation(exifData.location);
     // Generate title from filename
-    const nameFromFilename = file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ").trim();
+    const nameFromFilename = file.name.replace(/\.[^.]+£/, "").replace(/[-_]/g, " ").trim();
     if (nameFromFilename) setUploadTitle(nameFromFilename);
 
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -533,13 +533,13 @@ export function Dashboard() {
   const handlePriceUpdate = async (photoId: string) => {
     const newPrice = parseInt(editingPriceValue, 10);
     if (isNaN(newPrice) || newPrice < 1000) {
-      toast.error("Minimum price is $1,000");
+      toast.error("Minimum price is £1,000");
       return;
     }
     const ok = await updatePhotoPrice(photoId, newPrice);
     if (ok) {
       setPortfolioPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, price: newPrice } : p));
-      toast.success(`Price updated to $${newPrice.toLocaleString()}`);
+      toast.success(`Price updated to £${newPrice.toLocaleString()}`);
     } else {
       toast.error("Failed to update price");
     }
@@ -550,12 +550,12 @@ export function Dashboard() {
     id: p.id,
     date: p.date,
     method: p.method,
-    amount: `$${p.amount.toLocaleString()}`,
+    amount: `£${p.amount.toLocaleString()}`,
     status: p.status,
   }));
 
   const stats = [
-    { label: "REVENUE (LIFETIME)", value: `$${photographerStats.totalRevenue.toLocaleString()}` },
+    { label: "REVENUE (LIFETIME)", value: `£${photographerStats.totalRevenue.toLocaleString()}` },
     { label: "DOWNLOADS", value: photographerStats.totalDownloads.toLocaleString() },
     { label: "FOLLOWERS", value: followerCount.toLocaleString() },
     { label: "PORTFOLIO", value: String(portfolioPhotos.length) },
@@ -667,7 +667,7 @@ export function Dashboard() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
                       <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                      <Tooltip content={<CustomTooltip prefix="$" />} cursor={{ stroke: "#1e4a3f", strokeWidth: 1 }} />
+                      <Tooltip content={<CustomTooltip prefix="£" />} cursor={{ stroke: "#1e4a3f", strokeWidth: 1 }} />
                       <Area type="monotone" dataKey="v" stroke="#1e4a3f" strokeWidth={2.5} fill="url(#rev)" />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -796,7 +796,7 @@ export function Dashboard() {
                         <div className="flex items-center justify-between pt-3 border-t border-[#ececec]/40 text-xs font-mono text-[#758078]">
                           {editingPriceId === p.id ? (
                             <div className="flex items-center gap-1.5">
-                              <span>$</span>
+                              <span>£</span>
                               <input
                                 type="number"
                                 value={editingPriceValue}
@@ -861,7 +861,7 @@ export function Dashboard() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
                     <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                    <Tooltip content={<CustomTooltip prefix="$" />} cursor={{ stroke: "#1e4a3f" }} />
+                    <Tooltip content={<CustomTooltip prefix="£" />} cursor={{ stroke: "#1e4a3f" }} />
                     <Area type="monotone" dataKey="v" stroke="#1e4a3f" strokeWidth={3} fill="url(#revFull)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -958,7 +958,7 @@ export function Dashboard() {
               <div className="grid gap-6 sm:grid-cols-3">
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Pending Payout</p>
-                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">{pendingPayout ? `$${pendingPayout.amount.toLocaleString()}` : "$0.00"}</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">{pendingPayout ? `£${pendingPayout.amount.toLocaleString()}` : "£0.00"}</p>
                   <p className="text-xs text-[#6d746e] mt-1.5">{pendingPayout ? `Scheduled for Aug 1st` : "No pending payouts"}</p>
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
@@ -968,7 +968,7 @@ export function Dashboard() {
                 </div>
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Last Payout Amount</p>
-                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">{lastPayout ? `$${lastPayout.amount.toLocaleString()}` : "$0.00"}</p>
+                  <p className="mt-2 font-serif text-3xl font-medium text-[#18211f]">{lastPayout ? `£${lastPayout.amount.toLocaleString()}` : "£0.00"}</p>
                   <p className="text-xs text-[#1e7a4f] mt-1.5 font-mono">{lastPayout ? `Paid ${lastPayout.date}` : "No payouts yet"}</p>
                 </div>
               </div>
@@ -1216,11 +1216,11 @@ export function Dashboard() {
 
                 <div className="flex flex-wrap items-end gap-4">
                   <div>
-                    <label className="text-xs font-medium text-[#6b716d] mb-1 block">Amount ($)</label>
+                    <label className="text-xs font-medium text-[#6b716d] mb-1 block">Amount (£)</label>
                     <input
                       type="number"
                       min="100"
-                      placeholder="Min $100"
+                      placeholder="Min £100"
                       value={payoutRequestAmount}
                       onChange={(e) => setPayoutRequestAmount(e.target.value)}
                       className="w-40 text-sm border border-[#ececec] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#1e4a3f]/40"
@@ -1243,7 +1243,7 @@ export function Dashboard() {
                   <button
                     onClick={async () => {
                       const amount = parseInt(payoutRequestAmount, 10);
-                      if (!amount || amount < 100) { toast.error("Minimum payout is $100"); return; }
+                      if (!amount || amount < 100) { toast.error("Minimum payout is £100"); return; }
                       const req = await createPayoutRequest(photographerId, amount, payoutRequestMethod, {
                         wallets: payoutRequestMethod === "crypto" ? cryptoWallets : undefined,
                         email: payoutRequestMethod === "paypal" ? paypalEmail : undefined,
@@ -1520,7 +1520,7 @@ export function Dashboard() {
                           </select>
                         </label>
                         <label className="block">
-                          <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Single License price ($)</span>
+                          <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Single License price (£)</span>
                           <input
                             required
                             type="number"

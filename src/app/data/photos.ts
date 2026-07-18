@@ -9988,12 +9988,12 @@ export interface ActivityItem {
 }
 
 export const mockActivity: ActivityItem[] = [
-  { id: "a1", type: "download", title: "Downloaded: Light on Lagos", date: new Date("2026-07-11"), desc: "COMMERCIAL license · $190" },
-  { id: "a2", type: "purchase", title: "License purchased: Bloom study", date: new Date("2026-07-08"), desc: "ROYALTY FREE license · $180" },
+  { id: "a1", type: "download", title: "Downloaded: Light on Lagos", date: new Date("2026-07-11"), desc: "COMMERCIAL license · £190" },
+  { id: "a2", type: "purchase", title: "License purchased: Bloom study", date: new Date("2026-07-08"), desc: "ROYALTY FREE license · £180" },
   { id: "a3", type: "collection", title: "Created collection: Cityscapes", date: new Date("2026-07-01"), desc: "18 images added" },
   { id: "a4", type: "like", title: "Liked: The in-between", date: new Date("2026-06-25"), desc: "Added to your favorites" },
   { id: "a5", type: "login", title: "New sign-in from London, UK", date: new Date("2026-06-21"), desc: "Chrome on macOS" },
-  { id: "a6", type: "plan", title: "Plan renewed: Studio ($49/mo)", date: new Date("2026-06-08"), desc: "Next billing: Sep 1, 2026" },
+  { id: "a6", type: "plan", title: "Plan renewed: Studio (£49/mo)", date: new Date("2026-06-08"), desc: "Next billing: Sep 1, 2026" },
 ];
 
 // Admin console mock data.
