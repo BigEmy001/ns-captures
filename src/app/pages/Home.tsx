@@ -45,8 +45,8 @@ export function Home() {
   }, []);
 
   const trendingTags = [
-    photographers[0]?.location || "West Africa",
-    "Editorial portrait",
+    photographers[0]?.location || "Worldwide",
+    photographers[1]?.location || "New York, USA",
     "Architecture",
     "Culture",
   ];
