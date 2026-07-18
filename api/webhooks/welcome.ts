@@ -13,7 +13,18 @@ export default async function handler(req: any, res: any) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { record } = req.body;
+  const { type, record, old_record } = req.body;
+  
+  // We only want to send the welcome email AFTER they verify their email address.
+  // This happens when 'email_confirmed_at' changes from null to a timestamp.
+  if (
+    type !== "UPDATE" || 
+    !record?.email_confirmed_at || 
+    old_record?.email_confirmed_at !== null
+  ) {
+    return res.status(200).json({ message: "Ignored: User has not just confirmed their email" });
+  }
+
   if (!record || !record.email) {
     return res.status(400).json({ error: "Missing user record or email" });
   }
