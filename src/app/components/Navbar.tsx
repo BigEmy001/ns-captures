@@ -11,7 +11,7 @@ import { Dropdown, DropdownItem } from "./Dropdown";
 import { useRequest } from "./RequestModal";
 import { getCart, removeFromCart, clearCart, CartItem } from "../data/cart";
 import { createPurchaseWithMethod, createLicense, logActivity, incrementPhotoDownloads, fetchPhoto, fetchPhotographers, fetchPaymentMethods } from "../data/db";
-import { sendPurchaseReceipt, sendLicenseConfirmation } from "../../lib/email";
+import { sendPurchaseReceipt, sendLicenseConfirmation, sendCreatorSaleNotification } from "../../lib/email";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, UserRole } from "../context/AuthContext";
@@ -207,27 +207,20 @@ export function Navbar() {
     const loadMethods = async () => {
       try {
         const photographers = await fetchPhotographers();
-        const uniquePhotographerIds = [...new Set(
-          cartItems.map((item) => {
-            const match = photographers.find((p) => p.name === item.photographer);
-            return match?.id || item.photographer?.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-          }).filter(Boolean)
-        )];
-        const allMethods: { method: string; enabled: boolean; details: Record<string, unknown> }[] = [];
-        const detailsMap: Record<string, { method: string; details: Record<string, unknown> }> = {};
-        for (const pid of uniquePhotographerIds) {
-          const methods = await fetchPaymentMethods(pid);
-          methods.filter((m) => m.enabled).forEach((m) => {
-            if (!allMethods.find((am) => am.method === m.method)) {
-              allMethods.push({ method: m.method, enabled: true, details: m.details });
-            }
-            if (!detailsMap[pid]) {
-              detailsMap[pid] = { method: m.method, details: m.details };
-            }
-          });
-        }
-        if (allMethods.length > 0) setAvailableMethods(allMethods);
-        setPhotographerPaymentDetails(detailsMap);
+        // In Escrow Option B, we don't fetch individual photographer methods.
+        // We just supply the global platform payment methods.
+        setAvailableMethods([
+          { method: "card", enabled: true, details: {} },
+          { method: "crypto", enabled: true, details: { wallets: [{ currency: "USDT / USDC", address: "Platform-Admin-Wallet-Address-Here" }] } },
+          { method: "paypal", enabled: true, details: { email: "admin@ns-captures.com" } },
+        ]);
+        
+        // We create a dummy map for backwards compatibility in the UI
+        const dummyMap: Record<string, { method: string; details: Record<string, unknown> }> = {};
+        cartItems.forEach(item => {
+          dummyMap[item.photoId] = { method: "platform", details: {} };
+        });
+        setPhotographerPaymentDetails(dummyMap);
       } catch {}
     };
     loadMethods();
@@ -276,6 +269,15 @@ export function Navbar() {
           title: `Payment submitted: ${photo?.title || item.title}`,
           desc: `${item.license} license for $${item.price} via ${selectedPaymentMethod}`,
         });
+
+        // Notify the creator that someone bought their photo
+        if (photo?.photographerId) {
+          const creatorMatch = photographers.find(p => p.id === photo.photographerId);
+          if (creatorMatch && creatorMatch.email) {
+            sendCreatorSaleNotification(creatorMatch.email, creatorMatch.name, photo.title, item.price);
+          }
+        }
+
       } catch (err) {
         console.error("checkout error for", item.photoId, err);
         hasError = true;
@@ -667,8 +669,8 @@ export function Navbar() {
                 <>
                   <CheckCircle className="size-12 text-[#1e7a4f] animate-bounce" />
                   <div>
-                    <p className="font-serif text-lg text-[#18211f]">Transaction Approved!</p>
-                    <p className="text-xs text-[#6d746e] mt-1">Preparing your high-resolution downloads.</p>
+                    <p className="font-serif text-lg text-[#18211f]">Order Pending Approval</p>
+                    <p className="text-xs text-[#6d746e] mt-1">Admin will verify your payment and release downloads.</p>
                   </div>
                 </>
               )}
@@ -778,46 +780,36 @@ export function Navbar() {
                     <div className="bg-[#f8f9f7] rounded-xl p-4 border border-[#ececec]/60">
                       <p className="text-xs font-semibold text-[#18211f] mb-2">Crypto Payment</p>
                       <p className="text-[11px] text-[#6b716d]">Send the exact amount to one of the wallet addresses below. Include your order ID in the transaction memo.</p>
-                      {Object.entries(photographerPaymentDetails).map(([pid, pd]) => (
-                        pd.method === "crypto" && (
-                          <div key={pid} className="mt-2 space-y-2">
-                            {(() => {
-                              const wallets = pd.details.wallets as { coin: string; network: string; address: string }[] | undefined;
-                              if (wallets && wallets.length > 0) {
-                                return wallets.map((w, i) => (
-                                  <div key={i} className="p-2 bg-white rounded-lg border border-[#ececec]/40">
-                                    <div className="flex items-center gap-1.5 mb-1">
-                                      <span className="text-[10px] font-bold bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded">{w.coin}</span>
-                                      <span className="text-[9px] text-[#6b716d] uppercase tracking-wider">{w.network}</span>
-                                    </div>
-                                    <p className="text-xs font-mono text-[#18211f] break-all">{w.address || "Not configured"}</p>
-                                  </div>
-                                ));
-                              }
-                              return (
-                                <div className="p-2 bg-white rounded-lg border border-[#ececec]/40">
-                                  <p className="text-xs font-mono text-[#18211f] break-all">{String(pd.details.wallet || "Not configured")}</p>
-                                </div>
-                              );
-                            })()}
+                      <div className="mt-3 space-y-3">
+                        {availableMethods.find(m => m.method === "crypto")?.details?.wallets?.length > 0 ? (
+                          availableMethods.find(m => m.method === "crypto")!.details.wallets.map((w: any, idx: number) => (
+                            <div key={idx} className="flex flex-col p-3 bg-white border border-[#ececec] rounded-xl shadow-sm">
+                              <span className="text-[10px] font-bold tracking-wider text-[#6b716d] uppercase mb-1">{w.currency} Address</span>
+                              <div className="flex items-center gap-2">
+                                <code className="text-xs font-mono text-[#18211f] flex-1 truncate bg-[#f8f9f7] px-2 py-1 rounded">
+                                  {w.address}
+                                </code>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-6 border border-dashed border-[#ececec] rounded-xl bg-[#f8f9f7]">
+                            <p className="text-xs text-[#6b716d]">Crypto payment method is not configured by the platform.</p>
                           </div>
-                        )
-                      ))}
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {selectedPaymentMethod === "paypal" && (
                     <div className="bg-[#f8f9f7] rounded-xl p-4 border border-[#ececec]/60">
                       <p className="text-xs font-semibold text-[#18211f] mb-2">PayPal Payment</p>
-                      <p className="text-[11px] text-[#6b716d]">Send payment to the PayPal address below. Use "Friends & Family" to avoid fees.</p>
-                      {Object.entries(photographerPaymentDetails).map(([pid, pd]) => (
-                        pd.method === "paypal" && (
-                          <div key={pid} className="mt-2 p-2 bg-white rounded-lg border border-[#ececec]/40">
-                            <p className="text-[10px] text-[#6b716d] uppercase">{pid.replace(/-/g, " ")}</p>
-                            <p className="text-xs font-mono text-[#18211f]">{String(pd.details.email || "Not configured")}</p>
-                          </div>
-                        )
-                      ))}
+                      <p className="text-[11px] text-[#6b716d]">Send payment to the platform PayPal address below.</p>
+                      <div className="mt-2 p-2 bg-white rounded-lg border border-[#ececec]/40">
+                        <p className="text-xs font-mono text-[#18211f]">
+                          {String(availableMethods.find(m => m.method === "paypal")?.details?.email || "admin@ns-captures.com")}
+                        </p>
+                      </div>
                     </div>
                   )}
 

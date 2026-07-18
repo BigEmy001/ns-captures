@@ -15,8 +15,8 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { getPhoto } from "../data/photos";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
-import { logActivity, fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, fetchContributorSubmissions, updateContributorSubmissionStatus, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument, type ContributorSubmission } from "../data/db";
-import { sendContributorSubmissionStatus, sendVerificationStatus } from "../../lib/email";
+import { sendContributorSubmissionStatus, sendVerificationStatus, sendPurchaseApprovedNotification } from "../../lib/email";
+import { logActivity, fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, approvePurchase, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, fetchContributorSubmissions, updateContributorSubmissionStatus, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument, type ContributorSubmission } from "../data/db";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -1148,26 +1148,64 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
               <div>
                 <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">Invoice Purchase History</p>
                 <div className="overflow-hidden border border-[#ececec] bg-white rounded-2xl shadow-sm">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#f7f7f7] font-mono text-[9px] tracking-wider text-[#8a8f89] uppercase border-b border-[#ececec]">
+                  <table className="w-full text-left">
+                    <thead className="bg-[#f8f9f7] text-[#6b716d] text-xs font-semibold uppercase">
                       <tr>
-                        <th className="px-4 py-3">Invoice</th>
-                        <th className="px-4 py-3">Asset</th>
+                        <th className="px-4 py-3 rounded-l-lg">Photo</th>
                         <th className="px-4 py-3">License</th>
-                        <th className="px-4 py-3 text-right">Price</th>
+                        <th className="px-4 py-3">Price</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3 rounded-r-lg text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#ececec]/60">
-                      {userPurchasesList.length > 0 ? userPurchasesList.map((pur) => (
-                        <tr key={pur.id} className="hover:bg-[#FAF9F5] transition duration-150">
-                          <td className="px-4 py-3 font-semibold text-[#18211f]">{pur.id}</td>
-                          <td className="px-4 py-3 text-[#6b716d] max-w-[120px] truncate" title={pur.photoId}>{assets.find(a => a.id === pur.photoId)?.title || pur.photoId}</td>
-                          <td className="px-4 py-3"><Badge tone="muted" size="sm">{pur.license}</Badge></td>
-                          <td className="px-4 py-3 text-right font-semibold text-[#18211f]">${pur.price}</td>
-                        </tr>
-                      )) : (
+                    <tbody className="divide-y divide-[#ececec]/80">
+                      {userPurchasesList.length > 0 ? userPurchasesList.map((pur) => {
+                        const photo = assets.find(a => a.id === pur.photoId);
+                        return (
+                          <tr key={pur.id} className="group hover:bg-[#f8f9f7]/50 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="size-10 rounded overflow-hidden bg-[#ececec]">
+                                  {photo && <img src={photo.image} className="w-full h-full object-cover" />}
+                                </div>
+                                <div className="text-xs font-medium text-[#18211f]">
+                                  {photo?.title || pur.photoId}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-[#6b716d]">{pur.license}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-[#18211f]">${pur.price.toLocaleString()}</td>
+                            <td className="px-4 py-3">
+                              <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                pur.status === "APPROVED" ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"
+                              }`}>
+                                {pur.status || "PENDING"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {pur.status !== "APPROVED" && (
+                                <button
+                                  onClick={async () => {
+                                    const ok = await approvePurchase(pur.id, pur.photoId, pur.userId);
+                                    if (ok) {
+                                      setUserPurchasesList(prev => prev.map(p => p.id === pur.id ? { ...p, status: "APPROVED" } : p));
+                                      toast.success("Purchase approved", { description: "License activated and buyer notified." });
+                                      sendPurchaseApprovedNotification(user.email, user.name, photo?.title || "your photo");
+                                    } else {
+                                      toast.error("Approval failed");
+                                    }
+                                  }}
+                                  className="text-xs text-[#1e4a3f] font-semibold hover:underline"
+                                >
+                                  Approve
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      }) : (
                         <tr>
-                          <td colSpan={4} className="px-4 py-6 text-center text-xs text-[#6b716d]">No purchases yet</td>
+                          <td colSpan={5} className="px-4 py-6 text-center text-xs text-[#6b716d]">No purchases yet</td>
                         </tr>
                       )}
                     </tbody>

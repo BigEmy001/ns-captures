@@ -21,6 +21,7 @@ export interface Purchase {
   license: string;
   price: number;
   date: string;
+  status?: "PENDING" | "APPROVED";
 }
 
 export interface LicenseRecord {
@@ -1474,9 +1475,41 @@ export async function createPurchaseWithMethod(
       license,
       price,
       payment_method: paymentMethod,
+      status: "PENDING",
     });
 
   return !error;
+}
+
+// ============================================================
+// APPROVE PURCHASE
+// ============================================================
+
+export async function approvePurchase(purchaseId: string, photoId: string, userId: string): Promise<boolean> {
+  const { error: pErr } = await supabase
+    .from("purchases")
+    .update({ status: "APPROVED" })
+    .eq("id", purchaseId);
+    
+  if (pErr) return false;
+
+  // Find the corresponding license and update expires_at
+  const { data: licenses } = await supabase
+    .from("licenses")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("photo_id", photoId)
+    .order("purchased_at", { ascending: false })
+    .limit(1);
+
+  if (licenses && licenses.length > 0) {
+    await supabase
+      .from("licenses")
+      .update({ expires_at: "Lifetime" })
+      .eq("id", licenses[0].id);
+  }
+
+  return true;
 }
 
 // ============================================================

@@ -10,6 +10,41 @@ async function send(to: string, subject: string, body: string) {
   if (error) console.error("Email send failed:", error);
 }
 
+async function sendEmail(to: string, subject: string, html: string) {
+  return await send(to, subject, html);
+}
+
+export async function sendCreatorSaleNotification(creatorEmail: string, creatorName: string, photoTitle: string, price: number) {
+  const subject = "Great news! Someone just bought your photo 🎉";
+  const html = `
+    <div style="text-align:center; padding:20px;">
+      <h1 style="color:#1e4a3f;">You made a sale!</h1>
+      <p style="font-size:16px; color:#6b716d;">Hi ${escapeHtml(creatorName)},</p>
+      <p style="font-size:16px; color:#6b716d;">We're excited to let you know that a buyer just placed an order for your photo: <strong>${escapeHtml(photoTitle)}</strong>.</p>
+      <div style="background-color:#f8f9f7; padding:20px; border-radius:8px; margin:20px 0; border:1px solid #dce8df;">
+        <p style="margin:0; font-size:14px; color:#1e4a3f; font-weight:bold;">Gross Revenue</p>
+        <p style="margin:5px 0 0 0; font-size:24px; color:#18211f;">$${price.toFixed(2)}</p>
+      </div>
+      <p style="font-size:14px; color:#6b716d;">The funds are currently pending admin verification. Once verified, they will be added to your available payout balance.</p>
+    </div>
+  `;
+  return sendEmail(creatorEmail, subject, html);
+}
+
+export async function sendPurchaseApprovedNotification(buyerEmail: string, buyerName: string, photoTitle: string) {
+  const subject = "Your purchase is approved! 📷";
+  const html = `
+    <div style="text-align:center; padding:20px;">
+      <h1 style="color:#1e4a3f;">Payment Confirmed</h1>
+      <p style="font-size:16px; color:#6b716d;">Hi ${escapeHtml(buyerName)},</p>
+      <p style="font-size:16px; color:#6b716d;">Great news! We've successfully verified your payment for <strong>${escapeHtml(photoTitle)}</strong>.</p>
+      <p style="font-size:16px; color:#6b716d;">Your high-resolution license is now active and the photo is ready to download.</p>
+      <a href="https://www.nscaptures.com/account" style="display:inline-block; padding:12px 24px; background-color:#1e4a3f; color:white; text-decoration:none; border-radius:6px; font-weight:bold; margin-top:20px;">View My Collection</a>
+    </div>
+  `;
+  return sendEmail(buyerEmail, subject, html);
+}
+
 function btn(url: string, label: string): string {
   return `<table cellpadding="0" cellspacing="0" style="margin:0;"><tr><td style="background-color:#1e4a3f;border-radius:44px;padding:12px 32px;">
 <a href="${url}" style="display:block;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;text-transform:uppercase;letter-spacing:0.5px;font-family:inherit;">${label}</a>
