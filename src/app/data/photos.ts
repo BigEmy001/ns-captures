@@ -9924,11 +9924,12 @@ export interface Brief {
   id: string;
   title: string;
   location: string;
-  license: License;
+  license: string;
   budget: number;
   delivery: string;
-  status: "MATCHING" | "IN PROGRESS" | "DELIVERED";
+  status: "OPEN" | "MATCHING" | "ACCEPTED" | "COMPLETED";
   description: string;
+  clientEmail?: string;
 }
 
 export const briefs: Brief[] = [

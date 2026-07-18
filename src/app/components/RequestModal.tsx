@@ -28,10 +28,11 @@ function RequestModal({ onClose }: { onClose: () => void }) {
   const [licenseOpen, setLicenseOpen] = useState(false);
   const [budget, setBudget] = useState(600);
   const [brief, setBrief] = useState("");
+  const [email, setEmail] = useState("");
 
   const submit = async () => {
-    if (!brief.trim()) {
-      toast.error("Please describe what you need");
+    if (!brief.trim() || !email.trim()) {
+      toast.error("Please provide an email and description");
       return;
     }
     const result = await createBrief({
@@ -40,6 +41,7 @@ function RequestModal({ onClose }: { onClose: () => void }) {
       license,
       budget,
       description: brief,
+      clientEmail: email,
     });
     if (result) {
       toast.success("Brief submitted", { description: "We will match you with photographers within 24 hours." });
@@ -70,11 +72,18 @@ function RequestModal({ onClose }: { onClose: () => void }) {
         <p className="mt-3 max-w-sm text-sm leading-6 text-[#68706b]">
           Put a brief in front of our vetted photographer network. We will match you with the right eye.
         </p>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Your email address"
+          className="mt-6 w-full border border-[#ececec] bg-[#f8f6f0] p-3 text-sm outline-none focus:border-[#1e4a3f]"
+        />
         <textarea
           value={brief}
           onChange={(e) => setBrief(e.target.value)}
           placeholder="e.g. Traditional fishermen in Lagos at dawn"
-          className="mt-6 h-28 w-full resize-none border border-[#ececec] bg-[#f8f6f0] p-3 text-sm outline-none focus:border-[#1e4a3f]"
+          className="mt-3 h-28 w-full resize-none border border-[#ececec] bg-[#f8f6f0] p-3 text-sm outline-none focus:border-[#1e4a3f]"
         />
         <div className="mt-3 grid grid-cols-2 gap-3">
           <div className="relative">

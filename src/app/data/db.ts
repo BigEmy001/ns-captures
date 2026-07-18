@@ -265,6 +265,7 @@ export async function fetchBriefs(): Promise<Brief[]> {
     delivery: b.delivery || "",
     status: b.status || "MATCHING",
     description: b.description || "",
+    clientEmail: b.client_email || "",
   }));
 }
 
@@ -272,7 +273,7 @@ export async function fetchBriefs(): Promise<Brief[]> {
 // CREATE BRIEF (Request modal)
 // ============================================================
 
-export async function createBrief(brief: { title: string; location: string; license: string; budget: number; description: string }): Promise<Brief | null> {
+export async function createBrief(brief: { title: string; location: string; license: string; budget: number; description: string; clientEmail: string }): Promise<Brief | null> {
   const id = `BRF-${Date.now().toString(36)}`;
   const { data, error } = await supabase
     .from("briefs")
@@ -283,6 +284,7 @@ export async function createBrief(brief: { title: string; location: string; lice
       license: brief.license,
       budget: brief.budget,
       description: brief.description,
+      client_email: brief.clientEmail,
       status: "OPEN",
     })
     .select()
