@@ -27,6 +27,8 @@ export function PhotoDetail() {
   const [selected, setSelected] = useState("COMMERCIAL");
   const [saved, setSaved] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLiking, setIsLiking] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -104,13 +106,41 @@ export function PhotoDetail() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={async () => { if (!user) { toast.error("Sign in to save"); return; } const now = await toggleSave(user.id, photo.id); setSaved(now); toast(now ? "Saved to collection" : "Removed from collection"); }} className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer">
+              <button 
+                disabled={isSaving}
+                onClick={async () => { 
+                  if (!user) { toast.error("Sign in to save"); return; } 
+                  setIsSaving(true);
+                  try {
+                    const now = await toggleSave(user.id, photo.id); 
+                    setSaved(now); 
+                    toast(now ? "Saved to collection" : "Removed from collection"); 
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }} 
+                className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 {saved ? <Check className="size-4 text-[#1e4a3f]" /> : <Bookmark className="size-4" />} Save
               </button>
               <button onClick={() => toast("Link copied")} className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer">
                 <Share2 className="size-4" /> Share
               </button>
-              <button onClick={async () => { if (!user) { toast.error("Sign in to like"); return; } const now = await toggleLike(user.id, photo.id); setLiked(now); toast(now ? "Liked" : "Unliked"); }} className={`grid place-items-center rounded-full border bg-white/50 px-3 py-2 transition hover:border-[#1e4a3f] cursor-pointer ${liked ? "border-[#1e4a3f] text-[#1e4a3f]" : "border-[#ececec]"}`}>
+              <button 
+                disabled={isLiking}
+                onClick={async () => { 
+                  if (!user) { toast.error("Sign in to like"); return; } 
+                  setIsLiking(true);
+                  try {
+                    const now = await toggleLike(user.id, photo.id); 
+                    setLiked(now); 
+                    toast(now ? "Liked" : "Unliked"); 
+                  } finally {
+                    setIsLiking(false);
+                  }
+                }} 
+                className={`grid place-items-center rounded-full border bg-white/50 px-3 py-2 transition hover:border-[#1e4a3f] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${liked ? "border-[#1e4a3f] text-[#1e4a3f]" : "border-[#ececec]"}`}
+              >
                 <Heart className="size-4" fill={liked ? "#1e4a3f" : "none"} />
               </button>
             </div>
