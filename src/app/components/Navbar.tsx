@@ -7,6 +7,7 @@ import {
   Building2, Briefcase, Camera,
 } from "lucide-react";
 import { Monogram } from "./ui";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Dropdown, DropdownItem } from "./Dropdown";
 import { useRequest } from "./RequestModal";
 import { getCart, removeFromCart, clearCart, CartItem } from "../data/cart";
@@ -553,36 +554,27 @@ export function Navbar() {
                   )}
                 </nav>
 
-                {isAuthenticated && (
-                  <div className="border-t border-white/10 pt-8 grid grid-cols-2 gap-4 text-xs text-white/70">
-                    <div className="space-y-3 flex flex-col">
-                      <Link to="/account" onClick={() => setMenu(false)} className="hover:text-white">
-                        My Account
-                      </Link>
-                      {user?.role === "Photographer" && (
-                        <Link to="/dashboard" onClick={() => setMenu(false)} className="hover:text-white">
-                          Photographer Dashboard
-                        </Link>
-                      )}
-                      {user?.role === "Enterprise" && (
-                        <Link to="/enterprise" onClick={() => setMenu(false)} className="hover:text-white">
-                          Enterprise Portal
-                        </Link>
-                      )}
-                      {user?.role === "Admin" && (
-                        <Link to="/admin" onClick={() => setMenu(false)} className="hover:text-white">
-                          Admin Console
-                        </Link>
-                      )}
-                    </div>
-                    <div className="space-y-3 flex flex-col">
-                      <button
-                        onClick={() => { setMenu(false); logout(); }}
-                        className="hover:text-white text-left"
-                      >
-                        Sign out
-                      </button>
-                    </div>
+                {isAuthenticated && user && (
+                  <div className="border-t border-white/10 pt-6 mt-4 flex items-center justify-between">
+                    <Link to="/account" onClick={() => setMenu(false)} className="flex items-center gap-3">
+                      <Avatar className="size-10 border border-white/20">
+                        <AvatarImage src={user.avatar || ""} className="object-cover" />
+                        <AvatarFallback className="bg-white/10 text-white font-mono text-xs">
+                          {user.name?.slice(0, 2).toUpperCase() || "NS"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-white">{user.name}</span>
+                        <span className="text-xs text-white/50">{user.email}</span>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => { setMenu(false); logout(); }}
+                      className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                      aria-label="Sign out"
+                    >
+                      <LogOut className="size-5" />
+                    </button>
                   </div>
                 )}
               </div>
