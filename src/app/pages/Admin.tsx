@@ -577,10 +577,10 @@ export function Admin() {
                     <Link to={`/photo/${p.id}`}>
                       <img src={p.image} alt="" loading="lazy" className="aspect-square w-full object-cover group-hover:scale-105 transition-all duration-300" />
                     </Link>
-                    <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 opacity-0 transition group-hover:opacity-100">
+                    <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 opacity-100 md:opacity-0 transition md:group-hover:opacity-100">
                       <span className="text-xs text-white font-serif">{p.title}</span>
                     </div>
-                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition group-hover:opacity-100">
+                    <div className="absolute top-2 right-2 flex gap-1 opacity-100 md:opacity-0 transition md:group-hover:opacity-100">
                       <button
                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); toast("Viewing asset details"); }}
                         className="p-2 bg-white/90 backdrop-blur-sm text-[#18211f] rounded-full hover:bg-white transition shadow"
@@ -1121,7 +1121,7 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                   {userPhotos.map((photo) => (
                     <div key={photo.id} className="group relative overflow-hidden bg-[#d7d8d2] rounded-xl aspect-square shadow-sm">
                       <img src={photo.image} alt={photo.title} loading="lazy" className="size-full object-cover group-hover:scale-105 transition-all duration-300" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-2.5 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-2.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex flex-col justify-end">
                         <p className="text-[10px] font-serif text-white truncate font-medium">{photo.title}</p>
                         <p className="text-[8px] font-mono text-white/70 mt-0.5 uppercase tracking-wide truncate">
                           {photo.category} · {photo.license}
@@ -1131,7 +1131,7 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                           <span className="flex items-center gap-0.5"><Download className="size-2" /> {photo.downloads}</span>
                         </div>
                       </div>
-                      <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                      <div className="absolute top-1.5 right-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
                         <button 
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteAsset(photo.id); }}
                           className="p-1 rounded-full bg-white/95 text-[#d4183d] hover:bg-white shadow cursor-pointer"

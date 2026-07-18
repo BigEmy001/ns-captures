@@ -765,7 +765,7 @@ export function Dashboard() {
                         <img src={getOptimizedImageUrl(p.image, 600)} alt={p.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-102 transition duration-300" />
                         
                         {/* Overlay tools */}
-                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition duration-200">
+                        <div className="absolute top-3 right-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition duration-200">
                           <button
                             onClick={() => handleDeletePhoto(p.id)}
                             className="p-2 bg-white/90 backdrop-blur-sm text-[#d4183d] rounded-full hover:bg-white transition shadow cursor-pointer"

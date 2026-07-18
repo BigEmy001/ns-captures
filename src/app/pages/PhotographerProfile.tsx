@@ -243,16 +243,16 @@ function GalleryTile({ photo, name }: { photo: Photo; name: string }) {
     <div className="group relative overflow-hidden bg-[#d7d8d2]">
       <Link to={`/photo/${photo.id}`}>
         <img src={getOptimizedImageUrl(photo.image, 600)} alt={photo.title} loading="lazy" className="w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10 opacity-0 transition group-hover:opacity-100" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10 opacity-100 md:opacity-0 transition md:group-hover:opacity-100" />
       </Link>
       <button
         onClick={() => toast("Saved to collection")}
         aria-label="Save"
-        className="absolute right-3 top-3 grid size-8 place-items-center bg-white/90 text-[#1e4a3f] opacity-0 transition group-hover:opacity-100"
+        className="absolute right-3 top-3 grid size-8 place-items-center bg-white/90 text-[#1e4a3f] opacity-100 md:opacity-0 transition md:group-hover:opacity-100"
       >
         <Bookmark className="size-4" />
       </button>
-      <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between opacity-0 transition group-hover:opacity-100">
+      <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between opacity-100 md:opacity-0 transition md:group-hover:opacity-100">
         <span className="truncate text-xs font-medium text-white">{name}</span>
         <button
           onClick={(e) => { e.preventDefault(); toast.success("License to download"); }}

@@ -34,15 +34,15 @@ export function PhotoCard({ item }: { item: Photo }) {
             loading="lazy"
             className="size-full object-cover transition duration-500 group-hover:scale-[1.03]"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
-          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 font-mono text-[9px] tracking-[0.08em] text-[#1e4a3f] opacity-0 transition group-hover:opacity-100">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent opacity-100 md:opacity-0 transition md:group-hover:opacity-100" />
+          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2 py-1 font-mono text-[9px] tracking-[0.08em] text-[#1e4a3f] opacity-100 md:opacity-0 transition md:group-hover:opacity-100">
             {item.license}
           </span>
         </Link>
         <button
           aria-label={`Save ${item.title}`}
           onClick={handleSave}
-          className="absolute right-3 top-3 grid size-8 translate-y-1 place-items-center bg-white/90 text-[#1e4a3f] opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100 cursor-pointer rounded-full"
+          className="absolute right-3 top-3 grid size-8 translate-y-0 md:translate-y-1 place-items-center bg-white/90 text-[#1e4a3f] opacity-100 md:opacity-0 transition md:group-hover:translate-y-0 md:group-hover:opacity-100 cursor-pointer rounded-full"
         >
           {saved ? <Check className="size-4" /> : <Bookmark className="size-4" />}
         </button>
