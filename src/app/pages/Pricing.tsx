@@ -25,7 +25,7 @@ export function Pricing() {
 
       {/* Per-image licensing */}
       <section className="mt-16">
-        <div className="overflow-hidden border border-[#ececec] ns-shadow-sm rounded-2xl">
+        <div className="overflow-x-auto border border-[#ececec] ns-shadow-sm rounded-2xl">
           <table className="w-full text-left text-sm">
             <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.1em] text-[#8a8f89]">
               <tr>
