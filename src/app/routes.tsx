@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router";
 import { RootLayout } from "./components/RootLayout";
 import { GuestRoute, AuthRoute, AdminRoute, AdminGuestRoute, PhotographerRoute, EnterpriseRoute } from "./components/RouteGuards";
-import { ErrorBoundary } from "./components/ErrorBoundary";
+import { GlobalErrorBoundary as ErrorBoundary } from "./components/ErrorBoundary";
 
 const Home = lazy(() => import("./pages/Home").then(m => ({ default: m.Home })));
 const SearchPage = lazy(() => import("./pages/Search").then(m => ({ default: m.SearchPage })));
@@ -10,7 +10,6 @@ const PhotoDetail = lazy(() => import("./pages/PhotoDetail").then(m => ({ defaul
 const Collections = lazy(() => import("./pages/Collections").then(m => ({ default: m.Collections })));
 const Requests = lazy(() => import("./pages/Requests").then(m => ({ default: m.Requests })));
 const Pricing = lazy(() => import("./pages/Pricing").then(m => ({ default: m.Pricing })));
-const Dashboard = lazy(() => import("./pages/Dashboard").then(m => ({ default: m.Dashboard })));
 const Enterprise = lazy(() => import("./pages/Enterprise").then(m => ({ default: m.Enterprise })));
 const Contribute = lazy(() => import("./pages/Contribute").then(m => ({ default: m.Contribute })));
 const PhotographerProfile = lazy(() => import("./pages/PhotographerProfile").then(m => ({ default: m.PhotographerProfile })));
@@ -70,11 +69,6 @@ export const router = createBrowserRouter([
         path: "account",
         Component: AuthRoute,
         children: [{ index: true, element: <Suspense fallback={fallback}><Account /></Suspense> }],
-      },
-      {
-        path: "dashboard",
-        Component: PhotographerRoute,
-        children: [{ index: true, element: <Suspense fallback={fallback}><Dashboard /></Suspense> }],
       },
       {
         path: "enterprise",

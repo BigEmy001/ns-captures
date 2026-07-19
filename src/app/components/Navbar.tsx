@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Dropdown, DropdownItem } from "./Dropdown";
 import { useRequest } from "./RequestModal";
 import { getCart, removeFromCart, clearCart, CartItem } from "../data/cart";
-import { createPurchaseWithMethod, createLicense, logActivity, incrementPhotoDownloads, fetchPhoto, fetchPhotographers, fetchPaymentMethods } from "../data/db";
+import { createPurchaseWithMethod, createLicense, logActivity, incrementPhotoDownloads, fetchPhoto, fetchPhotographers, fetchPaymentMethods, fetchAdminPaymentMethods } from "../data/db";
 import { sendPurchaseReceipt, sendLicenseConfirmation, sendCreatorSaleNotification } from "../../lib/email";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,15 +26,14 @@ const publicLinks = [
 
 const photographerLinks = [
   { to: "/search", label: "Discover" },
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/account", label: "My Account" },
+  { to: "/account", label: "Dashboard" },
   { to: "/collections", label: "Collections" },
   { to: "/requests", label: "Requests" },
 ];
 
 const buyerLinks = [
   { to: "/search", label: "Discover" },
-  { to: "/account", label: "My Account" },
+  { to: "/account", label: "Dashboard" },
   { to: "/collections", label: "Collections" },
   { to: "/requests", label: "Requests" },
   { to: "/pricing", label: "Licensing" },
@@ -43,7 +42,7 @@ const buyerLinks = [
 const enterpriseLinks = [
   { to: "/search", label: "Discover" },
   { to: "/enterprise", label: "Enterprise" },
-  { to: "/account", label: "Account" },
+  { to: "/account", label: "Dashboard" },
   { to: "/collections", label: "Collections" },
   { to: "/requests", label: "Requests" },
 ];
@@ -77,9 +76,6 @@ const getExploreItems = (role: UserRole): DropdownItem[] => {
   if (role === "Buyer" || role === "Enterprise") {
     base.push({ label: "Enterprise Portal", icon: Sparkles, to: "/enterprise" });
   }
-  if (role === "Photographer") {
-    base.push({ label: "Photographer Dashboard", icon: Camera, to: "/dashboard" });
-  }
   if (role === "Admin") {
     base.push({ divider: true, label: "d-admin" }, { label: "Admin Console", icon: Code2, to: "/admin" });
   }
@@ -97,12 +93,10 @@ const getMoreItems = (role: UserRole, user: { id: string; name: string; email: s
     ];
   }
   const items: DropdownItem[] = [
-    { label: "My Account", icon: User, to: "/account" },
+    { label: "Dashboard", icon: User, to: "/account" },
+    { label: "Public Profile", icon: Camera, to: `/photographer/${user.id}` },
     { label: "Settings", icon: Settings, to: "/account?tab=security" },
   ];
-  if (role === "Photographer") {
-    items.push({ label: "Dashboard", icon: Camera, to: "/dashboard" });
-  }
   if (role === "Enterprise") {
     items.push({ label: "Enterprise Portal", icon: Building2, to: "/enterprise" });
   }
@@ -203,18 +197,30 @@ export function Navbar() {
     };
   }, []);
 
-  // Load available payment methods from cart photographers
+  // Load available payment methods from admin settings
   useEffect(() => {
     if (cartItems.length === 0 || !cartOpen) return;
     const loadMethods = async () => {
       try {
-        const photographers = await fetchPhotographers();
-        // In Escrow Option B, we don't fetch individual photographer methods.
-        // We just supply the global platform payment methods.
+        const methods = await fetchAdminPaymentMethods();
+        
+        // Map the admin payment methods into the expected UI format
         setAvailableMethods([
-          { method: "card", enabled: true, details: {} },
-          { method: "crypto", enabled: true, details: { wallets: [{ currency: "USDT / USDC", address: "Platform-Admin-Wallet-Address-Here" }] } },
-          { method: "paypal", enabled: true, details: { email: "admin@ns-captures.com" } },
+          { 
+            method: "card", 
+            enabled: !!methods.find(m => m.type === "bank" && m.is_active), 
+            details: { instructions: methods.filter(m => m.type === "bank" && m.is_active).map(m => m.details) } 
+          },
+          { 
+            method: "crypto", 
+            enabled: !!methods.find(m => m.type === "crypto" && m.is_active), 
+            details: { wallets: methods.filter(m => m.type === "crypto" && m.is_active).map(m => ({ currency: m.currency, address: m.details })) } 
+          },
+          { 
+            method: "paypal", 
+            enabled: !!methods.find(m => m.type === "paypal" && m.is_active), 
+            details: { email: methods.find(m => m.type === "paypal" && m.is_active)?.details || "admin@ns-captures.com" } 
+          },
         ]);
         
         // We create a dummy map for backwards compatibility in the UI
@@ -223,7 +229,9 @@ export function Navbar() {
           dummyMap[item.photoId] = { method: "platform", details: {} };
         });
         setPhotographerPaymentDetails(dummyMap);
-      } catch {}
+      } catch (err) {
+        console.error("Failed to load payment methods", err);
+      }
     };
     loadMethods();
   }, [cartItems, cartOpen]);

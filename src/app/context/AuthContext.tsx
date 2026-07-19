@@ -79,10 +79,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .select("*")
             .eq("id", session.user.id)
             .single();
-          if (profile?.status === "Suspended") {
+          if (profile?.status === "Suspended" || profile?.status === "Blocked") {
             await supabase.auth.signOut();
             setUser(null);
-            toast.error("Your account has been suspended. Contact support@nscaptures.com.");
+            toast.error("Your account has been suspended or blocked. Contact support@nscaptures.com.");
           } else {
             setUser(supabaseUserToAuthUser(session.user, profile));
           }
@@ -104,10 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               .select("*")
               .eq("id", session.user.id)
               .single();
-            if (profile?.status === "Suspended") {
+            if (profile?.status === "Suspended" || profile?.status === "Blocked") {
               await supabase.auth.signOut();
               setUser(null);
-              toast.error("Your account has been suspended. Contact support@nscaptures.com.");
+              toast.error("Your account has been suspended or blocked. Contact support@nscaptures.com.");
             } else {
               setUser(supabaseUserToAuthUser(session.user, profile));
             }
@@ -175,9 +175,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("id", data.user.id)
       .single();
 
-    if (profile?.status === "Suspended") {
+    if (profile?.status === "Suspended" || profile?.status === "Blocked") {
       await supabase.auth.signOut();
-      throw new Error("Your account has been suspended. Contact support@nscaptures.com.");
+      throw new Error("Your account has been suspended or blocked. Contact support@nscaptures.com.");
     }
 
     const authUser = supabaseUserToAuthUser(data.user, profile);

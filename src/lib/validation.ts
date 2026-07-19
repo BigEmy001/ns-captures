@@ -1,32 +1,34 @@
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
-const PHONE_REGEX = /^\+?[0-9()\-\s]{7,20}$/;
+import { z } from "zod";
+
+export const emailSchema = z.string().trim().toLowerCase().email();
+export const passwordSchema = z.string().min(10).regex(/[A-Za-z]/, "Must contain at least one letter").regex(/\d/, "Must contain at least one number");
+export const phoneSchema = z.string().trim().regex(/^\+?[0-9()\-\s]{7,20}$/, "Invalid phone number format");
+export const urlSchema = z.string().trim().url().refine((val) => val.startsWith("https://"), {
+  message: "URL must be HTTPS",
+});
 
 export function normalizeEmail(input: string): string {
-  return input.trim().toLowerCase();
+  try {
+    return emailSchema.parse(input);
+  } catch {
+    return input.trim().toLowerCase();
+  }
 }
 
 export function isValidEmail(input: string): boolean {
-  return EMAIL_REGEX.test(normalizeEmail(input));
+  return emailSchema.safeParse(input).success;
 }
 
 export function isStrongPassword(input: string): boolean {
-  if (input.length < 10) return false;
-  const hasLetter = /[A-Za-z]/.test(input);
-  const hasNumber = /\d/.test(input);
-  return hasLetter && hasNumber;
+  return passwordSchema.safeParse(input).success;
 }
 
 export function isValidPhone(input: string): boolean {
-  return PHONE_REGEX.test(input.trim());
+  return phoneSchema.safeParse(input).success;
 }
 
 export function isValidHttpsUrl(input: string): boolean {
-  try {
-    const url = new URL(input.trim());
-    return url.protocol === "https:";
-  } catch {
-    return false;
-  }
+  return urlSchema.safeParse(input).success;
 }
 
 export function escapeHtml(input: string): string {

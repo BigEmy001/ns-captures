@@ -6,6 +6,7 @@ import {
 import { toast } from "sonner";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { Button, Eyebrow } from "../components/ui";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { useRequest } from "../components/RequestModal";
 import { fetchPhotographer, fetchPhotosByPhotographer, type Photographer, type Photo, getOptimizedImageUrl } from "../data/db";
 import { NotFound } from "./NotFound";
@@ -208,7 +209,10 @@ export function PhotographerProfile() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(tab === "followers" ? followers : followingList).map((f) => (
               <div key={f.followerId + f.followingId} className="flex items-center gap-3 border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4">
-                <img src={f.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop"} alt={f.name} loading="lazy" className="size-11 rounded-full object-cover" />
+                <Avatar className="size-11">
+                  <AvatarImage src={f.avatar || ""} className="object-cover" />
+                  <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-xs">{f.name?.charAt(0).toUpperCase() || "NS"}</AvatarFallback>
+                </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{f.name}</p>
                 </div>

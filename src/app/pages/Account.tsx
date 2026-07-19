@@ -1,25 +1,63 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
+import {
+  LayoutGrid, Image as ImageIcon, Wallet, Users, Inbox,
+  Aperture, Check, X, ChevronRight, Activity
+} from "lucide-react";
+import {
+  AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
+} from "recharts";
+import exifr from "exifr";
+import { type Orientation, type Photographer, type Brief } from "../data/photos";
+import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, deletePhoto, updateBriefStatus, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout, fetchPaymentMethods, upsertPaymentMethod, createPayoutRequest, fetchPayoutRequests, type PhotographerPaymentMethod, type PayoutRequest, type CryptoWalletEntry, fetchPhotosByIds } from "../data/db";
+
 import { Link, useSearchParams } from "react-router";
 import { Download, Heart, FolderHeart, Receipt, Settings, CreditCard, LogOut, Bell, Shield, FileText, TrendingUp, AlertCircle, Eye, EyeOff, User, ShieldCheck, ShieldOff, Upload, Plus, Trash2, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
+import { VerificationModal } from "../components/VerificationModal";
+import { CreatorTabs } from "./account/CreatorTabs";
 import { SideNav } from "../components/SideNav";
 import { fetchPhoto, fetchPurchases, fetchLicenses, fetchActivity, fetchUserPurchaseStats, fetchUserSavedPhotoIds, fetchVerificationDocuments, uploadVerificationDocument, type Purchase, type LicenseRecord, type ActivityLogItem, type VerificationDocument, getOptimizedImageUrl, getFullQualityImageUrl } from "../data/db";
 import type { Photo } from "../data/db";
 import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
 
+
 const nav = [
-  { id: "overview", label: "Profile", icon: User },
+  { id: "overview", label: "Profile", icon: User, heading: "PERSONAL" },
   { id: "collections", label: "Collections", icon: FolderHeart },
   { id: "downloads", label: "Downloads", icon: Download },
   { id: "licenses", label: "Licenses", icon: FileText },
-  { id: "activity", label: "Activity", icon: Bell },
-  { id: "verification", label: "Verification", icon: ShieldCheck },
+  
+  // Creator Hub (Rendered conditionally later, but defined here)
+  { id: "dashboard", label: "Dashboard", icon: Activity, heading: "CREATOR HUB", isCreator: true },
+  { id: "portfolio", label: "Portfolio", icon: ImageIcon, isCreator: true },
+  { id: "analytics", label: "Analytics", icon: TrendingUp, isCreator: true },
+  { id: "requests", label: "Requests", icon: Inbox, isCreator: true },
+  { id: "payouts", label: "Payouts", icon: Wallet, isCreator: true },
+  { id: "followers", label: "Followers", icon: Users, isCreator: true },
+
+  { id: "activity", label: "Activity", icon: Bell, heading: "ACCOUNT", divider: true },
   { id: "security", label: "Settings", icon: Settings },
   { id: "billing", label: "Billing", icon: CreditCard },
 ];
+
+
+const CustomTooltip = ({ active, payload, label, prefix = "" }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-[#12231f]/95 p-3 text-white shadow-xl backdrop-blur-md">
+        <p className="font-mono text-[9px] tracking-wider text-white/50">{label}</p>
+        <p className="mt-1 font-serif text-sm font-semibold">
+          {prefix}{payload[0].value.toLocaleString()}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 export function Account() {
   const { user, updateProfile, changePassword, isAuthenticated, logout, upgradeToCreator } = useAuth();
@@ -79,20 +117,30 @@ export function Account() {
   }, [user?.id]);
 
   useEffect(() => {
-    const allPhotoIds = new Set([
-      ...purchases.map((p) => p.photoId),
-      ...licenses.map((l) => l.photoId),
-      ...savedPhotoIds,
-    ]);
-    allPhotoIds.forEach(async (id) => {
+    const fetchAllData = async () => {
+      const allPhotoIds = Array.from(new Set([
+        ...purchases.map((p) => p.photoId),
+        ...licenses.map((l) => l.photoId),
+        ...savedPhotoIds,
+      ]));
+      
+      if (allPhotoIds.length === 0) return;
+
       try {
-        const photo = await fetchPhoto(id);
-        if (photo) {
-          setPurchasePhotos((prev) => ({ ...prev, [id]: photo }));
-          setLicensePhotos((prev) => ({ ...prev, [id]: photo }));
-        }
-      } catch {}
-    });
+        const photos = await fetchPhotosByIds(allPhotoIds);
+        const photoMap = photos.reduce((acc, photo) => {
+          acc[photo.id] = photo;
+          return acc;
+        }, {} as Record<string, Photo>);
+        
+        setPurchasePhotos(photoMap);
+        setLicensePhotos(photoMap);
+      } catch (e) {
+        console.error("Failed to batch fetch photos", e);
+      }
+    };
+
+    fetchAllData();
   }, [purchases, licenses, savedPhotoIds]);
 
   const handleProfileSave = async () => {
@@ -113,6 +161,36 @@ export function Account() {
         toast.error("Failed to save profile");
       }
     }
+  };
+
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+
+  const handleVerifyIdentity = async (type: string, number: string, file: File) => {
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset || !user) {
+      toast.error("Upload configuration missing.");
+      throw new Error("Missing config");
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) throw new Error("Upload failed");
+    const data = await response.json();
+
+    await uploadVerificationDocument(user.id, type, number, data.secure_url);
+    toast.success("Verification document submitted successfully. We will review it shortly.");
+    
+    // Quick reload to reflect the new status
+    setTimeout(() => window.location.reload(), 1500);
   };
 
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -180,15 +258,21 @@ export function Account() {
     <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
       <div className="mx-auto flex max-w-[1440px] gap-8 px-5 sm:px-8 lg:px-12">
         <SideNav
-          items={nav}
+          items={nav.filter(n => !n.isCreator || user?.role === "Photographer" || user?.role === "Admin")}
           active={active}
           onSelect={setActive}
           header={() => (
             <div className="flex min-w-0 items-center gap-3">
-              <img src={user?.avatar || ""} alt="" loading="lazy" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
+              {user?.avatar ? (
+                <img src={user.avatar} alt="" loading="lazy" className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10" />
+              ) : (
+                <div className="grid size-10 place-items-center rounded-full bg-[#1e4a3f] text-white font-serif text-sm font-semibold ring-2 ring-[#1e4a3f]/10">
+                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                </div>
+              )}
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{user?.name || "User"}</p>
-                <p className="text-xs text-[#6b716d]">{user?.plan || "Starter"} plan</p>
+                <p className="text-xs text-[#6b716d] capitalize">{user?.role || "Buyer"}</p>
               </div>
             </div>
           )}
@@ -211,12 +295,16 @@ export function Account() {
 
           {/* Profile Header Cover */}
           <div className="relative h-44 w-full rounded-2xl overflow-hidden mb-8 shadow-sm border border-[#ececec]/80">
-            <img
-              src={user?.avatar || ""}
-              alt=""
-              loading="lazy"
-              className="w-full h-full object-cover opacity-50 blur-sm"
-            />
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt=""
+                loading="lazy"
+                className="w-full h-full object-cover opacity-50 blur-sm"
+              />
+            ) : (
+              <div className="w-full h-full bg-[#1e4a3f] opacity-20" />
+            )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <div className="absolute bottom-6 left-6 flex items-center gap-4">
               <div className="relative group size-16 rounded-full border-2 border-white shadow-md overflow-hidden bg-white">
@@ -259,7 +347,7 @@ export function Account() {
             <div className="space-y-8">
               <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
                 {[
-                  { label: "PLAN", value: user?.plan || "Starter" },
+                  { label: "ACCOUNT TYPE", value: user?.role || "Buyer" },
                   { label: "PURCHASES", value: String(purchaseStats.totalPurchases) },
                   { label: "SAVED ITEMS", value: String(savedPhotoIds.length) },
                   { label: "MEMBER SINCE", value: user?.memberSince || "—" },
@@ -453,23 +541,29 @@ export function Account() {
                         </td>
                         <td className="px-6 py-4 text-[#6b716d] text-xs">{pur.date}</td>
                         <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => {
-                              if (p?.image) {
-                                const a = document.createElement("a");
-                                a.href = getFullQualityImageUrl(p.image);
-                                a.download = `NS-CAPTURES-${p.id}.jpg`;
-                                a.target = "_blank";
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
-                                toast.success("Download started");
-                              }
-                            }}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3.5 py-1.5 rounded-full transition-all duration-200"
-                          >
-                            <Download className="size-3.5" /> Download
-                          </button>
+                          {pur.status === "APPROVED" ? (
+                            <button
+                              onClick={() => {
+                                if (p?.image) {
+                                  const a = document.createElement("a");
+                                  a.href = getFullQualityImageUrl(p.image);
+                                  a.download = `NS-CAPTURES-${p.id}.jpg`;
+                                  a.target = "_blank";
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  toast.success("Download started");
+                                }
+                              }}
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3.5 py-1.5 rounded-full transition-all duration-200"
+                            >
+                              <Download className="size-3.5" /> Download
+                            </button>
+                          ) : pur.status === "REJECTED" ? (
+                            <span className="text-xs font-semibold text-red-600 bg-red-50 px-3 py-1 rounded-full">Rejected</span>
+                          ) : (
+                            <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">Pending Verification</span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -579,8 +673,39 @@ export function Account() {
           )}
 
           {active === "security" && (
-            <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
-              <h3 className="font-serif text-xl text-[#18211f] mb-6">Security & Password</h3>
+            <div className="space-y-6">
+              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
+                <h3 className="font-serif text-xl text-[#18211f] mb-6">Identity Verification</h3>
+                <div className="max-w-md space-y-4">
+                  <div className="bg-[#f7f7f7] rounded-xl p-4 border border-[#ececec]">
+                    <div className="flex items-start gap-3">
+                      <ShieldCheck className={`size-6 shrink-0 mt-0.5 ${
+                        user?.verification_status === "verified" ? "text-green-600" :
+                        user?.verification_status === "pending" ? "text-amber-500" :
+                        user?.verification_status === "rejected" ? "text-red-500" :
+                        "text-[#6b716d]"
+                      }`} />
+                      <div>
+                        <p className="font-semibold text-[#18211f]">Account Status</p>
+                        <p className="text-sm mt-1 mb-3 text-[#6b716d]">
+                          {user?.verification_status === "verified" ? "Your identity is verified. You have full access to photographer features." :
+                           user?.verification_status === "pending" ? "Your verification is currently under review by our team." :
+                           user?.verification_status === "rejected" ? "Your previous verification was rejected. Please submit a clearer document." :
+                           "You must verify your identity before you can withdraw earnings or publish public collections."}
+                        </p>
+                        {user?.verification_status !== "verified" && user?.verification_status !== "pending" && (
+                          <Button onClick={() => setIsVerificationModalOpen(true)} className="bg-[#1e4a3f] text-white hover:bg-[#123b31] rounded-full text-xs py-1 h-8">
+                            Verify Identity
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
+                <h3 className="font-serif text-xl text-[#18211f] mb-6">Security & Password</h3>
               <div className="max-w-md space-y-6">
                 <div className="border border-[#ececec] rounded-xl p-4">
                   <div className="flex items-center justify-between">
@@ -615,174 +740,6 @@ export function Account() {
                 </form>
               </div>
             </div>
-          )}
-
-          {active === "verification" && (
-            <div className="space-y-6">
-              {/* Verification Status */}
-              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="font-serif text-xl text-[#18211f]">Identity Verification</h3>
-                    <p className="text-sm text-[#6b716d] mt-1">Verify your identity to unlock full platform features.</p>
-                  </div>
-                  <span className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-full ${
-                    user?.verificationStatus === "verified" ? "bg-green-50 text-green-700" :
-                    user?.verificationStatus === "pending" ? "bg-amber-50 text-amber-700" :
-                    user?.verificationStatus === "rejected" ? "bg-red-50 text-red-700" :
-                    "bg-gray-50 text-gray-500"
-                  }`}>
-                    {user?.verificationStatus === "verified" ? <ShieldCheck className="size-3.5" /> :
-                     user?.verificationStatus === "rejected" ? <ShieldOff className="size-3.5" /> : null}
-                    {user?.verificationStatus || "unverified"}
-                  </span>
-                </div>
-
-                {user?.verificationStatus === "verified" ? (
-                  <div className="bg-[#eef7f0] border border-[#d7e6da] rounded-xl p-4 text-sm text-[#1e4a3f]">
-                    Your identity has been verified. Thank you!
-                  </div>
-                ) : user?.verificationStatus === "pending" ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-                    Your documents are being reviewed. We'll notify you once verified.
-                  </div>
-                ) : user?.verificationStatus === "rejected" ? (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-                    Your verification was rejected. Please submit new documents below. Check the admin note on your previous submission.
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Submitted Documents */}
-              {documents.length > 0 && (
-                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                  <h3 className="font-serif text-lg text-[#18211f] mb-4">Submitted Documents</h3>
-                  <div className="space-y-3">
-                    {documents.map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between p-4 rounded-xl border border-[#ececec]/60">
-                        <div>
-                          <p className="text-sm font-semibold text-[#18211f] capitalize">{doc.documentType.replace(/_/g, " ")}</p>
-                          <p className="text-xs text-[#6b716d]">Submitted {new Date(doc.submittedAt).toLocaleDateString()}</p>
-                          {doc.adminNote && <p className="text-xs text-[#d4183d] mt-1">Note: {doc.adminNote}</p>}
-                        </div>
-                        <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                          doc.status === "approved" ? "bg-green-50 text-green-700" :
-                          doc.status === "rejected" ? "bg-red-50 text-red-700" :
-                          "bg-amber-50 text-amber-700"
-                        }`}>{doc.status}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Upload Document */}
-              {user?.verificationStatus !== "verified" && (
-                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                  <h3 className="font-serif text-lg text-[#18211f] mb-4">Submit KYC Information</h3>
-                  <div className="space-y-4 max-w-lg">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Phone Number</label>
-                        <input
-                          type="text"
-                          placeholder="+1 234 567 8900"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Date of Birth</label>
-                        <input
-                          type="date"
-                          value={dob}
-                          onChange={(e) => setDob(e.target.value)}
-                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Residential Address</label>
-                      <input
-                        type="text"
-                        placeholder="Full address (including city and country)"
-                        value={occupation}
-                        onChange={(e) => setOccupation(e.target.value)}
-                        className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Document Type</label>
-                      <select
-                        value={uploadDocType}
-                        onChange={(e) => setUploadDocType(e.target.value)}
-                        className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
-                      >
-                        <option value="passport">Passport</option>
-                        <option value="drivers_license">Driver's License</option>
-                        <option value="national_id">National ID</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Document Number (optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. A12345678"
-                        value={uploadDocNumber}
-                        onChange={(e) => setUploadDocNumber(e.target.value)}
-                        className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Upload File</label>
-                      <label className="mt-2 flex items-center justify-center gap-2 p-6 border-2 border-dashed border-[#ececec] rounded-xl hover:border-[#1e4a3f]/40 transition-colors cursor-pointer bg-[#f8f9f7]">
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          className="hidden"
-                          onChange={(e) => setUploadDocFile(e.target.files?.[0] || null)}
-                        />
-                        {uploadDocFile ? (
-                          <span className="text-sm text-[#1e4a3f] font-medium">{uploadDocFile.name}</span>
-                        ) : (
-                          <span className="text-sm text-[#6b716d] flex items-center gap-2">
-                            <Upload className="size-5" /> Click to upload ID document (image or PDF)
-                          </span>
-                        )}
-                      </label>
-                    </div>
-                    <button
-                      onClick={async () => {
-                        if (!uploadDocFile) { toast.error("Please select a file"); return; }
-                        if (!phone || !dob || !occupation) { toast.error("Please fill all KYC details"); return; }
-                        setIsUploading(true);
-                        try {
-                          const doc = await uploadVerificationDocument(user!.id, uploadDocType, uploadDocNumber, uploadDocFile, {
-                            phone, dob, occupation
-                          });
-                          if (doc) {
-                            setDocuments((prev) => [doc, ...prev]);
-                            toast.success("Document submitted for verification");
-                            setUploadDocFile(null);
-                            setUploadDocNumber("");
-                            setUploadDocType("passport");
-                          }
-                        } catch (err: any) {
-                          toast.error(err.message || "Upload failed");
-                        } finally {
-                          setIsUploading(false);
-                        }
-                      }}
-                      disabled={isUploading}
-                      className="w-full rounded-full bg-[#1e4a3f] py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isUploading ? "Uploading..." : "Submit for Verification"}
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
@@ -790,12 +747,12 @@ export function Account() {
             <div className="space-y-6">
               <div className="flex flex-wrap items-center justify-between gap-6 border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/20 transition-all duration-200">
                 <div>
-                  <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Current Plan</p>
-                  <p className="mt-1 font-serif text-2xl text-[#18211f] font-semibold">{user?.plan || "Starter"} — Pay per photo</p>
-                  <p className="mt-1 text-sm text-[#59645f]">No active subscription · Purchased {purchaseStats.totalPurchases} photo{purchaseStats.totalPurchases !== 1 ? "s" : ""} · Total spent ${purchaseStats.totalSpent.toFixed(2)}</p>
+                  <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Account Summary</p>
+                  <p className="mt-1 font-serif text-2xl text-[#18211f] font-semibold">Pay-per-license</p>
+                  <p className="mt-1 text-sm text-[#59645f]">Purchased {purchaseStats.totalPurchases} photo{purchaseStats.totalPurchases !== 1 ? "s" : ""} · Total spent £{purchaseStats.totalSpent.toFixed(2)}</p>
                 </div>
-                <Link to="/pricing">
-                  <Button variant="outline">Browse pricing</Button>
+                <Link to="/">
+                  <Button variant="outline">Browse Gallery</Button>
                 </Link>
               </div>
               <div>
@@ -834,8 +791,18 @@ export function Account() {
               </div>
             </div>
           )}
+
+          {["dashboard", "portfolio", "analytics", "requests", "payouts", "payment-methods", "followers"].includes(active) && (
+            <CreatorTabs active={active} />
+          )}
         </div>
       </div>
+
+      <VerificationModal 
+        isOpen={isVerificationModalOpen} 
+        onClose={() => setIsVerificationModalOpen(false)} 
+        onVerify={handleVerifyIdentity} 
+      />
     </div>
   );
 }

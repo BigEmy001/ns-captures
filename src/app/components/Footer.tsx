@@ -71,10 +71,11 @@ const photographerGroups = [
   {
     title: "Photographer",
     links: [
-      { to: "/dashboard", label: "Dashboard" },
-      { to: "/dashboard?tab=portfolio", label: "Portfolio" },
-      { to: "/dashboard?tab=analytics", label: "Analytics" },
-      { to: "/dashboard?tab=payouts", label: "Payouts" },
+      { to: "/account?tab=dashboard", label: "Dashboard" },
+      { to: "/account?tab=portfolio", label: "My Portfolio" },
+      { to: "/account?tab=analytics", label: "Analytics" },
+      { to: "/account?tab=requests", label: "Creative Briefs" },
+      { to: "/account?tab=payouts", label: "Payouts" },
     ],
   },
   {

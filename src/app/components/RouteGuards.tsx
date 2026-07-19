@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuth } from "../context/AuthContext";
+import { GlobalVerificationModal } from "./GlobalVerificationModal";
 
 export function AuthRoute() {
   const { user, isLoading } = useAuth();
@@ -58,7 +59,12 @@ export function PhotographerRoute() {
   }
   
   if (user.role !== "Admin" && user.verificationStatus !== "verified") {
-    return <Navigate to="/account?tab=verification" replace />;
+    return (
+      <>
+        <Outlet />
+        <GlobalVerificationModal />
+      </>
+    );
   }
 
   return <Outlet />;

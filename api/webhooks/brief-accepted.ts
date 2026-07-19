@@ -6,10 +6,15 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Optional: Verify a webhook secret from Supabase
+  // Mandatory: Verify a webhook secret from Supabase
   const webhookSecret = process.env.WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error("CRITICAL: WEBHOOK_SECRET is not configured on the server.");
+    return res.status(500).json({ error: "Server misconfiguration: Webhook secret missing" });
+  }
+
   const authHeader = req.headers.authorization;
-  if (webhookSecret && authHeader !== `Bearer ${webhookSecret}`) {
+  if (authHeader !== `Bearer ${webhookSecret}`) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 

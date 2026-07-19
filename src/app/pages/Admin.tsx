@@ -16,7 +16,7 @@ import { supabase } from "../../lib/supabase";
 import { getPhoto } from "../data/photos";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
 import { sendContributorSubmissionStatus, sendVerificationStatus, sendPurchaseApprovedNotification, sendPurchaseRejectedNotification } from "../../lib/email";
-import { logActivity, fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, approvePurchase, rejectPurchase, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, fetchContributorSubmissions, updateContributorSubmissionStatus, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument, type ContributorSubmission } from "../data/db";
+import { logActivity, fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, approvePurchase, rejectPurchase, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, updateUserVerificationStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, fetchContributorSubmissions, updateContributorSubmissionStatus, fetchAdminPaymentMethods, createAdminPaymentMethod, updateAdminPaymentMethod, deleteAdminPaymentMethod, updatePhotoHypeOverrides, type AdminPaymentMethod, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument, type ContributorSubmission } from "../data/db";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -94,34 +94,70 @@ export function Admin() {
   const [payoutRequestList, setPayoutRequestList] = useState<PayoutRequest[]>([]);
   const [verificationDocs, setVerificationDocs] = useState<VerificationDocument[]>([]);
   const [contributorSubmissions, setContributorSubmissions] = useState<ContributorSubmission[]>([]);
+  const [adminPaymentMethods, setAdminPaymentMethods] = useState<AdminPaymentMethod[]>([]);
 
   useEffect(() => {
-    Promise.all([
-      fetchModerationQueue().catch(() => toast.error("Something went wrong")),
-      fetchAdminUsers().catch(() => toast.error("Something went wrong")),
-      fetchPhotos().catch(() => toast.error("Something went wrong")),
-      fetchSiteSettings().catch(() => toast.error("Something went wrong")),
-      fetchAllPayouts().catch(() => toast.error("Something went wrong")),
-      fetchAllPurchases().catch(() => toast.error("Something went wrong")),
-      fetchPlatformStats().catch(() => toast.error("Something went wrong")),
-    ]).then(([queue, users, photos, settings, payouts, purchases, stats]) => {
-      if (queue) setQueue(queue);
-      if (users) setAdminUsersList(users);
-      if (photos) setAssetsList(photos);
-      if (settings) setSiteSettingsState(settings);
-      if (payouts) setAdminPayouts(payouts);
-      if (purchases) setAdminPurchases(purchases);
-      if (stats) { setPlatformRevenue(stats.revenue); setPlatformStats(stats); }
-    });
-    fetchUserGrowthPerMonth().then(setUserGrowth).catch(() => toast.error("Something went wrong"));
-    fetchMonthlyRevenue().then(setRevenueGrowth).catch(() => toast.error("Something went wrong"));
-    fetchAdminLogs().then(setAdminLogs).catch(() => toast.error("Something went wrong"));
-    fetchCategoryStats().then(setCategoryStats).catch(() => toast.error("Something went wrong"));
-    fetchAllPaymentMethods().then(setAllPaymentMethods).catch(() => toast.error("Something went wrong"));
-    fetchPayoutRequests().then(setPayoutRequestList).catch(() => toast.error("Something went wrong"));
-    fetchAllVerificationDocuments().then(setVerificationDocs).catch(() => toast.error("Something went wrong"));
-    fetchContributorSubmissions().then(setContributorSubmissions).catch(() => toast.error("Something went wrong"));
-  }, []);
+    switch (active) {
+      case "dashboard":
+        if (platformStats.totalUsers === 0) {
+          Promise.all([
+            fetchPlatformStats().catch(() => toast.error("Failed to load stats")),
+            fetchUserGrowthPerMonth().catch(() => toast.error("Failed to load user growth")),
+            fetchMonthlyRevenue().catch(() => toast.error("Failed to load revenue growth")),
+          ]).then(([stats, ug, rg]) => {
+            if (stats) {
+              setPlatformRevenue(stats.revenue);
+              setPlatformStats(stats);
+            }
+            if (ug) setUserGrowth(ug);
+            if (rg) setRevenueGrowth(rg);
+          });
+        }
+        break;
+      case "users":
+        if (adminUsersList.length === 0) fetchAdminUsers().then(setAdminUsersList).catch(() => toast.error("Failed to load users"));
+        break;
+      case "moderation":
+        if (queue.length === 0) fetchModerationQueue().then(setQueue).catch(() => toast.error("Failed to load queue"));
+        break;
+      case "assets":
+        if (assetsList.length === 0) fetchPhotos().then(setAssetsList).catch(() => toast.error("Failed to load assets"));
+        break;
+      case "payments":
+        if (adminPayouts.length === 0 || adminPurchases.length === 0) {
+          Promise.all([
+            fetchAllPayouts().catch(() => toast.error("Failed to load payouts")),
+            fetchAllPurchases().catch(() => toast.error("Failed to load purchases")),
+            fetchAllPaymentMethods().catch(() => toast.error("Failed to load payment methods")),
+            fetchPayoutRequests().catch(() => toast.error("Failed to load payout requests")),
+            fetchAdminPaymentMethods().catch(() => toast.error("Failed to load admin methods")),
+          ]).then(([payouts, purchases, methods, requests, adminMethods]) => {
+            if (payouts) setAdminPayouts(payouts);
+            if (purchases) setAdminPurchases(purchases);
+            if (methods) setAllPaymentMethods(methods);
+            if (requests) setPayoutRequestList(requests);
+            if (adminMethods) setAdminPaymentMethods(adminMethods);
+          });
+        }
+        break;
+      case "verification":
+        if (verificationDocs.length === 0) fetchAllVerificationDocuments().then(setVerificationDocs).catch(() => toast.error("Failed to load verifications"));
+        break;
+      case "submissions":
+        if (contributorSubmissions.length === 0) fetchContributorSubmissions().then(setContributorSubmissions).catch(() => toast.error("Failed to load submissions"));
+        break;
+      case "reports":
+        if (categoryStats.length === 0) fetchCategoryStats().then(setCategoryStats).catch(() => toast.error("Failed to load category stats"));
+        break;
+      case "logs":
+        if (adminLogs.length === 0) fetchAdminLogs().then(setAdminLogs).catch(() => toast.error("Failed to load logs"));
+        break;
+      case "settings":
+        // Settings are preloaded with defaultSiteSettings, so we check if the ID is still default
+        fetchSiteSettings().then(setSiteSettingsState).catch(() => toast.error("Failed to load settings"));
+        break;
+    }
+  }, [active]);
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
   const [userStatusFilter, setUserStatusFilter] = useState<string>("all");
@@ -398,15 +434,15 @@ export function Admin() {
           {/* Users */}
           {active === "users" && (
             <div className="mt-8 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex gap-3">
-                  <div className="relative">
+              <div className="flex flex-wrap items-center justify-between gap-4 w-full">
+                <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-auto">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#6b716d]" />
                     <input
                       value={userSearch}
                       onChange={(e) => setUserSearch(e.target.value)}
                       placeholder="Search users..."
-                      className="pl-10 pr-4 py-2 border border-[#ececec] rounded-xl bg-white text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 w-64"
+                      className="pl-10 pr-4 py-2 border border-[#ececec] rounded-xl bg-white text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 w-full sm:w-64"
                     />
                   </div>
                   <select
@@ -433,7 +469,7 @@ export function Admin() {
                 </div>
                 <span className="text-sm text-[#6b716d] font-mono">{filteredUsers.length} users</span>
               </div>
-              <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
+              <div className="overflow-x-auto overflow-y-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
                 <table className="w-full min-w-[720px] text-left text-sm">
                   <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.12em] text-[#8a8f89] uppercase border-b border-[#ececec]">
                     <tr>
@@ -670,7 +706,7 @@ export function Admin() {
 
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
                 <h3 className="mb-4 font-serif text-lg text-[#18211f]">Recent payouts</h3>
-                <div className="overflow-hidden">
+                <div className="overflow-x-auto overflow-y-hidden">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase border-b border-[#ececec]">
                       <tr>
@@ -760,7 +796,22 @@ export function Admin() {
                         <tr key={pr.id} className="border-b border-[#ececec]/30 hover:bg-[#FAF9F5]">
                           <td className="px-4 py-3 font-medium text-[#18211f]">{pr.photographerId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
                           <td className="px-4 py-3 font-semibold text-[#18211f]">£{pr.amount.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-[#6b716d] capitalize">{pr.method === "card" ? "Bank Transfer" : pr.method === "crypto" ? "Crypto Wallet" : "PayPal"}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-medium text-[#18211f] capitalize">{pr.method === "card" ? "Bank Transfer" : pr.method === "crypto" ? "Crypto Wallet" : "PayPal"}</span>
+                              {pr.method === "crypto" && pr.details?.wallets && (pr.details.wallets as any[]).map((w, i) => (
+                                <span key={i} className="text-[10px] text-[#6b716d] break-all font-mono">{w.coin} ({w.network}): {w.address}</span>
+                              ))}
+                              {pr.method === "paypal" && pr.details?.email && (
+                                <span className="text-[10px] text-[#6b716d]">{String(pr.details.email)}</span>
+                              )}
+                              {pr.method === "card" && pr.details?.bank && (
+                                <span className="text-[10px] text-[#6b716d]">
+                                  {(pr.details.bank as any)?.bankName} • Acc: {(pr.details.bank as any)?.accountNumber} • Sort/Routing: {(pr.details.bank as any)?.routingNumber}
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="px-4 py-3">
                             <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
                               pr.status === "APPROVED" || pr.status === "PAID" ? "bg-green-50 text-green-700" :
@@ -845,7 +896,7 @@ export function Admin() {
                 </div>
                 <span className="text-sm text-[#6b716d] font-mono">{filteredLogs.length} entries</span>
               </div>
-              <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
+              <div className="overflow-x-auto overflow-y-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
                 <table className="w-full min-w-[800px] text-left text-sm">
                   <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.12em] text-[#8a8f89] uppercase border-b border-[#ececec]">
                     <tr>
@@ -883,6 +934,7 @@ export function Admin() {
                   <Field label="Site Name" value={siteSettingsState.siteName} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, siteName: e.target.value })} />
                   <Field label="Site URL" value={siteSettingsState.siteUrl} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, siteUrl: e.target.value })} />
                   <Field label="Support Email" value={siteSettingsState.supportEmail} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, supportEmail: e.target.value })} />
+                  <Field label="Contact Admin Link (WhatsApp/Telegram)" value={siteSettingsState.contactLink || ""} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, contactLink: e.target.value })} placeholder="https://wa.me/..." />
                   <Field label="Platform Fee (%)" type="number" value={String(siteSettingsState.platformFee)} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, platformFee: Number(e.target.value) })} />
                 </div>
               </div>
@@ -913,6 +965,64 @@ export function Admin() {
                   <Toggle label="User Signup Enabled" description="Allow new user registrations" checked={siteSettingsState.signupEnabled} onChange={(v) => setSiteSettingsState({ ...siteSettingsState, signupEnabled: v })} />
                   <Toggle label="Moderation Required" description="All new assets require approval" checked={siteSettingsState.moderationRequired} onChange={(v) => setSiteSettingsState({ ...siteSettingsState, moderationRequired: v })} />
                 </div>
+              </div>
+
+              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                <h3 className="font-serif text-lg text-[#18211f] mb-6">Verification Payment Methods</h3>
+                <p className="text-xs text-[#6b716d] mb-4">Add methods for photographers to pay their £247 verification fee.</p>
+                <div className="space-y-4 mb-4">
+                  {adminPaymentMethods.map((method) => (
+                    <div key={method.id} className="flex items-center justify-between p-4 border border-[#ececec] rounded-xl bg-[#f8f9f7]">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-[#18211f] text-sm">{method.name}</span>
+                          <span className="text-[9px] uppercase tracking-wider bg-[#ececec] px-2 py-0.5 rounded-full">{method.methodType}</span>
+                        </div>
+                        <p className="text-xs text-[#59645f] font-mono">{method.details}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Toggle 
+                          checked={method.enabled} 
+                          onChange={async (v) => {
+                            await updateAdminPaymentMethod(method.id, { enabled: v });
+                            setAdminPaymentMethods(adminPaymentMethods.map(m => m.id === method.id ? { ...m, enabled: v } : m));
+                            toast.success("Payment method updated");
+                          }} 
+                        />
+                        <button 
+                          onClick={async () => {
+                            if (confirm("Delete this payment method?")) {
+                              await deleteAdminPaymentMethod(method.id);
+                              setAdminPaymentMethods(adminPaymentMethods.filter(m => m.id !== method.id));
+                              toast.success("Deleted successfully");
+                            }
+                          }}
+                          className="text-[#d4183d] hover:text-[#a0122e] p-2 rounded hover:bg-red-50 transition"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Button variant="outline" onClick={async () => {
+                  const type = prompt("Type (e.g., crypto, bank, paypal):", "crypto");
+                  if (!type) return;
+                  const name = prompt("Name (e.g., Bitcoin (BTC), Chase Bank):");
+                  if (!name) return;
+                  const details = prompt("Details (e.g., Wallet Address, Account Number):");
+                  if (!details) return;
+                  
+                  try {
+                    const newMethod = await createAdminPaymentMethod(type, name, details);
+                    setAdminPaymentMethods([...adminPaymentMethods, newMethod]);
+                    toast.success("Payment method added");
+                  } catch (err: any) {
+                    toast.error(err.message);
+                  }
+                }}>
+                  Add Payment Method
+                </Button>
               </div>
 
               <div className="flex justify-end">
@@ -1047,7 +1157,7 @@ export function Admin() {
                 </select>
               </div>
 
-              <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
+              <div className="overflow-x-auto overflow-y-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
                 <table className="w-full min-w-[1100px] text-left text-sm">
                   <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.12em] text-[#8a8f89] uppercase border-b border-[#ececec]">
                     <tr>
@@ -1151,6 +1261,8 @@ export function Admin() {
           onStatusChange={handleStatusChange}
           assets={assetsList}
           onDeleteAsset={handleDeleteUserAsset}
+          verificationDocs={verificationDocs}
+          setVerificationDocs={setVerificationDocs}
         />
       )}
     </div>
@@ -1198,9 +1310,11 @@ interface AdminUserModalProps {
   onStatusChange: (userId: string, newStatus: AdminUser["status"]) => void;
   assets: Photo[];
   onDeleteAsset: (photoId: string) => void;
+  verificationDocs: VerificationDocument[];
+  setVerificationDocs: React.Dispatch<React.SetStateAction<VerificationDocument[]>>;
 }
 
-function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, onDeleteAsset }: AdminUserModalProps) {
+function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, onDeleteAsset, verificationDocs, setVerificationDocs }: AdminUserModalProps) {
   const isPhotographer = user.role === "Photographer";
   const [userPurchasesList, setUserPurchasesList] = useState<Purchase[]>([]);
   const [modalTab, setModalTab] = useState<"overview" | "ledger" | "kyc" | "hype">("overview");
@@ -1424,7 +1538,7 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
               {/* Purchase history */}
               <div>
                 <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">Invoice Purchase History</p>
-                <div className="overflow-hidden border border-[#ececec] bg-white rounded-2xl shadow-sm">
+                <div className="overflow-x-auto overflow-y-hidden border border-[#ececec] bg-white rounded-2xl shadow-sm">
                   <table className="w-full text-left">
                     <thead className="bg-[#f8f9f7] text-[#6b716d] text-xs font-semibold uppercase">
                       <tr>
@@ -1572,12 +1686,129 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
               <div className="bg-white border border-[#ececec] rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-serif text-lg text-[#18211f]">Identity Verification</h3>
-                  <span className="bg-amber-50 text-amber-700 text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full">Pending</span>
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                    user.verificationStatus === "verified" ? "bg-green-50 text-green-700" :
+                    user.verificationStatus === "rejected" ? "bg-red-50 text-red-700" :
+                    user.verificationStatus === "pending" ? "bg-amber-50 text-amber-700" :
+                    "bg-gray-50 text-gray-500"
+                  }`}>
+                    {user.verificationStatus || "unverified"}
+                  </span>
                 </div>
-                <div className="border border-dashed border-[#ececec] bg-[#f8f9f7] p-8 rounded-xl text-center">
-                  <p className="text-sm font-semibold text-[#18211f]">No documents found</p>
-                  <p className="text-xs text-[#6b716d] mt-1">This user has not submitted any KYC documents.</p>
-                </div>
+                
+                {(() => {
+                  const userDocs = verificationDocs.filter(d => d.userId === user.id).sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+                  if (userDocs.length === 0) {
+                    return (
+                      <div className="border border-dashed border-[#ececec] bg-[#f8f9f7] p-8 rounded-xl text-center">
+                        <p className="text-sm font-semibold text-[#18211f]">No documents found</p>
+                        <p className="text-xs text-[#6b716d] mt-1 mb-4">This user has not submitted any KYC documents.</p>
+                        
+                        <div className="pt-4 border-t border-[#ececec]">
+                          <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-3">Admin Actions</p>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Are you sure you want to manually verify ${user.name} without KYC documents?`)) return;
+                              try {
+                                await updateUserVerificationStatus(user.id, "verified");
+                                setAdminUsersList(users => users.map(u => u.id === user.id ? { ...u, verificationStatus: "verified" } : u));
+                                toast.success("User has been manually verified.");
+                              } catch (err: any) {
+                                toast.error(err.message || "Failed to verify user");
+                              }
+                            }}
+                            className="bg-[#1e4a3f] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#123b31] transition-colors"
+                          >
+                            Force Verify User
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="space-y-4">
+                      {userDocs.map(doc => (
+                        <div key={doc.id} className="border border-[#ececec] rounded-xl overflow-hidden">
+                          <div className="bg-[#f8f9f7] px-4 py-3 border-b border-[#ececec] flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-[#18211f] capitalize">{doc.documentType.replace(/_/g, " ")}</p>
+                              <p className="text-xs text-[#6b716d]">Submitted: {new Date(doc.submittedAt).toLocaleString()}</p>
+                            </div>
+                            <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                              doc.status === "approved" ? "bg-green-50 text-green-700" :
+                              doc.status === "rejected" ? "bg-red-50 text-red-700" :
+                              "bg-amber-50 text-amber-700"
+                            }`}>{doc.status}</span>
+                          </div>
+                          
+                          <div className="p-4">
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                              <div>
+                                <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1">Document Number</p>
+                                <p className="text-sm text-[#18211f] font-mono">{doc.documentNumber || "N/A"}</p>
+                              </div>
+                              {doc.status !== "pending" && (
+                                <div>
+                                  <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1">Reviewed By</p>
+                                  <p className="text-xs text-[#18211f]">{doc.reviewedBy}</p>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {doc.fileUrl && (
+                              <div className="mb-4">
+                                <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-[#1e4a3f] font-semibold hover:underline flex items-center gap-1">
+                                  <ImageIcon className="size-4" /> View Attached Document
+                                </a>
+                              </div>
+                            )}
+                            
+                            {doc.status === "pending" && (
+                              <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#ececec]">
+                                <button
+                                  onClick={async () => {
+                                    if (!confirm("Approve this document?")) return;
+                                    try {
+                                      await reviewVerificationDocument(doc.id, "approved", "Approved by admin", currentUser!.email!);
+                                      toast.success("Document approved");
+                                      setVerificationDocs(docs => docs.map(d => d.id === doc.id ? { ...d, status: "approved", reviewedBy: currentUser!.email! } : d));
+                                      setAdminUsersList(users => users.map(u => u.id === user.id ? { ...u, verificationStatus: "verified" } : u));
+                                      sendVerificationStatus(user.email, user.name, "approved");
+                                    } catch (err: any) {
+                                      toast.error(err.message || "Approval failed");
+                                    }
+                                  }}
+                                  className="flex-1 bg-[#1e4a3f] text-white text-xs font-semibold py-2.5 rounded-lg hover:bg-[#123b31] transition-colors"
+                                >
+                                  Approve Document & Payment
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    const note = prompt("Reason for rejection:");
+                                    if (note === null) return;
+                                    try {
+                                      await reviewVerificationDocument(doc.id, "rejected", note || "Rejected by admin", currentUser!.email!);
+                                      toast.success("Document rejected");
+                                      setVerificationDocs(docs => docs.map(d => d.id === doc.id ? { ...d, status: "rejected", adminNote: note || "", reviewedBy: currentUser!.email! } : d));
+                                      setAdminUsersList(users => users.map(u => u.id === user.id ? { ...u, verificationStatus: "rejected" } : u));
+                                      sendVerificationStatus(user.email, user.name, "rejected", note || "Rejected by admin");
+                                    } catch (err: any) {
+                                      toast.error(err.message || "Rejection failed");
+                                    }
+                                  }}
+                                  className="flex-1 bg-white border border-[#d4183d] text-[#d4183d] text-xs font-semibold py-2.5 rounded-lg hover:bg-red-50 transition-colors"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -1616,11 +1847,27 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                               <p className="text-xs font-semibold truncate max-w-[150px]">{photo.title}</p>
                             </div>
                             <div className="flex gap-2">
-                              <input type="number" placeholder="Views" defaultValue={photo.customViews || ""} className="w-20 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none" title="Custom Views" />
-                              <input type="number" placeholder="Likes" defaultValue={photo.customLikes || ""} className="w-20 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none" title="Custom Likes" />
-                              <input type="number" placeholder="Dls" defaultValue={photo.customDownloads || ""} className="w-16 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none" title="Custom Downloads" />
+                              <input id={`views-${photo.id}`} type="number" placeholder="Views" defaultValue={photo.customViews || ""} className="w-20 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none" title="Custom Views" />
+                              <input id={`likes-${photo.id}`} type="number" placeholder="Likes" defaultValue={photo.customLikes || ""} className="w-20 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none" title="Custom Likes" />
+                              <input id={`dls-${photo.id}`} type="number" placeholder="Dls" defaultValue={photo.customDownloads || ""} className="w-16 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none" title="Custom Downloads" />
                             </div>
-                            <button onClick={() => alert('Overrides saved!')} className="text-xs font-semibold text-[#1e4a3f] hover:underline whitespace-nowrap">Save</button>
+                            <button 
+                              onClick={async () => {
+                                const v = (document.getElementById(`views-${photo.id}`) as HTMLInputElement)?.value;
+                                const l = (document.getElementById(`likes-${photo.id}`) as HTMLInputElement)?.value;
+                                const d = (document.getElementById(`dls-${photo.id}`) as HTMLInputElement)?.value;
+                                const ok = await updatePhotoHypeOverrides(photo.id, {
+                                  customViews: v ? parseInt(v, 10) : undefined,
+                                  customLikes: l ? parseInt(l, 10) : undefined,
+                                  customDownloads: d ? parseInt(d, 10) : undefined,
+                                });
+                                if (ok) toast.success('Overrides saved!');
+                                else toast.error('Failed to save overrides');
+                              }} 
+                              className="text-xs font-semibold text-[#1e4a3f] hover:underline whitespace-nowrap cursor-pointer"
+                            >
+                              Save
+                            </button>
                           </div>
                         ))}
                       </div>

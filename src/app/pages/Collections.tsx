@@ -22,12 +22,24 @@ export function Collections() {
 
       <div className="mt-12 grid gap-8 md:grid-cols-2">
         {collections.map((c) => (
-          <Link key={c.id} to={`/search?q=${encodeURIComponent(c.title)}`} className="group block">
+          <Link key={c.id} to={`/search?collectionId=${c.id}&collectionName=${encodeURIComponent(c.title)}`} className="group block">
             <div className="grid aspect-[16/9] grid-cols-3 gap-0.5 overflow-hidden bg-[#d7d8d2]">
-              <img src={getOptimizedImageUrl(c.cover?.[0] || "", 600)} alt={c.title} loading="lazy" className="col-span-2 size-full object-cover transition group-hover:scale-[1.02]" />
+              {c.cover?.[0] ? (
+                <img src={getOptimizedImageUrl(c.cover[0], 600)} alt={c.title} loading="lazy" className="col-span-2 size-full object-cover transition group-hover:scale-[1.02]" />
+              ) : (
+                <div className="col-span-2 size-full bg-[#d7d8d2]" />
+              )}
               <div className="grid grid-rows-2 gap-0.5">
-                <img src={getOptimizedImageUrl(c.cover?.[1] || "", 300)} alt="" loading="lazy" className="size-full object-cover" />
-                <img src={getOptimizedImageUrl(c.cover?.[2] || "", 300)} alt="" loading="lazy" className="size-full object-cover" />
+                {c.cover?.[1] ? (
+                  <img src={getOptimizedImageUrl(c.cover[1], 300)} alt="" loading="lazy" className="size-full object-cover" />
+                ) : (
+                  <div className="size-full bg-[#d7d8d2]" />
+                )}
+                {c.cover?.[2] ? (
+                  <img src={getOptimizedImageUrl(c.cover[2], 300)} alt="" loading="lazy" className="size-full object-cover" />
+                ) : (
+                  <div className="size-full bg-[#d7d8d2]" />
+                )}
               </div>
             </div>
             <div className="flex items-start justify-between gap-4 pt-4">

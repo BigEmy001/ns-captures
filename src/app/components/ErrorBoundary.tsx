@@ -1,65 +1,57 @@
-import { useRouteError, isRouteErrorResponse, Link } from "react-router";
-import { AlertCircle, RefreshCcw, Home } from "lucide-react";
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { AlertCircle } from 'lucide-react';
 
-export function ErrorBoundary() {
-  const error = useRouteError();
-  console.error("ErrorBoundary caught an error:", error);
+interface Props {
+  children: ReactNode;
+}
 
-  let errorMessage = "An unexpected error occurred.";
-  let errorStatus = 500;
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
 
-  if (isRouteErrorResponse(error)) {
-    errorStatus = error.status;
-    errorMessage = error.data?.message || error.statusText;
-  } else if (error instanceof Error) {
-    errorMessage = error.message;
-    
-    // Auto-reload on stale Vite chunks
-    if (
-      errorMessage.includes("Failed to fetch dynamically imported module") ||
-      errorMessage.includes("Importing a module script failed")
-    ) {
-      window.location.reload();
-      return <div className="p-10 text-center font-mono text-sm">Reloading application...</div>;
-    }
+export class GlobalErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
+
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
   }
 
-  return (
-    <div className="flex min-h-[80vh] flex-col items-center justify-center px-5 py-20 text-center">
-      <div className="mb-8 rounded-full bg-red-50/80 p-4 text-red-500 shadow-sm ring-1 ring-red-100">
-        <AlertCircle className="size-10" />
-      </div>
-      <h1 className="font-serif text-4xl text-[#18211f]">
-        {errorStatus === 404 ? "Page Not Found" : "Something went wrong"}
-      </h1>
-      <p className="mt-4 max-w-md text-sm text-[#6b716d]">
-        {errorStatus === 404 
-          ? "The page you're looking for doesn't exist or has been moved." 
-          : "We encountered an unexpected error while trying to process your request."}
-      </p>
-      
-      {/* Error Details */}
-      {errorMessage && (
-        <div className="mt-6 w-full max-w-lg rounded-xl border border-red-100 bg-red-50/30 p-4 text-left">
-          <p className="font-mono text-xs font-semibold text-red-800">ERROR DETAILS:</p>
-          <p className="mt-2 font-mono text-xs text-red-600 break-words">{errorMessage}</p>
-        </div>
-      )}
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Uncaught global error:', error, errorInfo);
+  }
 
-      <div className="mt-10 flex gap-4">
-        <button
-          onClick={() => window.location.reload()}
-          className="flex items-center gap-2 rounded-full bg-[#1e4a3f] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14362d] shadow-md hover:shadow-lg"
-        >
-          <RefreshCcw className="size-4" /> Try again
-        </button>
-        <Link
-          to="/"
-          className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white px-6 py-3 text-sm font-semibold text-[#18211f] transition hover:border-[#1e4a3f] shadow-sm hover:shadow-md"
-        >
-          <Home className="size-4" /> Go home
-        </Link>
-      </div>
-    </div>
-  );
+  public render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#FAF9F5] flex flex-col items-center justify-center p-6 text-center">
+          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-[#ececec]">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="size-8 text-red-600" />
+            </div>
+            <h1 className="text-2xl font-serif font-bold text-[#18211f] mb-4">Something went wrong</h1>
+            <p className="text-[#4a534e] mb-6">
+              An unexpected error occurred. Our team has been notified.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-full bg-[#1e4a3f] hover:bg-[#123b31] text-white py-3 px-6 rounded-full font-semibold transition-colors"
+            >
+              Refresh Page
+            </button>
+            {process.env.NODE_ENV === 'development' && this.state.error && (
+              <div className="mt-6 p-4 bg-gray-100 rounded-lg text-left overflow-auto text-xs text-red-600">
+                {this.state.error.toString()}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }

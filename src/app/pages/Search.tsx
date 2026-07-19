@@ -1,11 +1,11 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router";
-import { Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { Search, SlidersHorizontal, Sparkles, X, Loader2 } from "lucide-react";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow } from "../components/ui";
 import { categories, licenses, License, Orientation, Photo } from "../data/photos";
-import { fetchPhotos } from "../data/db";
+import { fetchPhotosPaginated } from "../data/db";
 import { toast } from "sonner";
 
 const orientations: Orientation[] = ["portrait", "landscape", "square"];
@@ -14,84 +14,89 @@ export function SearchPage() {
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";
   const ai = params.get("ai") === "1";
+  const collectionId = params.get("collectionId") ?? undefined;
+  const collectionName = params.get("collectionName") ?? undefined;
 
   const [query, setQuery] = useState(q);
   const [category, setCategory] = useState(params.get("cat") ?? "All");
   const [photos, setPhotos] = useState<Photo[]>([]);
-
-  useEffect(() => {
-    fetchPhotos().then(setPhotos).catch(() => toast.error("Something went wrong"));
-  }, []);
-
-  useEffect(() => {
-    setQuery(params.get("q") ?? "");
-    setCategory(params.get("cat") ?? "All");
-  }, [params]);
+  
   const [activeLicenses, setActiveLicenses] = useState<License[]>([]);
   const [orientation, setOrientation] = useState<Orientation | null>(null);
   const [maxPrice, setMaxPrice] = useState(10000);
   const [sort, setSort] = useState<"popular" | "new" | "priceLow">("popular");
   const [drawer, setDrawer] = useState(false);
 
+  // Pagination State
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Keep query and category in sync with URL
+  useEffect(() => {
+    setQuery(params.get("q") ?? "");
+    setCategory(params.get("cat") ?? "All");
+  }, [params]);
+
+  // Reset pagination when any filter changes
+  useEffect(() => {
+    setPage(0);
+    setPhotos([]);
+    setHasMore(true);
+    setIsLoading(true);
+  }, [query, category, activeLicenses, orientation, maxPrice, sort, collectionId]);
+
+  // Fetch data
+  useEffect(() => {
+    let active = true;
+    const fetch = async () => {
+      if (page > 0) setIsLoadingMore(true);
+      try {
+        const { photos: newPhotos, hasMore: more } = await fetchPhotosPaginated(
+          { query, category, licenses: activeLicenses, orientation, maxPrice, sort, collectionId },
+          page,
+          20
+        );
+        
+        if (!active) return;
+        
+        if (page === 0) {
+          setPhotos(newPhotos);
+        } else {
+          setPhotos(prev => [...prev, ...newPhotos]);
+        }
+        setHasMore(more);
+      } catch (err) {
+        toast.error("Failed to load photos");
+      } finally {
+        if (active) {
+          setIsLoading(false);
+          setIsLoadingMore(false);
+        }
+      }
+    };
+    fetch();
+    return () => { active = false; };
+  }, [page, query, category, activeLicenses, orientation, maxPrice, sort]);
+
+  // Infinite Scroll Observer
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (isLoading || isLoadingMore) return;
+    if (observerRef.current) observerRef.current.disconnect();
+    
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prev => prev + 1);
+      }
+    });
+    
+    if (node) observerRef.current.observe(node);
+  }, [isLoading, isLoadingMore, hasMore]);
+
   const toggleLicense = (l: License) =>
     setActiveLicenses((prev) => (prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l]));
-
-  const results = useMemo(() => {
-    const tokens = query
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(Boolean);
-
-    const scored = photos
-      .filter((p) => {
-        const matchesCat = category === "All" || p.category === category;
-        const matchesLicense = activeLicenses.length === 0 || activeLicenses.includes(p.license);
-        const matchesOrient = !orientation || p.orientation === orientation;
-        const matchesPrice = p.price <= maxPrice;
-        if (!(matchesCat && matchesLicense && matchesOrient && matchesPrice)) return false;
-
-        if (tokens.length === 0) return true;
-
-        const searchable = [
-          p.title,
-          p.photographer,
-          p.location,
-          p.category,
-          p.id,
-          ...(p.keywords || []),
-        ]
-          .filter(Boolean)
-          .map((s) => s.toLowerCase());
-
-        return tokens.every((token) =>
-          searchable.some((field) => field.includes(token)),
-        );
-      })
-      .map((p) => {
-        let score = 0;
-        if (tokens.length > 0) {
-          const lower = [p.title, p.photographer, p.location, p.category, ...(p.keywords || [])]
-            .filter(Boolean)
-            .map((s) => s.toLowerCase());
-
-          for (const token of tokens) {
-            if (lower[0]?.includes(token)) score += 4;
-            if (lower[1]?.includes(token)) score += 3;
-            if (lower.slice(2).some((f) => f.includes(token))) score += 1;
-          }
-        }
-        return { photo: p, score };
-      });
-
-    scored.sort((a, b) => {
-      if (tokens.length > 0 && a.score !== b.score) return b.score - a.score;
-      if (sort === "priceLow") return a.photo.price - b.photo.price;
-      if (sort === "new") return b.photo.id.localeCompare(a.photo.id);
-      return b.photo.downloads - a.photo.downloads;
-    });
-
-    return scored.map((s) => s.photo);
-  }, [query, category, activeLicenses, orientation, maxPrice, sort, photos]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,8 +223,12 @@ export function SearchPage() {
         <div className="min-w-0 flex-1">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <Eyebrow>{query ? `RESULTS FOR "${query.toUpperCase()}"` : "NS COLLECTION"}</Eyebrow>
-              <p className="mt-2 text-sm text-[#6b716d]">{results.length} images</p>
+              <Eyebrow>{collectionName ? `COLLECTION: ${collectionName.toUpperCase()}` : query ? `RESULTS FOR "${query.toUpperCase()}"` : "NS COLLECTION"}</Eyebrow>
+              {isLoading ? (
+                <div className="mt-2 h-4 w-16 bg-[#ececec] rounded animate-pulse" />
+              ) : (
+                <p className="mt-2 text-sm text-[#6b716d]">{photos.length} images</p>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <select
@@ -240,19 +249,46 @@ export function SearchPage() {
             </div>
           </div>
 
-          {results.length === 0 ? (
+          {isLoading ? (
+            <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 640: 2, 1024: 3 }}>
+              <Masonry gutter="20px">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-xl bg-[#ececec] animate-pulse" style={{ height: Math.floor(Math.random() * 200) + 200 + 'px' }} />
+                ))}
+              </Masonry>
+            </ResponsiveMasonry>
+          ) : photos.length === 0 ? (
             <div className="border border-dashed border-[#ececec] py-24 text-center">
               <p className="font-serif text-2xl">No matches yet.</p>
               <p className="mt-2 text-sm text-[#6b716d]">Try a broader term or request a custom shoot.</p>
             </div>
           ) : (
-            <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 640: 2, 1024: 3 }}>
-              <Masonry gutter="20px">
-                {results.map((p) => (
-                  <PhotoCard key={p.id} item={p} />
-                ))}
-              </Masonry>
-            </ResponsiveMasonry>
+            <>
+              <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 640: 2, 1024: 3 }}>
+                <Masonry gutter="20px">
+                  {photos.map((p, index) => {
+                    const isLast = index === photos.length - 1;
+                    return (
+                      <div key={p.id} ref={isLast ? lastElementRef : null}>
+                        <PhotoCard item={p} />
+                      </div>
+                    );
+                  })}
+                </Masonry>
+              </ResponsiveMasonry>
+              
+              {isLoadingMore && (
+                <div className="mt-8 flex justify-center py-4">
+                  <Loader2 className="size-6 animate-spin text-[#1e4a3f]" />
+                </div>
+              )}
+              
+              {!hasMore && photos.length > 0 && (
+                <div className="mt-12 text-center text-sm text-[#6b716d]">
+                  End of results. You've seen all {photos.length} images.
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

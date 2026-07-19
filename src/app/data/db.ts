@@ -67,6 +67,7 @@ export interface SiteSettingsRow {
   maintenanceMode: boolean;
   signupEnabled: boolean;
   moderationRequired: boolean;
+  contactLink?: string;
 }
 
 // ============================================================
@@ -200,6 +201,68 @@ export async function fetchPhotos(): Promise<Photo[]> {
   return data.map((r) => rowToPhoto(r));
 }
 
+export interface PhotoFilters {
+  query: string;
+  category: string;
+  licenses: License[];
+  orientation: Orientation | null;
+  maxPrice: number;
+  sort: "popular" | "new" | "priceLow";
+  collectionId?: string;
+}
+
+export async function fetchPhotosPaginated(filters: PhotoFilters, page: number, pageSize: number = 20): Promise<{ photos: Photo[], hasMore: boolean }> {
+  let q = supabase.from("photos").select(
+    filters.collectionId ? "*, collection_photos!inner(collection_id)" : "*", 
+    { count: "exact" }
+  );
+
+  if (filters.collectionId) {
+    q = q.eq("collection_photos.collection_id", filters.collectionId);
+  }
+
+  if (filters.category && filters.category !== "All") {
+    q = q.eq("category", filters.category);
+  }
+  if (filters.licenses.length > 0) {
+    q = q.in("license", filters.licenses);
+  }
+  if (filters.orientation) {
+    q = q.eq("orientation", filters.orientation);
+  }
+  if (filters.maxPrice < 10000) {
+    q = q.lte("price", filters.maxPrice);
+  }
+
+  if (filters.query) {
+    // Escape special characters for safe ilike search
+    const safeQuery = filters.query.replace(/[%_\\]/g, '\\$&');
+    q = q.or(`title.ilike.%${safeQuery}%,photographer_name.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%,category.ilike.%${safeQuery}%,keywords.cs.{${safeQuery}}`);
+  }
+
+  if (filters.sort === "priceLow") {
+    q = q.order("price", { ascending: true });
+  } else if (filters.sort === "new") {
+    q = q.order("uploaded_at", { ascending: false });
+  } else {
+    q = q.order("downloads", { ascending: false });
+  }
+
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
+  q = q.range(from, to);
+
+  const { data, count, error } = await q;
+
+  if (error || !data) {
+    console.error("fetchPhotosPaginated error:", error);
+    return { photos: [], hasMore: false };
+  }
+
+  const hasMore = count !== null && from + data.length < count;
+  return { photos: data.map(rowToPhoto), hasMore };
+}
+
 export async function fetchPhoto(id: string): Promise<Photo | undefined> {
   const { data } = await supabase
     .from("photos")
@@ -209,6 +272,22 @@ export async function fetchPhoto(id: string): Promise<Photo | undefined> {
 
   if (data) return rowToPhoto(data);
   return localPhotos.find((p) => p.id === id);
+}
+
+export async function fetchPhotosByIds(ids: string[]): Promise<Photo[]> {
+  if (!ids || ids.length === 0) return [];
+  const { data } = await supabase
+    .from("photos")
+    .select("*")
+    .in("id", ids);
+
+  const dbPhotos = data ? data.map(rowToPhoto) : [];
+  
+  const foundIds = new Set(dbPhotos.map(p => p.id));
+  const missingIds = ids.filter(id => !foundIds.has(id));
+  const fallbackPhotos = localPhotos.filter(p => missingIds.includes(p.id));
+
+  return [...dbPhotos, ...fallbackPhotos];
 }
 
 export async function fetchPhotosByPhotographer(photographerId: string): Promise<Photo[]> {
@@ -616,6 +695,7 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     maintenanceMode: data.maintenance_mode ?? defaults.maintenanceMode,
     signupEnabled: data.signup_enabled ?? defaults.signupEnabled,
     moderationRequired: data.moderation_required ?? defaults.moderationRequired,
+    contactLink: data.contact_link,
   };
 }
 
@@ -634,6 +714,7 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
       maintenance_mode: settings.maintenanceMode,
       signup_enabled: settings.signupEnabled,
       moderation_required: settings.moderationRequired,
+      contact_link: settings.contactLink,
     });
 
   if (error) { console.error("updateSiteSettings", error); return false; }
@@ -1122,14 +1203,14 @@ export async function fetchPhotographerStats(photographerId: string): Promise<{
 }> {
   const { data: photos } = await supabase
     .from("photos")
-    .select("id, downloads, views, likes, price")
+    .select("id, downloads, views, likes, price, custom_downloads, custom_views, custom_likes")
     .eq("photographer_id", photographerId);
 
   if (!photos || photos.length === 0) return { totalRevenue: 0, totalDownloads: 0, totalViews: 0, totalLikes: 0, photoCount: 0, avgPrice: 0 };
 
-  const totalDownloads = photos.reduce((s: number, p: any) => s + (p.downloads || 0), 0);
-  const totalViews = photos.reduce((s: number, p: any) => s + (p.views || 0), 0);
-  const totalLikes = photos.reduce((s: number, p: any) => s + (p.likes || 0), 0);
+  const totalDownloads = photos.reduce((s: number, p: any) => s + Math.max(p.downloads || 0, p.custom_downloads || 0), 0);
+  const totalViews = photos.reduce((s: number, p: any) => s + Math.max(p.views || 0, p.custom_views || 0), 0);
+  const totalLikes = photos.reduce((s: number, p: any) => s + Math.max(p.likes || 0, p.custom_likes || 0), 0);
   const avgPrice = photos.reduce((s: number, p: any) => s + (p.price || 0), 0) / photos.length;
 
   const { data: purchases } = await supabase
@@ -1137,11 +1218,40 @@ export async function fetchPhotographerStats(photographerId: string): Promise<{
     .select("price, photo_id");
 
   const photoIds = new Set(photos.map((p: any) => p.id));
-  const totalRevenue = (purchases || [])
+  
+  // Real revenue from purchases
+  let totalRevenue = (purchases || [])
     .filter((p: any) => photoIds.has(p.photo_id))
     .reduce((s: number, p: any) => s + (p.price || 0), 0);
 
+  // Add bonus revenue for custom downloads that exceed actual downloads
+  photos.forEach((p: any) => {
+    const actualDownloads = p.downloads || 0;
+    const customDownloads = p.custom_downloads || 0;
+    if (customDownloads > actualDownloads) {
+      totalRevenue += (customDownloads - actualDownloads) * (p.price || 0);
+    }
+  });
+
   return { totalRevenue, totalDownloads, totalViews, totalLikes, photoCount: photos.length, avgPrice: Math.round(avgPrice) };
+}
+
+export async function updatePhotoHypeOverrides(photoId: string, metrics: {
+  customDownloads?: number;
+  customViews?: number;
+  customLikes?: number;
+}): Promise<boolean> {
+  const updates: any = {};
+  if (metrics.customDownloads !== undefined) updates.custom_downloads = metrics.customDownloads;
+  if (metrics.customViews !== undefined) updates.custom_views = metrics.customViews;
+  if (metrics.customLikes !== undefined) updates.custom_likes = metrics.customLikes;
+
+  const { error } = await supabase.from("photos").update(updates).eq("id", photoId);
+  if (error) {
+    console.error("updatePhotoHypeOverrides error", error);
+    return false;
+  }
+  return true;
 }
 
 // ============================================================
@@ -1583,7 +1693,7 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
           location: "",
           specialty: "",
           followers: "0",
-          avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
+          avatar: "",
           bio: "",
           cover: "",
           verified: false,
@@ -1643,6 +1753,20 @@ export async function updateUserStatus(userId: string, status: string): Promise<
     .eq("id", userId);
 
   if (error) { console.error("updateUserStatus", error); return false; }
+  return true;
+}
+
+// ============================================================
+// UPDATE USER VERIFICATION STATUS (manual admin override)
+// ============================================================
+
+export async function updateUserVerificationStatus(userId: string, verification_status: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ verification_status })
+    .eq("id", userId);
+
+  if (error) { console.error("updateUserVerificationStatus", error); return false; }
   return true;
 }
 
@@ -1794,7 +1918,7 @@ export async function uploadVerificationDocument(
 
   if (error) throw new Error(error.message);
 
-  const profileUpdates: any = { verification_status: "pending" };
+  const profileUpdates: any = { };
   if (kycDetails?.phone) profileUpdates.phone = kycDetails.phone;
   if (kycDetails?.dob) profileUpdates.dob = kycDetails.dob;
   if (kycDetails?.occupation) profileUpdates.occupation = kycDetails.occupation;
@@ -1817,6 +1941,59 @@ export async function uploadVerificationDocument(
     reviewedAt: data.reviewed_at,
     reviewedBy: data.reviewed_by,
   };
+}
+
+export async function fetchMyVerificationDocument(userId: string): Promise<VerificationDocument | null> {
+  const { data } = await supabase
+    .from("verification_documents")
+    .select("*")
+    .eq("user_id", userId)
+    .order("submitted_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    documentType: data.document_type,
+    documentNumber: data.document_number || "",
+    fileUrl: data.file_url,
+    status: data.status,
+    adminNote: data.admin_note || "",
+    submittedAt: data.submitted_at,
+    reviewedAt: data.reviewed_at,
+    reviewedBy: data.reviewed_by,
+  };
+}
+
+export async function payVerificationFee(userId: string): Promise<boolean> {
+  // Simulate payment processing delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
+  
+  // Record the verification fee as a purchase
+  const purchaseId = `VF-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+  await supabase.from("purchases").insert({
+    id: purchaseId,
+    user_id: userId,
+    price: 247,
+    license: "Verification Fee",
+    status: "APPROVED",
+    payment_method: "card"
+  });
+  
+  const { error } = await supabase
+    .from("profiles")
+    .update({ verification_status: "pending" })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("payVerificationFee error", error);
+    throw new Error(error.message);
+  }
+  
+  return true;
 }
 
 export async function fetchAllVerificationDocuments(): Promise<VerificationDocument[]> {
@@ -1873,4 +2050,67 @@ export async function reviewVerificationDocument(
     .eq("id", doc.user_id);
 
   return true;
+}
+
+export interface AdminPaymentMethod {
+  id: string;
+  methodType: string;
+  name: string;
+  details: string;
+  enabled: boolean;
+  createdAt: string;
+}
+
+export async function fetchAdminPaymentMethods(): Promise<AdminPaymentMethod[]> {
+  const { data } = await supabase
+    .from("admin_payment_methods")
+    .select("*")
+    .order("created_at");
+
+  if (!data) return [];
+  return data.map((m: any) => ({
+    id: m.id,
+    methodType: m.method_type,
+    name: m.name,
+    details: m.details,
+    enabled: m.enabled,
+    createdAt: m.created_at,
+  }));
+}
+
+export async function createAdminPaymentMethod(methodType: string, name: string, details: string): Promise<AdminPaymentMethod> {
+  const { data, error } = await supabase
+    .from("admin_payment_methods")
+    .insert({ method_type: methodType, name, details })
+    .select()
+    .single();
+
+  if (error || !data) throw new Error(error?.message || "Failed to create payment method");
+  
+  return {
+    id: data.id,
+    methodType: data.method_type,
+    name: data.name,
+    details: data.details,
+    enabled: data.enabled,
+    createdAt: data.created_at,
+  };
+}
+
+export async function updateAdminPaymentMethod(id: string, updates: { enabled?: boolean; details?: string; name?: string }): Promise<void> {
+  const { error } = await supabase
+    .from("admin_payment_methods")
+    .update(updates)
+    .eq("id", id);
+    
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteAdminPaymentMethod(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("admin_payment_methods")
+    .delete()
+    .eq("id", id);
+    
+  if (error) throw new Error(error.message);
 }
