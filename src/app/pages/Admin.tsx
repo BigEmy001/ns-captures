@@ -66,7 +66,7 @@ const defaultSiteSettings: SiteSettingsRow = {
 };
 
 export function Admin() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [params, setParams] = useSearchParams();
   const requestedTab = params.get("tab");
   const active = nav.some((item) => item.id === requestedTab) ? requestedTab! : "dashboard";
@@ -920,6 +920,227 @@ export function Admin() {
               </div>
             </div>
           )}
+
+          {/* Verification */}
+          {active === "verification" && (
+            <div className="mt-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <Eyebrow>VERIFICATION REQUESTS</Eyebrow>
+                <span className="text-xs text-[#6b716d]">{verificationDocs.filter((d) => d.status === "pending").length} pending</span>
+              </div>
+              {verificationDocs.length === 0 ? (
+                <div className="border border-dashed border-[#ececec] bg-white rounded-2xl p-8 text-center">
+                  <ShieldCheck className="size-8 text-[#9aa09b] mx-auto mb-2" />
+                  <p className="font-serif text-lg text-[#18211f]">No verification requests</p>
+                  <p className="text-sm text-[#6b716d] mt-1">Documents submitted by users will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {verificationDocs.map((doc) => {
+                    const u = adminUsersList.find((x) => x.id === doc.userId);
+                    return (
+                    <div key={doc.id} className="border border-[#ececec]/80 bg-white rounded-2xl p-5 ns-shadow-sm">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <p className="font-semibold text-[#18211f] capitalize">{doc.documentType.replace(/_/g, " ")}</p>
+                          <p className="text-xs text-[#6b716d]">{u?.name || doc.userId} · {u?.email || ""}</p>
+                          <p className="text-xs text-[#6b716d]">{new Date(doc.submittedAt).toLocaleDateString()}</p>
+                          {doc.documentNumber && <p className="text-xs font-mono text-[#4a534e] mt-1"># {doc.documentNumber}</p>}
+                          
+                          <div className="mt-3 p-3 bg-[#f8f9f7] rounded-xl text-xs space-y-1">
+                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">Phone:</span> {u?.phone || "N/A"}</p>
+                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">DOB:</span> {u?.dob || "N/A"}</p>
+                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">Address:</span> {u?.occupation || "N/A"}</p>
+                          </div>
+                        </div>
+                        <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                          doc.status === "approved" ? "bg-green-50 text-green-700" :
+                          doc.status === "rejected" ? "bg-red-50 text-red-700" :
+                          "bg-amber-50 text-amber-700"
+                        }`}>{doc.status}</span>
+                      </div>
+                      {doc.fileUrl && (
+                        <a
+                          href={doc.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3 py-1.5 rounded-full transition-colors mb-3"
+                        >
+                          <Eye className="size-3.5" /> View Document
+                        </a>
+                      )}
+                      {doc.status === "pending" && (
+                        <div className="border-t border-[#ececec]/60 pt-3 mt-3 space-y-3">
+                          <input
+                            id={`note-${doc.id}`}
+                            placeholder="Admin note (optional)"
+                            className="w-full text-sm border border-[#ececec] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#1e4a3f]/40"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={async () => {
+                                const note = (document.getElementById(`note-${doc.id}`) as HTMLInputElement)?.value || "";
+                                const ok = await reviewVerificationDocument(doc.id, "approved", note, user!.id);
+                                if (ok) {
+                                  setVerificationDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "approved", adminNote: note } : d));
+                                  const u = adminUsersList.find((x) => x.id === doc.userId);
+                                  if (u) sendVerificationStatus(u.email, u.name, "approved");
+                                  toast.success("Document approved");
+                                }
+                              }}
+                              className="flex items-center gap-1.5 bg-green-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-green-700 transition-colors"
+                            >
+                              <Check className="size-3.5" /> Approve
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const note = (document.getElementById(`note-${doc.id}`) as HTMLInputElement)?.value || "";
+                                const ok = await reviewVerificationDocument(doc.id, "rejected", note, user!.id);
+                                if (ok) {
+                                  setVerificationDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "rejected", adminNote: note } : d));
+                                  const u = adminUsersList.find((x) => x.id === doc.userId);
+                                  if (u) sendVerificationStatus(u.email, u.name, "rejected", note || "Please review and resubmit with correct documentation.");
+                                  toast.success("Document rejected");
+                                }
+                              }}
+                              className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-red-700 transition-colors"
+                            >
+                              <X className="size-3.5" /> Reject
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Contributor Submissions */}
+          {active === "submissions" && (
+            <div className="mt-8 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Eyebrow>CONTRIBUTOR SUBMISSIONS</Eyebrow>
+                <span className="text-xs text-[#6b716d]">{filteredSubmissions.length} records</span>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
+                <input
+                  value={submissionSearch}
+                  onChange={(e) => setSubmissionSearch(e.target.value)}
+                  placeholder="Search name, email, country"
+                  className="border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
+                />
+                <select
+                  value={submissionStatusFilter}
+                  onChange={(e) => setSubmissionStatusFilter(e.target.value)}
+                  className="border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
+                >
+                  <option value="all">All status</option>
+                  <option value="new">New</option>
+                  <option value="reviewing">Reviewing</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="blocked">Blocked</option>
+                </select>
+              </div>
+
+              <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
+                <table className="w-full min-w-[1100px] text-left text-sm">
+                  <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.12em] text-[#8a8f89] uppercase border-b border-[#ececec]">
+                    <tr>
+                      <th className="px-4 py-3">Submitted</th>
+                      <th className="px-4 py-3">Name</th>
+                      <th className="px-4 py-3">Contact</th>
+                      <th className="px-4 py-3">Location & Contact</th>
+                      <th className="px-4 py-3">Social</th>
+                      <th className="px-4 py-3">Portfolio</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Admin Note</th>
+                      <th className="px-4 py-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#ececec]/60">
+                    {filteredSubmissions.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-8 text-center text-sm text-[#6b716d]">No submissions found</td>
+                      </tr>
+                    ) : filteredSubmissions.map((sub) => (
+                      <tr key={sub.id} className="hover:bg-[#FAF9F5] transition duration-150 align-top">
+                        <td className="px-4 py-3 text-xs text-[#6b716d] whitespace-nowrap">{new Date(sub.createdAt).toLocaleString()}</td>
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-[#18211f]">{sub.fullName}</p>
+                          {sub.invitationCode ? <p className="text-[11px] text-[#6b716d]">Ref: {sub.invitationCode}</p> : null}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#4a534e]">
+                          <a href={`mailto:${sub.email}`} className="underline hover:text-[#1e4a3f]">{sub.email}</a>
+                          <p className="mt-1">{sub.phone}</p>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#4a534e]">{sub.country}<p className="mt-1 text-[#6b716d]">{sub.preferredChannel}</p></td>
+                        <td className="px-4 py-3 text-xs">
+                          {sub.socialHandle ? (
+                            <a href={sub.socialHandle.startsWith('http') ? sub.socialHandle : `https://instagram.com/${sub.socialHandle.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="underline text-[#1e4a3f] hover:text-[#123b31] truncate max-w-[100px] block">
+                              {sub.socialHandle}
+                            </a>
+                          ) : <span className="text-[#8a8f89]">-</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          <a href={sub.portfolioLink} target="_blank" rel="noopener noreferrer" className="underline text-[#1e4a3f] hover:text-[#123b31]">Open Link</a>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                            sub.status === "approved" ? "bg-green-50 text-green-700" :
+                            sub.status === "rejected" || sub.status === "blocked" ? "bg-red-50 text-red-700" :
+                            sub.status === "reviewing" ? "bg-blue-50 text-blue-700" :
+                            "bg-amber-50 text-amber-700"
+                          }`}>{sub.status}</span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#4a534e] max-w-[260px]">
+                          <input
+                            id={`submission-note-${sub.id}`}
+                            defaultValue={sub.adminNote}
+                            placeholder="Add note"
+                            className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-2">
+                            <select
+                              value={sub.status}
+                              onChange={async (e) => {
+                                const nextStatus = e.target.value as ContributorSubmission["status"];
+                                const note = (document.getElementById(`submission-note-${sub.id}`) as HTMLInputElement)?.value || "";
+                                const ok = await updateContributorSubmissionStatus(sub.id, nextStatus, note);
+                                if (!ok) {
+                                  toast.error("Failed to update submission");
+                                  return;
+                                }
+                                if (nextStatus !== sub.status) {
+                                  await sendContributorSubmissionStatus(sub.email, sub.fullName, nextStatus, note);
+                                }
+                                setContributorSubmissions((prev) => prev.map((x) => x.id === sub.id ? { ...x, status: nextStatus, adminNote: note } : x));
+                                toast.success(`Submission marked as ${nextStatus}`);
+                              }}
+                              className="border border-[#ececec] rounded-lg bg-white px-2.5 py-1.5 text-xs outline-none"
+                            >
+                              <option value="new">New</option>
+                              <option value="reviewing">Reviewing</option>
+                              <option value="approved">Approved</option>
+                              <option value="rejected">Rejected</option>
+                              <option value="blocked">Blocked</option>
+                            </select>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
       {selectedUser && (
@@ -1260,225 +1481,6 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
             </div>
           )}
 
-          {/* Verification */}
-          {active === "verification" && (
-            <div className="mt-8 space-y-6">
-              <div className="flex items-center justify-between">
-                <Eyebrow>VERIFICATION REQUESTS</Eyebrow>
-                <span className="text-xs text-[#6b716d]">{verificationDocs.filter((d) => d.status === "pending").length} pending</span>
-              </div>
-              {verificationDocs.length === 0 ? (
-                <div className="border border-dashed border-[#ececec] bg-white rounded-2xl p-8 text-center">
-                  <ShieldCheck className="size-8 text-[#9aa09b] mx-auto mb-2" />
-                  <p className="font-serif text-lg text-[#18211f]">No verification requests</p>
-                  <p className="text-sm text-[#6b716d] mt-1">Documents submitted by users will appear here.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {verificationDocs.map((doc) => {
-                    const u = adminUsersList.find((x) => x.id === doc.userId);
-                    return (
-                    <div key={doc.id} className="border border-[#ececec]/80 bg-white rounded-2xl p-5 ns-shadow-sm">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <p className="font-semibold text-[#18211f] capitalize">{doc.documentType.replace(/_/g, " ")}</p>
-                          <p className="text-xs text-[#6b716d]">{u?.name || doc.userId} · {u?.email || ""}</p>
-                          <p className="text-xs text-[#6b716d]">{new Date(doc.submittedAt).toLocaleDateString()}</p>
-                          {doc.documentNumber && <p className="text-xs font-mono text-[#4a534e] mt-1"># {doc.documentNumber}</p>}
-                          
-                          <div className="mt-3 p-3 bg-[#f8f9f7] rounded-xl text-xs space-y-1">
-                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">Phone:</span> {u?.phone || "N/A"}</p>
-                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">DOB:</span> {u?.dob || "N/A"}</p>
-                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">Address:</span> {u?.occupation || "N/A"}</p>
-                          </div>
-                        </div>
-                        <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                          doc.status === "approved" ? "bg-green-50 text-green-700" :
-                          doc.status === "rejected" ? "bg-red-50 text-red-700" :
-                          "bg-amber-50 text-amber-700"
-                        }`}>{doc.status}</span>
-                      </div>
-                      {doc.fileUrl && (
-                        <a
-                          href={doc.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3 py-1.5 rounded-full transition-colors mb-3"
-                        >
-                          <Eye className="size-3.5" /> View Document
-                        </a>
-                      )}
-                      {doc.status === "pending" && (
-                        <div className="border-t border-[#ececec]/60 pt-3 mt-3 space-y-3">
-                          <input
-                            id={`note-${doc.id}`}
-                            placeholder="Admin note (optional)"
-                            className="w-full text-sm border border-[#ececec] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#1e4a3f]/40"
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              onClick={async () => {
-                                const note = (document.getElementById(`note-${doc.id}`) as HTMLInputElement)?.value || "";
-                                const ok = await reviewVerificationDocument(doc.id, "approved", note, user!.id);
-                                if (ok) {
-                                  setVerificationDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "approved", adminNote: note } : d));
-                                  const u = adminUsersList.find((x) => x.id === doc.userId);
-                                  if (u) sendVerificationStatus(u.email, u.name, "approved");
-                                  toast.success("Document approved");
-                                }
-                              }}
-                              className="flex items-center gap-1.5 bg-green-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-green-700 transition-colors"
-                            >
-                              <Check className="size-3.5" /> Approve
-                            </button>
-                            <button
-                              onClick={async () => {
-                                const note = (document.getElementById(`note-${doc.id}`) as HTMLInputElement)?.value || "";
-                                const ok = await reviewVerificationDocument(doc.id, "rejected", note, user!.id);
-                                if (ok) {
-                                  setVerificationDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "rejected", adminNote: note } : d));
-                                  const u = adminUsersList.find((x) => x.id === doc.userId);
-                                  if (u) sendVerificationStatus(u.email, u.name, "rejected", note || "Please review and resubmit with correct documentation.");
-                                  toast.success("Document rejected");
-                                }
-                              }}
-                              className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-red-700 transition-colors"
-                            >
-                              <X className="size-3.5" /> Reject
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Contributor Submissions */}
-          {active === "submissions" && (
-            <div className="mt-8 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <Eyebrow>CONTRIBUTOR SUBMISSIONS</Eyebrow>
-                <span className="text-xs text-[#6b716d]">{filteredSubmissions.length} records</span>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-[1fr_220px]">
-                <input
-                  value={submissionSearch}
-                  onChange={(e) => setSubmissionSearch(e.target.value)}
-                  placeholder="Search name, email, country"
-                  className="border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
-                />
-                <select
-                  value={submissionStatusFilter}
-                  onChange={(e) => setSubmissionStatusFilter(e.target.value)}
-                  className="border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
-                >
-                  <option value="all">All status</option>
-                  <option value="new">New</option>
-                  <option value="reviewing">Reviewing</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                  <option value="blocked">Blocked</option>
-                </select>
-              </div>
-
-              <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
-                <table className="w-full min-w-[1100px] text-left text-sm">
-                  <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.12em] text-[#8a8f89] uppercase border-b border-[#ececec]">
-                    <tr>
-                      <th className="px-4 py-3">Submitted</th>
-                      <th className="px-4 py-3">Name</th>
-                      <th className="px-4 py-3">Contact</th>
-                      <th className="px-4 py-3">Location & Contact</th>
-                      <th className="px-4 py-3">Social</th>
-                      <th className="px-4 py-3">Portfolio</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Admin Note</th>
-                      <th className="px-4 py-3 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#ececec]/60">
-                    {filteredSubmissions.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-sm text-[#6b716d]">No submissions found</td>
-                      </tr>
-                    ) : filteredSubmissions.map((sub) => (
-                      <tr key={sub.id} className="hover:bg-[#FAF9F5] transition duration-150 align-top">
-                        <td className="px-4 py-3 text-xs text-[#6b716d] whitespace-nowrap">{new Date(sub.createdAt).toLocaleString()}</td>
-                        <td className="px-4 py-3">
-                          <p className="font-semibold text-[#18211f]">{sub.fullName}</p>
-                          {sub.invitationCode ? <p className="text-[11px] text-[#6b716d]">Ref: {sub.invitationCode}</p> : null}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-[#4a534e]">
-                          <a href={`mailto:${sub.email}`} className="underline hover:text-[#1e4a3f]">{sub.email}</a>
-                          <p className="mt-1">{sub.phone}</p>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-[#4a534e]">{sub.country}<p className="mt-1 text-[#6b716d]">{sub.preferredChannel}</p></td>
-                        <td className="px-4 py-3 text-xs">
-                          {sub.socialHandle ? (
-                            <a href={sub.socialHandle.startsWith('http') ? sub.socialHandle : `https://instagram.com/${sub.socialHandle.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="underline text-[#1e4a3f] hover:text-[#123b31] truncate max-w-[100px] block">
-                              {sub.socialHandle}
-                            </a>
-                          ) : <span className="text-[#8a8f89]">-</span>}
-                        </td>
-                        <td className="px-4 py-3 text-xs">
-                          <a href={sub.portfolioLink} target="_blank" rel="noopener noreferrer" className="underline text-[#1e4a3f] hover:text-[#123b31]">Open Link</a>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                            sub.status === "approved" ? "bg-green-50 text-green-700" :
-                            sub.status === "rejected" || sub.status === "blocked" ? "bg-red-50 text-red-700" :
-                            sub.status === "reviewing" ? "bg-blue-50 text-blue-700" :
-                            "bg-amber-50 text-amber-700"
-                          }`}>{sub.status}</span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-[#4a534e] max-w-[260px]">
-                          <input
-                            id={`submission-note-${sub.id}`}
-                            defaultValue={sub.adminNote}
-                            placeholder="Add note"
-                            className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-2">
-                            <select
-                              value={sub.status}
-                              onChange={async (e) => {
-                                const nextStatus = e.target.value as ContributorSubmission["status"];
-                                const note = (document.getElementById(`submission-note-${sub.id}`) as HTMLInputElement)?.value || "";
-                                const ok = await updateContributorSubmissionStatus(sub.id, nextStatus, note);
-                                if (!ok) {
-                                  toast.error("Failed to update submission");
-                                  return;
-                                }
-                                if (nextStatus !== sub.status) {
-                                  await sendContributorSubmissionStatus(sub.email, sub.fullName, nextStatus, note);
-                                }
-                                setContributorSubmissions((prev) => prev.map((x) => x.id === sub.id ? { ...x, status: nextStatus, adminNote: note } : x));
-                                toast.success(`Submission marked as ${nextStatus}`);
-                              }}
-                              className="border border-[#ececec] rounded-lg bg-white px-2.5 py-1.5 text-xs outline-none"
-                            >
-                              <option value="new">New</option>
-                              <option value="reviewing">Reviewing</option>
-                              <option value="approved">Approved</option>
-                              <option value="rejected">Rejected</option>
-                              <option value="blocked">Blocked</option>
-                            </select>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
 
           {!isPhotographer && !isBuyerOrEnterprise && (
             <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-[#ececec] rounded-2xl p-8 bg-white text-center">
