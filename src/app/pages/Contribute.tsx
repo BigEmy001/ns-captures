@@ -124,27 +124,27 @@ export function Contribute() {
         <table width="100%" cellpadding="8" cellspacing="0" style="border: 1px solid #e0e0e0; font-family: sans-serif; font-size: 14px; margin-top: 15px;">
           <tr style="background-color: #f7f7f7;">
             <td width="30%" style="font-weight: bold; border-bottom: 1px solid #e0e0e0;">Full Legal Name:</td>
-            <td style="border-bottom: 1px solid #e0e0e0;">£{safeName}</td>
+            <td style="border-bottom: 1px solid #e0e0e0;">${safeName}</td>
           </tr>
           <tr>
             <td style="font-weight: bold; border-bottom: 1px solid #e0e0e0;">Email Address:</td>
-            <td style="border-bottom: 1px solid #e0e0e0;">£{safeEmail}</td>
+            <td style="border-bottom: 1px solid #e0e0e0;">${safeEmail}</td>
           </tr>
           <tr style="background-color: #f7f7f7;">
             <td style="font-weight: bold; border-bottom: 1px solid #e0e0e0;">Phone Number:</td>
-            <td style="border-bottom: 1px solid #e0e0e0;">£{safePhone}</td>
+            <td style="border-bottom: 1px solid #e0e0e0;">${safePhone}</td>
           </tr>
           <tr>
             <td style="font-weight: bold; border-bottom: 1px solid #e0e0e0;">Country of Residence:</td>
-            <td style="border-bottom: 1px solid #e0e0e0;">£{safeCountry}</td>
+            <td style="border-bottom: 1px solid #e0e0e0;">${safeCountry}</td>
           </tr>
           <tr style="background-color: #f7f7f7;">
             <td style="font-weight: bold; border-bottom: 1px solid #e0e0e0;">Preferred Channel:</td>
-            <td style="border-bottom: 1px solid #e0e0e0;">£{safeChannel}</td>
+            <td style="border-bottom: 1px solid #e0e0e0;">${safeChannel}</td>
           </tr>
           <tr>
             <td style="font-weight: bold; border-bottom: 1px solid #e0e0e0;">Invitation Code:</td>
-            <td style="border-bottom: 1px solid #e0e0e0;">£{safeInvite}</td>
+            <td style="border-bottom: 1px solid #e0e0e0;">${safeInvite}</td>
           </tr>
           <tr style="background-color: #f7f7f7;">
             <td style="font-weight: bold; border-bottom: 1px solid #e0e0e0;">Portfolio Folder:</td>
@@ -152,11 +152,11 @@ export function Contribute() {
           </tr>
           <tr>
             <td style="font-weight: bold; border-bottom: 1px solid #e0e0e0;">Social Media / Instagram:</td>
-            <td style="border-bottom: 1px solid #e0e0e0;">£{safeSocial}</td>
+            <td style="border-bottom: 1px solid #e0e0e0;">${safeSocial}</td>
           </tr>
           <tr>
             <td style="font-weight: bold;">Gear &amp; Medium:</td>
-            <td>£{safeGear}</td>
+            <td>${safeGear}</td>
           </tr>
         </table>
         <p style="margin-top: 20px;">Review this portfolio tracing metadata, dynamic range and composition to determine pricing tier placement.</p>
