@@ -11,7 +11,7 @@ import { escapeHtml, isValidEmail, isValidHttpsUrl, isValidPhone, normalizeEmail
 
 const countriesList = [
   "United Kingdom", "United States", "Canada", "Germany", "France", 
-  "South Africa", "Nigeria", "Kenya", "Ghana", "Senegal", 
+  "Italy", "Spain", "Netherlands", "Sweden", "Switzerland", 
   "United Arab Emirates", "Australia", "Japan", "Brazil", "India", "Others"
 ];
 
