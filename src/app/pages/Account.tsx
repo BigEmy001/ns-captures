@@ -22,7 +22,7 @@ const nav = [
 ];
 
 export function Account() {
-  const { user, updateProfile, changePassword, isAuthenticated, logout } = useAuth();
+  const { user, updateProfile, changePassword, isAuthenticated, logout, upgradeToCreator } = useAuth();
   const [params, setParams] = useSearchParams();
   const requestedTab = params.get("tab");
   const active = nav.some((item) => item.id === requestedTab) ? requestedTab! : "overview";
@@ -275,6 +275,24 @@ export function Account() {
               </div>
 
               {/* Usage Meter - removed, not applicable for per-photo marketplace */}
+
+              {user?.role === "Buyer" && (
+                <div className="border border-[#1e4a3f] bg-[#1e4a3f]/5 rounded-2xl p-6 sm:p-8 ns-shadow-sm transition-all duration-300 relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
+                  <div className="relative z-10">
+                    <h3 className="font-serif text-2xl text-[#18211f] mb-2">Become a Contributor</h3>
+                    <p className="text-sm text-[#4a534e] max-w-md">
+                      Ready to share your vision with the world? Upgrade your account to start uploading photos, managing your portfolio, and earning revenue from licenses.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={upgradeToCreator}
+                    className="relative z-10 shrink-0 rounded-full bg-[#1e4a3f] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#123b31]"
+                  >
+                    Start Selling
+                  </button>
+                  <Camera className="absolute -bottom-6 -right-6 size-40 text-[#1e4a3f]/5 rotate-12 pointer-events-none" />
+                </div>
+              )}
 
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
                 <h3 className="font-serif text-xl text-[#18211f] mb-6">Profile details</h3>

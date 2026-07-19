@@ -34,6 +34,7 @@ interface AuthContextType {
   signup: (data: { firstName: string; lastName: string; email: string; password: string; role?: string }) => Promise<{ needsEmailConfirmation: boolean }>;
   logout: () => void;
   updateProfile: (data: Partial<AuthUser>) => Promise<void>;
+  upgradeToCreator: () => Promise<void>;
   changePassword: (current: string, next: string) => Promise<void>;
 }
 
@@ -290,6 +291,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updated);
     toast.success("Profile saved");
   }, [user]);
+
+  const upgradeToCreator = useCallback(async () => {
+    if (!user) return;
+    if (user.role === "Photographer") return;
+
+    try {
+      const slug = user.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-£/g, "")
+        + "-" + user.id.slice(0, 8);
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ role: "Photographer", slug })
+        .eq("id", user.id);
+
+      if (profileError) throw new Error(profileError.message);
+
+      const { error: photoError } = await supabase
+        .from("photographers")
+        .insert({
+          id: slug,
+          name: user.name,
+          image: user.avatar || "https://images.unsplash.com/photo-1593351799227-75df2026356b"
+        });
+
+      if (photoError) throw new Error(photoError.message);
+
+      setUser({ ...user, role: "Photographer", slug });
+      toast.success("Welcome to the Creator Dashboard!");
+      navigate("/dashboard");
+    } catch (e: any) {
+      toast.error(e.message || "Could not upgrade account");
+    }
+  }, [user, navigate]);
 
   const changePassword = useCallback(async (current: string, next: string) => {
     if (!user) throw new Error("Not authenticated");

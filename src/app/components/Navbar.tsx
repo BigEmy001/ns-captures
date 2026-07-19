@@ -27,6 +27,7 @@ const publicLinks = [
 const photographerLinks = [
   { to: "/search", label: "Discover" },
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/account", label: "My Account" },
   { to: "/collections", label: "Collections" },
   { to: "/requests", label: "Requests" },
 ];
