@@ -28,6 +28,9 @@ export interface Photo {
   aperture?: string;
   shutterSpeed?: string;
   focalLength?: string;
+  customViews?: number;
+  customLikes?: number;
+  customDownloads?: number;
 }
 
 const u = (id: string, w = 1080) =>
@@ -10005,8 +10008,10 @@ export interface AdminUser {
   dob?: string;
   occupation?: string;
   role: "Buyer" | "Photographer" | "Enterprise" | "Admin";
-  status: "Active" | "Pending" | "Suspended";
+  status: "Active" | "Pending" | "Suspended" | "Blocked";
   joined: string;
+  payoutBalance?: number;
+  customFollowers?: string;
 }
 
 export const adminUsers: AdminUser[] = [
