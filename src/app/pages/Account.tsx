@@ -100,13 +100,18 @@ import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
 
 const nav = [
-  { id: "overview", label: "Profile", icon: User, heading: "PERSONAL" },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    mobileLabel: "Home",
+    icon: Activity,
+    heading: "CREATOR HUB",
+    isCreator: true,
+  },
+  { id: "overview", label: "Profile", icon: User },
   { id: "collections", label: "Collections", icon: FolderHeart },
   { id: "downloads", label: "Downloads", icon: Download },
   { id: "licenses", label: "Licenses", icon: FileText },
-
-  // Creator Hub (Rendered conditionally later, but defined here)
-  { id: "dashboard", label: "Dashboard", icon: Activity, heading: "CREATOR HUB", isCreator: true },
   { id: "portfolio", label: "Portfolio", icon: ImageIcon, isCreator: true },
   { id: "payouts", label: "Payouts", icon: Wallet, isCreator: true },
 
@@ -135,10 +140,12 @@ export function Account() {
     useAuth();
   const [params, setParams] = useSearchParams();
   const requestedTab = params.get("tab");
-  const active = nav.some((item) => item.id === requestedTab) ? requestedTab! : "overview";
+  const defaultTab =
+    user?.role === "Photographer" || user?.role === "Admin" ? "dashboard" : "overview";
+  const active = nav.some((item) => item.id === requestedTab) ? requestedTab! : defaultTab;
   const setActive = (id: string) => {
     const next = new URLSearchParams(params);
-    if (id === "overview") next.delete("tab");
+    if (id === defaultTab) next.delete("tab");
     else next.set("tab", id);
     setParams(next);
   };
@@ -437,7 +444,7 @@ export function Account() {
                       : "border-[#ececec] bg-white text-[#6b716d]"
                   }`}
                 >
-                  {n.label}
+                  {"mobileLabel" in n ? (n as any).mobileLabel : n.label}
                 </button>
               ))}
           </div>
