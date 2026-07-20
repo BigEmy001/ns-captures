@@ -128,7 +128,7 @@ const getExploreItems = (role: UserRole): DropdownItem[] => {
 
 const getMoreItems = (
   role: UserRole,
-  user: { id: string; name: string; email: string; avatar?: string } | null,
+  user: { id: string; name: string; email: string; avatar?: string; slug?: string } | null,
 ): DropdownItem[] => {
   if (!user) {
     return [
@@ -141,7 +141,7 @@ const getMoreItems = (
   }
   const items: DropdownItem[] = [
     { label: "Dashboard", icon: User, to: "/account" },
-    { label: "Public Profile", icon: Camera, to: `/photographer/${user.id}` },
+    { label: "Public Profile", icon: Camera, to: `/photographer/${user.slug || user.id}` },
     { label: "Settings", icon: Settings, to: "/account?tab=security" },
   ];
   if (role === "Enterprise") {

@@ -464,7 +464,20 @@ export function CreatorTabs({
             }
           } else {
             console.error("Cloudinary upload failed", xhr.responseText);
-            toast.error("Cloudinary upload failed. Please check your connection and try again.");
+            let msg = "Cloudinary upload failed.";
+            try {
+              const err = JSON.parse(xhr.responseText);
+              if (err?.error?.message) msg += " " + err.error.message;
+            } catch {
+              /* response not JSON */
+            }
+            if (xhr.status === 401 || xhr.status === 403) {
+              msg +=
+                " The upload preset may require authentication. Ensure VITE_CLOUDINARY_UPLOAD_PRESET is set to an unsigned preset in your Cloudinary dashboard.";
+            } else {
+              msg += " Please check your connection and try again.";
+            }
+            toast.error(msg);
             setUploadProgress(0);
           }
         }
