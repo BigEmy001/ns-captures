@@ -77,6 +77,7 @@ import {
   updateUserRole,
   updateUserStatus,
   updateUserVerificationStatus,
+  updateAdminBalance,
   resolveModeration,
   fetchAllVerificationDocuments,
   reviewVerificationDocument,
@@ -865,6 +866,7 @@ export function Admin() {
                       <th className="px-6 py-4">User</th>
                       <th className="px-6 py-4">Role</th>
                       <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">KYC</th>
                       <th className="px-6 py-4">Joined</th>
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
@@ -905,6 +907,21 @@ export function Admin() {
                             <option value="Pending">Pending</option>
                             <option value="Suspended">Suspended</option>
                           </select>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              u.verificationStatus === "verified"
+                                ? "bg-green-50 text-green-700"
+                                : u.verificationStatus === "pending"
+                                  ? "bg-amber-50 text-amber-700"
+                                  : u.verificationStatus === "rejected"
+                                    ? "bg-red-50 text-red-700"
+                                    : "bg-gray-50 text-gray-500"
+                            }`}
+                          >
+                            {u.verificationStatus || "unverified"}
+                          </span>
                         </td>
                         <td className="px-6 py-4 text-[#6b716d] text-xs">{u.joined}</td>
                         <td className="px-6 py-4 text-right">
@@ -2129,6 +2146,14 @@ export function Admin() {
           onClose={() => setSelectedUser(null)}
           onRoleChange={handleRoleChange}
           onStatusChange={handleStatusChange}
+          onUserUpdate={(userId, updates) => {
+            setAdminUsersList((users) =>
+              users.map((u) => (u.id === userId ? { ...u, ...updates } : u)),
+            );
+            setSelectedUser((prev) =>
+              prev && prev.id === userId ? { ...prev, ...updates } : prev,
+            );
+          }}
           assets={assetsList}
           onDeleteAsset={handleDeleteUserAsset}
           verificationDocs={verificationDocs}
@@ -2206,6 +2231,7 @@ interface AdminUserModalProps {
   onClose: () => void;
   onRoleChange: (userId: string, newRole: AdminUser["role"]) => void;
   onStatusChange: (userId: string, newStatus: AdminUser["status"]) => void;
+  onUserUpdate: (userId: string, updates: Partial<AdminUser>) => void;
   assets: Photo[];
   onDeleteAsset: (photoId: string) => void;
   verificationDocs: VerificationDocument[];
@@ -2219,6 +2245,7 @@ function AdminUserModal({
   onClose,
   onRoleChange,
   onStatusChange,
+  onUserUpdate,
   assets,
   onDeleteAsset,
   verificationDocs,
@@ -2729,7 +2756,33 @@ function AdminUserModal({
                     />
                   </div>
                   <button
-                    onClick={() => alert("Balance update requires API integration")}
+                    onClick={async () => {
+                      const amountEl = document.getElementById("ledger-amount") as HTMLInputElement;
+                      const noteEl = document.getElementById("ledger-note") as HTMLInputElement;
+                      const amount = parseFloat(amountEl?.value || "0");
+                      if (!amount || isNaN(amount)) {
+                        toast.error("Please enter a valid adjustment amount");
+                        return;
+                      }
+                      const ok = await updateAdminBalance(user.id, amount);
+                      if (ok) {
+                        setAdminUsersList((users) =>
+                          users.map((u) =>
+                            u.id === user.id
+                              ? { ...u, payoutBalance: (u.payoutBalance ?? 0) + amount }
+                              : u,
+                          ),
+                        );
+                        onUserUpdate(user.id, {
+                          payoutBalance: (user.payoutBalance ?? 0) + amount,
+                        });
+                        toast.success(`Balance adjusted by £${amount >= 0 ? "+" : ""}${amount}`);
+                        if (amountEl) amountEl.value = "";
+                        if (noteEl) noteEl.value = "";
+                      } else {
+                        toast.error("Failed to update balance");
+                      }
+                    }}
                     className="bg-[#1e4a3f] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#123b31] transition-colors whitespace-nowrap"
                   >
                     Update Balance
@@ -2802,6 +2855,12 @@ function AdminUserModal({
                                     u.id === user.id ? { ...u, verificationStatus: "verified" } : u,
                                   ),
                                 );
+                                onUserUpdate(user.id, { verificationStatus: "verified" });
+                                if (user.email && user.email !== "Email not set") {
+                                  sendVerificationStatus(user.email, user.name, "approved").catch(
+                                    () => {},
+                                  );
+                                }
                                 toast.success("User has been manually verified.");
                               } catch (err: any) {
                                 toast.error(err.message || "Failed to verify user");

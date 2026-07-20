@@ -425,7 +425,7 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, name, email, role, status, created_at, phone, dob, occupation, verification_status",
+      "id, name, email, role, status, created_at, phone, dob, occupation, verification_status, payout_balance",
     )
     .order("created_at", { ascending: false });
 
@@ -434,13 +434,14 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
   return data.map((p: any, i: number) => ({
     id: p.id,
     name: p.name || "Unknown",
-    email: p.email || `${p.name?.toLowerCase().replace(/\s+/g, ".") || "user"}@nscaptures.com`,
+    email: p.email || "Email not set",
     phone: p.phone,
     dob: p.dob,
     occupation: p.occupation,
     role: (p.role || "Buyer") as AdminUser["role"],
     status: (p.status || "Active") as AdminUser["status"],
     verificationStatus: p.verification_status || "unverified",
+    payoutBalance: p.payout_balance ?? 0,
     joined: p.created_at
       ? new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
       : "Unknown",
@@ -2064,6 +2065,36 @@ export async function updateUserVerificationStatus(
 
   if (error) {
     console.error("updateUserVerificationStatus", error);
+    return false;
+  }
+  return true;
+}
+
+export async function updateAdminBalance(userId: string, adjustment: number): Promise<boolean> {
+  const { data, error: fetchError } = await supabase
+    .from("profiles")
+    .select("payout_balance")
+    .eq("id", userId)
+    .single();
+
+  if (fetchError || !data) {
+    console.error("updateAdminBalance fetch", fetchError);
+    return false;
+  }
+
+  const newBalance = (data.payout_balance ?? 0) + adjustment;
+  if (newBalance < 0) {
+    console.error("updateAdminBalance: balance cannot go below zero");
+    return false;
+  }
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ payout_balance: newBalance })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("updateAdminBalance update", error);
     return false;
   }
   return true;
