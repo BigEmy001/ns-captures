@@ -1,18 +1,59 @@
 import { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate, useLocation } from "react-router";
 import {
-  Menu, Search, X, Compass, Trophy, Flame, Award, Sparkles, Video, BookOpen,
-  LogIn, Code2, Puzzle, LifeBuoy, Flag, Handshake, FileText, Globe, MoreHorizontal,
-  ShoppingBag, Trash2, ShieldCheck, ArrowRight, CheckCircle, Loader2, User, LogOut, Settings,
-  Building2, Briefcase, Camera,
+  Menu,
+  Search,
+  X,
+  Compass,
+  Trophy,
+  Flame,
+  Award,
+  Sparkles,
+  Video,
+  BookOpen,
+  LogIn,
+  Code2,
+  Puzzle,
+  LifeBuoy,
+  Flag,
+  Handshake,
+  FileText,
+  Globe,
+  MoreHorizontal,
+  ShoppingBag,
+  Trash2,
+  ShieldCheck,
+  ArrowRight,
+  CheckCircle,
+  Loader2,
+  User,
+  LogOut,
+  Settings,
+  Building2,
+  Briefcase,
+  Camera,
 } from "lucide-react";
 import { Monogram } from "./ui";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Dropdown, DropdownItem } from "./Dropdown";
 import { useRequest } from "./RequestModal";
 import { getCart, removeFromCart, clearCart, CartItem } from "../data/cart";
-import { createPurchaseWithMethod, createLicense, logActivity, incrementPhotoDownloads, fetchPhoto, fetchPhotographers, fetchPaymentMethods, fetchAdminPaymentMethods } from "../data/db";
-import { sendPurchaseReceipt, sendLicenseConfirmation, sendCreatorSaleNotification } from "../../lib/email";
+import {
+  createPurchaseWithMethod,
+  createLicense,
+  logActivity,
+  incrementPhotoDownloads,
+  fetchPhoto,
+  fetchPhotographer,
+  fetchPhotographers,
+  fetchPaymentMethods,
+  fetchAdminPaymentMethods,
+} from "../data/db";
+import {
+  sendPurchaseReceipt,
+  sendLicenseConfirmation,
+  sendCreatorSaleNotification,
+} from "../../lib/email";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, UserRole } from "../context/AuthContext";
@@ -77,12 +118,18 @@ const getExploreItems = (role: UserRole): DropdownItem[] => {
     base.push({ label: "Enterprise Portal", icon: Sparkles, to: "/enterprise" });
   }
   if (role === "Admin") {
-    base.push({ divider: true, label: "d-admin" }, { label: "Admin Console", icon: Code2, to: "/admin" });
+    base.push(
+      { divider: true, label: "d-admin" },
+      { label: "Admin Console", icon: Code2, to: "/admin" },
+    );
   }
   return base;
 };
 
-const getMoreItems = (role: UserRole, user: { id: string; name: string; email: string; avatar?: string } | null): DropdownItem[] => {
+const getMoreItems = (
+  role: UserRole,
+  user: { id: string; name: string; email: string; avatar?: string } | null,
+): DropdownItem[] => {
   if (!user) {
     return [
       { label: "Sign in / Join", icon: LogIn, to: "/signin" },
@@ -101,7 +148,10 @@ const getMoreItems = (role: UserRole, user: { id: string; name: string; email: s
     items.push({ label: "Enterprise Portal", icon: Building2, to: "/enterprise" });
   }
   if (role === "Admin") {
-    items.push({ divider: true, label: "d-admin" }, { label: "Admin Console", icon: Code2, to: "/admin" });
+    items.push(
+      { divider: true, label: "d-admin" },
+      { label: "Admin Console", icon: Code2, to: "/admin" },
+    );
   }
   items.push(
     { divider: true, label: "d3" },
@@ -124,10 +174,18 @@ export function Navbar() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [checkoutStatus, setCheckoutStatus] = useState<"idle" | "loading" | "success">("idle");
-  const [checkoutStep, setCheckoutStep] = useState<"select-method" | "payment-details" | "confirm">("select-method");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "crypto" | "paypal">("card");
-  const [availableMethods, setAvailableMethods] = useState<{ method: string; enabled: boolean; details: Record<string, unknown> }[]>([]);
-  const [photographerPaymentDetails, setPhotographerPaymentDetails] = useState<Record<string, { method: string; details: Record<string, unknown> }>>({});
+  const [checkoutStep, setCheckoutStep] = useState<"select-method" | "payment-details" | "confirm">(
+    "select-method",
+  );
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "crypto" | "paypal">(
+    "card",
+  );
+  const [availableMethods, setAvailableMethods] = useState<
+    { method: string; enabled: boolean; details: Record<string, unknown> }[]
+  >([]);
+  const [photographerPaymentDetails, setPhotographerPaymentDetails] = useState<
+    Record<string, { method: string; details: Record<string, unknown> }>
+  >({});
   const [receiptFiles, setReceiptFiles] = useState<Record<string, File | null>>({});
   const [isPaying, setIsPaying] = useState(false);
 
@@ -186,7 +244,7 @@ export function Navbar() {
       }
     };
     const handleOpen = () => setCartOpen(true);
-    
+
     window.addEventListener("cart-updated", handleUpdate);
     window.addEventListener("storage", handleStorage);
     window.addEventListener("cart-open", handleOpen);
@@ -203,29 +261,41 @@ export function Navbar() {
     const loadMethods = async () => {
       try {
         const methods = await fetchAdminPaymentMethods();
-        
+
         // Map the admin payment methods into the expected UI format
         setAvailableMethods([
-          { 
-            method: "card", 
-            enabled: !!methods.find(m => m.type === "bank" && m.is_active), 
-            details: { instructions: methods.filter(m => m.type === "bank" && m.is_active).map(m => m.details) } 
+          {
+            method: "card",
+            enabled: !!methods.find((m) => m.methodType === "bank" && m.enabled),
+            details: {
+              instructions: methods
+                .filter((m) => m.methodType === "bank" && m.enabled)
+                .map((m) => m.details),
+            },
           },
-          { 
-            method: "crypto", 
-            enabled: !!methods.find(m => m.type === "crypto" && m.is_active), 
-            details: { wallets: methods.filter(m => m.type === "crypto" && m.is_active).map(m => ({ currency: m.currency, address: m.details })) } 
+          {
+            method: "crypto",
+            enabled: !!methods.find((m) => m.methodType === "crypto" && m.enabled),
+            details: {
+              wallets: methods
+                .filter((m) => m.methodType === "crypto" && m.enabled)
+                .map((m) => ({ currency: m.name, address: m.details })),
+            },
           },
-          { 
-            method: "paypal", 
-            enabled: !!methods.find(m => m.type === "paypal" && m.is_active), 
-            details: { email: methods.find(m => m.type === "paypal" && m.is_active)?.details || "admin@ns-captures.com" } 
+          {
+            method: "paypal",
+            enabled: !!methods.find((m) => m.methodType === "paypal" && m.enabled),
+            details: {
+              email:
+                methods.find((m) => m.methodType === "paypal" && m.enabled)?.details ||
+                "admin@ns-captures.com",
+            },
           },
         ]);
-        
+
         // We create a dummy map for backwards compatibility in the UI
         const dummyMap: Record<string, { method: string; details: Record<string, unknown> }> = {};
-        cartItems.forEach(item => {
+        cartItems.forEach((item) => {
           dummyMap[item.photoId] = { method: "platform", details: {} };
         });
         setPhotographerPaymentDetails(dummyMap);
@@ -257,7 +327,13 @@ export function Navbar() {
     let hasError = false;
     for (const item of cartItems) {
       try {
-        await createPurchaseWithMethod(user!.id, item.photoId, item.license, item.price, selectedPaymentMethod);
+        await createPurchaseWithMethod(
+          user!.id,
+          item.photoId,
+          item.license,
+          item.price,
+          selectedPaymentMethod,
+        );
 
         const photo = await fetchPhoto(item.photoId);
         await createLicense({
@@ -282,12 +358,14 @@ export function Navbar() {
 
         // Notify the creator that someone bought their photo
         if (photo?.photographerId) {
-          const creatorMatch = photographers.find(p => p.id === photo.photographerId);
-          if (creatorMatch && creatorMatch.email) {
-            sendCreatorSaleNotification(creatorMatch.email, creatorMatch.name, photo.title, item.price);
+          const creatorMatch = await fetchPhotographer(photo.photographerId);
+          if (creatorMatch) {
+            const creatorEmail = (creatorMatch as any).email;
+            if (creatorEmail) {
+              sendCreatorSaleNotification(creatorEmail, creatorMatch.name, photo.title, item.price);
+            }
           }
         }
-
       } catch (err) {
         console.error("checkout error for", item.photoId, err);
         hasError = true;
@@ -456,166 +534,180 @@ export function Navbar() {
       </header>
 
       <AnimatePresence>
-          {menu && (
-            <motion.div
-              initial={{ opacity: 0, y: -15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="fixed inset-0 z-50 flex flex-col bg-[#12231f] text-white p-6 overflow-y-auto lg:hidden"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <Link to="/" onClick={() => setMenu(false)}>
-                  <Monogram light />
-                </Link>
-                <div className="flex items-center gap-4">
-                  {/* Cart icon */}
-                  {user?.role !== "Admin" && (
-                    <button
-                      onClick={() => {
-                        setMenu(false);
-                        setCartOpen(true);
-                      }}
-                      className="relative p-1.5 text-white/80 hover:text-white"
-                    >
-                      <ShoppingBag className="size-5" />
-                      {cartItems.length > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center bg-white text-[8px] font-mono font-bold text-[#12231f] rounded-full">
-                          {cartItems.length}
-                        </span>
-                      )}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setMenu(false)}
-                    className="p-1 hover:bg-white/10 rounded-full transition-colors cursor-pointer text-white"
-                  >
-                    <X className="size-6" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Search Bar */}
-              <form
-                onSubmit={submit}
-                className="mt-8 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3"
-              >
-                <Search className="size-4 text-white/50" />
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search photographs, collections..."
-                  className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40"
-                />
-              </form>
-
-              {/* Navigation Links */}
-              <div className="flex-1 flex flex-col justify-center py-8 space-y-10">
-                <nav className="flex flex-col space-y-5">
-                  {links.map((l) => (
-                    <Link
-                      key={l.to}
-                      to={l.to}
-                      onClick={() => setMenu(false)}
-                      className="font-serif text-3xl font-light tracking-tight hover:text-white/70 transition-colors duration-200"
-                    >
-                      {l.label}
-                    </Link>
-                  ))}
-                  {!isAuthenticated && (
-                    <>
-                      <Link
-                        to="/signin"
-                        onClick={() => setMenu(false)}
-                        className="font-serif text-3xl font-light tracking-tight hover:text-white/70 transition-colors duration-200"
-                      >
-                        Sign in
-                      </Link>
-                      <Link
-                        to="/signup"
-                        onClick={() => setMenu(false)}
-                        className="font-serif text-3xl font-light tracking-tight hover:text-white/70 transition-colors duration-200"
-                      >
-                        Join
-                      </Link>
-                    </>
-                  )}
-                  {user?.role !== "Admin" && (
-                    <div className="pt-4 mt-2 flex flex-col space-y-4 border-t border-white/10">
-                      <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Explore</p>
-                      {exploreItems.map((item, i) => {
-                        if (item.divider) return null;
-                        const Icon = item.icon || ArrowRight;
-                        return (
-                          <Link
-                            key={i}
-                            to={item.to || "#"}
-                            onClick={() => setMenu(false)}
-                            className="flex items-center gap-3 text-lg text-white/90 hover:text-white transition-colors"
-                          >
-                            <Icon className="size-5 text-[#1e4a3f]" />
-                            {item.label}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </nav>
-
-                {isAuthenticated && user && (
-                  <div className="border-t border-white/10 pt-6 mt-4 flex items-center justify-between">
-                    <Link to="/account" onClick={() => setMenu(false)} className="flex items-center gap-3">
-                      <Avatar className="size-10 border border-white/20">
-                        <AvatarImage src={user.avatar || ""} className="object-cover" />
-                        <AvatarFallback className="bg-white/10 text-white font-mono text-xs">
-                          {user.name?.slice(0, 2).toUpperCase() || "NS"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-white">{user.name}</span>
-                        <span className="text-xs text-white/50">{user.email}</span>
-                      </div>
-                    </Link>
-                    <button
-                      onClick={() => { setMenu(false); logout(); }}
-                      className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                      aria-label="Sign out"
-                    >
-                      <LogOut className="size-5" />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer / CTA section */}
-              <div className="border-t border-white/10 pt-6 mt-auto space-y-4">
+        {menu && (
+          <motion.div
+            initial={{ opacity: 0, y: -15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="fixed inset-0 z-50 flex flex-col bg-[#12231f] text-white p-6 overflow-y-auto lg:hidden"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <Link to="/" onClick={() => setMenu(false)}>
+                <Monogram light />
+              </Link>
+              <div className="flex items-center gap-4">
+                {/* Cart icon */}
                 {user?.role !== "Admin" && (
                   <button
                     onClick={() => {
                       setMenu(false);
-                      openRequest();
+                      setCartOpen(true);
                     }}
-                    className="w-full rounded-full bg-white px-5 py-3 text-center text-sm font-bold text-[#12231f] hover:bg-white/90 transition-colors cursor-pointer"
+                    className="relative p-1.5 text-white/80 hover:text-white"
                   >
-                    Start a project
+                    <ShoppingBag className="size-5" />
+                    {cartItems.length > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center bg-white text-[8px] font-mono font-bold text-[#12231f] rounded-full">
+                        {cartItems.length}
+                      </span>
+                    )}
                   </button>
                 )}
-                <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-white/40">
-                  <span>NS CAPTURES © 2026</span>
-                  <span>LONDON, UK</span>
-                </div>
+                <button
+                  onClick={() => setMenu(false)}
+                  className="p-1 hover:bg-white/10 rounded-full transition-colors cursor-pointer text-white"
+                >
+                  <X className="size-6" />
+                </button>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+
+            {/* Search Bar */}
+            <form
+              onSubmit={submit}
+              className="mt-8 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3"
+            >
+              <Search className="size-4 text-white/50" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search photographs, collections..."
+                className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40"
+              />
+            </form>
+
+            {/* Navigation Links */}
+            <div className="flex-1 flex flex-col justify-center py-8 space-y-10">
+              <nav className="flex flex-col space-y-5">
+                {links.map((l) => (
+                  <Link
+                    key={l.to}
+                    to={l.to}
+                    onClick={() => setMenu(false)}
+                    className="font-serif text-3xl font-light tracking-tight hover:text-white/70 transition-colors duration-200"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+                {!isAuthenticated && (
+                  <>
+                    <Link
+                      to="/signin"
+                      onClick={() => setMenu(false)}
+                      className="font-serif text-3xl font-light tracking-tight hover:text-white/70 transition-colors duration-200"
+                    >
+                      Sign in
+                    </Link>
+                    <Link
+                      to="/signup"
+                      onClick={() => setMenu(false)}
+                      className="font-serif text-3xl font-light tracking-tight hover:text-white/70 transition-colors duration-200"
+                    >
+                      Join
+                    </Link>
+                  </>
+                )}
+                {user?.role !== "Admin" && (
+                  <div className="pt-4 mt-2 flex flex-col space-y-4 border-t border-white/10">
+                    <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">
+                      Explore
+                    </p>
+                    {exploreItems.map((item, i) => {
+                      if (item.divider) return null;
+                      const Icon = item.icon || ArrowRight;
+                      return (
+                        <Link
+                          key={i}
+                          to={item.to || "#"}
+                          onClick={() => setMenu(false)}
+                          className="flex items-center gap-3 text-lg text-white/90 hover:text-white transition-colors"
+                        >
+                          <Icon className="size-5 text-[#1e4a3f]" />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </nav>
+
+              {isAuthenticated && user && (
+                <div className="border-t border-white/10 pt-6 mt-4 flex items-center justify-between">
+                  <Link
+                    to="/account"
+                    onClick={() => setMenu(false)}
+                    className="flex items-center gap-3"
+                  >
+                    <Avatar className="size-10 border border-white/20">
+                      <AvatarImage src={user.avatar || ""} className="object-cover" />
+                      <AvatarFallback className="bg-white/10 text-white font-mono text-xs">
+                        {user.name?.slice(0, 2).toUpperCase() || "NS"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-white">{user.name}</span>
+                      <span className="text-xs text-white/50">{user.email}</span>
+                    </div>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMenu(false);
+                      logout();
+                    }}
+                    className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                    aria-label="Sign out"
+                  >
+                    <LogOut className="size-5" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Footer / CTA section */}
+            <div className="border-t border-white/10 pt-6 mt-auto space-y-4">
+              {user?.role !== "Admin" && (
+                <button
+                  onClick={() => {
+                    setMenu(false);
+                    openRequest();
+                  }}
+                  className="w-full rounded-full bg-white px-5 py-3 text-center text-sm font-bold text-[#12231f] hover:bg-white/90 transition-colors cursor-pointer"
+                >
+                  Start a project
+                </button>
+              )}
+              <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-white/40">
+                <span>NS CAPTURES © 2026</span>
+                <span>LONDON, UK</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Cart Backdrop */}
       <div
         className={`fixed inset-0 z-50 bg-black/45 backdrop-blur-sm transition-opacity duration-300 ${
           cartOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
-        onClick={() => { if (checkoutStatus === "idle") { setCartOpen(false); setCheckoutStep("select-method"); } }}
+        onClick={() => {
+          if (checkoutStatus === "idle") {
+            setCartOpen(false);
+            setCheckoutStep("select-method");
+          }
+        }}
       />
 
       {/* Cart Drawer */}
@@ -632,7 +724,10 @@ export function Navbar() {
             <span className="font-mono text-xs text-[#758078]">({cartItems.length})</span>
           </div>
           <button
-            onClick={() => { setCartOpen(false); setCheckoutStep("select-method"); }}
+            onClick={() => {
+              setCartOpen(false);
+              setCheckoutStep("select-method");
+            }}
             disabled={checkoutStatus !== "idle"}
             className="p-1 hover:bg-[#FAF9F5] rounded-full transition-colors cursor-pointer"
             aria-label="Close cart"
@@ -650,7 +745,9 @@ export function Navbar() {
               </div>
               <div>
                 <p className="font-serif text-lg text-[#18211f]">Your cart is empty</p>
-                <p className="text-xs text-[#6d746e] mt-1">License high-quality photography from the archive.</p>
+                <p className="text-xs text-[#6d746e] mt-1">
+                  License high-quality photography from the archive.
+                </p>
               </div>
               <button
                 onClick={() => {
@@ -669,7 +766,9 @@ export function Navbar() {
                   <Loader2 className="size-10 text-[#1e4a3f] animate-spin" />
                   <div>
                     <p className="font-serif text-lg text-[#18211f]">Securing Licenses...</p>
-                    <p className="text-xs text-[#6d746e] mt-1">Verifying rights with the creator and network.</p>
+                    <p className="text-xs text-[#6d746e] mt-1">
+                      Verifying rights with the creator and network.
+                    </p>
                   </div>
                 </>
               ) : (
@@ -677,7 +776,9 @@ export function Navbar() {
                   <CheckCircle className="size-12 text-[#1e7a4f] animate-bounce" />
                   <div>
                     <p className="font-serif text-lg text-[#18211f]">Order Pending Approval</p>
-                    <p className="text-xs text-[#6d746e] mt-1">Admin will verify your payment and release downloads.</p>
+                    <p className="text-xs text-[#6d746e] mt-1">
+                      Admin will verify your payment and release downloads.
+                    </p>
                   </div>
                 </>
               )}
@@ -721,11 +822,23 @@ export function Navbar() {
             <div className="space-y-2 text-sm text-[#6b716d]">
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span className="text-[#18211f] font-semibold">£{subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-[#18211f] font-semibold">
+                  £
+                  {subtotal.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
               </div>
               <div className="flex justify-between border-t border-[#ececec]/60 pt-3 text-base text-[#18211f]">
                 <span className="font-serif">Total Due</span>
-                <span className="font-serif font-bold text-lg">£{subtotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="font-serif font-bold text-lg">
+                  £
+                  {subtotal.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
               </div>
             </div>
 
@@ -739,19 +852,25 @@ export function Navbar() {
                       { id: "card" as const, label: "Bank Transfer", icon: "🏦" },
                       { id: "crypto" as const, label: "Crypto", icon: "₿" },
                       { id: "paypal" as const, label: "PayPal", icon: "PP" },
-                    ].filter((m) => availableMethods.length === 0 || availableMethods.find((am) => am.method === m.id)).map((m) => (
-                      <button
-                        key={m.id}
-                        onClick={() => setSelectedPaymentMethod(m.id)}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
-                          selectedPaymentMethod === m.id
-                            ? "bg-[#1e4a3f] text-white border-[#1e4a3f]"
-                            : "bg-white text-[#6b716d] border-[#ececec] hover:border-[#1e4a3f]/30"
-                        }`}
-                      >
-                        <span className="text-sm">{m.icon}</span> {m.label}
-                      </button>
-                    ))}
+                    ]
+                      .filter(
+                        (m) =>
+                          availableMethods.length === 0 ||
+                          availableMethods.find((am) => am.method === m.id),
+                      )
+                      .map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => setSelectedPaymentMethod(m.id)}
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
+                            selectedPaymentMethod === m.id
+                              ? "bg-[#1e4a3f] text-white border-[#1e4a3f]"
+                              : "bg-white text-[#6b716d] border-[#ececec] hover:border-[#1e4a3f]/30"
+                          }`}
+                        >
+                          <span className="text-sm">{m.icon}</span> {m.label}
+                        </button>
+                      ))}
                   </div>
                 </div>
                 <button
@@ -768,17 +887,33 @@ export function Navbar() {
               <>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-[#18211f] uppercase tracking-wider">Payment Instructions</p>
-                    <button onClick={() => setCheckoutStep("select-method")} className="text-[10px] text-[#1e4a3f] hover:underline">Change method</button>
+                    <p className="text-xs font-semibold text-[#18211f] uppercase tracking-wider">
+                      Payment Instructions
+                    </p>
+                    <button
+                      onClick={() => setCheckoutStep("select-method")}
+                      className="text-[10px] text-[#1e4a3f] hover:underline"
+                    >
+                      Change method
+                    </button>
                   </div>
 
                   {selectedPaymentMethod === "card" && (
                     <div className="bg-[#f8f9f7] rounded-xl p-4 border border-[#ececec]/60">
-                      <p className="text-xs font-semibold text-[#18211f] mb-2">Bank Transfer Details</p>
-                      <p className="text-[11px] text-[#6b716d]">Transfer the total amount to the photographer's bank account. Reference your order ID after payment.</p>
+                      <p className="text-xs font-semibold text-[#18211f] mb-2">
+                        Bank Transfer Details
+                      </p>
+                      <p className="text-[11px] text-[#6b716d]">
+                        Transfer the total amount to the photographer's bank account. Reference your
+                        order ID after payment.
+                      </p>
                       <div className="mt-3 space-y-1.5">
-                        <p className="text-xs text-[#18211f]">Bank: <span className="font-medium">Provided by photographer</span></p>
-                        <p className="text-xs text-[#18211f]">Account: <span className="font-medium">Shown on order confirmation</span></p>
+                        <p className="text-xs text-[#18211f]">
+                          Bank: <span className="font-medium">Provided by photographer</span>
+                        </p>
+                        <p className="text-xs text-[#18211f]">
+                          Account: <span className="font-medium">Shown on order confirmation</span>
+                        </p>
                       </div>
                     </div>
                   )}
@@ -786,12 +921,24 @@ export function Navbar() {
                   {selectedPaymentMethod === "crypto" && (
                     <div className="bg-[#f8f9f7] rounded-xl p-4 border border-[#ececec]/60">
                       <p className="text-xs font-semibold text-[#18211f] mb-2">Crypto Payment</p>
-                      <p className="text-[11px] text-[#6b716d]">Send the exact amount to one of the wallet addresses below. Include your order ID in the transaction memo.</p>
+                      <p className="text-[11px] text-[#6b716d]">
+                        Send the exact amount to one of the wallet addresses below. Include your
+                        order ID in the transaction memo.
+                      </p>
                       <div className="mt-3 space-y-3">
-                        {availableMethods.find(m => m.method === "crypto")?.details?.wallets?.length > 0 ? (
-                          availableMethods.find(m => m.method === "crypto")!.details.wallets.map((w: any, idx: number) => (
-                            <div key={idx} className="flex flex-col p-3 bg-white border border-[#ececec] rounded-xl shadow-sm">
-                              <span className="text-[10px] font-bold tracking-wider text-[#6b716d] uppercase mb-1">{w.currency} Address</span>
+                        {((availableMethods.find((m) => m.method === "crypto")?.details as any)
+                          ?.wallets?.length ?? 0) > 0 ? (
+                          (
+                            (availableMethods.find((m) => m.method === "crypto")?.details as any)
+                              ?.wallets || []
+                          ).map((w: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className="flex flex-col p-3 bg-white border border-[#ececec] rounded-xl shadow-sm"
+                            >
+                              <span className="text-[10px] font-bold tracking-wider text-[#6b716d] uppercase mb-1">
+                                {w.currency} Address
+                              </span>
                               <div className="flex items-center gap-2">
                                 <code className="text-xs font-mono text-[#18211f] flex-1 truncate bg-[#f8f9f7] px-2 py-1 rounded">
                                   {w.address}
@@ -801,7 +948,9 @@ export function Navbar() {
                           ))
                         ) : (
                           <div className="text-center py-6 border border-dashed border-[#ececec] rounded-xl bg-[#f8f9f7]">
-                            <p className="text-xs text-[#6b716d]">Crypto payment method is not configured by the platform.</p>
+                            <p className="text-xs text-[#6b716d]">
+                              Crypto payment method is not configured by the platform.
+                            </p>
                           </div>
                         )}
                       </div>
@@ -811,10 +960,15 @@ export function Navbar() {
                   {selectedPaymentMethod === "paypal" && (
                     <div className="bg-[#f8f9f7] rounded-xl p-4 border border-[#ececec]/60">
                       <p className="text-xs font-semibold text-[#18211f] mb-2">PayPal Payment</p>
-                      <p className="text-[11px] text-[#6b716d]">Send payment to the platform PayPal address below.</p>
+                      <p className="text-[11px] text-[#6b716d]">
+                        Send payment to the platform PayPal address below.
+                      </p>
                       <div className="mt-2 p-2 bg-white rounded-lg border border-[#ececec]/40">
                         <p className="text-xs font-mono text-[#18211f]">
-                          {String(availableMethods.find(m => m.method === "paypal")?.details?.email || "admin@ns-captures.com")}
+                          {String(
+                            availableMethods.find((m) => m.method === "paypal")?.details?.email ||
+                              "admin@ns-captures.com",
+                          )}
                         </p>
                       </div>
                     </div>
@@ -822,7 +976,9 @@ export function Navbar() {
 
                   {/* Receipt Upload */}
                   <div>
-                    <p className="text-xs font-medium text-[#6b716d] mb-1.5">Upload Receipt (optional)</p>
+                    <p className="text-xs font-medium text-[#6b716d] mb-1.5">
+                      Upload Receipt (optional)
+                    </p>
                     <label className="flex items-center gap-2 p-3 border border-dashed border-[#ececec] rounded-xl hover:border-[#1e4a3f]/40 transition-colors cursor-pointer">
                       <input
                         type="file"
@@ -837,7 +993,9 @@ export function Navbar() {
                         }}
                       />
                       <span className="text-xs text-[#6b716d]">
-                        {receiptFiles["all"] ? `✓ ${receiptFiles["all"]!.name}` : "Click to attach payment receipt"}
+                        {receiptFiles["all"]
+                          ? `✓ ${receiptFiles["all"]!.name}`
+                          : "Click to attach payment receipt"}
                       </span>
                     </label>
                   </div>
@@ -849,13 +1007,18 @@ export function Navbar() {
                   className="w-full flex items-center justify-center gap-2 bg-[#1e4a3f] hover:bg-[#123b31] disabled:opacity-60 text-white py-3 rounded-full text-sm font-semibold shadow-md transition duration-200 cursor-pointer"
                 >
                   {isPaying ? (
-                    <><Loader2 className="size-4 animate-spin" /> Processing...</>
+                    <>
+                      <Loader2 className="size-4 animate-spin" /> Processing...
+                    </>
                   ) : (
-                    <><CheckCircle className="size-4" /> I Have Paid</>
+                    <>
+                      <CheckCircle className="size-4" /> I Have Paid
+                    </>
                   )}
                 </button>
                 <p className="text-[10px] text-center text-[#8a8f89]">
-                  Your payment will be verified within 24 hours. Licenses are granted upon confirmation.
+                  Your payment will be verified within 24 hours. Licenses are granted upon
+                  confirmation.
                 </p>
               </>
             )}
@@ -869,8 +1032,19 @@ export function Navbar() {
 // Small Lock helper since it's used in footer
 function Lock({ className }: { className?: string }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={2}
+      stroke="currentColor"
+      className={className}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
+      />
     </svg>
   );
 }

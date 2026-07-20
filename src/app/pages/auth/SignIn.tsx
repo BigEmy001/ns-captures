@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AuthLayout, AuthField } from "./AuthLayout";
 import { useAuth } from "../../context/AuthContext";
 import { isValidEmail } from "../../../lib/validation";
+import { getCsrfToken } from "../../../lib/csrf";
 
 export function SignIn() {
   const { login } = useAuth();
@@ -49,6 +50,7 @@ export function SignIn() {
       }
     >
       <form onSubmit={submit} className="space-y-4">
+        <input type="hidden" name="csrf_token" value={getCsrfToken()} />
         <div>
           <AuthField
             label="Email"
@@ -56,7 +58,10 @@ export function SignIn() {
             placeholder="you@studio.com"
             value={email}
             autoComplete="email"
-            onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setErrors((p) => ({ ...p, email: undefined }));
+            }}
           />
           {errors.email && <p className="mt-1 text-xs text-[#d4183d]">{errors.email}</p>}
         </div>
@@ -67,7 +72,10 @@ export function SignIn() {
             placeholder="••••••••"
             value={password}
             autoComplete="current-password"
-            onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setErrors((p) => ({ ...p, password: undefined }));
+            }}
             trailing={
               <Link to="/forgot-password" className="font-normal text-[#1e4a3f] hover:underline">
                 Forgot?

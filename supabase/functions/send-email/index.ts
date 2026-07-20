@@ -3,6 +3,22 @@ import nodemailer from "npm:nodemailer";
 
 const encoder = new TextEncoder();
 
+// Simple in-memory rate limiter (per-isolation, good enough for Supabase Edge Functions)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 10; // max 10 requests per window per IP
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT_MAX;
+}
+
 function buildHtml(body: string): string {
   return `<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -57,12 +73,21 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Rate limiting
+  const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+  if (isRateLimited(ip)) {
+    return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again later." }), {
+      status: 429,
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+    });
+  }
+
   try {
     const { to, subject, body } = await req.json();
     if (!to || !subject || !body) {
-      return new Response(JSON.stringify({ error: "Missing required fields: to, subject, body" }), { 
+      return new Response(JSON.stringify({ error: "Missing required fields: to, subject, body" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -72,9 +97,9 @@ serve(async (req) => {
     const smtpPass = Deno.env.get("SMTP_PASS");
 
     if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
-      return new Response(JSON.stringify({ error: "SMTP is not configured" }), { 
+      return new Response(JSON.stringify({ error: "SMTP is not configured" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -95,14 +120,17 @@ serve(async (req) => {
       html: buildHtml(body),
     });
 
-    return new Response(JSON.stringify({ ok: true }), { 
+    return new Response(JSON.stringify({ ok: true }), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), { 
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
+    return new Response(
+      JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

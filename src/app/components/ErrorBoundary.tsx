@@ -1,8 +1,8 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertCircle } from 'lucide-react';
+import React, { Component, ErrorInfo, ReactNode } from "react";
+import { AlertCircle } from "lucide-react";
 
 interface Props {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 interface State {
@@ -21,7 +21,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught global error:', error, errorInfo);
+    console.error("Uncaught global error:", error, errorInfo);
   }
 
   public render() {
@@ -32,7 +32,9 @@ export class GlobalErrorBoundary extends Component<Props, State> {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <AlertCircle className="size-8 text-red-600" />
             </div>
-            <h1 className="text-2xl font-serif font-bold text-[#18211f] mb-4">Something went wrong</h1>
+            <h1 className="text-2xl font-serif font-bold text-[#18211f] mb-4">
+              Something went wrong
+            </h1>
             <p className="text-[#4a534e] mb-6">
               An unexpected error occurred. Our team has been notified.
             </p>
@@ -42,7 +44,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
             >
               Refresh Page
             </button>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {process.env.NODE_ENV === "development" && this.state.error && (
               <div className="mt-6 p-4 bg-gray-100 rounded-lg text-left overflow-auto text-xs text-red-600">
                 {this.state.error.toString()}
               </div>

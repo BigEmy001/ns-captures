@@ -1,12 +1,45 @@
 import { useState, useCallback, useEffect } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
-  LayoutDashboard, Users, Image as ImageIcon, ShieldAlert, DollarSign, FileBarChart,
-  Check, X, MoreHorizontal, Search, Filter, Trash2, Settings, Logs, Building2, UserCheck, UserX,
-  Download, Eye, Edit, ChevronDown, Mail, Key, FolderHeart, Heart, LogOut, ShieldCheck, ShieldOff,
+  LayoutDashboard,
+  Users,
+  Image as ImageIcon,
+  ShieldAlert,
+  DollarSign,
+  FileBarChart,
+  Check,
+  X,
+  MoreHorizontal,
+  Search,
+  Filter,
+  Trash2,
+  Settings,
+  Logs,
+  Building2,
+  UserCheck,
+  UserX,
+  Download,
+  Eye,
+  Edit,
+  ChevronDown,
+  Mail,
+  Key,
+  FolderHeart,
+  Heart,
+  LogOut,
+  ShieldCheck,
+  ShieldOff,
 } from "lucide-react";
 import {
-  AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
 } from "recharts";
 import { toast } from "sonner";
 import { Eyebrow, Badge, Button } from "../components/ui";
@@ -15,8 +48,56 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { getPhoto } from "../data/photos";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
-import { sendContributorSubmissionStatus, sendVerificationStatus, sendPurchaseApprovedNotification, sendPurchaseRejectedNotification } from "../../lib/email";
-import { logActivity, fetchAdminUsers, fetchModerationQueue, fetchPhotos, fetchSiteSettings, updateSiteSettings, fetchAllPayouts, fetchAllPurchases, approvePurchase, rejectPurchase, fetchPlatformStats, fetchAdminLogs, fetchMonthlyRevenue, fetchCategoryStats, fetchUserGrowthPerMonth, fetchPurchases, fetchAllPaymentMethods, fetchPayoutRequests, updatePayoutRequestStatus, deletePhoto, updateUserRole, updateUserStatus, updateUserVerificationStatus, resolveModeration, fetchAllVerificationDocuments, reviewVerificationDocument, fetchContributorSubmissions, updateContributorSubmissionStatus, fetchAdminPaymentMethods, createAdminPaymentMethod, updateAdminPaymentMethod, deleteAdminPaymentMethod, updatePhotoHypeOverrides, type AdminPaymentMethod, type SiteSettingsRow, type Payout, type Purchase, type AdminLogEntry, type PhotographerPaymentMethod, type PayoutRequest, type VerificationDocument, type ContributorSubmission } from "../data/db";
+import {
+  sendContributorSubmissionStatus,
+  sendVerificationStatus,
+  sendPurchaseApprovedNotification,
+  sendPurchaseRejectedNotification,
+} from "../../lib/email";
+import {
+  logActivity,
+  fetchAdminUsers,
+  fetchModerationQueue,
+  fetchPhotos,
+  fetchSiteSettings,
+  updateSiteSettings,
+  fetchAllPayouts,
+  fetchAllPurchases,
+  approvePurchase,
+  rejectPurchase,
+  fetchPlatformStats,
+  fetchAdminLogs,
+  fetchMonthlyRevenue,
+  fetchCategoryStats,
+  fetchUserGrowthPerMonth,
+  fetchPurchases,
+  fetchAllPaymentMethods,
+  fetchPayoutRequests,
+  updatePayoutRequestStatus,
+  deletePhoto,
+  updateUserRole,
+  updateUserStatus,
+  updateUserVerificationStatus,
+  resolveModeration,
+  fetchAllVerificationDocuments,
+  reviewVerificationDocument,
+  fetchContributorSubmissions,
+  updateContributorSubmissionStatus,
+  fetchAdminPaymentMethods,
+  createAdminPaymentMethod,
+  updateAdminPaymentMethod,
+  deleteAdminPaymentMethod,
+  updatePhotoHypeOverrides,
+  type AdminPaymentMethod,
+  type SiteSettingsRow,
+  type Payout,
+  type Purchase,
+  type AdminLogEntry,
+  type PhotographerPaymentMethod,
+  type PayoutRequest,
+  type VerificationDocument,
+  type ContributorSubmission,
+} from "../data/db";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -40,7 +121,8 @@ const CustomTooltip = ({ active, payload, label, prefix = "" }: any) => {
       <div className="rounded-xl border border-white/10 bg-[#12231f]/95 p-3 text-white shadow-xl backdrop-blur-md">
         <p className="font-mono text-[9px] tracking-wider text-white/50">{label}</p>
         <p className="mt-1 font-serif text-sm font-semibold">
-          {prefix}{payload[0].value.toLocaleString()}
+          {prefix}
+          {payload[0].value.toLocaleString()}
         </p>
       </div>
     );
@@ -49,7 +131,11 @@ const CustomTooltip = ({ active, payload, label, prefix = "" }: any) => {
 };
 
 const logLevelColor = (level: string) =>
-  level === "ERROR" ? "text-[#d4183d] bg-[#fcf1f3]" : level === "WARN" ? "text-[#e67e22] bg-[#fef3e2]" : "text-[#1e7a4f] bg-[#eef7f0]";
+  level === "ERROR"
+    ? "text-[#d4183d] bg-[#fcf1f3]"
+    : level === "WARN"
+      ? "text-[#e67e22] bg-[#fef3e2]"
+      : "text-[#1e7a4f] bg-[#eef7f0]";
 
 const defaultSiteSettings: SiteSettingsRow = {
   id: 1,
@@ -85,7 +171,12 @@ export function Admin() {
   const [adminPayouts, setAdminPayouts] = useState<Payout[]>([]);
   const [adminPurchases, setAdminPurchases] = useState<Purchase[]>([]);
   const [platformRevenue, setPlatformRevenue] = useState(0);
-  const [platformStats, setPlatformStats] = useState({ totalUsers: 0, photographers: 0, assets: 0, revenue: 0 });
+  const [platformStats, setPlatformStats] = useState({
+    totalUsers: 0,
+    photographers: 0,
+    assets: 0,
+    revenue: 0,
+  });
   const [userGrowth, setUserGrowth] = useState<{ m: string; v: number }[]>([]);
   const [revenueGrowth, setRevenueGrowth] = useState<{ m: string; v: number }[]>([]);
   const [adminLogs, setAdminLogs] = useState<AdminLogEntry[]>([]);
@@ -101,9 +192,18 @@ export function Admin() {
       case "dashboard":
         if (platformStats.totalUsers === 0) {
           Promise.all([
-            fetchPlatformStats().catch(() => toast.error("Failed to load stats")),
-            fetchUserGrowthPerMonth().catch(() => toast.error("Failed to load user growth")),
-            fetchMonthlyRevenue().catch(() => toast.error("Failed to load revenue growth")),
+            fetchPlatformStats().catch(() => {
+              toast.error("An error occurred");
+              return null;
+            }),
+            fetchUserGrowthPerMonth().catch(() => {
+              toast.error("An error occurred");
+              return null;
+            }),
+            fetchMonthlyRevenue().catch(() => {
+              toast.error("An error occurred");
+              return null;
+            }),
           ]).then(([stats, ug, rg]) => {
             if (stats) {
               setPlatformRevenue(stats.revenue);
@@ -115,22 +215,55 @@ export function Admin() {
         }
         break;
       case "users":
-        if (adminUsersList.length === 0) fetchAdminUsers().then(setAdminUsersList).catch(() => toast.error("Failed to load users"));
+        if (adminUsersList.length === 0)
+          fetchAdminUsers()
+            .then(setAdminUsersList)
+            .catch(() => {
+              toast.error("An error occurred");
+              return null;
+            });
         break;
       case "moderation":
-        if (queue.length === 0) fetchModerationQueue().then(setQueue).catch(() => toast.error("Failed to load queue"));
+        if (queue.length === 0)
+          fetchModerationQueue()
+            .then(setQueue)
+            .catch(() => {
+              toast.error("An error occurred");
+              return null;
+            });
         break;
       case "assets":
-        if (assetsList.length === 0) fetchPhotos().then(setAssetsList).catch(() => toast.error("Failed to load assets"));
+        if (assetsList.length === 0)
+          fetchPhotos()
+            .then(setAssetsList)
+            .catch(() => {
+              toast.error("An error occurred");
+              return null;
+            });
         break;
       case "payments":
         if (adminPayouts.length === 0 || adminPurchases.length === 0) {
           Promise.all([
-            fetchAllPayouts().catch(() => toast.error("Failed to load payouts")),
-            fetchAllPurchases().catch(() => toast.error("Failed to load purchases")),
-            fetchAllPaymentMethods().catch(() => toast.error("Failed to load payment methods")),
-            fetchPayoutRequests().catch(() => toast.error("Failed to load payout requests")),
-            fetchAdminPaymentMethods().catch(() => toast.error("Failed to load admin methods")),
+            fetchAllPayouts().catch(() => {
+              toast.error("An error occurred");
+              return null;
+            }),
+            fetchAllPurchases().catch(() => {
+              toast.error("An error occurred");
+              return null;
+            }),
+            fetchAllPaymentMethods().catch(() => {
+              toast.error("An error occurred");
+              return null;
+            }),
+            fetchPayoutRequests().catch(() => {
+              toast.error("An error occurred");
+              return null;
+            }),
+            fetchAdminPaymentMethods().catch(() => {
+              toast.error("An error occurred");
+              return null;
+            }),
           ]).then(([payouts, purchases, methods, requests, adminMethods]) => {
             if (payouts) setAdminPayouts(payouts);
             if (purchases) setAdminPurchases(purchases);
@@ -141,20 +274,49 @@ export function Admin() {
         }
         break;
       case "verification":
-        if (verificationDocs.length === 0) fetchAllVerificationDocuments().then(setVerificationDocs).catch(() => toast.error("Failed to load verifications"));
+        if (verificationDocs.length === 0)
+          fetchAllVerificationDocuments()
+            .then(setVerificationDocs)
+            .catch(() => {
+              toast.error("An error occurred");
+              return null;
+            });
         break;
       case "submissions":
-        if (contributorSubmissions.length === 0) fetchContributorSubmissions().then(setContributorSubmissions).catch(() => toast.error("Failed to load submissions"));
+        if (contributorSubmissions.length === 0)
+          fetchContributorSubmissions()
+            .then(setContributorSubmissions)
+            .catch(() => {
+              toast.error("An error occurred");
+              return null;
+            });
         break;
       case "reports":
-        if (categoryStats.length === 0) fetchCategoryStats().then(setCategoryStats).catch(() => toast.error("Failed to load category stats"));
+        if (categoryStats.length === 0)
+          fetchCategoryStats()
+            .then(setCategoryStats)
+            .catch(() => {
+              toast.error("An error occurred");
+              return null;
+            });
         break;
       case "logs":
-        if (adminLogs.length === 0) fetchAdminLogs().then(setAdminLogs).catch(() => toast.error("Failed to load logs"));
+        if (adminLogs.length === 0)
+          fetchAdminLogs()
+            .then(setAdminLogs)
+            .catch(() => {
+              toast.error("An error occurred");
+              return null;
+            });
         break;
       case "settings":
         // Settings are preloaded with defaultSiteSettings, so we check if the ID is still default
-        fetchSiteSettings().then(setSiteSettingsState).catch(() => toast.error("Failed to load settings"));
+        fetchSiteSettings()
+          .then(setSiteSettingsState)
+          .catch(() => {
+            toast.error("An error occurred");
+            return null;
+          });
         break;
     }
   }, [active]);
@@ -169,7 +331,7 @@ export function Admin() {
   const changeUserRole = useCallback(async (userId: string, newRole: AdminUser["role"]) => {
     const ok = await updateUserRole(userId, newRole);
     if (ok) {
-      setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, role: newRole } : u));
+      setAdminUsersList((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
       toast.success(`Role updated to ${newRole}`);
     } else {
       toast.error("Failed to update role");
@@ -179,7 +341,9 @@ export function Admin() {
   const changeUserStatus = useCallback(async (userId: string, newStatus: AdminUser["status"]) => {
     const ok = await updateUserStatus(userId, newStatus);
     if (ok) {
-      setAdminUsersList((prev) => prev.map((u) => u.id === userId ? { ...u, status: newStatus } : u));
+      setAdminUsersList((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u)),
+      );
       toast.success(`Status updated to ${newStatus}`);
     } else {
       toast.error("Failed to update status");
@@ -198,19 +362,30 @@ export function Admin() {
     }
   }, []);
 
-  const handleRoleChange = useCallback((userId: string, newRole: AdminUser["role"]) => {
-    changeUserRole(userId, newRole);
-    setSelectedUser((prev) => prev && prev.id === userId ? { ...prev, role: newRole } : prev);
-  }, [changeUserRole]);
+  const handleRoleChange = useCallback(
+    (userId: string, newRole: AdminUser["role"]) => {
+      changeUserRole(userId, newRole);
+      setSelectedUser((prev) => (prev && prev.id === userId ? { ...prev, role: newRole } : prev));
+    },
+    [changeUserRole],
+  );
 
-  const handleStatusChange = useCallback((userId: string, newStatus: AdminUser["status"]) => {
-    changeUserStatus(userId, newStatus);
-    setSelectedUser((prev) => prev && prev.id === userId ? { ...prev, status: newStatus } : prev);
-  }, [changeUserStatus]);
+  const handleStatusChange = useCallback(
+    (userId: string, newStatus: AdminUser["status"]) => {
+      changeUserStatus(userId, newStatus);
+      setSelectedUser((prev) =>
+        prev && prev.id === userId ? { ...prev, status: newStatus } : prev,
+      );
+    },
+    [changeUserStatus],
+  );
 
-  const handleDeleteUserAsset = useCallback((photoId: string) => {
-    deleteAsset(photoId);
-  }, [deleteAsset]);
+  const handleDeleteUserAsset = useCallback(
+    (photoId: string) => {
+      deleteAsset(photoId);
+    },
+    [deleteAsset],
+  );
 
   const resolve = async (id: string, approve: boolean) => {
     const ok = await resolveModeration(id, approve);
@@ -223,22 +398,23 @@ export function Admin() {
   };
 
   const filteredUsers = adminUsersList.filter((u) => {
-    const matchesSearch = u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+    const matchesSearch =
+      u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
       u.email.toLowerCase().includes(userSearch.toLowerCase());
     const matchesRole = userRoleFilter === "all" || u.role === userRoleFilter;
     const matchesStatus = userStatusFilter === "all" || u.status === userStatusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const filteredAssets = assetsList.filter((p) =>
-    p.title.toLowerCase().includes(assetSearch.toLowerCase()) ||
-    p.photographer.toLowerCase().includes(assetSearch.toLowerCase()) ||
-    p.category.toLowerCase().includes(assetSearch.toLowerCase())
+  const filteredAssets = assetsList.filter(
+    (p) =>
+      p.title.toLowerCase().includes(assetSearch.toLowerCase()) ||
+      p.photographer.toLowerCase().includes(assetSearch.toLowerCase()) ||
+      p.category.toLowerCase().includes(assetSearch.toLowerCase()),
   );
 
-  const filteredLogs = logFilter === "all"
-    ? adminLogs
-    : adminLogs.filter((l) => l.level === logFilter);
+  const filteredLogs =
+    logFilter === "all" ? adminLogs : adminLogs.filter((l) => l.level === logFilter);
 
   const filteredSubmissions = contributorSubmissions.filter((s) => {
     const q = submissionSearch.toLowerCase();
@@ -260,15 +436,19 @@ export function Admin() {
   };
 
   const pendingCounts: Record<string, number> = {
-    moderation: queue.filter(m => m.status === "PENDING").length,
-    payments: payoutRequestList.filter(p => p.status === "PENDING").length + adminPurchases.filter(p => p.status === "PENDING").length,
-    verification: verificationDocs.filter(d => d.status === "pending").length,
-    submissions: contributorSubmissions.filter(s => s.status === "new" || s.status === "reviewing").length,
+    moderation: queue.filter((m) => m.status === "PENDING").length,
+    payments:
+      payoutRequestList.filter((p) => p.status === "PENDING").length +
+      adminPurchases.filter((p) => p.status === "PENDING").length,
+    verification: verificationDocs.filter((d) => d.status === "pending").length,
+    submissions: contributorSubmissions.filter(
+      (s) => s.status === "new" || s.status === "reviewing",
+    ).length,
   };
 
-  const navWithBadges = nav.map(item => ({
+  const navWithBadges = nav.map((item) => ({
     ...item,
-    badge: pendingCounts[item.id] || 0
+    badge: pendingCounts[item.id] || 0,
   }));
 
   return (
@@ -280,7 +460,9 @@ export function Admin() {
           onSelect={setActive}
           header={() => (
             <div className="flex items-center gap-2">
-              <span className="grid size-8 place-items-center bg-[#1e4a3f] font-mono text-xs text-white rounded-full">NS</span>
+              <span className="grid size-8 place-items-center bg-[#1e4a3f] font-mono text-xs text-white rounded-full">
+                NS
+              </span>
               <div>
                 <p className="text-sm font-semibold">Admin</p>
                 <p className="text-xs text-[#6b716d]">Operations</p>
@@ -303,7 +485,9 @@ export function Admin() {
 
         <div className="min-w-0 flex-1">
           <Eyebrow>ADMIN CONSOLE</Eyebrow>
-          <h1 className="mt-2 font-serif text-3xl sm:text-4xl tracking-tight text-[#18211f]">Platform operations</h1>
+          <h1 className="mt-2 font-serif text-3xl sm:text-4xl tracking-tight text-[#18211f]">
+            Platform operations
+          </h1>
 
           {/* Mobile nav */}
           <div className="mt-6 flex gap-2 overflow-x-auto pb-2 md:hidden">
@@ -319,7 +503,9 @@ export function Admin() {
               >
                 {n.label}
                 {n.badge && n.badge > 0 ? (
-                  <span className={`flex size-4 items-center justify-center rounded-full text-[9px] ${active === n.id ? "bg-white text-[#1e4a3f]" : "bg-[#d4183d] text-white"}`}>
+                  <span
+                    className={`flex size-4 items-center justify-center rounded-full text-[9px] ${active === n.id ? "bg-white text-[#1e4a3f]" : "bg-[#d4183d] text-white"}`}
+                  >
                     {n.badge > 99 ? "99+" : n.badge}
                   </span>
                 ) : null}
@@ -337,8 +523,13 @@ export function Admin() {
                   { label: "ASSETS", value: platformStats.assets.toLocaleString() },
                   { label: "REVENUE (MTD)", value: `£${platformRevenue.toLocaleString()}` },
                 ].map((s) => (
-                  <div key={s.label} className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300">
-                    <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{s.label}</p>
+                  <div
+                    key={s.label}
+                    className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300"
+                  >
+                    <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                      {s.label}
+                    </p>
                     <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">{s.value}</p>
                   </div>
                 ))}
@@ -358,10 +549,28 @@ export function Admin() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
-                      <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                      <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#1e4a3f", strokeWidth: 1 }} />
-                      <Area type="monotone" dataKey="v" stroke="#1e4a3f" strokeWidth={2.5} fill="url(#ag)" />
+                      <XAxis
+                        dataKey="m"
+                        tick={{ fontSize: 11, fill: "#8a8f89" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: "#8a8f89" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        content={<CustomTooltip />}
+                        cursor={{ stroke: "#1e4a3f", strokeWidth: 1 }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="v"
+                        stroke="#1e4a3f"
+                        strokeWidth={2.5}
+                        fill="url(#ag)"
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -376,24 +585,58 @@ export function Admin() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
-                      <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                      <Tooltip content={<CustomTooltip prefix="£" />} cursor={{ stroke: "#1e4a3f" }} />
-                      <Area type="monotone" dataKey="v" stroke="#1e4a3f" strokeWidth={2.5} fill="url(#rev)" />
+                      <XAxis
+                        dataKey="m"
+                        tick={{ fontSize: 11, fill: "#8a8f89" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: "#8a8f89" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        content={<CustomTooltip prefix="£" />}
+                        cursor={{ stroke: "#1e4a3f" }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="v"
+                        stroke="#1e4a3f"
+                        strokeWidth={2.5}
+                        fill="url(#rev)"
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </div>
               <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
-                  <h3 className="mb-4 font-serif text-lg text-[#18211f]">Top categories by downloads</h3>
+                  <h3 className="mb-4 font-serif text-lg text-[#18211f]">
+                    Top categories by downloads
+                  </h3>
                   <ResponsiveContainer width="100%" height={240}>
                     <BarChart data={categoryStats}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 11, fill: "#8a8f89" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: "#8a8f89" }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="downloads" fill="#1e4a3f" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                      <Bar
+                        dataKey="downloads"
+                        fill="#1e4a3f"
+                        radius={[4, 4, 0, 0]}
+                        maxBarSize={40}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -404,7 +647,10 @@ export function Admin() {
                   ) : (
                     <p className="text-sm text-[#6b716d]">
                       {queue.length} items awaiting review —{" "}
-                      <button onClick={() => setActive("moderation")} className="font-semibold text-[#1e4a3f] hover:underline">
+                      <button
+                        onClick={() => setActive("moderation")}
+                        className="font-semibold text-[#1e4a3f] hover:underline"
+                      >
                         go to queue
                       </button>
                     </p>
@@ -413,15 +659,27 @@ export function Admin() {
                     {queue.slice(0, 3).map((m) => {
                       const p = getPhoto(m.photoId);
                       return (
-                        <div key={m.id} className="flex items-center justify-between py-2 border-b border-[#f0f0f0] last:border-0">
+                        <div
+                          key={m.id}
+                          className="flex items-center justify-between py-2 border-b border-[#f0f0f0] last:border-0"
+                        >
                           <div className="flex items-center gap-3">
-                            <img src={p?.image} alt="" loading="lazy" className="size-10 object-cover rounded-lg" />
+                            <img
+                              src={p?.image}
+                              alt=""
+                              loading="lazy"
+                              className="size-10 object-cover rounded-lg"
+                            />
                             <div>
-                              <p className="font-medium text-sm text-[#18211f] truncate max-w-[200px]">{p?.title}</p>
+                              <p className="font-medium text-sm text-[#18211f] truncate max-w-[200px]">
+                                {p?.title}
+                              </p>
                               <p className="text-xs text-[#6b716d]">By {m.photographer}</p>
                             </div>
                           </div>
-                          <Badge tone="muted" size="sm">{m.reason}</Badge>
+                          <Badge tone="muted" size="sm">
+                            {m.reason}
+                          </Badge>
                         </div>
                       );
                     })}
@@ -467,7 +725,9 @@ export function Admin() {
                     <option value="Suspended">Suspended</option>
                   </select>
                 </div>
-                <span className="text-sm text-[#6b716d] font-mono">{filteredUsers.length} users</span>
+                <span className="text-sm text-[#6b716d] font-mono">
+                  {filteredUsers.length} users
+                </span>
               </div>
               <div className="overflow-x-auto overflow-y-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
                 <table className="w-full min-w-[720px] text-left text-sm">
@@ -483,14 +743,19 @@ export function Admin() {
                   <tbody className="divide-y divide-[#ececec]/60">
                     {filteredUsers.map((u) => (
                       <tr key={u.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
-                        <td className="px-6 py-4 cursor-pointer hover:underline" onClick={() => setSelectedUser(u)}>
+                        <td
+                          className="px-6 py-4 cursor-pointer hover:underline"
+                          onClick={() => setSelectedUser(u)}
+                        >
                           <p className="font-semibold text-[#18211f]">{u.name}</p>
                           <p className="text-xs text-[#6b716d]">{u.email}</p>
                         </td>
                         <td className="px-6 py-4">
                           <select
                             value={u.role}
-                            onChange={(e) => changeUserRole(u.id, e.target.value as AdminUser["role"])}
+                            onChange={(e) =>
+                              changeUserRole(u.id, e.target.value as AdminUser["role"])
+                            }
                             className="border border-[#ececec] rounded-lg bg-white px-3 py-1.5 text-sm outline-none focus:border-[#1e4a3f] font-mono text-xs"
                           >
                             <option value="Buyer">Buyer</option>
@@ -502,7 +767,9 @@ export function Admin() {
                         <td className="px-6 py-4">
                           <select
                             value={u.status}
-                            onChange={(e) => changeUserStatus(u.id, e.target.value as AdminUser["status"])}
+                            onChange={(e) =>
+                              changeUserStatus(u.id, e.target.value as AdminUser["status"])
+                            }
                             className="border border-[#ececec] rounded-lg bg-white px-3 py-1.5 text-sm outline-none focus:border-[#1e4a3f]"
                           >
                             <option value="Active">Active</option>
@@ -512,7 +779,11 @@ export function Admin() {
                         </td>
                         <td className="px-6 py-4 text-[#6b716d] text-xs">{u.joined}</td>
                         <td className="px-6 py-4 text-right">
-                          <button onClick={() => setSelectedUser(u)} className="text-[#6b716d] hover:text-[#1e4a3f] p-1.5 hover:bg-[#eef1ec] rounded-full transition-all duration-200" title="Manage user">
+                          <button
+                            onClick={() => setSelectedUser(u)}
+                            className="text-[#6b716d] hover:text-[#1e4a3f] p-1.5 hover:bg-[#eef1ec] rounded-full transition-all duration-200"
+                            title="Manage user"
+                          >
                             <MoreHorizontal className="size-4" />
                           </button>
                         </td>
@@ -541,7 +812,12 @@ export function Admin() {
                       className="flex flex-col md:flex-row items-start md:items-center gap-6 border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/20 transition-all duration-300"
                     >
                       <div className="relative group shrink-0 overflow-hidden rounded-xl shadow-sm">
-                        <img src={p?.image} alt="" loading="lazy" className="size-20 md:size-24 object-cover group-hover:scale-105 transition-all duration-300" />
+                        <img
+                          src={p?.image}
+                          alt=""
+                          loading="lazy"
+                          className="size-20 md:size-24 object-cover group-hover:scale-105 transition-all duration-300"
+                        />
                         <div className="absolute top-1.5 left-1.5">
                           <span className="bg-black/60 backdrop-blur-sm text-[8px] font-mono text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
                             {p?.license}
@@ -550,14 +826,20 @@ export function Admin() {
                       </div>
                       <div className="min-w-0 flex-1 space-y-1.5">
                         <div className="flex items-center gap-2.5">
-                          <h3 className="font-serif text-lg text-[#18211f] font-medium leading-snug">{p?.title}</h3>
+                          <h3 className="font-serif text-lg text-[#18211f] font-medium leading-snug">
+                            {p?.title}
+                          </h3>
                           <span className="font-mono text-[9px] text-[#1e4a3f] bg-[#dce8df] px-2 py-0.5 rounded-full uppercase tracking-wider font-semibold">
                             {p?.category}
                           </span>
                         </div>
-                        <p className="text-sm text-[#4a534e]">By <span className="font-semibold text-[#18211f]">{m.photographer}</span></p>
+                        <p className="text-sm text-[#4a534e]">
+                          By <span className="font-semibold text-[#18211f]">{m.photographer}</span>
+                        </p>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#6d746e]">
-                          <span>Reason: <span className="text-[#18211f] font-medium">{m.reason}</span></span>
+                          <span>
+                            Reason: <span className="text-[#18211f] font-medium">{m.reason}</span>
+                          </span>
                           <span className="hidden sm:inline text-[#d6d4cc]">•</span>
                           <span>Submitted {m.submitted}</span>
                         </div>
@@ -605,27 +887,45 @@ export function Admin() {
                     className="pl-10 pr-4 py-2 border border-[#ececec] rounded-xl bg-white text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 w-full"
                   />
                 </div>
-                <span className="text-sm text-[#6b716d] font-mono">{filteredAssets.length} assets</span>
+                <span className="text-sm text-[#6b716d] font-mono">
+                  {filteredAssets.length} assets
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
                 {filteredAssets.map((p) => (
-                  <div key={p.id} className="group relative overflow-hidden bg-[#d7d8d2] rounded-xl shadow-sm ns-lift">
+                  <div
+                    key={p.id}
+                    className="group relative overflow-hidden bg-[#d7d8d2] rounded-xl shadow-sm ns-lift"
+                  >
                     <Link to={`/photo/${p.id}`}>
-                      <img src={p.image} alt="" loading="lazy" className="aspect-square w-full object-cover group-hover:scale-105 transition-all duration-300" />
+                      <img
+                        src={p.image}
+                        alt=""
+                        loading="lazy"
+                        className="aspect-square w-full object-cover group-hover:scale-105 transition-all duration-300"
+                      />
                     </Link>
                     <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-black/20 to-transparent p-4 opacity-100 md:opacity-0 transition md:group-hover:opacity-100">
                       <span className="text-xs text-white font-serif">{p.title}</span>
                     </div>
                     <div className="absolute top-2 right-2 flex gap-1 opacity-100 md:opacity-0 transition md:group-hover:opacity-100">
                       <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); toast("Viewing asset details"); }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toast("Viewing asset details");
+                        }}
                         className="p-2 bg-white/90 backdrop-blur-sm text-[#18211f] rounded-full hover:bg-white transition shadow"
                         title="View"
                       >
                         <Eye className="size-4" />
                       </button>
                       <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteAsset(p.id); }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          deleteAsset(p.id);
+                        }}
                         className="p-2 bg-white/90 backdrop-blur-sm text-[#d4183d] rounded-full hover:bg-white transition shadow"
                         title="Delete"
                       >
@@ -649,11 +949,25 @@ export function Admin() {
               <div className="grid gap-6 sm:grid-cols-3">
                 {[
                   { label: "GROSS SALES (MTD)", value: `£${platformRevenue.toLocaleString()}` },
-                  { label: "PAYOUTS DUE", value: `£${adminPayouts.filter((p) => p.status === "PENDING").reduce((s, p) => s + p.amount, 0).toLocaleString()}` },
-                  { label: "PLATFORM FEE", value: `£${Math.round(platformRevenue * (siteSettingsState.platformFee / 100)).toLocaleString()}` },
+                  {
+                    label: "PAYOUTS DUE",
+                    value: `£${adminPayouts
+                      .filter((p) => p.status === "PENDING")
+                      .reduce((s, p) => s + p.amount, 0)
+                      .toLocaleString()}`,
+                  },
+                  {
+                    label: "PLATFORM FEE",
+                    value: `£${Math.round(platformRevenue * (siteSettingsState.platformFee / 100)).toLocaleString()}`,
+                  },
                 ].map((s) => (
-                  <div key={s.label} className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300">
-                    <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{s.label}</p>
+                  <div
+                    key={s.label}
+                    className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300"
+                  >
+                    <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                      {s.label}
+                    </p>
                     <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">{s.value}</p>
                   </div>
                 ))}
@@ -666,11 +980,21 @@ export function Admin() {
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr className="border-b border-[#ececec]/60">
-                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Photographer</th>
-                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Sales</th>
-                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Revenue</th>
-                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">70% Share</th>
-                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Platform Fee</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Photographer
+                        </th>
+                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Sales
+                        </th>
+                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Revenue
+                        </th>
+                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          70% Share
+                        </th>
+                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Platform Fee
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -684,18 +1008,37 @@ export function Admin() {
                           earningsMap[pid].sales += 1;
                           earningsMap[pid].revenue += purchase.price || 0;
                         }
-                        const entries = Object.entries(earningsMap).sort((a, b) => b[1].revenue - a[1].revenue);
+                        const entries = Object.entries(earningsMap).sort(
+                          (a, b) => b[1].revenue - a[1].revenue,
+                        );
                         if (entries.length === 0) {
-                          return <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[#6b716d]">No sales data yet</td></tr>;
+                          return (
+                            <tr>
+                              <td
+                                colSpan={5}
+                                className="px-4 py-8 text-center text-sm text-[#6b716d]"
+                              >
+                                No sales data yet
+                              </td>
+                            </tr>
+                          );
                         }
                         const platformFee = siteSettingsState.platformFee || 20;
                         return entries.map(([pid, data]) => (
                           <tr key={pid} className="border-b border-[#ececec]/30 hover:bg-[#FAF9F5]">
-                            <td className="px-4 py-3 font-medium text-[#18211f]">{pid.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
+                            <td className="px-4 py-3 font-medium text-[#18211f]">
+                              {pid.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                            </td>
                             <td className="px-4 py-3 text-right text-[#6b716d]">{data.sales}</td>
-                            <td className="px-4 py-3 text-right font-semibold text-[#18211f]">£{data.revenue.toLocaleString()}</td>
-                            <td className="px-4 py-3 text-right text-green-600 font-medium">£{Math.round(data.revenue * 0.7).toLocaleString()}</td>
-                            <td className="px-4 py-3 text-right text-[#6b716d]">£{Math.round(data.revenue * platformFee / 100).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-[#18211f]">
+                              £{data.revenue.toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3 text-right text-green-600 font-medium">
+                              £{Math.round(data.revenue * 0.7).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3 text-right text-[#6b716d]">
+                              £{Math.round((data.revenue * platformFee) / 100).toLocaleString()}
+                            </td>
                           </tr>
                         ));
                       })()}
@@ -719,54 +1062,94 @@ export function Admin() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#ececec]/60 font-mono text-xs">
-                      {adminPayouts.length > 0 ? adminPayouts.map((p) => (
-                        <tr key={p.id} className="hover:bg-[#FAF9F5] transition duration-150">
-                          <td className="px-6 py-4 font-semibold text-[#18211f]">{p.id}</td>
-                          <td className="px-6 py-4 text-[#6b716d]">{p.date}</td>
-                          <td className="px-6 py-4 text-[#6b716d]">{p.photographerId}</td>
-                          <td className="px-6 py-4 text-[#18211f] font-semibold">£{p.amount.toLocaleString()}</td>
-                          <td className="px-6 py-4">
-                            <span className="bg-[#dce8df] text-[#1e7a4f] px-2 py-0.5 rounded-full font-bold text-[9px]">{p.status}</span>
-                          </td>
-                          <td className="px-6 py-4 text-right text-[#6b716d]">{p.method}</td>
-                        </tr>
-                      )) : (
+                      {adminPayouts.length > 0 ? (
+                        adminPayouts.map((p) => (
+                          <tr key={p.id} className="hover:bg-[#FAF9F5] transition duration-150">
+                            <td className="px-6 py-4 font-semibold text-[#18211f]">{p.id}</td>
+                            <td className="px-6 py-4 text-[#6b716d]">{p.date}</td>
+                            <td className="px-6 py-4 text-[#6b716d]">{p.photographerId}</td>
+                            <td className="px-6 py-4 text-[#18211f] font-semibold">
+                              £{p.amount.toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="bg-[#dce8df] text-[#1e7a4f] px-2 py-0.5 rounded-full font-bold text-[9px]">
+                                {p.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right text-[#6b716d]">{p.method}</td>
+                          </tr>
+                        ))
+                      ) : (
                         <tr>
-                          <td colSpan={6} className="px-6 py-8 text-center text-sm text-[#6b716d]">No payouts yet</td>
+                          <td colSpan={6} className="px-6 py-8 text-center text-sm text-[#6b716d]">
+                            No payouts yet
+                          </td>
                         </tr>
                       )}
                     </tbody>
-                   </table>
+                  </table>
                 </div>
               </div>
 
               {/* Payment Methods by Photographer */}
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                <h3 className="mb-4 font-serif text-lg text-[#18211f]">Payment Methods by Photographer</h3>
+                <h3 className="mb-4 font-serif text-lg text-[#18211f]">
+                  Payment Methods by Photographer
+                </h3>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr className="border-b border-[#ececec]/60">
-                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Photographer</th>
-                        <th className="px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Card</th>
-                        <th className="px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Crypto</th>
-                        <th className="px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">PayPal</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Photographer
+                        </th>
+                        <th className="px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Card
+                        </th>
+                        <th className="px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Crypto
+                        </th>
+                        <th className="px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          PayPal
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {(() => {
-                        const photographerIds = [...new Set(allPaymentMethods.map((m) => m.photographerId))];
+                        const photographerIds = [
+                          ...new Set(allPaymentMethods.map((m) => m.photographerId)),
+                        ];
                         if (photographerIds.length === 0) {
-                          return <tr><td colSpan={4} className="px-4 py-6 text-center text-sm text-[#6b716d]">No payment methods configured yet</td></tr>;
+                          return (
+                            <tr>
+                              <td
+                                colSpan={4}
+                                className="px-4 py-6 text-center text-sm text-[#6b716d]"
+                              >
+                                No payment methods configured yet
+                              </td>
+                            </tr>
+                          );
                         }
                         return photographerIds.map((pid) => {
                           const methods = allPaymentMethods.filter((m) => m.photographerId === pid);
                           return (
-                            <tr key={pid} className="border-b border-[#ececec]/30 hover:bg-[#FAF9F5]">
-                              <td className="px-4 py-3 font-medium text-[#18211f]">{pid.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
-                              <td className="px-4 py-3 text-center">{methods.find((m) => m.method === "card")?.enabled ? "✅" : "—"}</td>
-                              <td className="px-4 py-3 text-center">{methods.find((m) => m.method === "crypto")?.enabled ? "✅" : "—"}</td>
-                              <td className="px-4 py-3 text-center">{methods.find((m) => m.method === "paypal")?.enabled ? "✅" : "—"}</td>
+                            <tr
+                              key={pid}
+                              className="border-b border-[#ececec]/30 hover:bg-[#FAF9F5]"
+                            >
+                              <td className="px-4 py-3 font-medium text-[#18211f]">
+                                {pid.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {methods.find((m) => m.method === "card")?.enabled ? "✅" : "—"}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {methods.find((m) => m.method === "crypto")?.enabled ? "✅" : "—"}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {methods.find((m) => m.method === "paypal")?.enabled ? "✅" : "—"}
+                              </td>
                             </tr>
                           );
                         });
@@ -783,68 +1166,132 @@ export function Admin() {
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr className="border-b border-[#ececec]/60">
-                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Photographer</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Amount</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Method</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Status</th>
-                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Date</th>
-                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">Action</th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Photographer
+                        </th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Amount
+                        </th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Method
+                        </th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Date
+                        </th>
+                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-[#8a8f89]">
+                          Action
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {payoutRequestList.length > 0 ? payoutRequestList.map((pr) => (
-                        <tr key={pr.id} className="border-b border-[#ececec]/30 hover:bg-[#FAF9F5]">
-                          <td className="px-4 py-3 font-medium text-[#18211f]">{pr.photographerId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}</td>
-                          <td className="px-4 py-3 font-semibold text-[#18211f]">£{pr.amount.toLocaleString()}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex flex-col gap-1">
-                              <span className="font-medium text-[#18211f] capitalize">{pr.method === "card" ? "Bank Transfer" : pr.method === "crypto" ? "Crypto Wallet" : "PayPal"}</span>
-                              {pr.method === "crypto" && pr.details?.wallets && (pr.details.wallets as any[]).map((w, i) => (
-                                <span key={i} className="text-[10px] text-[#6b716d] break-all font-mono">{w.coin} ({w.network}): {w.address}</span>
-                              ))}
-                              {pr.method === "paypal" && pr.details?.email && (
-                                <span className="text-[10px] text-[#6b716d]">{String(pr.details.email)}</span>
-                              )}
-                              {pr.method === "card" && pr.details?.bank && (
-                                <span className="text-[10px] text-[#6b716d]">
-                                  {(pr.details.bank as any)?.bankName} • Acc: {(pr.details.bank as any)?.accountNumber} • Sort/Routing: {(pr.details.bank as any)?.routingNumber}
+                      {payoutRequestList.length > 0 ? (
+                        payoutRequestList.map((pr) => (
+                          <tr
+                            key={pr.id}
+                            className="border-b border-[#ececec]/30 hover:bg-[#FAF9F5]"
+                          >
+                            <td className="px-4 py-3 font-medium text-[#18211f]">
+                              {pr.photographerId
+                                .replace(/-/g, " ")
+                                .replace(/\b\w/g, (c) => c.toUpperCase())}
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-[#18211f]">
+                              £{pr.amount.toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col gap-1">
+                                <span className="font-medium text-[#18211f] capitalize">
+                                  {pr.method === "card"
+                                    ? "Bank Transfer"
+                                    : pr.method === "crypto"
+                                      ? "Crypto Wallet"
+                                      : "PayPal"}
                                 </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                              pr.status === "APPROVED" || pr.status === "PAID" ? "bg-green-50 text-green-700" :
-                              pr.status === "REJECTED" ? "bg-red-50 text-red-600" :
-                              "bg-amber-50 text-amber-700"
-                            }`}>{pr.status}</span>
-                          </td>
-                          <td className="px-4 py-3 text-[#6b716d] text-xs">{new Date(pr.requestedAt).toLocaleDateString()}</td>
-                          <td className="px-4 py-3 text-right">
-                            {pr.status === "PENDING" && (
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  onClick={async () => {
-                                    await updatePayoutRequestStatus(pr.id, "APPROVED");
-                                    setPayoutRequestList((prev) => prev.map((r) => r.id === pr.id ? { ...r, status: "APPROVED" } : r));
-                                    toast.success("Payout approved");
-                                  }}
-                                  className="text-xs font-semibold text-green-600 hover:text-green-700 px-2 py-1 rounded-lg hover:bg-green-50"
-                                >Approve</button>
-                                <button
-                                  onClick={async () => {
-                                    await updatePayoutRequestStatus(pr.id, "REJECTED");
-                                    setPayoutRequestList((prev) => prev.map((r) => r.id === pr.id ? { ...r, status: "REJECTED" } : r));
-                                    toast.error("Payout rejected");
-                                  }}
-                                  className="text-xs font-semibold text-red-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50"
-                                >Reject</button>
+                                {pr.method === "crypto" &&
+                                  pr.details?.wallets &&
+                                  (pr.details.wallets as any[]).map((w, i) => (
+                                    <span
+                                      key={i}
+                                      className="text-[10px] text-[#6b716d] break-all font-mono"
+                                    >
+                                      {w.coin} ({w.network}): {w.address}
+                                    </span>
+                                  ))}
+                                {pr.method === "paypal" && pr.details?.email && (
+                                  <span className="text-[10px] text-[#6b716d]">
+                                    {String(pr.details.email)}
+                                  </span>
+                                )}
+                                {pr.method === "card" && pr.details?.bank && (
+                                  <span className="text-[10px] text-[#6b716d]">
+                                    {(pr.details.bank as any)?.bankName} • Acc:{" "}
+                                    {(pr.details.bank as any)?.accountNumber} • Sort/Routing:{" "}
+                                    {(pr.details.bank as any)?.routingNumber}
+                                  </span>
+                                )}
                               </div>
-                            )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                                  pr.status === "APPROVED" || pr.status === "PAID"
+                                    ? "bg-green-50 text-green-700"
+                                    : pr.status === "REJECTED"
+                                      ? "bg-red-50 text-red-600"
+                                      : "bg-amber-50 text-amber-700"
+                                }`}
+                              >
+                                {pr.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-[#6b716d] text-xs">
+                              {new Date(pr.requestedAt).toLocaleDateString()}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {pr.status === "PENDING" && (
+                                <div className="flex justify-end gap-2">
+                                  <button
+                                    onClick={async () => {
+                                      await updatePayoutRequestStatus(pr.id, "APPROVED");
+                                      setPayoutRequestList((prev) =>
+                                        prev.map((r) =>
+                                          r.id === pr.id ? { ...r, status: "APPROVED" } : r,
+                                        ),
+                                      );
+                                      toast.success("Payout approved");
+                                    }}
+                                    className="text-xs font-semibold text-green-600 hover:text-green-700 px-2 py-1 rounded-lg hover:bg-green-50"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      await updatePayoutRequestStatus(pr.id, "REJECTED");
+                                      setPayoutRequestList((prev) =>
+                                        prev.map((r) =>
+                                          r.id === pr.id ? { ...r, status: "REJECTED" } : r,
+                                        ),
+                                      );
+                                      toast.error("Payout rejected");
+                                    }}
+                                    className="text-xs font-semibold text-red-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-sm text-[#6b716d]">
+                            No payout requests yet
                           </td>
                         </tr>
-                      )) : (
-                        <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-[#6b716d]">No payout requests yet</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -857,12 +1304,27 @@ export function Admin() {
           {active === "reports" && (
             <div className="mt-8 space-y-3">
               {[
-                { name: "Monthly revenue report", desc: "Complete revenue breakdown by license type, photographer, and region" },
-                { name: "Contributor payout summary", desc: "All photographer payouts with tax documentation" },
-                { name: "License usage audit", desc: "Track how licensed assets are being used across platforms" },
-                { name: "Content moderation log", desc: "Full audit trail of all moderation decisions" },
+                {
+                  name: "Monthly revenue report",
+                  desc: "Complete revenue breakdown by license type, photographer, and region",
+                },
+                {
+                  name: "Contributor payout summary",
+                  desc: "All photographer payouts with tax documentation",
+                },
+                {
+                  name: "License usage audit",
+                  desc: "Track how licensed assets are being used across platforms",
+                },
+                {
+                  name: "Content moderation log",
+                  desc: "Full audit trail of all moderation decisions",
+                },
               ].map((r) => (
-                <div key={r.name} className="flex flex-col sm:flex-row items-start sm:items-center justify-between border border-[#ececec]/80 bg-white rounded-xl p-5 ns-shadow-sm hover:border-[#1e4a3f]/20 transition-all duration-200">
+                <div
+                  key={r.name}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between border border-[#ececec]/80 bg-white rounded-xl p-5 ns-shadow-sm hover:border-[#1e4a3f]/20 transition-all duration-200"
+                >
                   <div className="flex items-center gap-3 text-sm font-semibold text-[#18211f] mb-3 sm:mb-0">
                     <FileBarChart className="size-5 text-[#1e4a3f]" />
                     <div>
@@ -870,7 +1332,10 @@ export function Admin() {
                       <p className="text-xs text-[#6b716d] font-normal">{r.desc}</p>
                     </div>
                   </div>
-                  <button onClick={() => toast.success("Report exported")} className="text-sm font-semibold text-[#1e4a3f] hover:underline">
+                  <button
+                    onClick={() => toast.success("Report exported")}
+                    className="text-sm font-semibold text-[#1e4a3f] hover:underline"
+                  >
                     Export CSV
                   </button>
                 </div>
@@ -894,7 +1359,9 @@ export function Admin() {
                     <option value="ERROR">Error</option>
                   </select>
                 </div>
-                <span className="text-sm text-[#6b716d] font-mono">{filteredLogs.length} entries</span>
+                <span className="text-sm text-[#6b716d] font-mono">
+                  {filteredLogs.length} entries
+                </span>
               </div>
               <div className="overflow-x-auto overflow-y-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
                 <table className="w-full min-w-[800px] text-left text-sm">
@@ -911,7 +1378,9 @@ export function Admin() {
                       <tr key={log.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
                         <td className="px-6 py-4 text-[#6b716d]">{log.time}</td>
                         <td className="px-6 py-4">
-                          <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] ${logLevelColor(log.level)}`}>
+                          <span
+                            className={`px-2 py-0.5 rounded-full font-bold text-[9px] ${logLevelColor(log.level)}`}
+                          >
                             {log.level}
                           </span>
                         </td>
@@ -931,26 +1400,99 @@ export function Admin() {
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                 <h3 className="font-serif text-lg text-[#18211f] mb-6">General</h3>
                 <div className="grid gap-6 sm:grid-cols-2">
-                  <Field label="Site Name" value={siteSettingsState.siteName} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, siteName: e.target.value })} />
-                  <Field label="Site URL" value={siteSettingsState.siteUrl} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, siteUrl: e.target.value })} />
-                  <Field label="Support Email" value={siteSettingsState.supportEmail} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, supportEmail: e.target.value })} />
-                  <Field label="Contact Admin Link (WhatsApp/Telegram)" value={siteSettingsState.contactLink || ""} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, contactLink: e.target.value })} placeholder="https://wa.me/..." />
-                  <Field label="Platform Fee (%)" type="number" value={String(siteSettingsState.platformFee)} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, platformFee: Number(e.target.value) })} />
+                  <Field
+                    label="Site Name"
+                    value={siteSettingsState.siteName}
+                    onChange={(e) =>
+                      setSiteSettingsState({ ...siteSettingsState, siteName: e.target.value })
+                    }
+                  />
+                  <Field
+                    label="Site URL"
+                    value={siteSettingsState.siteUrl}
+                    onChange={(e) =>
+                      setSiteSettingsState({ ...siteSettingsState, siteUrl: e.target.value })
+                    }
+                  />
+                  <Field
+                    label="Support Email"
+                    value={siteSettingsState.supportEmail}
+                    onChange={(e) =>
+                      setSiteSettingsState({ ...siteSettingsState, supportEmail: e.target.value })
+                    }
+                  />
+                  <Field
+                    label="Contact Admin Link (WhatsApp/Telegram)"
+                    value={siteSettingsState.contactLink || ""}
+                    onChange={(e) =>
+                      setSiteSettingsState({ ...siteSettingsState, contactLink: e.target.value })
+                    }
+                    placeholder="https://wa.me/..."
+                  />
+                  <Field
+                    label="Platform Fee (%)"
+                    type="number"
+                    value={String(siteSettingsState.platformFee)}
+                    onChange={(e) =>
+                      setSiteSettingsState({
+                        ...siteSettingsState,
+                        platformFee: Number(e.target.value),
+                      })
+                    }
+                  />
                 </div>
               </div>
 
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                 <h3 className="font-serif text-lg text-[#18211f] mb-6">Licensing & Pricing</h3>
                 <div className="grid gap-6 sm:grid-cols-2">
-                  <Field label="Default Commission (%)" type="number" value={String(siteSettingsState.defaultCommission)} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, defaultCommission: Number(e.target.value) })} />
-                  <Field label="Minimum Price (£)" type="number" value={String(siteSettingsState.minPrice)} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, minPrice: Number(e.target.value) })} />
-                  <Field label="Max File Size (MB)" type="number" value={String(siteSettingsState.maxFileSize)} onChange={(e) => setSiteSettingsState({ ...siteSettingsState, maxFileSize: Number(e.target.value) })} />
+                  <Field
+                    label="Default Commission (%)"
+                    type="number"
+                    value={String(siteSettingsState.defaultCommission)}
+                    onChange={(e) =>
+                      setSiteSettingsState({
+                        ...siteSettingsState,
+                        defaultCommission: Number(e.target.value),
+                      })
+                    }
+                  />
+                  <Field
+                    label="Minimum Price (£)"
+                    type="number"
+                    value={String(siteSettingsState.minPrice)}
+                    onChange={(e) =>
+                      setSiteSettingsState({
+                        ...siteSettingsState,
+                        minPrice: Number(e.target.value),
+                      })
+                    }
+                  />
+                  <Field
+                    label="Max File Size (MB)"
+                    type="number"
+                    value={String(siteSettingsState.maxFileSize)}
+                    onChange={(e) =>
+                      setSiteSettingsState({
+                        ...siteSettingsState,
+                        maxFileSize: Number(e.target.value),
+                      })
+                    }
+                  />
                   <div className="space-y-2">
                     <label className="block">
-                      <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">Allowed Licenses</span>
+                      <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                        Allowed Licenses
+                      </span>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {["COMMERCIAL", "EDITORIAL", "ROYALTY FREE", "EXCLUSIVE"].map((l) => (
-                          <Badge key={l} tone="muted" className="cursor-pointer hover:tone-green transition-colors">{l}</Badge>
+                          <Badge
+                            key={l}
+                            tone="muted"
+                            className="cursor-pointer hover:tone-green transition-colors"
+                          >
+                            {l}
+                          </Badge>
                         ))}
                       </div>
                     </label>
@@ -961,39 +1503,77 @@ export function Admin() {
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                 <h3 className="font-serif text-lg text-[#18211f] mb-6">Feature Toggles</h3>
                 <div className="space-y-4">
-                  <Toggle label="Maintenance Mode" description="Disable public access (admins only)" checked={siteSettingsState.maintenanceMode} onChange={(v) => setSiteSettingsState({ ...siteSettingsState, maintenanceMode: v })} />
-                  <Toggle label="User Signup Enabled" description="Allow new user registrations" checked={siteSettingsState.signupEnabled} onChange={(v) => setSiteSettingsState({ ...siteSettingsState, signupEnabled: v })} />
-                  <Toggle label="Moderation Required" description="All new assets require approval" checked={siteSettingsState.moderationRequired} onChange={(v) => setSiteSettingsState({ ...siteSettingsState, moderationRequired: v })} />
+                  <Toggle
+                    label="Maintenance Mode"
+                    description="Disable public access (admins only)"
+                    checked={siteSettingsState.maintenanceMode}
+                    onChange={(v) =>
+                      setSiteSettingsState({ ...siteSettingsState, maintenanceMode: v })
+                    }
+                  />
+                  <Toggle
+                    label="User Signup Enabled"
+                    description="Allow new user registrations"
+                    checked={siteSettingsState.signupEnabled}
+                    onChange={(v) =>
+                      setSiteSettingsState({ ...siteSettingsState, signupEnabled: v })
+                    }
+                  />
+                  <Toggle
+                    label="Moderation Required"
+                    description="All new assets require approval"
+                    checked={siteSettingsState.moderationRequired}
+                    onChange={(v) =>
+                      setSiteSettingsState({ ...siteSettingsState, moderationRequired: v })
+                    }
+                  />
                 </div>
               </div>
 
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                <h3 className="font-serif text-lg text-[#18211f] mb-6">Verification Payment Methods</h3>
-                <p className="text-xs text-[#6b716d] mb-4">Add methods for photographers to pay their £247 verification fee.</p>
+                <h3 className="font-serif text-lg text-[#18211f] mb-6">
+                  Verification Payment Methods
+                </h3>
+                <p className="text-xs text-[#6b716d] mb-4">
+                  Add methods for photographers to pay their £247 verification fee.
+                </p>
                 <div className="space-y-4 mb-4">
                   {adminPaymentMethods.map((method) => (
-                    <div key={method.id} className="flex items-center justify-between p-4 border border-[#ececec] rounded-xl bg-[#f8f9f7]">
+                    <div
+                      key={method.id}
+                      className="flex items-center justify-between p-4 border border-[#ececec] rounded-xl bg-[#f8f9f7]"
+                    >
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-[#18211f] text-sm">{method.name}</span>
-                          <span className="text-[9px] uppercase tracking-wider bg-[#ececec] px-2 py-0.5 rounded-full">{method.methodType}</span>
+                          <span className="font-semibold text-[#18211f] text-sm">
+                            {method.name}
+                          </span>
+                          <span className="text-[9px] uppercase tracking-wider bg-[#ececec] px-2 py-0.5 rounded-full">
+                            {method.methodType}
+                          </span>
                         </div>
                         <p className="text-xs text-[#59645f] font-mono">{method.details}</p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Toggle 
-                          checked={method.enabled} 
+                        <Toggle
+                          checked={method.enabled}
                           onChange={async (v) => {
                             await updateAdminPaymentMethod(method.id, { enabled: v });
-                            setAdminPaymentMethods(adminPaymentMethods.map(m => m.id === method.id ? { ...m, enabled: v } : m));
+                            setAdminPaymentMethods(
+                              adminPaymentMethods.map((m) =>
+                                m.id === method.id ? { ...m, enabled: v } : m,
+                              ),
+                            );
                             toast.success("Payment method updated");
-                          }} 
+                          }}
                         />
-                        <button 
+                        <button
                           onClick={async () => {
                             if (confirm("Delete this payment method?")) {
                               await deleteAdminPaymentMethod(method.id);
-                              setAdminPaymentMethods(adminPaymentMethods.filter(m => m.id !== method.id));
+                              setAdminPaymentMethods(
+                                adminPaymentMethods.filter((m) => m.id !== method.id),
+                              );
                               toast.success("Deleted successfully");
                             }
                           }}
@@ -1005,22 +1585,25 @@ export function Admin() {
                     </div>
                   ))}
                 </div>
-                <Button variant="outline" onClick={async () => {
-                  const type = prompt("Type (e.g., crypto, bank, paypal):", "crypto");
-                  if (!type) return;
-                  const name = prompt("Name (e.g., Bitcoin (BTC), Chase Bank):");
-                  if (!name) return;
-                  const details = prompt("Details (e.g., Wallet Address, Account Number):");
-                  if (!details) return;
-                  
-                  try {
-                    const newMethod = await createAdminPaymentMethod(type, name, details);
-                    setAdminPaymentMethods([...adminPaymentMethods, newMethod]);
-                    toast.success("Payment method added");
-                  } catch (err: any) {
-                    toast.error(err.message);
-                  }
-                }}>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    const type = prompt("Type (e.g., crypto, bank, paypal):", "crypto");
+                    if (!type) return;
+                    const name = prompt("Name (e.g., Bitcoin (BTC), Chase Bank):");
+                    if (!name) return;
+                    const details = prompt("Details (e.g., Wallet Address, Account Number):");
+                    if (!details) return;
+
+                    try {
+                      const newMethod = await createAdminPaymentMethod(type, name, details);
+                      setAdminPaymentMethods([...adminPaymentMethods, newMethod]);
+                      toast.success("Payment method added");
+                    } catch (err: any) {
+                      toast.error(err.message);
+                    }
+                  }}
+                >
                   Add Payment Method
                 </Button>
               </div>
@@ -1036,91 +1619,162 @@ export function Admin() {
             <div className="mt-8 space-y-6">
               <div className="flex items-center justify-between">
                 <Eyebrow>VERIFICATION REQUESTS</Eyebrow>
-                <span className="text-xs text-[#6b716d]">{verificationDocs.filter((d) => d.status === "pending").length} pending</span>
+                <span className="text-xs text-[#6b716d]">
+                  {verificationDocs.filter((d) => d.status === "pending").length} pending
+                </span>
               </div>
               {verificationDocs.length === 0 ? (
                 <div className="border border-dashed border-[#ececec] bg-white rounded-2xl p-8 text-center">
                   <ShieldCheck className="size-8 text-[#9aa09b] mx-auto mb-2" />
                   <p className="font-serif text-lg text-[#18211f]">No verification requests</p>
-                  <p className="text-sm text-[#6b716d] mt-1">Documents submitted by users will appear here.</p>
+                  <p className="text-sm text-[#6b716d] mt-1">
+                    Documents submitted by users will appear here.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {verificationDocs.map((doc) => {
                     const u = adminUsersList.find((x) => x.id === doc.userId);
                     return (
-                    <div key={doc.id} className="border border-[#ececec]/80 bg-white rounded-2xl p-5 ns-shadow-sm">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <p className="font-semibold text-[#18211f] capitalize">{doc.documentType.replace(/_/g, " ")}</p>
-                          <p className="text-xs text-[#6b716d]">{u?.name || doc.userId} · {u?.email || ""}</p>
-                          <p className="text-xs text-[#6b716d]">{new Date(doc.submittedAt).toLocaleDateString()}</p>
-                          {doc.documentNumber && <p className="text-xs font-mono text-[#4a534e] mt-1"># {doc.documentNumber}</p>}
-                          
-                          <div className="mt-3 p-3 bg-[#f8f9f7] rounded-xl text-xs space-y-1">
-                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">Phone:</span> {u?.phone || "N/A"}</p>
-                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">DOB:</span> {u?.dob || "N/A"}</p>
-                            <p><span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">Address:</span> {u?.occupation || "N/A"}</p>
+                      <div
+                        key={doc.id}
+                        className="border border-[#ececec]/80 bg-white rounded-2xl p-5 ns-shadow-sm"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <p className="font-semibold text-[#18211f] capitalize">
+                              {doc.documentType.replace(/_/g, " ")}
+                            </p>
+                            <p className="text-xs text-[#6b716d]">
+                              {u?.name || doc.userId} · {u?.email || ""}
+                            </p>
+                            <p className="text-xs text-[#6b716d]">
+                              {new Date(doc.submittedAt).toLocaleDateString()}
+                            </p>
+                            {doc.documentNumber && (
+                              <p className="text-xs font-mono text-[#4a534e] mt-1">
+                                # {doc.documentNumber}
+                              </p>
+                            )}
+
+                            <div className="mt-3 p-3 bg-[#f8f9f7] rounded-xl text-xs space-y-1">
+                              <p>
+                                <span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">
+                                  Phone:
+                                </span>{" "}
+                                {u?.phone || "N/A"}
+                              </p>
+                              <p>
+                                <span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">
+                                  DOB:
+                                </span>{" "}
+                                {u?.dob || "N/A"}
+                              </p>
+                              <p>
+                                <span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">
+                                  Address:
+                                </span>{" "}
+                                {u?.occupation || "N/A"}
+                              </p>
+                            </div>
                           </div>
+                          <span
+                            className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                              doc.status === "approved"
+                                ? "bg-green-50 text-green-700"
+                                : doc.status === "rejected"
+                                  ? "bg-red-50 text-red-700"
+                                  : "bg-amber-50 text-amber-700"
+                            }`}
+                          >
+                            {doc.status}
+                          </span>
                         </div>
-                        <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                          doc.status === "approved" ? "bg-green-50 text-green-700" :
-                          doc.status === "rejected" ? "bg-red-50 text-red-700" :
-                          "bg-amber-50 text-amber-700"
-                        }`}>{doc.status}</span>
+                        {doc.fileUrl && (
+                          <a
+                            href={doc.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3 py-1.5 rounded-full transition-colors mb-3"
+                          >
+                            <Eye className="size-3.5" /> View Document
+                          </a>
+                        )}
+                        {doc.status === "pending" && (
+                          <div className="border-t border-[#ececec]/60 pt-3 mt-3 space-y-3">
+                            <input
+                              id={`note-${doc.id}`}
+                              placeholder="Admin note (optional)"
+                              className="w-full text-sm border border-[#ececec] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#1e4a3f]/40"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={async () => {
+                                  const note =
+                                    (document.getElementById(`note-${doc.id}`) as HTMLInputElement)
+                                      ?.value || "";
+                                  const ok = await reviewVerificationDocument(
+                                    doc.id,
+                                    "approved",
+                                    note,
+                                    user!.id,
+                                  );
+                                  if (ok) {
+                                    setVerificationDocs((prev) =>
+                                      prev.map((d) =>
+                                        d.id === doc.id
+                                          ? { ...d, status: "approved", adminNote: note }
+                                          : d,
+                                      ),
+                                    );
+                                    const u = adminUsersList.find((x) => x.id === doc.userId);
+                                    if (u) sendVerificationStatus(u.email, u.name, "approved");
+                                    toast.success("Document approved");
+                                  }
+                                }}
+                                className="flex items-center gap-1.5 bg-green-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-green-700 transition-colors"
+                              >
+                                <Check className="size-3.5" /> Approve
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  const note =
+                                    (document.getElementById(`note-${doc.id}`) as HTMLInputElement)
+                                      ?.value || "";
+                                  const ok = await reviewVerificationDocument(
+                                    doc.id,
+                                    "rejected",
+                                    note,
+                                    user!.id,
+                                  );
+                                  if (ok) {
+                                    setVerificationDocs((prev) =>
+                                      prev.map((d) =>
+                                        d.id === doc.id
+                                          ? { ...d, status: "rejected", adminNote: note }
+                                          : d,
+                                      ),
+                                    );
+                                    const u = adminUsersList.find((x) => x.id === doc.userId);
+                                    if (u)
+                                      sendVerificationStatus(
+                                        u.email,
+                                        u.name,
+                                        "rejected",
+                                        note ||
+                                          "Please review and resubmit with correct documentation.",
+                                      );
+                                    toast.success("Document rejected");
+                                  }
+                                }}
+                                className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-red-700 transition-colors"
+                              >
+                                <X className="size-3.5" /> Reject
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      {doc.fileUrl && (
-                        <a
-                          href={doc.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3 py-1.5 rounded-full transition-colors mb-3"
-                        >
-                          <Eye className="size-3.5" /> View Document
-                        </a>
-                      )}
-                      {doc.status === "pending" && (
-                        <div className="border-t border-[#ececec]/60 pt-3 mt-3 space-y-3">
-                          <input
-                            id={`note-${doc.id}`}
-                            placeholder="Admin note (optional)"
-                            className="w-full text-sm border border-[#ececec] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#1e4a3f]/40"
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              onClick={async () => {
-                                const note = (document.getElementById(`note-${doc.id}`) as HTMLInputElement)?.value || "";
-                                const ok = await reviewVerificationDocument(doc.id, "approved", note, user!.id);
-                                if (ok) {
-                                  setVerificationDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "approved", adminNote: note } : d));
-                                  const u = adminUsersList.find((x) => x.id === doc.userId);
-                                  if (u) sendVerificationStatus(u.email, u.name, "approved");
-                                  toast.success("Document approved");
-                                }
-                              }}
-                              className="flex items-center gap-1.5 bg-green-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-green-700 transition-colors"
-                            >
-                              <Check className="size-3.5" /> Approve
-                            </button>
-                            <button
-                              onClick={async () => {
-                                const note = (document.getElementById(`note-${doc.id}`) as HTMLInputElement)?.value || "";
-                                const ok = await reviewVerificationDocument(doc.id, "rejected", note, user!.id);
-                                if (ok) {
-                                  setVerificationDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "rejected", adminNote: note } : d));
-                                  const u = adminUsersList.find((x) => x.id === doc.userId);
-                                  if (u) sendVerificationStatus(u.email, u.name, "rejected", note || "Please review and resubmit with correct documentation.");
-                                  toast.success("Document rejected");
-                                }
-                              }}
-                              className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-red-700 transition-colors"
-                            >
-                              <X className="size-3.5" /> Reject
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                     );
                   })}
                 </div>
@@ -1175,82 +1829,148 @@ export function Admin() {
                   <tbody className="divide-y divide-[#ececec]/60">
                     {filteredSubmissions.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-sm text-[#6b716d]">No submissions found</td>
+                        <td colSpan={8} className="px-4 py-8 text-center text-sm text-[#6b716d]">
+                          No submissions found
+                        </td>
                       </tr>
-                    ) : filteredSubmissions.map((sub) => (
-                      <tr key={sub.id} className="hover:bg-[#FAF9F5] transition duration-150 align-top">
-                        <td className="px-4 py-3 text-xs text-[#6b716d] whitespace-nowrap">{new Date(sub.createdAt).toLocaleString()}</td>
-                        <td className="px-4 py-3">
-                          <p className="font-semibold text-[#18211f]">{sub.fullName}</p>
-                          {sub.invitationCode ? <p className="text-[11px] text-[#6b716d]">Ref: {sub.invitationCode}</p> : null}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-[#4a534e]">
-                          <a href={`mailto:${sub.email}`} className="underline hover:text-[#1e4a3f]">{sub.email}</a>
-                          <p className="mt-1">{sub.phone}</p>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-[#4a534e]">{sub.country}<p className="mt-1 text-[#6b716d]">{sub.preferredChannel}</p></td>
-                        <td className="px-4 py-3 text-xs">
-                          {sub.socialHandle ? (
-                            <a href={sub.socialHandle.startsWith('http') ? sub.socialHandle : `https://instagram.com/${sub.socialHandle.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="underline text-[#1e4a3f] hover:text-[#123b31] truncate max-w-[100px] block">
-                              {sub.socialHandle}
-                            </a>
-                          ) : <span className="text-[#8a8f89]">-</span>}
-                        </td>
-                        <td className="px-4 py-3 text-xs">
-                          <a href={sub.portfolioLink} target="_blank" rel="noopener noreferrer" className="underline text-[#1e4a3f] hover:text-[#123b31]">Open Link</a>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                            sub.status === "approved" ? "bg-green-50 text-green-700" :
-                            sub.status === "rejected" || sub.status === "blocked" ? "bg-red-50 text-red-700" :
-                            sub.status === "reviewing" ? "bg-blue-50 text-blue-700" :
-                            "bg-amber-50 text-amber-700"
-                          }`}>{sub.status}</span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-[#4a534e] max-w-[260px]">
-                          <input
-                            id={`submission-note-${sub.id}`}
-                            defaultValue={sub.adminNote}
-                            placeholder="Add note"
-                            className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40"
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-2">
-                            <select
-                              value={sub.status}
-                              onChange={async (e) => {
-                                const nextStatus = e.target.value as ContributorSubmission["status"];
-                                const note = (document.getElementById(`submission-note-${sub.id}`) as HTMLInputElement)?.value || "";
-                                const ok = await updateContributorSubmissionStatus(sub.id, nextStatus, note);
-                                if (!ok) {
-                                  toast.error("Failed to update submission");
-                                  return;
-                                }
-                                if (nextStatus !== sub.status) {
-                                  await sendContributorSubmissionStatus(sub.email, sub.fullName, nextStatus, note);
-                                }
-                                setContributorSubmissions((prev) => prev.map((x) => x.id === sub.id ? { ...x, status: nextStatus, adminNote: note } : x));
-                                toast.success(`Submission marked as ${nextStatus}`);
-                              }}
-                              className="border border-[#ececec] rounded-lg bg-white px-2.5 py-1.5 text-xs outline-none"
+                    ) : (
+                      filteredSubmissions.map((sub) => (
+                        <tr
+                          key={sub.id}
+                          className="hover:bg-[#FAF9F5] transition duration-150 align-top"
+                        >
+                          <td className="px-4 py-3 text-xs text-[#6b716d] whitespace-nowrap">
+                            {new Date(sub.createdAt).toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-semibold text-[#18211f]">{sub.fullName}</p>
+                            {sub.invitationCode ? (
+                              <p className="text-[11px] text-[#6b716d]">
+                                Ref: {sub.invitationCode}
+                              </p>
+                            ) : null}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-[#4a534e]">
+                            <a
+                              href={`mailto:${sub.email}`}
+                              className="underline hover:text-[#1e4a3f]"
                             >
-                              <option value="new">New</option>
-                              <option value="reviewing">Reviewing</option>
-                              <option value="approved">Approved</option>
-                              <option value="rejected">Rejected</option>
-                              <option value="blocked">Blocked</option>
-                            </select>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              {sub.email}
+                            </a>
+                            <p className="mt-1">{sub.phone}</p>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-[#4a534e]">
+                            {sub.country}
+                            <p className="mt-1 text-[#6b716d]">{sub.preferredChannel}</p>
+                          </td>
+                          <td className="px-4 py-3 text-xs">
+                            {sub.socialHandle ? (
+                              <a
+                                href={
+                                  sub.socialHandle.startsWith("http")
+                                    ? sub.socialHandle
+                                    : `https://instagram.com/${sub.socialHandle.replace("@", "")}`
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline text-[#1e4a3f] hover:text-[#123b31] truncate max-w-[100px] block"
+                              >
+                                {sub.socialHandle}
+                              </a>
+                            ) : (
+                              <span className="text-[#8a8f89]">-</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-xs">
+                            <a
+                              href={sub.portfolioLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline text-[#1e4a3f] hover:text-[#123b31]"
+                            >
+                              Open Link
+                            </a>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                                sub.status === "approved"
+                                  ? "bg-green-50 text-green-700"
+                                  : sub.status === "rejected" || sub.status === "blocked"
+                                    ? "bg-red-50 text-red-700"
+                                    : sub.status === "reviewing"
+                                      ? "bg-blue-50 text-blue-700"
+                                      : "bg-amber-50 text-amber-700"
+                              }`}
+                            >
+                              {sub.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-[#4a534e] max-w-[260px]">
+                            <input
+                              id={`submission-note-${sub.id}`}
+                              defaultValue={sub.adminNote}
+                              placeholder="Add note"
+                              className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-2">
+                              <select
+                                value={sub.status}
+                                onChange={async (e) => {
+                                  const nextStatus = e.target
+                                    .value as ContributorSubmission["status"];
+                                  const note =
+                                    (
+                                      document.getElementById(
+                                        `submission-note-${sub.id}`,
+                                      ) as HTMLInputElement
+                                    )?.value || "";
+                                  const ok = await updateContributorSubmissionStatus(
+                                    sub.id,
+                                    nextStatus,
+                                    note,
+                                  );
+                                  if (!ok) {
+                                    toast.error("Failed to update submission");
+                                    return;
+                                  }
+                                  if (nextStatus !== sub.status) {
+                                    await sendContributorSubmissionStatus(
+                                      sub.email,
+                                      sub.fullName,
+                                      nextStatus,
+                                      note,
+                                    );
+                                  }
+                                  setContributorSubmissions((prev) =>
+                                    prev.map((x) =>
+                                      x.id === sub.id
+                                        ? { ...x, status: nextStatus, adminNote: note }
+                                        : x,
+                                    ),
+                                  );
+                                  toast.success(`Submission marked as ${nextStatus}`);
+                                }}
+                                className="border border-[#ececec] rounded-lg bg-white px-2.5 py-1.5 text-xs outline-none"
+                              >
+                                <option value="new">New</option>
+                                <option value="reviewing">Reviewing</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="blocked">Blocked</option>
+                              </select>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
-
         </div>
       </div>
       {selectedUser && (
@@ -1263,16 +1983,32 @@ export function Admin() {
           onDeleteAsset={handleDeleteUserAsset}
           verificationDocs={verificationDocs}
           setVerificationDocs={setVerificationDocs}
+          adminEmail={user?.email || "admin@nscaptures.com"}
+          setAdminUsersList={setAdminUsersList}
         />
       )}
     </div>
   );
 }
 
-function Field({ label, type = "text", value, onChange }: { label: string; type?: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+function Field({
+  label,
+  type = "text",
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  type?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+}) {
   return (
     <label className="block">
-      <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{label}</span>
+      <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+        {label}
+      </span>
       <input
         type={type}
         value={value}
@@ -1283,7 +2019,17 @@ function Field({ label, type = "text", value, onChange }: { label: string; type?
   );
 }
 
-function Toggle({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label?: string;
+  description?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
     <label className="flex items-center justify-between cursor-pointer">
       <div>
@@ -1297,7 +2043,9 @@ function Toggle({ label, description, checked, onChange }: { label: string; desc
         role="switch"
         aria-checked={checked}
       >
-        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? "translate-x-6" : "translate-x-1"}`} />
+        <span
+          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? "translate-x-6" : "translate-x-1"}`}
+        />
       </button>
     </label>
   );
@@ -1312,35 +2060,58 @@ interface AdminUserModalProps {
   onDeleteAsset: (photoId: string) => void;
   verificationDocs: VerificationDocument[];
   setVerificationDocs: React.Dispatch<React.SetStateAction<VerificationDocument[]>>;
+  adminEmail: string;
+  setAdminUsersList: React.Dispatch<React.SetStateAction<AdminUser[]>>;
 }
 
-function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, onDeleteAsset, verificationDocs, setVerificationDocs }: AdminUserModalProps) {
+function AdminUserModal({
+  user,
+  onClose,
+  onRoleChange,
+  onStatusChange,
+  assets,
+  onDeleteAsset,
+  verificationDocs,
+  setVerificationDocs,
+  adminEmail,
+  setAdminUsersList,
+}: AdminUserModalProps) {
   const isPhotographer = user.role === "Photographer";
   const [userPurchasesList, setUserPurchasesList] = useState<Purchase[]>([]);
   const [modalTab, setModalTab] = useState<"overview" | "ledger" | "kyc" | "hype">("overview");
 
   useEffect(() => {
-    fetchPurchases(user.id).then(setUserPurchasesList).catch(() => toast.error("Failed to load data"));
+    fetchPurchases(user.id)
+      .then(setUserPurchasesList)
+      .catch(() => {
+        toast.error("An error occurred");
+        return null;
+      });
   }, [user.id]);
-  
+
   // Robustly query photographer photos using ID, name, or slug match
-  const userPhotos = assets.filter((p) =>
-    p.photographerId === user.id ||
-    p.photographer.toLowerCase() === user.name.toLowerCase() ||
-    p.photographerId === user.name.toLowerCase().replace(/\s+/g, "-") ||
-    p.photographerId === user.name.toLowerCase().split(" ")[0]
+  const userPhotos = assets.filter(
+    (p) =>
+      p.photographerId === user.id ||
+      p.photographer.toLowerCase() === user.name.toLowerCase() ||
+      p.photographerId === user.name.toLowerCase().replace(/\s+/g, "-") ||
+      p.photographerId === user.name.toLowerCase().split(" ")[0],
   );
 
   const totalDownloads = userPhotos.reduce((sum, p) => sum + p.downloads, 0);
   const totalViews = userPhotos.reduce((sum, p) => sum + p.views, 0);
   const totalLikes = userPhotos.reduce((sum, p) => sum + p.likes, 0);
 
-  const planName = user.role === "Enterprise" ? "Enterprise" : user.role === "Buyer" ? "Pro" : "Contributor";
+  const planName =
+    user.role === "Enterprise" ? "Enterprise" : user.role === "Buyer" ? "Pro" : "Contributor";
   const isBuyerOrEnterprise = user.role === "Buyer" || user.role === "Enterprise";
 
   return (
-    <div className="fixed inset-0 z-55 flex items-center justify-end bg-[#16231f]/55 backdrop-blur-sm" onClick={onClose}>
-      <div 
+    <div
+      className="fixed inset-0 z-55 flex items-center justify-end bg-[#16231f]/55 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
         className="h-full w-full max-w-2xl bg-[#FAF9F5] p-6 shadow-2xl overflow-y-auto flex flex-col md:p-8 border-l border-[#ececec]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -1353,7 +2124,15 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
             <div>
               <div className="flex items-center gap-2.5">
                 <h2 className="font-serif text-2xl font-semibold text-[#18211f]">{user.name}</h2>
-                <Badge tone={user.status === "Active" ? "green" : user.status === "Suspended" ? "red" : "muted"}>
+                <Badge
+                  tone={
+                    user.status === "Active"
+                      ? "green"
+                      : user.status === "Suspended"
+                        ? "red"
+                        : "muted"
+                  }
+                >
                   {user.status}
                 </Badge>
               </div>
@@ -1363,14 +2142,19 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-full border border-[#ececec] p-1.5 text-[#55605b] hover:bg-[#eef1ec] transition-colors cursor-pointer">
+          <button
+            onClick={onClose}
+            className="rounded-full border border-[#ececec] p-1.5 text-[#55605b] hover:bg-[#eef1ec] transition-colors cursor-pointer"
+          >
             <X className="size-5" />
           </button>
         </div>
 
         {/* Quick Settings */}
         <div className="mt-6 border-b border-[#ececec] pb-6">
-          <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-3">Management Settings</p>
+          <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-3">
+            Management Settings
+          </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="text-xs font-semibold text-[#4a534e]">Platform Role</span>
@@ -1400,7 +2184,7 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
             </label>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2.5">
-            <button 
+            <button
               onClick={async () => {
                 const { error } = await supabase.auth.resetPasswordForEmail(user.email);
                 if (error) toast.error(error.message);
@@ -1410,7 +2194,7 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
             >
               <Key className="size-3.5" /> Reset Password
             </button>
-            <button 
+            <button
               onClick={() => {
                 window.location.href = `mailto:${user.email}?subject=NS%20CAPTURES%20-%20Account%20Notice`;
               }}
@@ -1418,9 +2202,13 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
             >
               <Mail className="size-3.5" /> Email User
             </button>
-            <button 
+            <button
               onClick={async () => {
-                if (window.confirm("Are you sure you want to completely delete this user and all associated data? This action cannot be undone.")) {
+                if (
+                  window.confirm(
+                    "Are you sure you want to completely delete this user and all associated data? This action cannot be undone.",
+                  )
+                ) {
                   // We would call a delete API here. For now we just close and pretend it's deleted.
                   toast.success("User deleted successfully.");
                   onClose();
@@ -1436,7 +2224,7 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
         {/* Modal Navigation */}
         <div className="mt-6 border-b border-[#ececec]">
           <div className="flex gap-6">
-            {(["overview", "ledger", "kyc", "hype"] as const).map(tab => {
+            {(["overview", "ledger", "kyc", "hype"] as const).map((tab) => {
               if (tab === "hype" && !isPhotographer) return null; // Hype engine only for photographers
               return (
                 <button
@@ -1463,185 +2251,285 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
               {isPhotographer && (
                 <div className="flex-1 flex flex-col">
                   {/* Stats */}
-              <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 bg-white border border-[#ececec] rounded-2xl p-4 shadow-sm mb-6">
-                <div>
-                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Uploads</p>
-                  <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">{userPhotos.length}</p>
-                </div>
-                <div>
-                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Total Views</p>
-                  <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">{totalViews.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Downloads</p>
-                  <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">{totalDownloads.toLocaleString()}</p>
-                </div>
-                <div>
-                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Likes</p>
-                  <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">{totalLikes.toLocaleString()}</p>
-                </div>
-              </div>
-
-              {/* Photos Portfolio Grid */}
-              <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-3">Portfolio ({userPhotos.length} Images)</p>
-              {userPhotos.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-[#ececec] rounded-2xl p-8 bg-white text-center">
-                  <ImageIcon className="size-8 text-[#9aa09b] mb-2" />
-                  <p className="text-sm font-semibold text-[#18211f]">No uploads yet</p>
-                  <p className="text-xs text-[#6b716d] mt-1">This contributor has not uploaded any assets to the library.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {userPhotos.map((photo) => (
-                    <div key={photo.id} className="group relative overflow-hidden bg-[#d7d8d2] rounded-xl aspect-square shadow-sm">
-                      <img src={photo.image} alt={photo.title} loading="lazy" className="size-full object-cover group-hover:scale-105 transition-all duration-300" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-2.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex flex-col justify-end">
-                        <p className="text-[10px] font-serif text-white truncate font-medium">{photo.title}</p>
-                        <p className="text-[8px] font-mono text-white/70 mt-0.5 uppercase tracking-wide truncate">
-                          {photo.category} · {photo.license}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1.5 text-[8px] font-mono text-white/80">
-                          <span className="flex items-center gap-0.5"><Eye className="size-2" /> {photo.views}</span>
-                          <span className="flex items-center gap-0.5"><Download className="size-2" /> {photo.downloads}</span>
-                        </div>
-                      </div>
-                      <div className="absolute top-1.5 right-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
-                        <button 
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteAsset(photo.id); }}
-                          className="p-1 rounded-full bg-white/95 text-[#d4183d] hover:bg-white shadow cursor-pointer"
-                          title="Delete photo"
-                        >
-                          <Trash2 className="size-3" />
-                        </button>
-                      </div>
+                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 bg-white border border-[#ececec] rounded-2xl p-4 shadow-sm mb-6">
+                    <div>
+                      <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                        Uploads
+                      </p>
+                      <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">
+                        {userPhotos.length}
+                      </p>
                     </div>
-                  ))}
+                    <div>
+                      <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                        Total Views
+                      </p>
+                      <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">
+                        {totalViews.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                        Downloads
+                      </p>
+                      <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">
+                        {totalDownloads.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                        Likes
+                      </p>
+                      <p className="mt-1.5 font-serif text-xl font-semibold text-[#18211f]">
+                        {totalLikes.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Photos Portfolio Grid */}
+                  <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-3">
+                    Portfolio ({userPhotos.length} Images)
+                  </p>
+                  {userPhotos.length === 0 ? (
+                    <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-[#ececec] rounded-2xl p-8 bg-white text-center">
+                      <ImageIcon className="size-8 text-[#9aa09b] mb-2" />
+                      <p className="text-sm font-semibold text-[#18211f]">No uploads yet</p>
+                      <p className="text-xs text-[#6b716d] mt-1">
+                        This contributor has not uploaded any assets to the library.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {userPhotos.map((photo) => (
+                        <div
+                          key={photo.id}
+                          className="group relative overflow-hidden bg-[#d7d8d2] rounded-xl aspect-square shadow-sm"
+                        >
+                          <img
+                            src={photo.image}
+                            alt={photo.title}
+                            loading="lazy"
+                            className="size-full object-cover group-hover:scale-105 transition-all duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-2.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex flex-col justify-end">
+                            <p className="text-[10px] font-serif text-white truncate font-medium">
+                              {photo.title}
+                            </p>
+                            <p className="text-[8px] font-mono text-white/70 mt-0.5 uppercase tracking-wide truncate">
+                              {photo.category} · {photo.license}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1.5 text-[8px] font-mono text-white/80">
+                              <span className="flex items-center gap-0.5">
+                                <Eye className="size-2" /> {photo.views}
+                              </span>
+                              <span className="flex items-center gap-0.5">
+                                <Download className="size-2" /> {photo.downloads}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="absolute top-1.5 right-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onDeleteAsset(photo.id);
+                              }}
+                              className="p-1 rounded-full bg-white/95 text-[#d4183d] hover:bg-white shadow cursor-pointer"
+                              title="Delete photo"
+                            >
+                              <Trash2 className="size-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {isBuyerOrEnterprise && (
-            <div className="flex-1 flex flex-col space-y-6">
-              {/* Billing tier */}
-              <div className="bg-white border border-[#ececec] rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Active Plan</p>
-                    <h4 className="font-serif text-lg font-semibold text-[#18211f] mt-1">{planName} Tier</h4>
-                    <p className="text-xs text-[#6b716d] mt-0.5">Billing renews automatically each month</p>
+              {isBuyerOrEnterprise && (
+                <div className="flex-1 flex flex-col space-y-6">
+                  {/* Billing tier */}
+                  <div className="bg-white border border-[#ececec] rounded-2xl p-5 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                          Active Plan
+                        </p>
+                        <h4 className="font-serif text-lg font-semibold text-[#18211f] mt-1">
+                          {planName} Tier
+                        </h4>
+                        <p className="text-xs text-[#6b716d] mt-0.5">
+                          Billing renews automatically each month
+                        </p>
+                      </div>
+                      <Badge tone="green">Active</Badge>
+                    </div>
                   </div>
-                  <Badge tone="green">Active</Badge>
-                </div>
-              </div>
 
-              {/* Purchase history */}
-              <div>
-                <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">Invoice Purchase History</p>
-                <div className="overflow-x-auto overflow-y-hidden border border-[#ececec] bg-white rounded-2xl shadow-sm">
-                  <table className="w-full text-left">
-                    <thead className="bg-[#f8f9f7] text-[#6b716d] text-xs font-semibold uppercase">
-                      <tr>
-                        <th className="px-4 py-3 rounded-l-lg">Photo</th>
-                        <th className="px-4 py-3">License</th>
-                        <th className="px-4 py-3">Price</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3 rounded-r-lg text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#ececec]/80">
-                      {userPurchasesList.length > 0 ? userPurchasesList.map((pur) => {
-                        const photo = assets.find(a => a.id === pur.photoId);
-                        return (
-                          <tr key={pur.id} className="group hover:bg-[#f8f9f7]/50 transition-colors">
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <div className="size-10 rounded overflow-hidden bg-[#ececec]">
-                                  {photo && <img src={photo.image} className="w-full h-full object-cover" />}
-                                </div>
-                                <div className="text-xs font-medium text-[#18211f]">
-                                  {photo?.title || pur.photoId}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-xs text-[#6b716d]">{pur.license}</td>
-                            <td className="px-4 py-3 text-sm font-medium text-[#18211f]">£{(pur.price || 0).toLocaleString()}</td>
-                            <td className="px-4 py-3">
-                              <span className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                pur.status === "APPROVED" ? "bg-green-50 text-green-700" : 
-                                pur.status === "REJECTED" ? "bg-red-50 text-red-700" : 
-                                "bg-yellow-50 text-yellow-700"
-                              }`}>
-                                {pur.status || "PENDING"}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              {pur.status !== "APPROVED" && pur.status !== "REJECTED" && (
-                                <div className="flex justify-end gap-3">
-                                  <button
-                                    onClick={async () => {
-                                      const ok = await rejectPurchase(pur.id);
-                                      if (ok) {
-                                        setUserPurchasesList(prev => prev.map(p => p.id === pur.id ? { ...p, status: "REJECTED" } : p));
-                                        toast.success("Purchase rejected");
-                                        sendPurchaseRejectedNotification(user.email, user.name || "Customer", photo?.title || "your photo");
-                                      } else {
-                                        toast.error("Rejection failed");
-                                      }
-                                    }}
-                                    className="text-xs text-[#d4183d] font-semibold hover:underline"
-                                  >
-                                    Reject
-                                  </button>
-                                  <button
-                                    onClick={async () => {
-                                      const ok = await approvePurchase(pur.id, pur.photoId, pur.userId);
-                                      if (ok) {
-                                        setUserPurchasesList(prev => prev.map(p => p.id === pur.id ? { ...p, status: "APPROVED" } : p));
-                                        toast.success("Purchase approved", { description: "License activated and buyer notified." });
-                                        sendPurchaseApprovedNotification(user.email, user.name || "Customer", photo?.title || "your photo");
-                                      } else {
-                                        toast.error("Approval failed");
-                                      }
-                                    }}
-                                    className="text-xs text-[#1e4a3f] font-semibold hover:underline"
-                                  >
-                                    Approve
-                                  </button>
-                                </div>
-                              )}
-                            </td>
+                  {/* Purchase history */}
+                  <div>
+                    <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">
+                      Invoice Purchase History
+                    </p>
+                    <div className="overflow-x-auto overflow-y-hidden border border-[#ececec] bg-white rounded-2xl shadow-sm">
+                      <table className="w-full text-left">
+                        <thead className="bg-[#f8f9f7] text-[#6b716d] text-xs font-semibold uppercase">
+                          <tr>
+                            <th className="px-4 py-3 rounded-l-lg">Photo</th>
+                            <th className="px-4 py-3">License</th>
+                            <th className="px-4 py-3">Price</th>
+                            <th className="px-4 py-3">Status</th>
+                            <th className="px-4 py-3 rounded-r-lg text-right">Action</th>
                           </tr>
-                        );
-                      }) : (
-                        <tr>
-                          <td colSpan={5} className="px-4 py-6 text-center text-xs text-[#6b716d]">No purchases yet</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody className="divide-y divide-[#ececec]/80">
+                          {userPurchasesList.length > 0 ? (
+                            userPurchasesList.map((pur) => {
+                              const photo = assets.find((a) => a.id === pur.photoId);
+                              return (
+                                <tr
+                                  key={pur.id}
+                                  className="group hover:bg-[#f8f9f7]/50 transition-colors"
+                                >
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="size-10 rounded overflow-hidden bg-[#ececec]">
+                                        {photo && (
+                                          <img
+                                            src={photo.image}
+                                            className="w-full h-full object-cover"
+                                          />
+                                        )}
+                                      </div>
+                                      <div className="text-xs font-medium text-[#18211f]">
+                                        {photo?.title || pur.photoId}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-xs text-[#6b716d]">
+                                    {pur.license}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm font-medium text-[#18211f]">
+                                    £{(pur.price || 0).toLocaleString()}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span
+                                      className={`inline-flex items-center px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                        pur.status === "APPROVED"
+                                          ? "bg-green-50 text-green-700"
+                                          : pur.status === "REJECTED"
+                                            ? "bg-red-50 text-red-700"
+                                            : "bg-yellow-50 text-yellow-700"
+                                      }`}
+                                    >
+                                      {pur.status || "PENDING"}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    {pur.status !== "APPROVED" && pur.status !== "REJECTED" && (
+                                      <div className="flex justify-end gap-3">
+                                        <button
+                                          onClick={async () => {
+                                            const ok = await rejectPurchase(pur.id);
+                                            if (ok) {
+                                              setUserPurchasesList((prev) =>
+                                                prev.map((p) =>
+                                                  p.id === pur.id
+                                                    ? { ...p, status: "REJECTED" }
+                                                    : p,
+                                                ),
+                                              );
+                                              toast.success("Purchase rejected");
+                                              sendPurchaseRejectedNotification(
+                                                user.email,
+                                                user.name || "Customer",
+                                                photo?.title || "your photo",
+                                              );
+                                            } else {
+                                              toast.error("Rejection failed");
+                                            }
+                                          }}
+                                          className="text-xs text-[#d4183d] font-semibold hover:underline"
+                                        >
+                                          Reject
+                                        </button>
+                                        <button
+                                          onClick={async () => {
+                                            const ok = await approvePurchase(
+                                              pur.id,
+                                              pur.photoId,
+                                              pur.userId,
+                                            );
+                                            if (ok) {
+                                              setUserPurchasesList((prev) =>
+                                                prev.map((p) =>
+                                                  p.id === pur.id
+                                                    ? { ...p, status: "APPROVED" }
+                                                    : p,
+                                                ),
+                                              );
+                                              toast.success("Purchase approved", {
+                                                description:
+                                                  "License activated and buyer notified.",
+                                              });
+                                              sendPurchaseApprovedNotification(
+                                                user.email,
+                                                user.name || "Customer",
+                                                photo?.title || "your photo",
+                                              );
+                                            } else {
+                                              toast.error("Approval failed");
+                                            }
+                                          }}
+                                          className="text-xs text-[#1e4a3f] font-semibold hover:underline"
+                                        >
+                                          Approve
+                                        </button>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          ) : (
+                            <tr>
+                              <td
+                                colSpan={5}
+                                className="px-4 py-6 text-center text-xs text-[#6b716d]"
+                              >
+                                No purchases yet
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Collections */}
+                  <div>
+                    <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">
+                      Active Collections
+                    </p>
+                    <div className="border border-dashed border-[#ececec] bg-white p-6 rounded-2xl text-center">
+                      <FolderHeart className="size-6 text-[#9aa09b] mx-auto mb-2" />
+                      <p className="text-xs text-[#6b716d]">No collections yet</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Collections */}
-              <div>
-                <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">Active Collections</p>
-                <div className="border border-dashed border-[#ececec] bg-white p-6 rounded-2xl text-center">
-                  <FolderHeart className="size-6 text-[#9aa09b] mx-auto mb-2" />
-                  <p className="text-xs text-[#6b716d]">No collections yet</p>
+              {!isPhotographer && !isBuyerOrEnterprise && (
+                <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-[#ececec] rounded-2xl p-8 bg-white text-center">
+                  <ShieldAlert className="size-8 text-[#1e4a3f] mb-2" />
+                  <p className="text-sm font-semibold text-[#18211f]">{user.role} Dashboard</p>
+                  <p className="text-xs text-[#6b716d] mt-1">
+                    This user has the administrative role and does not have shopper or photographer
+                    metrics.
+                  </p>
                 </div>
-              </div>
-            </div>
-          )}
-
-
-          {!isPhotographer && !isBuyerOrEnterprise && (
-            <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-[#ececec] rounded-2xl p-8 bg-white text-center">
-              <ShieldAlert className="size-8 text-[#1e4a3f] mb-2" />
-              <p className="text-sm font-semibold text-[#18211f]">{user.role} Dashboard</p>
-              <p className="text-xs text-[#6b716d] mt-1">This user has the administrative role and does not have shopper or photographer metrics.</p>
-            </div>
-          )}
+              )}
             </div>
           )}
           {modalTab === "ledger" && (
@@ -1650,21 +2538,42 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-serif text-lg text-[#18211f]">Financial Ledger</h3>
                   <div className="text-right">
-                    <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase">Available Balance</p>
-                    <p className="font-serif text-xl font-semibold text-[#1e4a3f]">£{user.payoutBalance?.toLocaleString() || "0.00"}</p>
+                    <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase">
+                      Available Balance
+                    </p>
+                    <p className="font-serif text-xl font-semibold text-[#1e4a3f]">
+                      £{user.payoutBalance?.toLocaleString() || "0.00"}
+                    </p>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-4 items-end bg-[#f8f9f7] p-4 rounded-xl border border-[#ececec]">
                   <div className="flex-1">
-                    <label className="block text-xs font-semibold text-[#4a534e] mb-1.5">Adjustment Amount (£)</label>
-                    <input type="number" id="ledger-amount" placeholder="e.g. 50 or -50" className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]" />
+                    <label className="block text-xs font-semibold text-[#4a534e] mb-1.5">
+                      Adjustment Amount (£)
+                    </label>
+                    <input
+                      type="number"
+                      id="ledger-amount"
+                      placeholder="e.g. 50 or -50"
+                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                    />
                   </div>
                   <div className="flex-2">
-                    <label className="block text-xs font-semibold text-[#4a534e] mb-1.5">Reason / Note</label>
-                    <input type="text" id="ledger-note" placeholder="e.g. Bonus for top performing image" className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]" />
+                    <label className="block text-xs font-semibold text-[#4a534e] mb-1.5">
+                      Reason / Note
+                    </label>
+                    <input
+                      type="text"
+                      id="ledger-note"
+                      placeholder="e.g. Bonus for top performing image"
+                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                    />
                   </div>
-                  <button onClick={() => alert('Balance update requires API integration')} className="bg-[#1e4a3f] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#123b31] transition-colors whitespace-nowrap">
+                  <button
+                    onClick={() => alert("Balance update requires API integration")}
+                    className="bg-[#1e4a3f] text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-[#123b31] transition-colors whitespace-nowrap"
+                  >
                     Update Balance
                   </button>
                 </div>
@@ -1686,32 +2595,55 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
               <div className="bg-white border border-[#ececec] rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-serif text-lg text-[#18211f]">Identity Verification</h3>
-                  <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                    user.verificationStatus === "verified" ? "bg-green-50 text-green-700" :
-                    user.verificationStatus === "rejected" ? "bg-red-50 text-red-700" :
-                    user.verificationStatus === "pending" ? "bg-amber-50 text-amber-700" :
-                    "bg-gray-50 text-gray-500"
-                  }`}>
+                  <span
+                    className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                      user.verificationStatus === "verified"
+                        ? "bg-green-50 text-green-700"
+                        : user.verificationStatus === "rejected"
+                          ? "bg-red-50 text-red-700"
+                          : user.verificationStatus === "pending"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-gray-50 text-gray-500"
+                    }`}
+                  >
                     {user.verificationStatus || "unverified"}
                   </span>
                 </div>
-                
+
                 {(() => {
-                  const userDocs = verificationDocs.filter(d => d.userId === user.id).sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+                  const userDocs = verificationDocs
+                    .filter((d) => d.userId === user.id)
+                    .sort(
+                      (a, b) =>
+                        new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime(),
+                    );
                   if (userDocs.length === 0) {
                     return (
                       <div className="border border-dashed border-[#ececec] bg-[#f8f9f7] p-8 rounded-xl text-center">
                         <p className="text-sm font-semibold text-[#18211f]">No documents found</p>
-                        <p className="text-xs text-[#6b716d] mt-1 mb-4">This user has not submitted any KYC documents.</p>
-                        
+                        <p className="text-xs text-[#6b716d] mt-1 mb-4">
+                          This user has not submitted any KYC documents.
+                        </p>
+
                         <div className="pt-4 border-t border-[#ececec]">
-                          <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-3">Admin Actions</p>
+                          <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-3">
+                            Admin Actions
+                          </p>
                           <button
                             onClick={async () => {
-                              if (!confirm(`Are you sure you want to manually verify ${user.name} without KYC documents?`)) return;
+                              if (
+                                !confirm(
+                                  `Are you sure you want to manually verify ${user.name} without KYC documents?`,
+                                )
+                              )
+                                return;
                               try {
                                 await updateUserVerificationStatus(user.id, "verified");
-                                setAdminUsersList(users => users.map(u => u.id === user.id ? { ...u, verificationStatus: "verified" } : u));
+                                setAdminUsersList((users) =>
+                                  users.map((u) =>
+                                    u.id === user.id ? { ...u, verificationStatus: "verified" } : u,
+                                  ),
+                                );
                                 toast.success("User has been manually verified.");
                               } catch (err: any) {
                                 toast.error(err.message || "Failed to verify user");
@@ -1725,55 +2657,96 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                       </div>
                     );
                   }
-                  
+
                   return (
                     <div className="space-y-4">
-                      {userDocs.map(doc => (
-                        <div key={doc.id} className="border border-[#ececec] rounded-xl overflow-hidden">
+                      {userDocs.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className="border border-[#ececec] rounded-xl overflow-hidden"
+                        >
                           <div className="bg-[#f8f9f7] px-4 py-3 border-b border-[#ececec] flex items-center justify-between">
                             <div>
-                              <p className="text-sm font-semibold text-[#18211f] capitalize">{doc.documentType.replace(/_/g, " ")}</p>
-                              <p className="text-xs text-[#6b716d]">Submitted: {new Date(doc.submittedAt).toLocaleString()}</p>
+                              <p className="text-sm font-semibold text-[#18211f] capitalize">
+                                {doc.documentType.replace(/_/g, " ")}
+                              </p>
+                              <p className="text-xs text-[#6b716d]">
+                                Submitted: {new Date(doc.submittedAt).toLocaleString()}
+                              </p>
                             </div>
-                            <span className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
-                              doc.status === "approved" ? "bg-green-50 text-green-700" :
-                              doc.status === "rejected" ? "bg-red-50 text-red-700" :
-                              "bg-amber-50 text-amber-700"
-                            }`}>{doc.status}</span>
+                            <span
+                              className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                                doc.status === "approved"
+                                  ? "bg-green-50 text-green-700"
+                                  : doc.status === "rejected"
+                                    ? "bg-red-50 text-red-700"
+                                    : "bg-amber-50 text-amber-700"
+                              }`}
+                            >
+                              {doc.status}
+                            </span>
                           </div>
-                          
+
                           <div className="p-4">
                             <div className="grid grid-cols-2 gap-4 mb-4">
                               <div>
-                                <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1">Document Number</p>
-                                <p className="text-sm text-[#18211f] font-mono">{doc.documentNumber || "N/A"}</p>
+                                <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1">
+                                  Document Number
+                                </p>
+                                <p className="text-sm text-[#18211f] font-mono">
+                                  {doc.documentNumber || "N/A"}
+                                </p>
                               </div>
                               {doc.status !== "pending" && (
                                 <div>
-                                  <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1">Reviewed By</p>
+                                  <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1">
+                                    Reviewed By
+                                  </p>
                                   <p className="text-xs text-[#18211f]">{doc.reviewedBy}</p>
                                 </div>
                               )}
                             </div>
-                            
+
                             {doc.fileUrl && (
                               <div className="mb-4">
-                                <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-[#1e4a3f] font-semibold hover:underline flex items-center gap-1">
+                                <a
+                                  href={doc.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-[#1e4a3f] font-semibold hover:underline flex items-center gap-1"
+                                >
                                   <ImageIcon className="size-4" /> View Attached Document
                                 </a>
                               </div>
                             )}
-                            
+
                             {doc.status === "pending" && (
                               <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#ececec]">
                                 <button
                                   onClick={async () => {
                                     if (!confirm("Approve this document?")) return;
                                     try {
-                                      await reviewVerificationDocument(doc.id, "approved", "Approved by admin", currentUser!.email!);
+                                      await reviewVerificationDocument(
+                                        doc.id,
+                                        "approved",
+                                        "Approved by admin",
+                                        adminEmail,
+                                      );
                                       toast.success("Document approved");
-                                      setVerificationDocs(docs => docs.map(d => d.id === doc.id ? { ...d, status: "approved", reviewedBy: currentUser!.email! } : d));
-                                      setAdminUsersList(users => users.map(u => u.id === user.id ? { ...u, verificationStatus: "verified" } : u));
+                                      setVerificationDocs((docs) =>
+                                        docs.map((d) =>
+                                          d.id === doc.id
+                                            ? { ...d, status: "approved", reviewedBy: adminEmail }
+                                            : d,
+                                        ),
+                                      );
+                                      setAdminUsersList((users) =>
+                                        users.map((u) =>
+                                          u.id === user.id
+                                            ? { ...u, verificationStatus: "verified" }
+                                            : u,
+                                        ),
+                                      );
                                       sendVerificationStatus(user.email, user.name, "approved");
                                     } catch (err: any) {
                                       toast.error(err.message || "Approval failed");
@@ -1788,11 +2761,38 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                                     const note = prompt("Reason for rejection:");
                                     if (note === null) return;
                                     try {
-                                      await reviewVerificationDocument(doc.id, "rejected", note || "Rejected by admin", currentUser!.email!);
+                                      await reviewVerificationDocument(
+                                        doc.id,
+                                        "rejected",
+                                        note || "Rejected by admin",
+                                        adminEmail,
+                                      );
                                       toast.success("Document rejected");
-                                      setVerificationDocs(docs => docs.map(d => d.id === doc.id ? { ...d, status: "rejected", adminNote: note || "", reviewedBy: currentUser!.email! } : d));
-                                      setAdminUsersList(users => users.map(u => u.id === user.id ? { ...u, verificationStatus: "rejected" } : u));
-                                      sendVerificationStatus(user.email, user.name, "rejected", note || "Rejected by admin");
+                                      setVerificationDocs((docs) =>
+                                        docs.map((d) =>
+                                          d.id === doc.id
+                                            ? {
+                                                ...d,
+                                                status: "rejected",
+                                                adminNote: note || "",
+                                                reviewedBy: adminEmail,
+                                              }
+                                            : d,
+                                        ),
+                                      );
+                                      setAdminUsersList((users) =>
+                                        users.map((u) =>
+                                          u.id === user.id
+                                            ? { ...u, verificationStatus: "rejected" }
+                                            : u,
+                                        ),
+                                      );
+                                      sendVerificationStatus(
+                                        user.email,
+                                        user.name,
+                                        "rejected",
+                                        note || "Rejected by admin",
+                                      );
                                     } catch (err: any) {
                                       toast.error(err.message || "Rejection failed");
                                     }
@@ -1819,51 +2819,99 @@ function AdminUserModal({ user, onClose, onRoleChange, onStatusChange, assets, o
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="font-serif text-lg text-[#18211f]">The Hype Engine</h3>
-                    <p className="text-xs text-[#6b716d]">Manually override public metrics to boost creator visibility.</p>
+                    <p className="text-xs text-[#6b716d]">
+                      Manually override public metrics to boost creator visibility.
+                    </p>
                   </div>
                 </div>
-                
+
                 <div className="space-y-6">
                   <div>
-                    <p className="text-xs font-bold text-[#18211f] uppercase tracking-wider mb-3 pb-2 border-b border-[#ececec]">Account Overrides</p>
+                    <p className="text-xs font-bold text-[#18211f] uppercase tracking-wider mb-3 pb-2 border-b border-[#ececec]">
+                      Account Overrides
+                    </p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1.5">Custom Followers Count</label>
-                        <input defaultValue={user.customFollowers || ""} type="text" placeholder="e.g. 1.2k" className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]" />
+                        <label className="block text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1.5">
+                          Custom Followers Count
+                        </label>
+                        <input
+                          defaultValue={user.customFollowers || ""}
+                          type="text"
+                          placeholder="e.g. 1.2k"
+                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        />
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-xs font-bold text-[#18211f] uppercase tracking-wider mb-3 pb-2 border-b border-[#ececec]">Asset Overrides</p>
+                    <p className="text-xs font-bold text-[#18211f] uppercase tracking-wider mb-3 pb-2 border-b border-[#ececec]">
+                      Asset Overrides
+                    </p>
                     {userPhotos.length === 0 ? (
                       <p className="text-xs text-[#6b716d]">No photos to override.</p>
                     ) : (
                       <div className="space-y-3">
-                        {userPhotos.slice(0, 5).map(photo => (
-                          <div key={photo.id} className="flex items-center gap-4 bg-[#f8f9f7] p-3 rounded-xl border border-[#ececec]">
-                            <img src={photo.image} className="size-10 object-cover rounded bg-[#ececec]" />
+                        {userPhotos.slice(0, 5).map((photo) => (
+                          <div
+                            key={photo.id}
+                            className="flex items-center gap-4 bg-[#f8f9f7] p-3 rounded-xl border border-[#ececec]"
+                          >
+                            <img
+                              src={photo.image}
+                              className="size-10 object-cover rounded bg-[#ececec]"
+                            />
                             <div className="flex-1">
-                              <p className="text-xs font-semibold truncate max-w-[150px]">{photo.title}</p>
+                              <p className="text-xs font-semibold truncate max-w-[150px]">
+                                {photo.title}
+                              </p>
                             </div>
                             <div className="flex gap-2">
-                              <input id={`views-${photo.id}`} type="number" placeholder="Views" defaultValue={photo.customViews || ""} className="w-20 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none" title="Custom Views" />
-                              <input id={`likes-${photo.id}`} type="number" placeholder="Likes" defaultValue={photo.customLikes || ""} className="w-20 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none" title="Custom Likes" />
-                              <input id={`dls-${photo.id}`} type="number" placeholder="Dls" defaultValue={photo.customDownloads || ""} className="w-16 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none" title="Custom Downloads" />
+                              <input
+                                id={`views-${photo.id}`}
+                                type="number"
+                                placeholder="Views"
+                                defaultValue={photo.customViews || ""}
+                                className="w-20 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none"
+                                title="Custom Views"
+                              />
+                              <input
+                                id={`likes-${photo.id}`}
+                                type="number"
+                                placeholder="Likes"
+                                defaultValue={photo.customLikes || ""}
+                                className="w-20 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none"
+                                title="Custom Likes"
+                              />
+                              <input
+                                id={`dls-${photo.id}`}
+                                type="number"
+                                placeholder="Dls"
+                                defaultValue={photo.customDownloads || ""}
+                                className="w-16 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none"
+                                title="Custom Downloads"
+                              />
                             </div>
-                            <button 
+                            <button
                               onClick={async () => {
-                                const v = (document.getElementById(`views-${photo.id}`) as HTMLInputElement)?.value;
-                                const l = (document.getElementById(`likes-${photo.id}`) as HTMLInputElement)?.value;
-                                const d = (document.getElementById(`dls-${photo.id}`) as HTMLInputElement)?.value;
+                                const v = (
+                                  document.getElementById(`views-${photo.id}`) as HTMLInputElement
+                                )?.value;
+                                const l = (
+                                  document.getElementById(`likes-${photo.id}`) as HTMLInputElement
+                                )?.value;
+                                const d = (
+                                  document.getElementById(`dls-${photo.id}`) as HTMLInputElement
+                                )?.value;
                                 const ok = await updatePhotoHypeOverrides(photo.id, {
                                   customViews: v ? parseInt(v, 10) : undefined,
                                   customLikes: l ? parseInt(l, 10) : undefined,
                                   customDownloads: d ? parseInt(d, 10) : undefined,
                                 });
-                                if (ok) toast.success('Overrides saved!');
-                                else toast.error('Failed to save overrides');
-                              }} 
+                                if (ok) toast.success("Overrides saved!");
+                                else toast.error("Failed to save overrides");
+                              }}
                               className="text-xs font-semibold text-[#1e4a3f] hover:underline whitespace-nowrap cursor-pointer"
                             >
                               Save

@@ -20,7 +20,7 @@ export function SearchPage() {
   const [query, setQuery] = useState(q);
   const [category, setCategory] = useState(params.get("cat") ?? "All");
   const [photos, setPhotos] = useState<Photo[]>([]);
-  
+
   const [activeLicenses, setActiveLicenses] = useState<License[]>([]);
   const [orientation, setOrientation] = useState<Orientation | null>(null);
   const [maxPrice, setMaxPrice] = useState(10000);
@@ -56,15 +56,15 @@ export function SearchPage() {
         const { photos: newPhotos, hasMore: more } = await fetchPhotosPaginated(
           { query, category, licenses: activeLicenses, orientation, maxPrice, sort, collectionId },
           page,
-          20
+          20,
         );
-        
+
         if (!active) return;
-        
+
         if (page === 0) {
           setPhotos(newPhotos);
         } else {
-          setPhotos(prev => [...prev, ...newPhotos]);
+          setPhotos((prev) => [...prev, ...newPhotos]);
         }
         setHasMore(more);
       } catch (err) {
@@ -77,23 +77,28 @@ export function SearchPage() {
       }
     };
     fetch();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [page, query, category, activeLicenses, orientation, maxPrice, sort]);
 
   // Infinite Scroll Observer
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const lastElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (isLoading || isLoadingMore) return;
-    if (observerRef.current) observerRef.current.disconnect();
-    
-    observerRef.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        setPage(prev => prev + 1);
-      }
-    });
-    
-    if (node) observerRef.current.observe(node);
-  }, [isLoading, isLoadingMore, hasMore]);
+  const lastElementRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (isLoading || isLoadingMore) return;
+      if (observerRef.current) observerRef.current.disconnect();
+
+      observerRef.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setPage((prev) => prev + 1);
+        }
+      });
+
+      if (node) observerRef.current.observe(node);
+    },
+    [isLoading, isLoadingMore, hasMore],
+  );
 
   const toggleLicense = (l: License) =>
     setActiveLicenses((prev) => (prev.includes(l) ? prev.filter((x) => x !== l) : [...prev, l]));
@@ -144,7 +149,9 @@ export function SearchPage() {
               key={o}
               onClick={() => setOrientation((prev) => (prev === o ? null : o))}
               className={`rounded-full border px-3 py-1.5 text-xs capitalize transition ${
-                orientation === o ? "border-[#1e4a3f] bg-[#e7ebe2] text-[#1e4a3f]" : "border-[#ececec] text-[#68706b]"
+                orientation === o
+                  ? "border-[#1e4a3f] bg-[#e7ebe2] text-[#1e4a3f]"
+                  : "border-[#ececec] text-[#68706b]"
               }`}
             >
               {o}
@@ -153,8 +160,10 @@ export function SearchPage() {
         </div>
       </div>
       <div>
-        <p className="mb-3 font-mono text-[10px] tracking-[0.14em] text-[#758078]">MAX PRICE — £{maxPrice}</p>
-          <input
+        <p className="mb-3 font-mono text-[10px] tracking-[0.14em] text-[#758078]">
+          MAX PRICE — £{maxPrice}
+        </p>
+        <input
           type="range"
           min={100}
           max={10000}
@@ -173,20 +182,35 @@ export function SearchPage() {
   return (
     <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
       {/* Search bar */}
-      <form onSubmit={submit} className="flex items-center gap-2 border border-[#ececec] bg-[#ffffff] ns-shadow-sm px-4 py-3">
-        {ai ? <Sparkles className="size-5 text-[#1e4a3f]" /> : <Search className="size-5 text-[#56625d]" />}
+      <form
+        onSubmit={submit}
+        className="flex items-center gap-2 border border-[#ececec] bg-[#ffffff] ns-shadow-sm px-4 py-3"
+      >
+        {ai ? (
+          <Sparkles className="size-5 text-[#1e4a3f]" />
+        ) : (
+          <Search className="size-5 text-[#56625d]" />
+        )}
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={ai ? "Describe the image you need..." : "Search photographs, people, places..."}
+          placeholder={
+            ai ? "Describe the image you need..." : "Search photographs, people, places..."
+          }
           className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[#8a8f89]"
         />
-        <button type="submit" className="rounded-full bg-[#1e4a3f] px-4 py-2 text-sm font-semibold text-white">Search</button>
+        <button
+          type="submit"
+          className="rounded-full bg-[#1e4a3f] px-4 py-2 text-sm font-semibold text-white"
+        >
+          Search
+        </button>
       </form>
 
       {ai && (
         <p className="mt-3 flex items-center gap-2 text-xs text-[#547066]">
-          <Sparkles className="size-3.5" /> AI semantic search — results ranked by meaning, not just keywords.
+          <Sparkles className="size-3.5" /> AI semantic search — results ranked by meaning, not just
+          keywords.
         </p>
       )}
 
@@ -203,7 +227,9 @@ export function SearchPage() {
               setParams(next);
             }}
             className={`shrink-0 rounded-full border px-4 py-1.5 text-sm transition ${
-              category === c ? "border-[#1e4a3f] bg-[#1e4a3f] text-white ns-shadow-sm" : "border-[#ececec] bg-white/50 text-[#4a534e] hover:border-[#1e4a3f]"
+              category === c
+                ? "border-[#1e4a3f] bg-[#1e4a3f] text-white ns-shadow-sm"
+                : "border-[#ececec] bg-white/50 text-[#4a534e] hover:border-[#1e4a3f]"
             }`}
           >
             {c}
@@ -214,16 +240,20 @@ export function SearchPage() {
       <div className="mt-8 flex gap-10">
         {/* Sidebar filters (desktop) */}
         <aside className="hidden w-56 shrink-0 lg:block">
-          <div className="sticky top-24">
-            {filtersContent}
-          </div>
+          <div className="sticky top-24">{filtersContent}</div>
         </aside>
 
         {/* Results */}
         <div className="min-w-0 flex-1">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <Eyebrow>{collectionName ? `COLLECTION: ${collectionName.toUpperCase()}` : query ? `RESULTS FOR "${query.toUpperCase()}"` : "NS COLLECTION"}</Eyebrow>
+              <Eyebrow>
+                {collectionName
+                  ? `COLLECTION: ${collectionName.toUpperCase()}`
+                  : query
+                    ? `RESULTS FOR "${query.toUpperCase()}"`
+                    : "NS COLLECTION"}
+              </Eyebrow>
               {isLoading ? (
                 <div className="mt-2 h-4 w-16 bg-[#ececec] rounded animate-pulse" />
               ) : (
@@ -253,14 +283,20 @@ export function SearchPage() {
             <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 640: 2, 1024: 3 }}>
               <Masonry gutter="20px">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="rounded-xl bg-[#ececec] animate-pulse" style={{ height: Math.floor(Math.random() * 200) + 200 + 'px' }} />
+                  <div
+                    key={i}
+                    className="rounded-xl bg-[#ececec] animate-pulse"
+                    style={{ height: 150 + ((i * 37) % 200) + "px" }}
+                  />
                 ))}
               </Masonry>
             </ResponsiveMasonry>
           ) : photos.length === 0 ? (
             <div className="border border-dashed border-[#ececec] py-24 text-center">
               <p className="font-serif text-2xl">No matches yet.</p>
-              <p className="mt-2 text-sm text-[#6b716d]">Try a broader term or request a custom shoot.</p>
+              <p className="mt-2 text-sm text-[#6b716d]">
+                Try a broader term or request a custom shoot.
+              </p>
             </div>
           ) : (
             <>
@@ -276,13 +312,13 @@ export function SearchPage() {
                   })}
                 </Masonry>
               </ResponsiveMasonry>
-              
+
               {isLoadingMore && (
                 <div className="mt-8 flex justify-center py-4">
                   <Loader2 className="size-6 animate-spin text-[#1e4a3f]" />
                 </div>
               )}
-              
+
               {!hasMore && photos.length > 0 && (
                 <div className="mt-12 text-center text-sm text-[#6b716d]">
                   End of results. You've seen all {photos.length} images.
@@ -297,10 +333,15 @@ export function SearchPage() {
       {drawer && (
         <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setDrawer(false)}>
           <div className="absolute inset-0 bg-black/40" />
-          <div className="absolute right-0 top-0 h-full w-80 max-w-[85%] overflow-y-auto bg-[#ffffff] p-6" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="absolute right-0 top-0 h-full w-80 max-w-[85%] overflow-y-auto bg-[#ffffff] p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-6 flex items-center justify-between">
               <h3 className="font-serif text-2xl">Filters</h3>
-              <button onClick={() => setDrawer(false)}><X /></button>
+              <button onClick={() => setDrawer(false)}>
+                <X />
+              </button>
             </div>
             {filtersContent}
           </div>

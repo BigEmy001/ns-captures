@@ -10,16 +10,34 @@ import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { useRequest } from "../components/RequestModal";
 import { toast } from "sonner";
 import type { Photo, Collection, Photographer, Brief } from "../data/photos";
-import { fetchPhotos, fetchCollections, fetchPhotographers, fetchBriefs, getOptimizedImageUrl } from "../data/db";
+import {
+  fetchPhotos,
+  fetchCollections,
+  fetchPhotographers,
+  fetchBriefs,
+  getOptimizedImageUrl,
+} from "../data/db";
 import { AnimatedRays } from "../components/ui/animated-rays";
 
 const heroImage =
   "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=86&w=1800";
 
 const testimonials = [
-  { quote: "The request system got us imagery no library had. On brand, on budget, in three days.", name: "Aïcha Bello", role: "Creative Director, Mainland Studio" },
-  { quote: "Clean licensing our legal team actually understands. That alone changed how we buy.", name: "Daniel Okoro", role: "Head of Brand, Paystack-scale fintech" },
-  { quote: "It feels like a design tool, not a stock site. We live in it now.", name: "Marta Ruiz", role: "Art Buyer, Continental Press" },
+  {
+    quote: "The request system got us imagery no library had. On brand, on budget, in three days.",
+    name: "Aïcha Bello",
+    role: "Creative Director, Mainland Studio",
+  },
+  {
+    quote: "Clean licensing our legal team actually understands. That alone changed how we buy.",
+    name: "Daniel Okoro",
+    role: "Head of Brand, Paystack-scale fintech",
+  },
+  {
+    quote: "It feels like a design tool, not a stock site. We live in it now.",
+    name: "Marta Ruiz",
+    role: "Art Buyer, Continental Press",
+  },
 ];
 
 const companies = ["MERIDIAN", "PALMWINE", "NORTHWIND", "STUDIO LINE", "CONTINENTAL", "ATLAS & CO"];
@@ -33,10 +51,22 @@ export function Home() {
 
   useEffect(() => {
     Promise.all([
-      fetchPhotos().catch(() => toast.error("Something went wrong")),
-      fetchCollections().catch(() => toast.error("Something went wrong")),
-      fetchPhotographers().catch(() => toast.error("Something went wrong")),
-      fetchBriefs().catch(() => toast.error("Something went wrong")),
+      fetchPhotos().catch(() => {
+        toast.error("An error occurred");
+        return null;
+      }),
+      fetchCollections().catch(() => {
+        toast.error("An error occurred");
+        return null;
+      }),
+      fetchPhotographers().catch(() => {
+        toast.error("An error occurred");
+        return null;
+      }),
+      fetchBriefs().catch(() => {
+        toast.error("An error occurred");
+        return null;
+      }),
     ]).then(([photos, collections, photographers, briefs]) => {
       if (photos) setPhotos(photos);
       if (collections) setCollections(collections);
@@ -45,12 +75,7 @@ export function Home() {
     });
   }, []);
 
-  const trendingTags = [
-    "Portrait",
-    "Lifestyle",
-    "Architecture",
-    "Fashion",
-  ];
+  const trendingTags = ["Portrait", "Lifestyle", "Architecture", "Fashion"];
 
   const firstBrief = briefs[0];
 
@@ -71,14 +96,17 @@ export function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-[#0d211b]/70 via-transparent to-transparent" />
 
         <div className="relative mx-auto w-full max-w-[1440px] px-5 pb-16 pt-40 sm:px-8 lg:px-12 lg:pb-20">
-          <p className="font-mono text-[10px] tracking-[0.24em] text-white/70">THE VISUAL REFERENCE LIBRARY — 2026</p>
+          <p className="font-mono text-[10px] tracking-[0.24em] text-white/70">
+            THE VISUAL REFERENCE LIBRARY — 2026
+          </p>
           <h1 className="mt-6 max-w-3xl font-serif text-[clamp(2.8rem,6vw,5.6rem)] font-medium leading-[0.95] tracking-[-0.03em]">
             Find the image
             <br />
             behind the <em className="italic">idea.</em>
           </h1>
           <p className="mt-6 max-w-lg text-base leading-7 text-white/70">
-            Discover or commission the exact photograph your work needs — licensed with rights you can trust.
+            Discover or commission the exact photograph your work needs — licensed with rights you
+            can trust.
           </p>
           <div className="mt-8 hero-search-wrapper">
             <HeroSearch />
@@ -86,7 +114,11 @@ export function Home() {
           <p className="mt-5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/70">
             Trending:
             {trendingTags.map((t) => (
-              <Link key={t} to={`/search?q=${encodeURIComponent(t)}`} className="underline underline-offset-4 hover:text-white">
+              <Link
+                key={t}
+                to={`/search?q=${encodeURIComponent(t)}`}
+                className="underline underline-offset-4 hover:text-white"
+              >
                 {t}
               </Link>
             ))}
@@ -101,7 +133,9 @@ export function Home() {
       <section className="mx-auto max-w-[1440px] px-5 py-12 sm:px-8 lg:px-12">
         <div className="mb-6 flex items-end justify-between">
           <h2 className="font-serif text-3xl sm:text-4xl">Explore the library</h2>
-          <Link to="/search" className="text-sm font-semibold text-[#1e4a3f] hover:underline">See all</Link>
+          <Link to="/search" className="text-sm font-semibold text-[#1e4a3f] hover:underline">
+            See all
+          </Link>
         </div>
         <TopicRail />
 
@@ -113,7 +147,9 @@ export function Home() {
           ))}
         </div>
         <div className="mt-10 text-center">
-          <Link to="/search"><Button variant="outline">Load the full library</Button></Link>
+          <Link to="/search">
+            <Button variant="outline">Load the full library</Button>
+          </Link>
         </div>
       </section>
 
@@ -123,9 +159,14 @@ export function Home() {
           <div className="mb-10 flex items-end justify-between gap-5">
             <div>
               <Eyebrow>FEATURED COLLECTIONS</Eyebrow>
-              <h2 className="mt-3 font-serif text-4xl leading-[1.03] sm:text-5xl">Themes worth returning to.</h2>
+              <h2 className="mt-3 font-serif text-4xl leading-[1.03] sm:text-5xl">
+                Themes worth returning to.
+              </h2>
             </div>
-            <Link to="/collections" className="hidden shrink-0 text-sm font-semibold text-[#1e4a3f] hover:underline sm:block">
+            <Link
+              to="/collections"
+              className="hidden shrink-0 text-sm font-semibold text-[#1e4a3f] hover:underline sm:block"
+            >
               All collections
             </Link>
           </div>
@@ -133,14 +174,31 @@ export function Home() {
             {collections.map((c) => (
               <Link key={c.id} to="/collections" className="group">
                 <div className="grid aspect-[4/3] grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden bg-[#d7d8d2]">
-                  <img src={c.cover?.[0] || ""} alt="" loading="lazy" className="col-span-1 row-span-2 size-full object-cover transition group-hover:scale-[1.03]" />
-                  <img src={c.cover?.[1] || ""} alt="" loading="lazy" className="size-full object-cover" />
-                  <img src={c.cover?.[2] || ""} alt="" loading="lazy" className="size-full object-cover" />
+                  <img
+                    src={c.cover?.[0] || ""}
+                    alt=""
+                    loading="lazy"
+                    className="col-span-1 row-span-2 size-full object-cover transition group-hover:scale-[1.03]"
+                  />
+                  <img
+                    src={c.cover?.[1] || ""}
+                    alt=""
+                    loading="lazy"
+                    className="size-full object-cover"
+                  />
+                  <img
+                    src={c.cover?.[2] || ""}
+                    alt=""
+                    loading="lazy"
+                    className="size-full object-cover"
+                  />
                 </div>
                 <div className="flex items-start justify-between pt-3">
                   <div>
                     <h3 className="font-serif text-lg leading-none">{c.title}</h3>
-                    <p className="mt-1.5 text-xs text-[#6b716d]">{c.count} images · {c.curator}</p>
+                    <p className="mt-1.5 text-xs text-[#6b716d]">
+                      {c.count} images · {c.curator}
+                    </p>
                   </div>
                 </div>
               </Link>
@@ -153,35 +211,55 @@ export function Home() {
       <section className="mx-auto grid max-w-[1440px] gap-10 px-5 py-16 sm:px-8 md:grid-cols-2 md:items-center lg:px-12 lg:py-24">
         <div>
           <Eyebrow>BEYOND THE ARCHIVE</Eyebrow>
-          <h2 className="mt-4 font-serif text-4xl leading-[1.05] sm:text-5xl">When the image does not exist, commission it.</h2>
+          <h2 className="mt-4 font-serif text-4xl leading-[1.05] sm:text-5xl">
+            When the image does not exist, commission it.
+          </h2>
           <p className="mt-5 max-w-md text-base leading-7 text-[#59645f]">
-            Turn a creative need into a precise brief. We connect your team to trusted photographers who know the place,
-            the moment, and the work.
+            Turn a creative need into a precise brief. We connect your team to trusted photographers
+            who know the place, the moment, and the work.
           </p>
           <div className="mt-8 flex gap-4">
             <Button onClick={openRequest}>Request a shoot</Button>
-            <Link to="/requests"><Button variant="outline">See live briefs</Button></Link>
+            <Link to="/requests">
+              <Button variant="outline">See live briefs</Button>
+            </Link>
           </div>
         </div>
         <div className="border border-[#e2e2e2] bg-[#fafafa] p-5 sm:p-7">
           {firstBrief ? (
             <>
               <div className="flex items-center justify-between border-b border-[#ececec] pb-5">
-                <span className="font-mono text-[10px] tracking-[0.14em] text-[#49685d]">ACTIVE BRIEF / {firstBrief.id}</span>
+                <span className="font-mono text-[10px] tracking-[0.14em] text-[#49685d]">
+                  ACTIVE BRIEF / {firstBrief.id}
+                </span>
                 <Badge>{firstBrief.status}</Badge>
               </div>
               <h3 className="mt-8 font-serif text-2xl">{firstBrief.title}</h3>
               <p className="mt-2 text-sm leading-6 text-[#68706b]">{firstBrief.description}</p>
               <div className="mt-7 grid grid-cols-3 gap-3 border-t border-[#ececec] pt-5">
-                <div><p className="font-mono text-[9px] text-[#758078]">LICENSE</p><p className="mt-1 text-xs font-semibold">{firstBrief.license}</p></div>
-                <div><p className="font-mono text-[9px] text-[#758078]">BUDGET</p><p className="mt-1 text-xs font-semibold">£{firstBrief.budget}</p></div>
-                <div><p className="font-mono text-[9px] text-[#758078]">DELIVERY</p><p className="mt-1 text-xs font-semibold">{firstBrief.delivery}</p></div>
+                <div>
+                  <p className="font-mono text-[9px] text-[#758078]">LICENSE</p>
+                  <p className="mt-1 text-xs font-semibold">{firstBrief.license}</p>
+                </div>
+                <div>
+                  <p className="font-mono text-[9px] text-[#758078]">BUDGET</p>
+                  <p className="mt-1 text-xs font-semibold">£{firstBrief.budget}</p>
+                </div>
+                <div>
+                  <p className="font-mono text-[9px] text-[#758078]">DELIVERY</p>
+                  <p className="mt-1 text-xs font-semibold">{firstBrief.delivery}</p>
+                </div>
               </div>
             </>
           ) : (
             <div className="py-10 text-center">
               <p className="text-sm text-[#6b716d]">No active briefs yet.</p>
-              <button onClick={openRequest} className="mt-3 text-sm font-semibold text-[#1e4a3f] hover:underline">Submit a request →</button>
+              <button
+                onClick={openRequest}
+                className="mt-3 text-sm font-semibold text-[#1e4a3f] hover:underline"
+              >
+                Submit a request →
+              </button>
             </div>
           )}
         </div>
@@ -193,19 +271,34 @@ export function Home() {
           <div className="mb-10 flex items-end justify-between">
             <div>
               <Eyebrow>POPULAR CONTRIBUTORS</Eyebrow>
-              <h2 className="mt-3 font-serif text-4xl leading-[1.03] sm:text-5xl">The eyes behind the work.</h2>
+              <h2 className="mt-3 font-serif text-4xl leading-[1.03] sm:text-5xl">
+                The eyes behind the work.
+              </h2>
             </div>
-            <Link to="/contribute" className="hidden text-sm font-semibold text-[#1e4a3f] hover:underline sm:block">
+            <Link
+              to="/contribute"
+              className="hidden text-sm font-semibold text-[#1e4a3f] hover:underline sm:block"
+            >
               Become a contributor
             </Link>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {photographers.map((p) => (
-              <Link key={p.id} to={`/photographer/${p.id}`} className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-5 transition hover:border-[#1e4a3f]">
+              <Link
+                key={p.id}
+                to={`/photographer/${p.id}`}
+                className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-5 transition hover:border-[#1e4a3f]"
+              >
                 <div className="flex items-center gap-3">
                   <Avatar className="size-12">
-                    <AvatarImage src={getOptimizedImageUrl(p.avatar, 100)} alt={p.name} className="object-cover" />
-                    <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-xs">{p.name?.slice(0, 2).toUpperCase() || "NS"}</AvatarFallback>
+                    <AvatarImage
+                      src={getOptimizedImageUrl(p.avatar, 100)}
+                      alt={p.name}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-xs">
+                      {p.name?.slice(0, 2).toUpperCase() || "NS"}
+                    </AvatarFallback>
                   </Avatar>
                   <div>
                     <h3 className="font-serif text-lg leading-none">{p.name}</h3>
@@ -214,7 +307,9 @@ export function Home() {
                 </div>
                 <div className="mt-5 flex items-center justify-between text-xs text-[#6b716d]">
                   <span>{p.specialty}</span>
-                  <span>{p.followers} followers · {p.images} images</span>
+                  <span>
+                    {p.followers} followers · {p.images} images
+                  </span>
                 </div>
               </Link>
             ))}
@@ -227,8 +322,13 @@ export function Home() {
         <div className="grid gap-10 lg:grid-cols-[1.05fr_1fr]">
           <div>
             <Eyebrow>MADE FOR SERIOUS WORK</Eyebrow>
-            <h2 className="mt-3 font-serif text-4xl leading-[1.04] sm:text-5xl">The calm way to manage visual rights.</h2>
-            <Link to="/pricing" className="mt-6 inline-block text-sm font-semibold text-[#1e4a3f] hover:underline">
+            <h2 className="mt-3 font-serif text-4xl leading-[1.04] sm:text-5xl">
+              The calm way to manage visual rights.
+            </h2>
+            <Link
+              to="/pricing"
+              className="mt-6 inline-block text-sm font-semibold text-[#1e4a3f] hover:underline"
+            >
               Compare licenses →
             </Link>
           </div>
@@ -236,12 +336,17 @@ export function Home() {
             <div className="border-t-2 border-[#1e4a3f] pt-4">
               <Camera className="size-5 text-[#1e4a3f]" />
               <h3 className="mt-8 font-serif text-2xl">Rights, clear</h3>
-              <p className="mt-2 text-sm leading-6 text-[#68706b]">Every use case has a plain-language license, ready for legal teams and global campaigns.</p>
+              <p className="mt-2 text-sm leading-6 text-[#68706b]">
+                Every use case has a plain-language license, ready for legal teams and global
+                campaigns.
+              </p>
             </div>
             <div className="border-t-2 border-[#1e4a3f] pt-4">
               <Upload className="size-5 text-[#1e4a3f]" />
               <h3 className="mt-8 font-serif text-2xl">One shared source</h3>
-              <p className="mt-2 text-sm leading-6 text-[#68706b]">Save, license and organize imagery with the people making the work.</p>
+              <p className="mt-2 text-sm leading-6 text-[#68706b]">
+                Save, license and organize imagery with the people making the work.
+              </p>
             </div>
           </div>
         </div>
@@ -259,7 +364,10 @@ export function Home() {
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             {testimonials.map((t) => (
-              <blockquote key={t.name} className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-6">
+              <blockquote
+                key={t.name}
+                className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-6"
+              >
                 <Quote className="size-6 text-[#1e4a3f]" />
                 <p className="mt-4 font-serif text-xl leading-snug">{t.quote}</p>
                 <footer className="mt-6 text-xs text-[#6b716d]">
@@ -270,7 +378,9 @@ export function Home() {
           </div>
           <div className="mt-14 flex flex-wrap items-center justify-center gap-x-12 gap-y-6 opacity-60">
             {companies.map((c) => (
-              <span key={c} className="font-mono text-sm tracking-[0.2em] text-[#4a534e]">{c}</span>
+              <span key={c} className="font-mono text-sm tracking-[0.2em] text-[#4a534e]">
+                {c}
+              </span>
             ))}
           </div>
         </div>
@@ -280,12 +390,20 @@ export function Home() {
       <section className="bg-[#182e27] px-5 py-20 text-[#f4f1e9] sm:px-8 lg:px-12">
         <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-8 md:flex-row md:items-end">
           <div>
-            <h2 className="max-w-xl font-serif text-4xl leading-[1.05] sm:text-5xl">Start building your visual library today.</h2>
-            <p className="mt-4 max-w-md text-white/60">Free to browse. Simple to license. Ready when your ideas are.</p>
+            <h2 className="max-w-xl font-serif text-4xl leading-[1.05] sm:text-5xl">
+              Start building your visual library today.
+            </h2>
+            <p className="mt-4 max-w-md text-white/60">
+              Free to browse. Simple to license. Ready when your ideas are.
+            </p>
           </div>
           <div className="flex gap-4">
-            <Link to="/pricing"><Button variant="light">See pricing</Button></Link>
-            <Link to="/search"><Button variant="light">Explore the library</Button></Link>
+            <Link to="/pricing">
+              <Button variant="light">See pricing</Button>
+            </Link>
+            <Link to="/search">
+              <Button variant="light">Explore the library</Button>
+            </Link>
           </div>
         </div>
       </section>

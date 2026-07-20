@@ -1,9 +1,17 @@
 import nodemailer from "nodemailer";
+import { rateLimit } from "../lib/rate-limit";
 
 // Supabase sends a payload like { type: "UPDATE", table: "briefs", record: { id: "...", client_email: "...", status: "accepted", ... }, old_record: { status: "OPEN" } }
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Rate limiting
+  const ip = (req.headers["x-forwarded-for"] as string) || "unknown";
+  const { limited } = rateLimit(ip);
+  if (limited) {
+    return res.status(429).json({ error: "Too many requests" });
   }
 
   // Mandatory: Verify a webhook secret from Supabase
@@ -19,7 +27,7 @@ export default async function handler(req: any, res: any) {
   }
 
   const { type, record, old_record } = req.body;
-  
+
   // Only proceed if this is an UPDATE that changed the status to "accepted"
   if (type !== "UPDATE" || record?.status !== "accepted" || old_record?.status === "accepted") {
     return res.status(200).json({ message: "Ignored: Not a status change to accepted" });

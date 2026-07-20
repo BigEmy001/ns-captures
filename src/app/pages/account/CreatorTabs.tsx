@@ -1,18 +1,74 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
 import {
-  LayoutGrid, Image as ImageIcon, TrendingUp, Wallet, Users, Inbox, Settings, Upload,
-  Plus, Trash2, Check, X, Camera, Aperture, AlertCircle, FileText, ChevronRight, Loader2, CheckCircle2,
+  LayoutGrid,
+  Image as ImageIcon,
+  TrendingUp,
+  Wallet,
+  Users,
+  Inbox,
+  Settings,
+  Upload,
+  Plus,
+  Trash2,
+  Check,
+  X,
+  Camera,
+  Aperture,
+  AlertCircle,
+  FileText,
+  ChevronRight,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import {
-  AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
 } from "recharts";
 import exifr from "exifr";
 import { Eyebrow, Badge } from "../../components/ui";
 import { Avatar, AvatarImage, AvatarFallback } from "../../components/ui/avatar";
 import { SideNav } from "../../components/SideNav";
-import { type Photo, type License, type Orientation, type Photographer, type Brief } from "../../data/photos";
-import { fetchPhotos, fetchBriefs, fetchPhotographers, fetchPayouts, fetchPhotographerStats, fetchPhotographerMonthlyRevenue, fetchPhotographerWeeklyDownloads, fetchPhotographerTopCategories, fetchFollowerCount, updatePhotoPrice, createPhoto, deletePhoto, updateBriefStatus, fetchPhotographerProfileSettings, upsertPhotographerProfileSettings, type Payout, getOptimizedImageUrl, fetchPaymentMethods, upsertPaymentMethod, createPayoutRequest, fetchPayoutRequests, type PhotographerPaymentMethod, type PayoutRequest, type CryptoWalletEntry } from "../../data/db";
+import {
+  type Photo,
+  type License,
+  type Orientation,
+  type Photographer,
+  type Brief,
+} from "../../data/photos";
+import {
+  fetchPhotos,
+  fetchBriefs,
+  fetchPhotographers,
+  fetchPayouts,
+  fetchPhotographerStats,
+  fetchPhotographerMonthlyRevenue,
+  fetchPhotographerWeeklyDownloads,
+  fetchPhotographerTopCategories,
+  fetchFollowerCount,
+  updatePhotoPrice,
+  createPhoto,
+  deletePhoto,
+  updateBriefStatus,
+  fetchPhotographerProfileSettings,
+  upsertPhotographerProfileSettings,
+  type Payout,
+  getOptimizedImageUrl,
+  fetchPaymentMethods,
+  upsertPaymentMethod,
+  createPayoutRequest,
+  fetchPayoutRequests,
+  type PhotographerPaymentMethod,
+  type PayoutRequest,
+  type CryptoWalletEntry,
+} from "../../data/db";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 
@@ -21,8 +77,16 @@ import { toast } from "sonner";
 const COINS = [
   { symbol: "BTC", name: "Bitcoin", networks: ["Bitcoin", "Lightning"] },
   { symbol: "ETH", name: "Ethereum", networks: ["ERC20", "Arbitrum", "Optimism", "Base"] },
-  { symbol: "USDT", name: "Tether", networks: ["ERC20", "TRC20", "BEP20", "Solana", "Polygon", "Avalanche C"] },
-  { symbol: "USDC", name: "USD Coin", networks: ["ERC20", "TRC20", "BEP20", "Solana", "Polygon", "Avalanche C", "Base"] },
+  {
+    symbol: "USDT",
+    name: "Tether",
+    networks: ["ERC20", "TRC20", "BEP20", "Solana", "Polygon", "Avalanche C"],
+  },
+  {
+    symbol: "USDC",
+    name: "USD Coin",
+    networks: ["ERC20", "TRC20", "BEP20", "Solana", "Polygon", "Avalanche C", "Base"],
+  },
   { symbol: "SOL", name: "Solana", networks: ["Solana"] },
   { symbol: "LTC", name: "Litecoin", networks: ["Litecoin"] },
   { symbol: "XRP", name: "Ripple", networks: ["XRP Ledger"] },
@@ -43,7 +107,8 @@ const CustomTooltip = ({ active, payload, label, prefix = "" }: any) => {
       <div className="rounded-xl border border-white/10 bg-[#12231f]/95 p-3 text-white shadow-xl backdrop-blur-md">
         <p className="font-mono text-[9px] tracking-wider text-white/50">{label}</p>
         <p className="mt-1 font-serif text-sm font-semibold">
-          {prefix}{payload[0].value.toLocaleString()}
+          {prefix}
+          {payload[0].value.toLocaleString()}
         </p>
       </div>
     );
@@ -51,8 +116,13 @@ const CustomTooltip = ({ active, payload, label, prefix = "" }: any) => {
   return null;
 };
 
-export function CreatorTabs({ active }: { active: string }) {
-
+export function CreatorTabs({
+  active,
+  onTabChange,
+}: {
+  active: string;
+  onTabChange?: (tab: string) => void;
+}) {
   const { user } = useAuth();
 
   // Supabase data
@@ -62,9 +132,18 @@ export function CreatorTabs({ active }: { active: string }) {
 
   useEffect(() => {
     Promise.all([
-      fetchPhotos().catch(() => toast.error("Something went wrong")),
-      fetchBriefs().catch(() => toast.error("Something went wrong")),
-      fetchPhotographers().catch(() => toast.error("Something went wrong")),
+      fetchPhotos().catch(() => {
+        toast.error("An error occurred");
+        return null;
+      }),
+      fetchBriefs().catch(() => {
+        toast.error("An error occurred");
+        return null;
+      }),
+      fetchPhotographers().catch(() => {
+        toast.error("An error occurred");
+        return null;
+      }),
     ]).then(([photos, briefs, photographers]) => {
       if (photos) setPhotos(photos);
       if (briefs) setBriefs(briefs);
@@ -81,19 +160,35 @@ export function CreatorTabs({ active }: { active: string }) {
   const [paymentMethods, setPaymentMethods] = useState<PhotographerPaymentMethod[]>([]);
   const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
   const [payoutRequestAmount, setPayoutRequestAmount] = useState("");
-  const [payoutRequestMethod, setPayoutRequestMethod] = useState<"card" | "crypto" | "paypal">("card");
+  const [payoutRequestMethod, setPayoutRequestMethod] = useState<"card" | "crypto" | "paypal">(
+    "card",
+  );
   const [cryptoWallets, setCryptoWallets] = useState<CryptoWalletEntry[]>([]);
   const [paypalEmail, setPaypalEmail] = useState("");
 
   // Photographer dashboard data
   const [revenueData, setRevenueData] = useState<{ m: string; v: number }[]>([]);
   const [downloadsData, setDownloadsData] = useState<{ m: string; v: number }[]>([]);
-  const [photographerStats, setPhotographerStats] = useState<{ totalRevenue: number; totalDownloads: number; totalViews: number; totalLikes: number; photoCount: number; avgPrice: number }>({ totalRevenue: 0, totalDownloads: 0, totalViews: 0, totalLikes: 0, photoCount: 0, avgPrice: 0 });
+  const [photographerStats, setPhotographerStats] = useState<{
+    totalRevenue: number;
+    totalDownloads: number;
+    totalViews: number;
+    totalLikes: number;
+    photoCount: number;
+    avgPrice: number;
+  }>({
+    totalRevenue: 0,
+    totalDownloads: 0,
+    totalViews: 0,
+    totalLikes: 0,
+    photoCount: 0,
+    avgPrice: 0,
+  });
   const [topCategories, setTopCategories] = useState<{ name: string; pct: string }[]>([]);
   const [followerCount, setFollowerCount] = useState(0);
 
   // Dynamically resolve the photographerId and photographerProfile
-  const photographerProfile = photographers.find(p => p.id === user?.slug);
+  const photographerProfile = photographers.find((p) => p.id === user?.slug);
   const photographerId = user?.slug || photographerProfile?.id || "";
 
   // Dynamic Portfolio state (starts with this photographer's photos)
@@ -102,28 +197,70 @@ export function CreatorTabs({ active }: { active: string }) {
   useEffect(() => {
     if (photographerId) {
       setPortfolioPhotos(photos.filter((p) => p.photographerId === photographerId));
-      fetchPayouts(photographerId).then(setPayouts).catch(() => toast.error("Something went wrong"));
-      fetchPhotographerMonthlyRevenue(photographerId).then(setRevenueData).catch(() => toast.error("Something went wrong"));
-      fetchPhotographerWeeklyDownloads(photographerId).then(setDownloadsData).catch(() => toast.error("Something went wrong"));
-      fetchPhotographerStats(photographerId).then(setPhotographerStats).catch(() => toast.error("Something went wrong"));
-      fetchPhotographerTopCategories(photographerId).then(setTopCategories).catch(() => toast.error("Something went wrong"));
-      fetchFollowerCount(photographerId).then(setFollowerCount).catch(() => toast.error("Something went wrong"));
-      fetchPaymentMethods(photographerId).then((methods) => {
-        setPaymentMethods(methods);
-        methods.forEach((m) => {
-          if (m.method === "crypto") {
-            const wallets = (m.details.wallets as CryptoWalletEntry[] | undefined) || [];
-            if (wallets.length > 0) {
-              setCryptoWallets(wallets);
-            } else if (m.details.wallet) {
-              // Migrate from old single-wallet format
-              setCryptoWallets([{ coin: "ETH", network: "ERC20", address: String(m.details.wallet) }]);
-            }
-          }
-          if (m.method === "paypal" && m.details.email) setPaypalEmail(String(m.details.email));
+      fetchPayouts(photographerId)
+        .then(setPayouts)
+        .catch(() => {
+          toast.error("An error occurred");
+          return null;
         });
-      }).catch(() => toast.error("Something went wrong"));
-      fetchPayoutRequests(photographerId).then(setPayoutRequests).catch(() => toast.error("Something went wrong"));
+      fetchPhotographerMonthlyRevenue(photographerId)
+        .then(setRevenueData)
+        .catch(() => {
+          toast.error("An error occurred");
+          return null;
+        });
+      fetchPhotographerWeeklyDownloads(photographerId)
+        .then(setDownloadsData)
+        .catch(() => {
+          toast.error("An error occurred");
+          return null;
+        });
+      fetchPhotographerStats(photographerId)
+        .then(setPhotographerStats)
+        .catch(() => {
+          toast.error("An error occurred");
+          return null;
+        });
+      fetchPhotographerTopCategories(photographerId)
+        .then(setTopCategories)
+        .catch(() => {
+          toast.error("An error occurred");
+          return null;
+        });
+      fetchFollowerCount(photographerId)
+        .then(setFollowerCount)
+        .catch(() => {
+          toast.error("An error occurred");
+          return null;
+        });
+      fetchPaymentMethods(photographerId)
+        .then((methods) => {
+          setPaymentMethods(methods);
+          methods.forEach((m) => {
+            if (m.method === "crypto") {
+              const wallets = (m.details.wallets as CryptoWalletEntry[] | undefined) || [];
+              if (wallets.length > 0) {
+                setCryptoWallets(wallets);
+              } else if (m.details.wallet) {
+                // Migrate from old single-wallet format
+                setCryptoWallets([
+                  { coin: "ETH", network: "ERC20", address: String(m.details.wallet) },
+                ]);
+              }
+            }
+            if (m.method === "paypal" && m.details.email) setPaypalEmail(String(m.details.email));
+          });
+        })
+        .catch(() => {
+          toast.error("An error occurred");
+          return null;
+        });
+      fetchPayoutRequests(photographerId)
+        .then(setPayoutRequests)
+        .catch(() => {
+          toast.error("An error occurred");
+          return null;
+        });
     }
   }, [photographerId, photos]);
 
@@ -187,19 +324,27 @@ export function CreatorTabs({ active }: { active: string }) {
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
   const [profileSettingsLoaded, setProfileSettingsLoaded] = useState(false);
-  const [profileSettings, setProfileSettings] = useState<{ bankName: string; bankAccountLast4: string }>({ bankName: "", bankAccountLast4: "" });
+  const [profileSettings, setProfileSettings] = useState<{
+    bankName: string;
+    bankAccountLast4: string;
+  }>({ bankName: "", bankAccountLast4: "" });
 
   useEffect(() => {
     if (user && !profileSettingsLoaded) {
-      fetchPhotographerProfileSettings(user.id).then((settings) => {
-        if (settings) {
-          setLocation(settings.location);
-          setSpecialty(settings.specialty);
-          setBio(settings.bio);
-          setProfileSettings({ bankName: settings.bankName, bankAccountLast4: settings.bankAccountLast4 });
-        }
-        setProfileSettingsLoaded(true);
-      }).catch(() => setProfileSettingsLoaded(true));
+      fetchPhotographerProfileSettings(user.id)
+        .then((settings) => {
+          if (settings) {
+            setLocation(settings.location);
+            setSpecialty(settings.specialty);
+            setBio(settings.bio);
+            setProfileSettings({
+              bankName: settings.bankName,
+              bankAccountLast4: settings.bankAccountLast4,
+            });
+          }
+          setProfileSettingsLoaded(true);
+        })
+        .catch(() => setProfileSettingsLoaded(true));
     }
   }, [user, profileSettingsLoaded]);
 
@@ -232,7 +377,9 @@ export function CreatorTabs({ active }: { active: string }) {
     processFile(file);
   };
 
-  const analyzeImage = (file: File): Promise<{ ratio: string; orientation: Orientation; color: string }> => {
+  const analyzeImage = (
+    file: File,
+  ): Promise<{ ratio: string; orientation: Orientation; color: string }> => {
     return new Promise((resolve) => {
       const img = new Image();
       const objectUrl = URL.createObjectURL(file);
@@ -241,10 +388,10 @@ export function CreatorTabs({ active }: { active: string }) {
         const width = img.width;
         const height = img.height;
         const ratioVal = width / height;
-        
+
         let orientation: Orientation = "square";
         let ratio = "aspect-square";
-        
+
         if (ratioVal > 1.25) {
           orientation = "landscape";
           if (ratioVal > 1.55) {
@@ -260,7 +407,7 @@ export function CreatorTabs({ active }: { active: string }) {
             ratio = "aspect-[4/5]";
           }
         }
-        
+
         let color = "#9a6b3f";
         try {
           const canvas = document.createElement("canvas");
@@ -275,7 +422,7 @@ export function CreatorTabs({ active }: { active: string }) {
         } catch (err) {
           console.error("Failed to extract color", err);
         }
-        
+
         URL.revokeObjectURL(objectUrl);
         resolve({ ratio, orientation, color });
       };
@@ -306,18 +453,28 @@ export function CreatorTabs({ active }: { active: string }) {
     });
 
     // Extract EXIF data from the file
-    let exifData = { camera: "", lens: "", iso: 0, focalLength: "", aperture: "", shutterSpeed: "", location: "" };
+    let exifData = {
+      camera: "",
+      lens: "",
+      iso: 0,
+      focalLength: "",
+      aperture: "",
+      shutterSpeed: "",
+      location: "",
+    };
     try {
       const exif = await exifr.parse(file, true);
       if (exif) {
         exifData = {
-          camera: exif.Make && exif.Model ? `${exif.Make} ${exif.Model}` : (exif.Make || ""),
+          camera: exif.Make && exif.Model ? `${exif.Make} ${exif.Model}` : exif.Make || "",
           lens: exif.LensModel || exif.LensMake || "",
           iso: exif.ISO || 0,
           focalLength: exif.FocalLength ? `${exif.FocalLength}mm` : "",
           aperture: exif.FNumber ? `f/${exif.FNumber}` : "",
-          shutterSpeed: exif.ExposureTime ? `1/${Math.round(1/exif.ExposureTime)}s` : "",
-          location: exif.GPSLatitude ? `${exif.GPSLatitude.toFixed(4)}°, ${exif.GPSLongitude.toFixed(4)}°` : "",
+          shutterSpeed: exif.ExposureTime ? `1/${Math.round(1 / exif.ExposureTime)}s` : "",
+          location: exif.GPSLatitude
+            ? `${exif.GPSLatitude.toFixed(4)}°, ${exif.GPSLongitude.toFixed(4)}°`
+            : "",
         };
       }
     } catch (e) {
@@ -333,7 +490,10 @@ export function CreatorTabs({ active }: { active: string }) {
     if (exifData.shutterSpeed) setExifShutterSpeed(exifData.shutterSpeed);
     if (exifData.location) setUploadLocation(exifData.location);
     // Generate title from filename
-    const nameFromFilename = file.name.replace(/\.[^.]+£/, "").replace(/[-_]/g, " ").trim();
+    const nameFromFilename = file.name
+      .replace(/\.[^.]+£/, "")
+      .replace(/[-_]/g, " ")
+      .trim();
     if (nameFromFilename) setUploadTitle(nameFromFilename);
 
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -344,9 +504,9 @@ export function CreatorTabs({ active }: { active: string }) {
       const xhr = new XMLHttpRequest();
       xhrRef.current = xhr;
       const fd = new FormData();
-      
+
       xhr.open("POST", url, true);
-      
+
       xhr.upload.addEventListener("progress", (e) => {
         if (e.lengthComputable) {
           const percent = Math.round((e.loaded * 100) / e.total);
@@ -520,7 +680,9 @@ export function CreatorTabs({ active }: { active: string }) {
     }
     const ok = await updatePhotoPrice(photoId, newPrice);
     if (ok) {
-      setPortfolioPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, price: newPrice } : p));
+      setPortfolioPhotos((prev) =>
+        prev.map((p) => (p.id === photoId ? { ...p, price: newPrice } : p)),
+      );
       toast.success(`Price updated to £${newPrice.toLocaleString()}`);
     } else {
       toast.error("Failed to update price");
@@ -584,8 +746,12 @@ export function CreatorTabs({ active }: { active: string }) {
                       key={s.label}
                       className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300"
                     >
-                      <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">{s.label}</p>
-                      <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">{s.value}</p>
+                      <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                        {s.label}
+                      </p>
+                      <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">
+                        {s.value}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -606,10 +772,28 @@ export function CreatorTabs({ active }: { active: string }) {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
-                        <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                        <Tooltip content={<CustomTooltip prefix="£" />} cursor={{ stroke: "#1e4a3f", strokeWidth: 1 }} />
-                        <Area type="monotone" dataKey="v" stroke="#1e4a3f" strokeWidth={2.5} fill="url(#rev)" />
+                        <XAxis
+                          dataKey="m"
+                          tick={{ fontSize: 11, fill: "#8a8f89" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "#8a8f89" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          content={<CustomTooltip prefix="£" />}
+                          cursor={{ stroke: "#1e4a3f", strokeWidth: 1 }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="v"
+                          stroke="#1e4a3f"
+                          strokeWidth={2.5}
+                          fill="url(#rev)"
+                        />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -624,10 +808,27 @@ export function CreatorTabs({ active }: { active: string }) {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#ececec" vertical={false} />
-                        <XAxis dataKey="m" tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 11, fill: "#8a8f89" }} axisLine={false} tickLine={false} />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f0f2eb", opacity: 0.5 }} />
-                        <Bar dataKey="v" fill="url(#barGrad)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                        <XAxis
+                          dataKey="m"
+                          tick={{ fontSize: 11, fill: "#8a8f89" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 11, fill: "#8a8f89" }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          content={<CustomTooltip />}
+                          cursor={{ fill: "#f0f2eb", opacity: 0.5 }}
+                        />
+                        <Bar
+                          dataKey="v"
+                          fill="url(#barGrad)"
+                          radius={[4, 4, 0, 0]}
+                          maxBarSize={40}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -643,19 +844,30 @@ export function CreatorTabs({ active }: { active: string }) {
                         .sort((a, b) => b.downloads - a.downloads)
                         .slice(0, 4)
                         .map((p, i) => (
-                        <div
-                          key={p.id}
-                          className="flex items-center gap-4 hover:bg-[#FAF9F5] p-2.5 -mx-2.5 rounded-xl transition-all duration-200 group"
-                        >
-                          <span className="font-mono text-xs text-[#8a8f89]">0{i + 1}</span>
-                          <img src={getOptimizedImageUrl(p.image, 100)} alt="" loading="lazy" className="size-12 object-cover rounded-lg group-hover:scale-[1.03] transition-all duration-200 shadow-sm" />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-semibold text-[#18211f]">{p.title}</p>
-                            <p className="text-xs text-[#6b716d]">{p.downloads.toLocaleString()} downloads</p>
+                          <div
+                            key={p.id}
+                            className="flex items-center gap-4 hover:bg-[#FAF9F5] p-2.5 -mx-2.5 rounded-xl transition-all duration-200 group"
+                          >
+                            <span className="font-mono text-xs text-[#8a8f89]">0{i + 1}</span>
+                            <img
+                              src={getOptimizedImageUrl(p.image, 100)}
+                              alt=""
+                              loading="lazy"
+                              className="size-12 object-cover rounded-lg group-hover:scale-[1.03] transition-all duration-200 shadow-sm"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-[#18211f]">
+                                {p.title}
+                              </p>
+                              <p className="text-xs text-[#6b716d]">
+                                {p.downloads.toLocaleString()} downloads
+                              </p>
+                            </div>
+                            <span className="font-serif text-base text-[#1e4a3f] font-semibold">
+                              £{((p.downloads * p.price) / 100).toFixed(0)}
+                            </span>
                           </div>
-                          <span className="font-serif text-base text-[#1e4a3f] font-semibold">£{(p.downloads * p.price / 100).toFixed(0)}</span>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   </div>
                   <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
@@ -667,10 +879,16 @@ export function CreatorTabs({ active }: { active: string }) {
                           className="border-l-4 border-l-[#1e4a3f] border border-[#ececec]/60 rounded-xl bg-white p-4 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200"
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-semibold text-[#18211f] truncate">{b.title}</p>
-                            <Badge tone={b.status === "DELIVERED" ? "muted" : "green"}>{b.status}</Badge>
+                            <p className="text-sm font-semibold text-[#18211f] truncate">
+                              {b.title}
+                            </p>
+                            <Badge tone={b.status === "DELIVERED" ? "muted" : "green"}>
+                              {b.status}
+                            </Badge>
                           </div>
-                          <p className="mt-2 text-xs text-[#6b716d] font-mono">£{b.budget} · {b.delivery}</p>
+                          <p className="mt-2 text-xs text-[#6b716d] font-mono">
+                            £{b.budget} · {b.delivery}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -695,21 +913,32 @@ export function CreatorTabs({ active }: { active: string }) {
               <div className="flex items-center justify-between border-b border-[#ececec] px-6 py-4">
                 <div className="flex items-center gap-2">
                   <Camera className="size-5 text-[#1e4a3f]" />
-                  <h2 className="font-serif text-lg font-semibold text-[#18211f]">Upload new work</h2>
+                  <h2 className="font-serif text-lg font-semibold text-[#18211f]">
+                    Upload new work
+                  </h2>
                 </div>
-                <button onClick={resetUploadWizard} className="p-1 hover:bg-[#FAF9F5] rounded-full transition-colors cursor-pointer">
-                    <X className="size-5 text-[#6b716d]" />
-                  </button>
+                <button
+                  onClick={resetUploadWizard}
+                  className="p-1 hover:bg-[#FAF9F5] rounded-full transition-colors cursor-pointer"
+                >
+                  <X className="size-5 text-[#6b716d]" />
+                </button>
               </div>
 
               {/* Steps indicators */}
               <div className="bg-[#FAF9F5] px-6 py-3 border-b border-[#ececec] flex items-center justify-between text-xs font-mono text-[#758078]">
                 <div className="flex gap-4">
-                  <span className={uploadStep === 1 ? "text-[#1e4a3f] font-bold" : "opacity-60"}>1. FILE</span>
+                  <span className={uploadStep === 1 ? "text-[#1e4a3f] font-bold" : "opacity-60"}>
+                    1. FILE
+                  </span>
                   <span>/</span>
-                  <span className={uploadStep === 2 ? "text-[#1e4a3f] font-bold" : "opacity-60"}>2. METADATA</span>
+                  <span className={uploadStep === 2 ? "text-[#1e4a3f] font-bold" : "opacity-60"}>
+                    2. METADATA
+                  </span>
                   <span>/</span>
-                  <span className={uploadStep === 3 ? "text-[#1e4a3f] font-bold" : "opacity-60"}>3. COMPLETE</span>
+                  <span className={uploadStep === 3 ? "text-[#1e4a3f] font-bold" : "opacity-60"}>
+                    3. COMPLETE
+                  </span>
                 </div>
                 <span>Step {uploadStep} of 3</span>
               </div>
@@ -734,7 +963,10 @@ export function CreatorTabs({ active }: { active: string }) {
                           document.getElementById("file-upload-input")?.click();
                         }
                       }}
-                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                       onDrop={handleFileDrop}
                       onClick={() => document.getElementById("file-upload-input")?.click()}
                       className="border-2 border-dashed border-[#ececec] hover:border-[#1e4a3f]/40 bg-[#FAF9F5]/50 hover:bg-[#FAF9F5] focus:outline-none focus:ring-2 focus:ring-[#1e4a3f] rounded-2xl py-12 text-center transition-all duration-300 cursor-pointer flex flex-col items-center justify-center group"
@@ -742,9 +974,14 @@ export function CreatorTabs({ active }: { active: string }) {
                       {uploadProgress > 0 ? (
                         <div className="space-y-3 flex flex-col items-center">
                           <Loader2 className="size-10 text-[#1e4a3f] animate-spin" />
-                          <p className="text-sm font-semibold text-[#18211f]">Uploading & parsing EXIF data...</p>
+                          <p className="text-sm font-semibold text-[#18211f]">
+                            Uploading & parsing EXIF data...
+                          </p>
                           <div className="w-48 bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
-                            <div className="bg-[#1e4a3f] h-1.5 rounded-full transition-all duration-150" style={{ width: `${uploadProgress}%` }}></div>
+                            <div
+                              className="bg-[#1e4a3f] h-1.5 rounded-full transition-all duration-150"
+                              style={{ width: `${uploadProgress}%` }}
+                            ></div>
                           </div>
                         </div>
                       ) : (
@@ -752,8 +989,12 @@ export function CreatorTabs({ active }: { active: string }) {
                           <div className="grid size-12 place-items-center rounded-full bg-[#dce8df]/60 text-[#1e4a3f] group-hover:scale-105 transition-transform duration-200 mb-3">
                             <Upload className="size-6" />
                           </div>
-                          <p className="text-sm font-semibold text-[#18211f]">Drag & drop camera RAW or High-Res JPEG</p>
-                          <p className="text-xs text-[#6b716d] mt-1">Accepts CR3, ARW, NEF, or TIFF up to 100MB</p>
+                          <p className="text-sm font-semibold text-[#18211f]">
+                            Drag & drop camera RAW or High-Res JPEG
+                          </p>
+                          <p className="text-xs text-[#6b716d] mt-1">
+                            Accepts CR3, ARW, NEF, or TIFF up to 100MB
+                          </p>
                           <span className="mt-4 inline-flex text-xs font-semibold text-[#1e4a3f] bg-[#dce8df] px-3.5 py-1.5 rounded-full">
                             Select local file
                           </span>
@@ -763,9 +1004,13 @@ export function CreatorTabs({ active }: { active: string }) {
                     <div className="flex items-start gap-3 bg-[#FAF9F5] p-4 rounded-xl border border-[#ececec]/60">
                       <AlertCircle className="size-5 text-[#1e4a3f] shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs font-semibold text-[#18211f]">Quality checklist for the Archive</p>
+                        <p className="text-xs font-semibold text-[#18211f]">
+                          Quality checklist for the Archive
+                        </p>
                         <p className="text-[11px] text-[#6d746e] mt-1 leading-normal">
-                          Only license single exposures. No compositing, digital canvas manipulations, or synthetic AI generations (AI slop) allowed. Keep the photograph honest.
+                          Only license single exposures. No compositing, digital canvas
+                          manipulations, or synthetic AI generations (AI slop) allowed. Keep the
+                          photograph honest.
                         </p>
                       </div>
                     </div>
@@ -782,9 +1027,13 @@ export function CreatorTabs({ active }: { active: string }) {
                         className="size-16 object-cover rounded-lg shadow"
                       />
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-[#18211f] truncate">{uploadFileName}</p>
+                        <p className="text-xs font-semibold text-[#18211f] truncate">
+                          {uploadFileName}
+                        </p>
                         <p className="text-[10px] text-[#758078] font-mono mt-0.5">
-                          {uploadFile ? `${(uploadFile.size / (1024 * 1024)).toFixed(1)} MB · ${uploadFile.type.split("/")[1]?.toUpperCase() || "Image"}` : "Processing..."}
+                          {uploadFile
+                            ? `${(uploadFile.size / (1024 * 1024)).toFixed(1)} MB · ${uploadFile.type.split("/")[1]?.toUpperCase() || "Image"}`
+                            : "Processing..."}
                         </p>
                         {uploadCamera || uploadLens ? (
                           <div className="flex gap-2 mt-1.5 font-mono text-[9px] text-[#1e7a4f] bg-[#dce8df] px-2 py-0.5 rounded-full w-fit font-bold">
@@ -800,7 +1049,9 @@ export function CreatorTabs({ active }: { active: string }) {
 
                     <div className="space-y-4">
                       <label className="block">
-                        <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Photograph Title</span>
+                        <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                          Photograph Title
+                        </span>
                         <input
                           required
                           value={uploadTitle}
@@ -812,7 +1063,9 @@ export function CreatorTabs({ active }: { active: string }) {
 
                       <div className="grid gap-4 grid-cols-2">
                         <label className="block">
-                          <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Category</span>
+                          <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                            Category
+                          </span>
                           <select
                             value={uploadCategory}
                             onChange={(e) => setUploadCategory(e.target.value)}
@@ -827,7 +1080,9 @@ export function CreatorTabs({ active }: { active: string }) {
                           </select>
                         </label>
                         <label className="block">
-                          <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Single License price (£)</span>
+                          <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                            Single License price (£)
+                          </span>
                           <input
                             required
                             type="number"
@@ -839,7 +1094,9 @@ export function CreatorTabs({ active }: { active: string }) {
                       </div>
 
                       <label className="block">
-                        <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Shooting Location</span>
+                        <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                          Shooting Location
+                        </span>
                         <input
                           value={uploadLocation}
                           onChange={(e) => setUploadLocation(e.target.value)}
@@ -850,10 +1107,14 @@ export function CreatorTabs({ active }: { active: string }) {
 
                       {/* EXIF Metadata Inputs */}
                       <div className="border border-[#ececec] bg-[#FAF9F5] rounded-xl p-4 space-y-4">
-                        <p className="font-mono text-[9px] text-[#758078] uppercase tracking-wider">EXIF Metadata (Photographer can fill/edit manually)</p>
+                        <p className="font-mono text-[9px] text-[#758078] uppercase tracking-wider">
+                          EXIF Metadata (Photographer can fill/edit manually)
+                        </p>
                         <div className="grid grid-cols-2 gap-4">
                           <label className="block">
-                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Camera Body</span>
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Camera Body
+                            </span>
                             <input
                               value={uploadCamera}
                               onChange={(e) => setUploadCamera(e.target.value)}
@@ -862,7 +1123,9 @@ export function CreatorTabs({ active }: { active: string }) {
                             />
                           </label>
                           <label className="block">
-                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Optics/Lens</span>
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Optics/Lens
+                            </span>
                             <input
                               value={uploadLens}
                               onChange={(e) => setUploadLens(e.target.value)}
@@ -871,7 +1134,9 @@ export function CreatorTabs({ active }: { active: string }) {
                             />
                           </label>
                           <label className="block">
-                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">ISO Sensitivity</span>
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              ISO Sensitivity
+                            </span>
                             <input
                               type="number"
                               value={uploadIso || ""}
@@ -881,7 +1146,9 @@ export function CreatorTabs({ active }: { active: string }) {
                             />
                           </label>
                           <label className="block">
-                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Aperture</span>
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Aperture
+                            </span>
                             <input
                               value={exifAperture}
                               onChange={(e) => setExifAperture(e.target.value)}
@@ -890,7 +1157,9 @@ export function CreatorTabs({ active }: { active: string }) {
                             />
                           </label>
                           <label className="block">
-                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Shutter Speed</span>
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Shutter Speed
+                            </span>
                             <input
                               value={exifShutterSpeed}
                               onChange={(e) => setExifShutterSpeed(e.target.value)}
@@ -899,7 +1168,9 @@ export function CreatorTabs({ active }: { active: string }) {
                             />
                           </label>
                           <label className="block">
-                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">Focal Length</span>
+                            <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Focal Length
+                            </span>
                             <input
                               value={exifFocalLength}
                               onChange={(e) => setExifFocalLength(e.target.value)}
@@ -928,14 +1199,15 @@ export function CreatorTabs({ active }: { active: string }) {
                     <div>
                       <p className="font-serif text-2xl text-[#18211f]">Photograph Published</p>
                       <p className="text-xs text-[#6d746e] mt-1.5 max-w-xs mx-auto">
-                        Your image has been published successfully. Our editors will review it for quality standards shortly.
+                        Your image has been published successfully. Our editors will review it for
+                        quality standards shortly.
                       </p>
                     </div>
                     <div className="pt-6 flex gap-4 w-full justify-center">
                       <button
                         onClick={() => {
                           resetUploadWizard();
-                          setActive("portfolio");
+                          onTabChange?.("portfolio");
                         }}
                         className="bg-[#1e4a3f] hover:bg-[#123b31] text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow transition-colors cursor-pointer"
                       >

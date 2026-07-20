@@ -31,7 +31,13 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<void>;
-  signup: (data: { firstName: string; lastName: string; email: string; password: string; role?: string }) => Promise<{ needsEmailConfirmation: boolean }>;
+  signup: (data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    role?: string;
+  }) => Promise<{ needsEmailConfirmation: boolean }>;
   logout: () => void;
   updateProfile: (data: Partial<AuthUser>) => Promise<void>;
   upgradeToCreator: () => Promise<void>;
@@ -71,7 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
 
   useEffect(() => {
-    supabase.auth.getSession()
+    supabase.auth
+      .getSession()
       .then(async ({ data: { session } }) => {
         if (session?.user) {
           const { data: profile } = await supabase
@@ -82,7 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (profile?.status === "Suspended" || profile?.status === "Blocked") {
             await supabase.auth.signOut();
             setUser(null);
-            toast.error("Your account has been suspended or blocked. Contact support@nscaptures.com.");
+            toast.error(
+              "Your account has been suspended or blocked. Contact support@nscaptures.com.",
+            );
           } else {
             setUser(supabaseUserToAuthUser(session.user, profile));
           }
@@ -96,26 +105,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let subscription: { unsubscribe: () => void } | null = null;
     try {
-      const sub = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          if (event === "SIGNED_IN" && session?.user) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("*")
-              .eq("id", session.user.id)
-              .single();
-            if (profile?.status === "Suspended" || profile?.status === "Blocked") {
-              await supabase.auth.signOut();
-              setUser(null);
-              toast.error("Your account has been suspended or blocked. Contact support@nscaptures.com.");
-            } else {
-              setUser(supabaseUserToAuthUser(session.user, profile));
-            }
-          } else if (event === "SIGNED_OUT") {
+      const sub = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === "SIGNED_IN" && session?.user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", session.user.id)
+            .single();
+          if (profile?.status === "Suspended" || profile?.status === "Blocked") {
+            await supabase.auth.signOut();
             setUser(null);
+            toast.error(
+              "Your account has been suspended or blocked. Contact support@nscaptures.com.",
+            );
+          } else {
+            setUser(supabaseUserToAuthUser(session.user, profile));
           }
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
         }
-      );
+      });
       subscription = sub.data.subscription;
     } catch (err) {
       console.error("Supabase auth unavailable:", (err as Error).message);
@@ -128,7 +137,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user || user.role !== "Admin") return;
 
     const interval = setInterval(async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         setUser(null);
         toast.error("Session expired due to inactivity. Please sign in again.");
@@ -159,95 +170,115 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user, navigate]);
 
-  const login = useCallback(async (email: string, password: string, remember?: boolean) => {
-    const normalized = normalizeEmail(email);
-    if (!isValidEmail(normalized)) throw new Error("Enter a valid email address.");
+  const login = useCallback(
+    async (email: string, password: string, remember?: boolean) => {
+      const normalized = normalizeEmail(email);
+      if (!isValidEmail(normalized)) throw new Error("Enter a valid email address.");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: normalized,
-      password,
-    });
-    if (error) throw new Error(error.message);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalized,
+        password,
+      });
+      if (error) throw new Error(error.message);
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", data.user.id)
-      .single();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .single();
 
-    if (profile?.status === "Suspended" || profile?.status === "Blocked") {
-      await supabase.auth.signOut();
-      throw new Error("Your account has been suspended or blocked. Contact support@nscaptures.com.");
-    }
+      if (profile?.status === "Suspended" || profile?.status === "Blocked") {
+        await supabase.auth.signOut();
+        throw new Error(
+          "Your account has been suspended or blocked. Contact support@nscaptures.com.",
+        );
+      }
 
-    const authUser = supabaseUserToAuthUser(data.user, profile);
-    setUser(authUser);
-    toast.success("Welcome back, " + authUser.name.split(" ")[0]);
+      const authUser = supabaseUserToAuthUser(data.user, profile);
+      setUser(authUser);
+      toast.success("Welcome back, " + authUser.name.split(" ")[0]);
 
-    const roleHome: Record<string, string> = {
-      Admin: "/admin",
-      Photographer: "/dashboard",
-      Enterprise: "/enterprise",
-      Buyer: "/account",
-    };
-    const from = (location.state as { from?: string })?.from || roleHome[authUser.role] || "/account";
-    navigate(from, { replace: true });
-  }, [location.state, navigate]);
+      const roleHome: Record<string, string> = {
+        Admin: "/admin",
+        Photographer: "/dashboard",
+        Enterprise: "/enterprise",
+        Buyer: "/account",
+      };
+      const from =
+        (location.state as { from?: string })?.from || roleHome[authUser.role] || "/account";
+      navigate(from, { replace: true });
+    },
+    [location.state, navigate],
+  );
 
-  const signup = useCallback(async (data: { firstName: string; lastName: string; email: string; password: string; role?: string }) => {
-    if (!isSupabaseReady()) {
-      toast.error("Database connection unavailable", { description: "Please check your environment variables." });
-      return { needsEmailConfirmation: false };
-    }
-
-    const normalized = normalizeEmail(data.email);
-    const firstName = data.firstName.trim();
-    const lastName = data.lastName.trim();
-
-    if (!isValidEmail(normalized)) throw new Error("Enter a valid email address.");
-    if (!firstName || !lastName) throw new Error("First name and last name are required.");
-    if (!isStrongPassword(data.password)) throw new Error("Use at least 10 characters with letters and numbers.");
-
-    const { data: siteConfig } = await supabase
-      .from("site_settings")
-      .select("signup_enabled")
-      .eq("id", 1)
-      .maybeSingle();
-
-    if (siteConfig?.signup_enabled === false) {
-      throw new Error("New account registration is temporarily disabled. Please try again later.");
-    }
-
-    const { data: authData, error } = await supabase.auth.signUp({
-      email: normalized,
-      password: data.password,
-      options: {
-        data: {
-          name: `${firstName} ${lastName}`,
-          role: data.role || "Buyer",
-          plan: "Starter",
-        },
-      },
-    });
-    if (error) throw new Error(error.message);
-
-    if (authData.user) {
-      if (authData.session) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", authData.user.id)
-          .single();
-
-        const authUser = supabaseUserToAuthUser(authData.user, profile);
-        setUser(authUser);
-        navigate("/account", { replace: true });
+  const signup = useCallback(
+    async (data: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      password: string;
+      role?: string;
+    }) => {
+      if (!isSupabaseReady()) {
+        toast.error("Database connection unavailable", {
+          description: "Please check your environment variables.",
+        });
         return { needsEmailConfirmation: false };
       }
-      return { needsEmailConfirmation: true };
-    }
-    return { needsEmailConfirmation: false };
-  }, [navigate]);
+
+      const normalized = normalizeEmail(data.email);
+      const firstName = data.firstName.trim();
+      const lastName = data.lastName.trim();
+
+      if (!isValidEmail(normalized)) throw new Error("Enter a valid email address.");
+      if (!firstName || !lastName) throw new Error("First name and last name are required.");
+      if (!isStrongPassword(data.password))
+        throw new Error("Use at least 10 characters with letters and numbers.");
+
+      const { data: siteConfig } = await supabase
+        .from("site_settings")
+        .select("signup_enabled")
+        .eq("id", 1)
+        .maybeSingle();
+
+      if (siteConfig?.signup_enabled === false) {
+        throw new Error(
+          "New account registration is temporarily disabled. Please try again later.",
+        );
+      }
+
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: normalized,
+        password: data.password,
+        options: {
+          data: {
+            name: `${firstName} ${lastName}`,
+            role: data.role || "Buyer",
+            plan: "Starter",
+          },
+        },
+      });
+      if (error) throw new Error(error.message);
+
+      if (authData.user) {
+        if (authData.session) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", authData.user.id)
+            .single();
+
+          const authUser = supabaseUserToAuthUser(authData.user, profile);
+          setUser(authUser);
+          navigate("/account", { replace: true });
+          return { needsEmailConfirmation: false };
+        }
+        return { needsEmailConfirmation: true };
+      }
+      return { needsEmailConfirmation: false };
+    },
+    [navigate],
+  );
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
@@ -256,52 +287,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigate("/signin", { replace: true });
   }, [navigate]);
 
-  const updateProfile = useCallback(async (data: Partial<AuthUser>) => {
-    if (!user) return;
-    const { id: _id, role: _role, slug: _slug, verificationStatus: _vs, ...editableData } = data;
+  const updateProfile = useCallback(
+    async (data: Partial<AuthUser>) => {
+      if (!user) return;
+      const { id: _id, role: _role, slug: _slug, verificationStatus: _vs, ...editableData } = data;
 
-    if (editableData.email && editableData.email !== user.email) {
-      const { error: emailError } = await supabase.auth.updateUser({ email: editableData.email });
-      if (emailError) throw new Error(emailError.message);
-    }
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        name: editableData.name,
-        company: editableData.company,
-        avatar: editableData.avatar,
-        phone: editableData.phone,
-        occupation: editableData.occupation,
-        dob: editableData.dob,
-        social_links: editableData.socialLinks,
-        profile_references: editableData.references,
-      })
-      .eq("id", user.id);
+      if (editableData.email && editableData.email !== user.email) {
+        const { error: emailError } = await supabase.auth.updateUser({ email: editableData.email });
+        if (emailError) throw new Error(emailError.message);
+      }
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          name: editableData.name,
+          company: editableData.company,
+          avatar: editableData.avatar,
+          phone: editableData.phone,
+          occupation: editableData.occupation,
+          dob: editableData.dob,
+          social_links: editableData.socialLinks,
+          profile_references: editableData.references,
+        })
+        .eq("id", user.id);
 
-    if (error) throw new Error(error.message);
+      if (error) throw new Error(error.message);
 
-    if (user.role === "Photographer" && user.slug && editableData.name) {
-      await supabase
-        .from("photographers")
-        .update({ name: editableData.name })
-        .eq("id", user.slug);
-    }
+      if (user.role === "Photographer" && user.slug && editableData.name) {
+        await supabase
+          .from("photographers")
+          .update({ name: editableData.name })
+          .eq("id", user.slug);
+      }
 
-    const updated = { ...user, ...editableData, verificationStatus: user.verificationStatus, slug: user.slug };
-    setUser(updated);
-    toast.success("Profile saved");
-  }, [user]);
+      const updated = {
+        ...user,
+        ...editableData,
+        verificationStatus: user.verificationStatus,
+        slug: user.slug,
+      };
+      setUser(updated);
+      toast.success("Profile saved");
+    },
+    [user],
+  );
 
   const upgradeToCreator = useCallback(async () => {
     if (!user) return;
     if (user.role === "Photographer") return;
 
     try {
-      const slug = user.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-£/g, "")
-        + "-" + user.id.slice(0, 8);
+      const slug =
+        user.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-£/g, "") +
+        "-" +
+        user.id.slice(0, 8);
 
       const { error: profileError } = await supabase
         .from("profiles")
@@ -310,13 +351,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (profileError) throw new Error(profileError.message);
 
-      const { error: photoError } = await supabase
-        .from("photographers")
-        .insert({
-          id: slug,
-          name: user.name,
-          image: user.avatar || "https://images.unsplash.com/photo-1593351799227-75df2026356b"
-        });
+      const { error: photoError } = await supabase.from("photographers").insert({
+        id: slug,
+        name: user.name,
+        image: user.avatar || "https://images.unsplash.com/photo-1593351799227-75df2026356b",
+      });
 
       if (photoError) throw new Error(photoError.message);
 
@@ -328,22 +367,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, navigate]);
 
-  const changePassword = useCallback(async (current: string, next: string) => {
-    if (!user) throw new Error("Not authenticated");
+  const changePassword = useCallback(
+    async (current: string, next: string) => {
+      if (!user) throw new Error("Not authenticated");
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password: current,
-    });
-    if (signInError) throw new Error("Current password is incorrect");
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: current,
+      });
+      if (signInError) throw new Error("Current password is incorrect");
 
-    const { error } = await supabase.auth.updateUser({ password: next });
-    if (error) throw new Error(error.message);
-    toast.success("Password updated");
-  }, [user]);
+      const { error } = await supabase.auth.updateUser({ password: next });
+      if (error) throw new Error(error.message);
+      toast.success("Password updated");
+    },
+    [user],
+  );
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, signup, logout, updateProfile, changePassword }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        signup,
+        logout,
+        updateProfile,
+        upgradeToCreator,
+        changePassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

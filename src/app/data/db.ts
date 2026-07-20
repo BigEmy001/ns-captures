@@ -1,4 +1,14 @@
+export type {
+  Photo,
+  Photographer,
+  Collection,
+  Brief,
+  AdminUser,
+  ModerationItem,
+  License,
+} from "../data/photos";
 import { supabase } from "../../lib/supabase";
+import { withRetry } from "../../lib/retry";
 import {
   Photo,
   Photographer,
@@ -7,6 +17,7 @@ import {
   AdminUser,
   ModerationItem,
   License,
+  Orientation,
   photos as localPhotos,
 } from "../data/photos";
 
@@ -21,7 +32,7 @@ export interface Purchase {
   license: string;
   price: number;
   date: string;
-  status?: "PENDING" | "APPROVED";
+  status?: "PENDING" | "APPROVED" | "REJECTED";
 }
 
 export interface LicenseRecord {
@@ -75,26 +86,28 @@ export interface SiteSettingsRow {
 // ============================================================
 
 export async function fetchPhotographers(): Promise<Photographer[]> {
-  const { data, error } = await supabase
-    .from("photographers")
-    .select("*")
-    .order("name");
+  return withRetry(
+    async () => {
+      const { data, error } = await supabase.from("photographers").select("*").order("name");
 
-  if (error || !data || data.length === 0) return [];
+      if (error || !data || data.length === 0) return [];
 
-  return data.map((p: any) => ({
-    id: p.id,
-    name: p.name,
-    location: p.location || "",
-    specialty: p.specialty || "",
-    followers: p.followers || "0",
-    images: 0,
-    avatar: p.avatar || "",
-    bio: p.bio || "",
-    cover: p.cover || p.avatar || "",
-    verified: p.verified || false,
-    gear: p.gear || [],
-  }));
+      return data.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        location: p.location || "",
+        specialty: p.specialty || "",
+        followers: p.followers || "0",
+        images: 0,
+        avatar: p.avatar || "",
+        bio: p.bio || "",
+        cover: p.cover || p.avatar || "",
+        verified: p.verified || false,
+        gear: p.gear || [],
+      }));
+    },
+    { maxRetries: 2, baseDelay: 800 },
+  );
 }
 
 export async function fetchPhotographer(id: string): Promise<Photographer | undefined> {
@@ -189,16 +202,21 @@ function rowToPhoto(row: any): Photo {
 }
 
 export async function fetchPhotos(): Promise<Photo[]> {
-  const { data, error } = await supabase
-    .from("photos")
-    .select("*")
-    .order("uploaded_at", { ascending: false });
+  return withRetry(
+    async () => {
+      const { data, error } = await supabase
+        .from("photos")
+        .select("*")
+        .order("uploaded_at", { ascending: false });
 
-  if (error || !data || data.length === 0) {
-    return localPhotos;
-  }
+      if (error || !data || data.length === 0) {
+        return localPhotos;
+      }
 
-  return data.map((r) => rowToPhoto(r));
+      return data.map((r) => rowToPhoto(r));
+    },
+    { maxRetries: 2, baseDelay: 800 },
+  );
 }
 
 export interface PhotoFilters {
@@ -211,64 +229,72 @@ export interface PhotoFilters {
   collectionId?: string;
 }
 
-export async function fetchPhotosPaginated(filters: PhotoFilters, page: number, pageSize: number = 20): Promise<{ photos: Photo[], hasMore: boolean }> {
-  let q = supabase.from("photos").select(
-    filters.collectionId ? "*, collection_photos!inner(collection_id)" : "*", 
-    { count: "exact" }
+export async function fetchPhotosPaginated(
+  filters: PhotoFilters,
+  page: number,
+  pageSize: number = 20,
+): Promise<{ photos: Photo[]; hasMore: boolean }> {
+  return withRetry(
+    async () => {
+      let q = supabase
+        .from("photos")
+        .select(filters.collectionId ? "*, collection_photos!inner(collection_id)" : "*", {
+          count: "exact",
+        });
+
+      if (filters.collectionId) {
+        q = q.eq("collection_photos.collection_id", filters.collectionId);
+      }
+
+      if (filters.category && filters.category !== "All") {
+        q = q.eq("category", filters.category);
+      }
+      if (filters.licenses.length > 0) {
+        q = q.in("license", filters.licenses);
+      }
+      if (filters.orientation) {
+        q = q.eq("orientation", filters.orientation);
+      }
+      if (filters.maxPrice < 10000) {
+        q = q.lte("price", filters.maxPrice);
+      }
+
+      if (filters.query) {
+        // Escape special characters for safe ilike search
+        const safeQuery = filters.query.replace(/[%_\\]/g, "\\$&");
+        q = q.or(
+          `title.ilike.%${safeQuery}%,photographer_name.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%,category.ilike.%${safeQuery}%,keywords.cs.{${safeQuery}}`,
+        );
+      }
+
+      if (filters.sort === "priceLow") {
+        q = q.order("price", { ascending: true });
+      } else if (filters.sort === "new") {
+        q = q.order("uploaded_at", { ascending: false });
+      } else {
+        q = q.order("downloads", { ascending: false });
+      }
+
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      q = q.range(from, to);
+
+      const { data, count, error } = await q;
+
+      if (error || !data) {
+        console.error("fetchPhotosPaginated error:", error);
+        return { photos: [], hasMore: false };
+      }
+
+      const hasMore = count !== null && from + data.length < count;
+      return { photos: data.map(rowToPhoto), hasMore };
+    },
+    { maxRetries: 2, baseDelay: 800 },
   );
-
-  if (filters.collectionId) {
-    q = q.eq("collection_photos.collection_id", filters.collectionId);
-  }
-
-  if (filters.category && filters.category !== "All") {
-    q = q.eq("category", filters.category);
-  }
-  if (filters.licenses.length > 0) {
-    q = q.in("license", filters.licenses);
-  }
-  if (filters.orientation) {
-    q = q.eq("orientation", filters.orientation);
-  }
-  if (filters.maxPrice < 10000) {
-    q = q.lte("price", filters.maxPrice);
-  }
-
-  if (filters.query) {
-    // Escape special characters for safe ilike search
-    const safeQuery = filters.query.replace(/[%_\\]/g, '\\$&');
-    q = q.or(`title.ilike.%${safeQuery}%,photographer_name.ilike.%${safeQuery}%,location.ilike.%${safeQuery}%,category.ilike.%${safeQuery}%,keywords.cs.{${safeQuery}}`);
-  }
-
-  if (filters.sort === "priceLow") {
-    q = q.order("price", { ascending: true });
-  } else if (filters.sort === "new") {
-    q = q.order("uploaded_at", { ascending: false });
-  } else {
-    q = q.order("downloads", { ascending: false });
-  }
-
-  const from = page * pageSize;
-  const to = from + pageSize - 1;
-  q = q.range(from, to);
-
-  const { data, count, error } = await q;
-
-  if (error || !data) {
-    console.error("fetchPhotosPaginated error:", error);
-    return { photos: [], hasMore: false };
-  }
-
-  const hasMore = count !== null && from + data.length < count;
-  return { photos: data.map(rowToPhoto), hasMore };
 }
 
 export async function fetchPhoto(id: string): Promise<Photo | undefined> {
-  const { data } = await supabase
-    .from("photos")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const { data } = await supabase.from("photos").select("*").eq("id", id).single();
 
   if (data) return rowToPhoto(data);
   return localPhotos.find((p) => p.id === id);
@@ -276,16 +302,13 @@ export async function fetchPhoto(id: string): Promise<Photo | undefined> {
 
 export async function fetchPhotosByIds(ids: string[]): Promise<Photo[]> {
   if (!ids || ids.length === 0) return [];
-  const { data } = await supabase
-    .from("photos")
-    .select("*")
-    .in("id", ids);
+  const { data } = await supabase.from("photos").select("*").in("id", ids);
 
   const dbPhotos = data ? data.map(rowToPhoto) : [];
-  
-  const foundIds = new Set(dbPhotos.map(p => p.id));
-  const missingIds = ids.filter(id => !foundIds.has(id));
-  const fallbackPhotos = localPhotos.filter(p => missingIds.includes(p.id));
+
+  const foundIds = new Set(dbPhotos.map((p) => p.id));
+  const missingIds = ids.filter((id) => !foundIds.has(id));
+  const fallbackPhotos = localPhotos.filter((p) => missingIds.includes(p.id));
 
   return [...dbPhotos, ...fallbackPhotos];
 }
@@ -308,20 +331,23 @@ export async function fetchPhotosByPhotographer(photographerId: string): Promise
 // ============================================================
 
 export async function fetchCollections(): Promise<Collection[]> {
-  const { data, error } = await supabase
-    .from("collections")
-    .select("*");
+  return withRetry(
+    async () => {
+      const { data, error } = await supabase.from("collections").select("*");
 
-  if (error || !data || data.length === 0) return [];
+      if (error || !data || data.length === 0) return [];
 
-  return data.map((c: any) => ({
-    id: c.id,
-    title: c.title,
-    curator: c.curator || "",
-    count: c.count || 0,
-    description: c.description || "",
-    cover: c.cover || [],
-  }));
+      return data.map((c: any) => ({
+        id: c.id,
+        title: c.title,
+        curator: c.curator || "",
+        count: c.count || 0,
+        description: c.description || "",
+        cover: c.cover || [],
+      }));
+    },
+    { maxRetries: 2, baseDelay: 800 },
+  );
 }
 
 // ============================================================
@@ -329,9 +355,7 @@ export async function fetchCollections(): Promise<Collection[]> {
 // ============================================================
 
 export async function fetchBriefs(): Promise<Brief[]> {
-  const { data, error } = await supabase
-    .from("briefs")
-    .select("*");
+  const { data, error } = await supabase.from("briefs").select("*");
 
   if (error || !data || data.length === 0) return [];
 
@@ -352,7 +376,14 @@ export async function fetchBriefs(): Promise<Brief[]> {
 // CREATE BRIEF (Request modal)
 // ============================================================
 
-export async function createBrief(brief: { title: string; location: string; license: string; budget: number; description: string; clientEmail: string }): Promise<Brief | null> {
+export async function createBrief(brief: {
+  title: string;
+  location: string;
+  license: string;
+  budget: number;
+  description: string;
+  clientEmail: string;
+}): Promise<Brief | null> {
   const id = `BRF-${Date.now().toString(36)}`;
   const { data, error } = await supabase
     .from("briefs")
@@ -369,8 +400,20 @@ export async function createBrief(brief: { title: string; location: string; lice
     .select()
     .single();
 
-  if (error) { console.error("createBrief", error); return null; }
-  return { id: data.id, title: data.title, location: data.location, license: data.license, budget: data.budget, delivery: data.delivery || "", status: data.status, description: data.description || "" };
+  if (error) {
+    console.error("createBrief", error);
+    return null;
+  }
+  return {
+    id: data.id,
+    title: data.title,
+    location: data.location,
+    license: data.license,
+    budget: data.budget,
+    delivery: data.delivery || "",
+    status: data.status,
+    description: data.description || "",
+  };
 }
 
 // ============================================================
@@ -401,9 +444,7 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
 }
 
 export async function fetchModerationQueue(): Promise<ModerationItem[]> {
-  const { data, error } = await supabase
-    .from("moderation_queue")
-    .select("*");
+  const { data, error } = await supabase.from("moderation_queue").select("*");
 
   if (error || !data || data.length === 0) return [];
 
@@ -424,11 +465,17 @@ export async function fetchPlatformStats() {
   const [usersCount, photosCount, photographerCount, purchasesSum] = await Promise.all([
     supabase.from("profiles").select("id", { count: "exact", head: true }),
     supabase.from("photos").select("id", { count: "exact", head: true }),
-    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "Photographer"),
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "Photographer"),
     supabase.from("purchases").select("price"),
   ]);
 
-  const revenue = (purchasesSum.data || []).reduce((sum: number, p: any) => sum + (p.price || 0), 0);
+  const revenue = (purchasesSum.data || []).reduce(
+    (sum: number, p: any) => sum + (p.price || 0),
+    0,
+  );
 
   return {
     totalUsers: usersCount.count || 0,
@@ -466,12 +513,29 @@ export async function createPurchase(purchase: Omit<Purchase, "id">): Promise<Pu
 
   const { data, error } = await supabase
     .from("purchases")
-    .insert({ id, user_id: purchase.userId, photo_id: purchase.photoId, license: purchase.license, price: purchase.price, date: purchase.date })
+    .insert({
+      id,
+      user_id: purchase.userId,
+      photo_id: purchase.photoId,
+      license: purchase.license,
+      price: purchase.price,
+      date: purchase.date,
+    })
     .select()
     .single();
 
-  if (error) { console.error("createPurchase", error); return null; }
-  return { id: data.id, userId: data.user_id, photoId: data.photo_id, license: data.license, price: data.price, date: data.date };
+  if (error) {
+    console.error("createPurchase", error);
+    return null;
+  }
+  return {
+    id: data.id,
+    userId: data.user_id,
+    photoId: data.photo_id,
+    license: data.license,
+    price: data.price,
+    date: data.date,
+  };
 }
 
 export async function fetchAllPurchases(): Promise<Purchase[]> {
@@ -482,7 +546,13 @@ export async function fetchAllPurchases(): Promise<Purchase[]> {
 
   if (error || !data) return [];
   return data.map((r: any) => ({
-    id: r.id, userId: r.user_id, photoId: r.photo_id, license: r.license, price: r.price || 0, date: r.date, status: r.status || "PENDING",
+    id: r.id,
+    userId: r.user_id,
+    photoId: r.photo_id,
+    license: r.license,
+    price: r.price || 0,
+    date: r.date,
+    status: r.status || "PENDING",
   }));
 }
 
@@ -517,15 +587,34 @@ export async function createLicense(lic: Omit<LicenseRecord, "id">): Promise<Lic
   const { data, error } = await supabase
     .from("licenses")
     .insert({
-      id, user_id: lic.userId, photo_id: lic.photoId, title: lic.title,
-      license_type: lic.licenseType, price: lic.price,
-      purchased_at: lic.purchasedAt, expires_at: lic.expiresAt, downloads: lic.downloads,
+      id,
+      user_id: lic.userId,
+      photo_id: lic.photoId,
+      title: lic.title,
+      license_type: lic.licenseType,
+      price: lic.price,
+      purchased_at: lic.purchasedAt,
+      expires_at: lic.expiresAt,
+      downloads: lic.downloads,
     })
     .select()
     .single();
 
-  if (error) { console.error("createLicense", error); return null; }
-  return { id: data.id, userId: data.user_id, photoId: data.photo_id, title: data.title, licenseType: data.license_type, price: data.price, purchasedAt: data.purchased_at, expiresAt: data.expires_at, downloads: data.downloads };
+  if (error) {
+    console.error("createLicense", error);
+    return null;
+  }
+  return {
+    id: data.id,
+    userId: data.user_id,
+    photoId: data.photo_id,
+    title: data.title,
+    licenseType: data.license_type,
+    price: data.price,
+    purchasedAt: data.purchased_at,
+    expiresAt: data.expires_at,
+    downloads: data.downloads,
+  };
 }
 
 // ============================================================
@@ -541,7 +630,13 @@ export async function fetchPayouts(photographerId: string): Promise<Payout[]> {
 
   if (error || !data) return [];
   return data.map((r: any) => ({
-    id: r.id, photographerId: r.photographer_id, userId: r.user_id, date: r.date, method: r.method, amount: r.amount, status: r.status,
+    id: r.id,
+    photographerId: r.photographer_id,
+    userId: r.user_id,
+    date: r.date,
+    method: r.method,
+    amount: r.amount,
+    status: r.status,
   }));
 }
 
@@ -553,7 +648,13 @@ export async function fetchAllPayouts(): Promise<Payout[]> {
 
   if (error || !data) return [];
   return data.map((r: any) => ({
-    id: r.id, photographerId: r.photographer_id, userId: r.user_id, date: r.date, method: r.method, amount: r.amount, status: r.status,
+    id: r.id,
+    photographerId: r.photographer_id,
+    userId: r.user_id,
+    date: r.date,
+    method: r.method,
+    amount: r.amount,
+    status: r.status,
   }));
 }
 
@@ -561,12 +662,31 @@ export async function createPayout(payout: Omit<Payout, "id">): Promise<Payout |
   const id = `PAY-${Date.now().toString(36).toUpperCase()}`;
   const { data, error } = await supabase
     .from("payouts")
-    .insert({ id, photographer_id: payout.photographerId, user_id: payout.userId, date: payout.date, method: payout.method, amount: payout.amount, status: payout.status })
+    .insert({
+      id,
+      photographer_id: payout.photographerId,
+      user_id: payout.userId,
+      date: payout.date,
+      method: payout.method,
+      amount: payout.amount,
+      status: payout.status,
+    })
     .select()
     .single();
 
-  if (error) { console.error("createPayout", error); return null; }
-  return { id: data.id, photographerId: data.photographer_id, userId: data.user_id, date: data.date, method: data.method, amount: data.amount, status: data.status };
+  if (error) {
+    console.error("createPayout", error);
+    return null;
+  }
+  return {
+    id: data.id,
+    photographerId: data.photographer_id,
+    userId: data.user_id,
+    date: data.date,
+    method: data.method,
+    amount: data.amount,
+    status: data.status,
+  };
 }
 
 // ============================================================
@@ -583,7 +703,12 @@ export async function fetchActivity(userId: string): Promise<ActivityLogItem[]> 
 
   if (error || !data) return [];
   return data.map((r: any) => ({
-    id: r.id, userId: r.user_id, type: r.type, title: r.title, desc: r.desc || "", createdAt: r.created_at,
+    id: r.id,
+    userId: r.user_id,
+    type: r.type,
+    title: r.title,
+    desc: r.desc || "",
+    createdAt: r.created_at,
   }));
 }
 
@@ -610,7 +735,10 @@ export async function fetchCollectionPhotos(collectionId: string): Promise<strin
   return data.map((r: any) => r.photo_id);
 }
 
-export async function addPhotoToCollection(collectionId: string, photoId: string): Promise<boolean> {
+export async function addPhotoToCollection(
+  collectionId: string,
+  photoId: string,
+): Promise<boolean> {
   const { data: existing } = await supabase
     .from("collection_photos")
     .select("position")
@@ -624,34 +752,51 @@ export async function addPhotoToCollection(collectionId: string, photoId: string
     .from("collection_photos")
     .insert({ collection_id: collectionId, photo_id: photoId, position: nextPos });
 
-  if (error) { console.error("addPhotoToCollection", error); return false; }
+  if (error) {
+    console.error("addPhotoToCollection", error);
+    return false;
+  }
 
-  await supabase.rpc("increment_collection_count", { cid: collectionId }).catch(() => {
-    supabase.from("collection_photos").select("photo_id", { count: "exact", head: true })
+  Promise.resolve(supabase.rpc("increment_collection_count", { cid: collectionId })).catch(() => {
+    supabase
+      .from("collection_photos")
+      .select("photo_id", { count: "exact", head: true })
       .eq("collection_id", collectionId)
       .then(({ count }) => {
-        supabase.from("collections").update({ count: count || 0 }).eq("id", collectionId);
+        supabase
+          .from("collections")
+          .update({ count: count || 0 })
+          .eq("id", collectionId);
       });
   });
 
   return true;
 }
 
-export async function removePhotoFromCollection(collectionId: string, photoId: string): Promise<boolean> {
+export async function removePhotoFromCollection(
+  collectionId: string,
+  photoId: string,
+): Promise<boolean> {
   const { error } = await supabase
     .from("collection_photos")
     .delete()
     .eq("collection_id", collectionId)
     .eq("photo_id", photoId);
 
-  if (error) { console.error("removePhotoFromCollection", error); return false; }
+  if (error) {
+    console.error("removePhotoFromCollection", error);
+    return false;
+  }
 
   const { count } = await supabase
     .from("collection_photos")
     .select("photo_id", { count: "exact", head: true })
     .eq("collection_id", collectionId);
 
-  await supabase.from("collections").update({ count: count || 0 }).eq("id", collectionId);
+  await supabase
+    .from("collections")
+    .update({ count: count || 0 })
+    .eq("id", collectionId);
 
   return true;
 }
@@ -675,11 +820,7 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     moderationRequired: true,
   };
 
-  const { data, error } = await supabase
-    .from("site_settings")
-    .select("*")
-    .eq("id", 1)
-    .single();
+  const { data, error } = await supabase.from("site_settings").select("*").eq("id", 1).single();
 
   if (error || !data) return defaults;
 
@@ -700,24 +841,25 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
 }
 
 export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boolean> {
-  const { error } = await supabase
-    .from("site_settings")
-    .upsert({
-      id: 1,
-      site_name: settings.siteName,
-      site_url: settings.siteUrl,
-      support_email: settings.supportEmail,
-      platform_fee: settings.platformFee,
-      default_commission: settings.defaultCommission,
-      min_price: settings.minPrice,
-      max_file_size: settings.maxFileSize,
-      maintenance_mode: settings.maintenanceMode,
-      signup_enabled: settings.signupEnabled,
-      moderation_required: settings.moderationRequired,
-      contact_link: settings.contactLink,
-    });
+  const { error } = await supabase.from("site_settings").upsert({
+    id: 1,
+    site_name: settings.siteName,
+    site_url: settings.siteUrl,
+    support_email: settings.supportEmail,
+    platform_fee: settings.platformFee,
+    default_commission: settings.defaultCommission,
+    min_price: settings.minPrice,
+    max_file_size: settings.maxFileSize,
+    maintenance_mode: settings.maintenanceMode,
+    signup_enabled: settings.signupEnabled,
+    moderation_required: settings.moderationRequired,
+    contact_link: settings.contactLink,
+  });
 
-  if (error) { console.error("updateSiteSettings", error); return false; }
+  if (error) {
+    console.error("updateSiteSettings", error);
+    return false;
+  }
   return true;
 }
 
@@ -726,12 +868,12 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
 // ============================================================
 
 export async function updatePhotoPrice(photoId: string, price: number): Promise<boolean> {
-  const { error } = await supabase
-    .from("photos")
-    .update({ price })
-    .eq("id", photoId);
+  const { error } = await supabase.from("photos").update({ price }).eq("id", photoId);
 
-  if (error) { console.error("updatePhotoPrice", error); return false; }
+  if (error) {
+    console.error("updatePhotoPrice", error);
+    return false;
+  }
   return true;
 }
 
@@ -739,7 +881,9 @@ export async function updatePhotoPrice(photoId: string, price: number): Promise<
 // CREATE PHOTO (upload from dashboard)
 // ============================================================
 
-export async function createPhoto(photo: Omit<Photo, "downloads" | "views" | "likes">): Promise<Photo | null> {
+export async function createPhoto(
+  photo: Omit<Photo, "downloads" | "views" | "likes">,
+): Promise<Photo | null> {
   const { data, error } = await supabase
     .from("photos")
     .insert({
@@ -770,7 +914,10 @@ export async function createPhoto(photo: Omit<Photo, "downloads" | "views" | "li
     .select()
     .single();
 
-  if (error) { console.error("createPhoto", error); return null; }
+  if (error) {
+    console.error("createPhoto", error);
+    return null;
+  }
   return rowToPhoto(data);
 }
 
@@ -787,7 +934,9 @@ export interface PhotographerProfileSettings {
   bankAccountLast4: string;
 }
 
-export async function fetchPhotographerProfileSettings(userId: string): Promise<PhotographerProfileSettings | null> {
+export async function fetchPhotographerProfileSettings(
+  userId: string,
+): Promise<PhotographerProfileSettings | null> {
   const { data } = await supabase
     .from("photographer_profiles")
     .select("*")
@@ -805,20 +954,23 @@ export async function fetchPhotographerProfileSettings(userId: string): Promise<
   };
 }
 
-export async function upsertPhotographerProfileSettings(settings: PhotographerProfileSettings): Promise<boolean> {
-  const { error } = await supabase
-    .from("photographer_profiles")
-    .upsert({
-      user_id: settings.userId,
-      location: settings.location,
-      specialty: settings.specialty,
-      bio: settings.bio,
-      bank_name: settings.bankName,
-      bank_account_last4: settings.bankAccountLast4,
-      updated_at: new Date().toISOString(),
-    });
+export async function upsertPhotographerProfileSettings(
+  settings: PhotographerProfileSettings,
+): Promise<boolean> {
+  const { error } = await supabase.from("photographer_profiles").upsert({
+    user_id: settings.userId,
+    location: settings.location,
+    specialty: settings.specialty,
+    bio: settings.bio,
+    bank_name: settings.bankName,
+    bank_account_last4: settings.bankAccountLast4,
+    updated_at: new Date().toISOString(),
+  });
 
-  if (error) { console.error("upsertPhotographerProfileSettings", error); return false; }
+  if (error) {
+    console.error("upsertPhotographerProfileSettings", error);
+    return false;
+  }
   return true;
 }
 
@@ -828,7 +980,11 @@ export async function upsertPhotographerProfileSettings(settings: PhotographerPr
 
 export async function incrementPhotoDownloads(photoId: string): Promise<void> {
   const { data } = await supabase.from("photos").select("downloads").eq("id", photoId).single();
-  if (data) await supabase.from("photos").update({ downloads: (data.downloads || 0) + 1 }).eq("id", photoId);
+  if (data)
+    await supabase
+      .from("photos")
+      .update({ downloads: (data.downloads || 0) + 1 })
+      .eq("id", photoId);
 }
 
 // ============================================================
@@ -837,7 +993,11 @@ export async function incrementPhotoDownloads(photoId: string): Promise<void> {
 
 export async function incrementPhotoViews(photoId: string): Promise<void> {
   const { data } = await supabase.from("photos").select("views").eq("id", photoId).single();
-  if (data) await supabase.from("photos").update({ views: (data.views || 0) + 1 }).eq("id", photoId);
+  if (data)
+    await supabase
+      .from("photos")
+      .update({ views: (data.views || 0) + 1 })
+      .eq("id", photoId);
 }
 
 // ============================================================
@@ -864,13 +1024,29 @@ export async function toggleLike(userId: string, photoId: string): Promise<boole
 
   if (existing) {
     await supabase.from("user_likes").delete().eq("user_id", userId).eq("photo_id", photoId);
-    const { data: photo } = await supabase.from("photos").select("likes").eq("id", photoId).single();
-    if (photo) await supabase.from("photos").update({ likes: Math.max((photo.likes || 1) - 1, 0) }).eq("id", photoId);
+    const { data: photo } = await supabase
+      .from("photos")
+      .select("likes")
+      .eq("id", photoId)
+      .single();
+    if (photo)
+      await supabase
+        .from("photos")
+        .update({ likes: Math.max((photo.likes || 1) - 1, 0) })
+        .eq("id", photoId);
     return false;
   } else {
     await supabase.from("user_likes").insert({ user_id: userId, photo_id: photoId });
-    const { data: photo } = await supabase.from("photos").select("likes").eq("id", photoId).single();
-    if (photo) await supabase.from("photos").update({ likes: (photo.likes || 0) + 1 }).eq("id", photoId);
+    const { data: photo } = await supabase
+      .from("photos")
+      .select("likes")
+      .eq("id", photoId)
+      .single();
+    if (photo)
+      await supabase
+        .from("photos")
+        .update({ likes: (photo.likes || 0) + 1 })
+        .eq("id", photoId);
     return true;
   }
 }
@@ -907,10 +1083,7 @@ export async function toggleSave(userId: string, photoId: string): Promise<boole
 }
 
 export async function fetchUserSavedPhotoIds(userId: string): Promise<string[]> {
-  const { data } = await supabase
-    .from("user_saves")
-    .select("photo_id")
-    .eq("user_id", userId);
+  const { data } = await supabase.from("user_saves").select("photo_id").eq("user_id", userId);
   return (data || []).map((r: any) => r.photo_id);
 }
 
@@ -918,7 +1091,10 @@ export async function fetchUserSavedPhotoIds(userId: string): Promise<string[]> 
 // SOCIAL: FOLLOWS
 // ============================================================
 
-export async function hasUserFollowedPhotographer(userId: string, photographerId: string): Promise<boolean> {
+export async function hasUserFollowedPhotographer(
+  userId: string,
+  photographerId: string,
+): Promise<boolean> {
   const { data } = await supabase
     .from("user_follows")
     .select("following_id")
@@ -937,10 +1113,16 @@ export async function toggleFollow(userId: string, photographerId: string): Prom
     .maybeSingle();
 
   if (existing) {
-    await supabase.from("user_follows").delete().eq("follower_id", userId).eq("following_id", photographerId);
+    await supabase
+      .from("user_follows")
+      .delete()
+      .eq("follower_id", userId)
+      .eq("following_id", photographerId);
     return false;
   } else {
-    await supabase.from("user_follows").insert({ follower_id: userId, following_id: photographerId });
+    await supabase
+      .from("user_follows")
+      .insert({ follower_id: userId, following_id: photographerId });
     return true;
   }
 }
@@ -958,7 +1140,12 @@ export async function fetchFollowerCount(photographerId: string): Promise<number
 // ============================================================
 
 export async function createContributorInterest(email: string): Promise<boolean> {
-  await logActivity({ userId: `CONTRIBUTE-${email}`, type: "contribute", title: "Contributor application", desc: email });
+  await logActivity({
+    userId: `CONTRIBUTE-${email}`,
+    type: "contribute",
+    title: "Contributor application",
+    desc: email,
+  });
   return true;
 }
 
@@ -990,19 +1177,17 @@ export async function createContributorSubmission(input: {
   gearDescription: string;
   socialHandle?: string;
 }): Promise<boolean> {
-  const { error } = await supabase
-    .from("contributor_submissions")
-    .insert({
-      full_name: input.fullName,
-      email: input.email,
-      phone: input.phone,
-      country: input.country,
-      preferred_channel: input.preferredChannel,
-      invitation_code: input.invitationCode || null,
-      portfolio_link: input.portfolioLink,
-      gear_description: input.gearDescription,
-      social_handle: input.socialHandle || null,
-    });
+  const { error } = await supabase.from("contributor_submissions").insert({
+    full_name: input.fullName,
+    email: input.email,
+    phone: input.phone,
+    country: input.country,
+    preferred_channel: input.preferredChannel,
+    invitation_code: input.invitationCode || null,
+    portfolio_link: input.portfolioLink,
+    gear_description: input.gearDescription,
+    social_handle: input.socialHandle || null,
+  });
 
   if (error) {
     console.error("createContributorSubmission", error);
@@ -1084,7 +1269,16 @@ export async function fetchAdminLogs(limit = 50): Promise<AdminLogEntry[]> {
     id: r.id,
     time: r.created_at ? new Date(r.created_at).toLocaleString() : "",
     level: r.type === "error" ? "ERROR" : r.type === "warning" ? "WARN" : "INFO",
-    source: r.type === "purchase" ? "Payments" : r.type === "auth" ? "Auth" : r.type === "upload" ? "Upload" : r.type === "contribute" ? "Auth" : "System",
+    source:
+      r.type === "purchase"
+        ? "Payments"
+        : r.type === "auth"
+          ? "Auth"
+          : r.type === "upload"
+            ? "Upload"
+            : r.type === "contribute"
+              ? "Auth"
+              : "System",
     message: r.desc || r.title || "",
   }));
 }
@@ -1094,14 +1288,25 @@ export async function fetchAdminLogs(limit = 50): Promise<AdminLogEntry[]> {
 // ============================================================
 
 export async function fetchMonthlyGrowth(): Promise<{ m: string; v: number }[]> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("created_at");
+  const { data } = await supabase.from("profiles").select("created_at");
 
   if (!data || data.length === 0) return [];
 
   const months: Record<string, number> = {};
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
   data.forEach((r: any) => {
     const d = new Date(r.created_at);
@@ -1117,14 +1322,25 @@ export async function fetchMonthlyGrowth(): Promise<{ m: string; v: number }[]> 
 // ============================================================
 
 export async function fetchMonthlyRevenue(): Promise<{ m: string; v: number }[]> {
-  const { data } = await supabase
-    .from("purchases")
-    .select("price, date");
+  const { data } = await supabase.from("purchases").select("price, date");
 
   if (!data || data.length === 0) return [];
 
   const months: Record<string, number> = {};
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
   data.forEach((r: any) => {
     const d = new Date(r.date);
@@ -1140,9 +1356,7 @@ export async function fetchMonthlyRevenue(): Promise<{ m: string; v: number }[]>
 // ============================================================
 
 export async function fetchCategoryStats(): Promise<{ name: string; downloads: number }[]> {
-  const { data } = await supabase
-    .from("photos")
-    .select("category, downloads");
+  const { data } = await supabase.from("photos").select("category, downloads");
 
   if (!data || data.length === 0) return [];
 
@@ -1161,14 +1375,25 @@ export async function fetchCategoryStats(): Promise<{ name: string; downloads: n
 // ============================================================
 
 export async function fetchUserGrowthPerMonth(): Promise<{ m: string; v: number }[]> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("created_at");
+  const { data } = await supabase.from("profiles").select("created_at");
 
   if (!data || data.length === 0) return [];
 
   const months: Record<string, number> = {};
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
   const sorted = data.map((r: any) => new Date(r.created_at).getTime()).sort((a, b) => a - b);
   let cumulative = 0;
@@ -1206,19 +1431,34 @@ export async function fetchPhotographerStats(photographerId: string): Promise<{
     .select("id, downloads, views, likes, price, custom_downloads, custom_views, custom_likes")
     .eq("photographer_id", photographerId);
 
-  if (!photos || photos.length === 0) return { totalRevenue: 0, totalDownloads: 0, totalViews: 0, totalLikes: 0, photoCount: 0, avgPrice: 0 };
+  if (!photos || photos.length === 0)
+    return {
+      totalRevenue: 0,
+      totalDownloads: 0,
+      totalViews: 0,
+      totalLikes: 0,
+      photoCount: 0,
+      avgPrice: 0,
+    };
 
-  const totalDownloads = photos.reduce((s: number, p: any) => s + Math.max(p.downloads || 0, p.custom_downloads || 0), 0);
-  const totalViews = photos.reduce((s: number, p: any) => s + Math.max(p.views || 0, p.custom_views || 0), 0);
-  const totalLikes = photos.reduce((s: number, p: any) => s + Math.max(p.likes || 0, p.custom_likes || 0), 0);
+  const totalDownloads = photos.reduce(
+    (s: number, p: any) => s + Math.max(p.downloads || 0, p.custom_downloads || 0),
+    0,
+  );
+  const totalViews = photos.reduce(
+    (s: number, p: any) => s + Math.max(p.views || 0, p.custom_views || 0),
+    0,
+  );
+  const totalLikes = photos.reduce(
+    (s: number, p: any) => s + Math.max(p.likes || 0, p.custom_likes || 0),
+    0,
+  );
   const avgPrice = photos.reduce((s: number, p: any) => s + (p.price || 0), 0) / photos.length;
 
-  const { data: purchases } = await supabase
-    .from("purchases")
-    .select("price, photo_id");
+  const { data: purchases } = await supabase.from("purchases").select("price, photo_id");
 
   const photoIds = new Set(photos.map((p: any) => p.id));
-  
+
   // Real revenue from purchases
   let totalRevenue = (purchases || [])
     .filter((p: any) => photoIds.has(p.photo_id))
@@ -1233,14 +1473,24 @@ export async function fetchPhotographerStats(photographerId: string): Promise<{
     }
   });
 
-  return { totalRevenue, totalDownloads, totalViews, totalLikes, photoCount: photos.length, avgPrice: Math.round(avgPrice) };
+  return {
+    totalRevenue,
+    totalDownloads,
+    totalViews,
+    totalLikes,
+    photoCount: photos.length,
+    avgPrice: Math.round(avgPrice),
+  };
 }
 
-export async function updatePhotoHypeOverrides(photoId: string, metrics: {
-  customDownloads?: number;
-  customViews?: number;
-  customLikes?: number;
-}): Promise<boolean> {
+export async function updatePhotoHypeOverrides(
+  photoId: string,
+  metrics: {
+    customDownloads?: number;
+    customViews?: number;
+    customLikes?: number;
+  },
+): Promise<boolean> {
   const updates: any = {};
   if (metrics.customDownloads !== undefined) updates.custom_downloads = metrics.customDownloads;
   if (metrics.customViews !== undefined) updates.custom_views = metrics.customViews;
@@ -1258,7 +1508,9 @@ export async function updatePhotoHypeOverrides(photoId: string, metrics: {
 // DASHBOARD: MONTHLY REVENUE FOR PHOTOGRAPHER
 // ============================================================
 
-export async function fetchPhotographerMonthlyRevenue(photographerId: string): Promise<{ m: string; v: number }[]> {
+export async function fetchPhotographerMonthlyRevenue(
+  photographerId: string,
+): Promise<{ m: string; v: number }[]> {
   const { data: photos } = await supabase
     .from("photos")
     .select("id")
@@ -1276,7 +1528,20 @@ export async function fetchPhotographerMonthlyRevenue(photographerId: string): P
   if (!purchases || purchases.length === 0) return [];
 
   const months: Record<string, number> = {};
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthNames = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
   purchases.forEach((r: any) => {
     const d = new Date(r.date);
@@ -1291,7 +1556,9 @@ export async function fetchPhotographerMonthlyRevenue(photographerId: string): P
 // DASHBOARD: WEEKLY DOWNLOADS FOR PHOTOGRAPHER
 // ============================================================
 
-export async function fetchPhotographerWeeklyDownloads(photographerId: string): Promise<{ m: string; v: number }[]> {
+export async function fetchPhotographerWeeklyDownloads(
+  photographerId: string,
+): Promise<{ m: string; v: number }[]> {
   const { data: photos } = await supabase
     .from("photos")
     .select("id, downloads")
@@ -1302,14 +1569,16 @@ export async function fetchPhotographerWeeklyDownloads(photographerId: string): 
   const total = photos.reduce((s: number, p: any) => s + (p.downloads || 0), 0);
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const weights = [0.16, 0.15, 0.14, 0.15, 0.16, 0.12, 0.12];
-  return days.map((d, i) => ({ m: d, v: Math.round(total * weights[i] / 7) }));
+  return days.map((d, i) => ({ m: d, v: Math.round((total * weights[i]) / 7) }));
 }
 
 // ============================================================
 // DASHBOARD: TOP CATEGORIES FOR PHOTOGRAPHER
 // ============================================================
 
-export async function fetchPhotographerTopCategories(photographerId: string): Promise<{ name: string; pct: string }[]> {
+export async function fetchPhotographerTopCategories(
+  photographerId: string,
+): Promise<{ name: string; pct: string }[]> {
   const { data: photos } = await supabase
     .from("photos")
     .select("category, downloads")
@@ -1346,10 +1615,7 @@ export async function fetchUserPurchaseStats(userId: string): Promise<{
     .eq("user_id", userId)
     .order("date", { ascending: false });
 
-  const { data: licenses } = await supabase
-    .from("licenses")
-    .select("id")
-    .eq("user_id", userId);
+  const { data: licenses } = await supabase.from("licenses").select("id").eq("user_id", userId);
 
   const totalSpent = (purchases || []).reduce((s: number, p: any) => s + (p.price || 0), 0);
 
@@ -1358,7 +1624,12 @@ export async function fetchUserPurchaseStats(userId: string): Promise<{
     totalPurchases: (purchases || []).length,
     totalLicenses: (licenses || []).length,
     recentPurchases: (purchases || []).slice(0, 5).map((r: any) => ({
-      id: r.id, userId: r.user_id, photoId: r.photo_id, license: r.license, price: r.price, date: r.date,
+      id: r.id,
+      userId: r.user_id,
+      photoId: r.photo_id,
+      license: r.license,
+      price: r.price,
+      date: r.date,
     })),
   };
 }
@@ -1437,7 +1708,9 @@ export interface PhotographerPaymentMethod {
   details: Record<string, unknown>;
 }
 
-export async function fetchPaymentMethods(photographerId: string): Promise<PhotographerPaymentMethod[]> {
+export async function fetchPaymentMethods(
+  photographerId: string,
+): Promise<PhotographerPaymentMethod[]> {
   const { data } = await supabase
     .from("photographer_payment_methods")
     .select("*")
@@ -1445,7 +1718,13 @@ export async function fetchPaymentMethods(photographerId: string): Promise<Photo
 
   if (!data || data.length === 0) {
     return [
-      { id: `pm-${photographerId}-card`, photographerId, method: "card", enabled: true, details: {} },
+      {
+        id: `pm-${photographerId}-card`,
+        photographerId,
+        method: "card",
+        enabled: true,
+        details: {},
+      },
     ];
   }
 
@@ -1462,22 +1741,20 @@ export async function upsertPaymentMethod(
   photographerId: string,
   method: "card" | "crypto" | "paypal",
   enabled: boolean,
-  details: Record<string, unknown> = {}
+  details: Record<string, unknown> = {},
 ): Promise<boolean> {
   const { error } = await supabase
     .from("photographer_payment_methods")
     .upsert(
       { photographer_id: photographerId, method, enabled, details },
-      { onConflict: "photographer_id,method" }
+      { onConflict: "photographer_id,method" },
     );
 
   return !error;
 }
 
 export async function fetchAllPaymentMethods(): Promise<PhotographerPaymentMethod[]> {
-  const { data } = await supabase
-    .from("photographer_payment_methods")
-    .select("*");
+  const { data } = await supabase.from("photographer_payment_methods").select("*");
 
   if (!data) return [];
 
@@ -1510,7 +1787,7 @@ export async function createPayoutRequest(
   photographerId: string,
   amount: number,
   method: "card" | "crypto" | "paypal",
-  details: Record<string, unknown> = {}
+  details: Record<string, unknown> = {},
 ): Promise<PayoutRequest | null> {
   const { data, error } = await supabase
     .from("payout_requests")
@@ -1523,7 +1800,10 @@ export async function createPayoutRequest(
     .select()
     .single();
 
-  if (error) { console.error("createPayoutRequest", error); return null; }
+  if (error) {
+    console.error("createPayoutRequest", error);
+    return null;
+  }
 
   return {
     id: data.id,
@@ -1539,7 +1819,10 @@ export async function createPayoutRequest(
 }
 
 export async function fetchPayoutRequests(photographerId?: string): Promise<PayoutRequest[]> {
-  let query = supabase.from("payout_requests").select("*").order("requested_at", { ascending: false });
+  let query = supabase
+    .from("payout_requests")
+    .select("*")
+    .order("requested_at", { ascending: false });
   if (photographerId) query = query.eq("photographer_id", photographerId);
 
   const { data } = await query;
@@ -1561,7 +1844,7 @@ export async function fetchPayoutRequests(photographerId?: string): Promise<Payo
 export async function updatePayoutRequestStatus(
   id: string,
   status: "APPROVED" | "REJECTED" | "PAID",
-  adminNote: string = ""
+  adminNote: string = "",
 ): Promise<boolean> {
   const { error } = await supabase
     .from("payout_requests")
@@ -1580,20 +1863,18 @@ export async function createPurchaseWithMethod(
   photoId: string,
   license: string,
   price: number,
-  paymentMethod: string
+  paymentMethod: string,
 ): Promise<boolean> {
   const id = `PUR-${Date.now().toString(36)}`;
-  const { error } = await supabase
-    .from("purchases")
-    .insert({
-      id,
-      user_id: userId,
-      photo_id: photoId,
-      license,
-      price,
-      payment_method: paymentMethod,
-      status: "PENDING",
-    });
+  const { error } = await supabase.from("purchases").insert({
+    id,
+    user_id: userId,
+    photo_id: photoId,
+    license,
+    price,
+    payment_method: paymentMethod,
+    status: "PENDING",
+  });
 
   return !error;
 }
@@ -1602,12 +1883,16 @@ export async function createPurchaseWithMethod(
 // APPROVE PURCHASE
 // ============================================================
 
-export async function approvePurchase(purchaseId: string, photoId: string, userId: string): Promise<boolean> {
+export async function approvePurchase(
+  purchaseId: string,
+  photoId: string,
+  userId: string,
+): Promise<boolean> {
   const { error: pErr } = await supabase
     .from("purchases")
     .update({ status: "APPROVED" })
     .eq("id", purchaseId);
-    
+
   if (pErr) return false;
 
   // Find the corresponding license and update expires_at
@@ -1620,10 +1905,7 @@ export async function approvePurchase(purchaseId: string, photoId: string, userI
     .limit(1);
 
   if (licenses && licenses.length > 0) {
-    await supabase
-      .from("licenses")
-      .update({ expires_at: "Lifetime" })
-      .eq("id", licenses[0].id);
+    await supabase.from("licenses").update({ expires_at: "Lifetime" }).eq("id", licenses[0].id);
   }
 
   return true;
@@ -1637,18 +1919,17 @@ export async function rejectPurchase(purchaseId: string): Promise<boolean> {
   return !error;
 }
 
-
 // ============================================================
 // DELETE PHOTO (admin or photographer)
 // ============================================================
 
 export async function deletePhoto(photoId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("photos")
-    .delete()
-    .eq("id", photoId);
+  const { error } = await supabase.from("photos").delete().eq("id", photoId);
 
-  if (error) { console.error("deletePhoto", error); return false; }
+  if (error) {
+    console.error("deletePhoto", error);
+    return false;
+  }
   return true;
 }
 
@@ -1657,12 +1938,12 @@ export async function deletePhoto(photoId: string): Promise<boolean> {
 // ============================================================
 
 export async function updateUserRole(userId: string, newRole: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("profiles")
-    .update({ role: newRole })
-    .eq("id", userId);
+  const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
 
-  if (error) { console.error("updateUserRole", error); return false; }
+  if (error) {
+    console.error("updateUserRole", error);
+    return false;
+  }
 
   if (newRole === "Photographer") {
     const { data: profile } = await supabase
@@ -1672,11 +1953,13 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
       .single();
 
     if (profile && !profile.slug) {
-      const slug = profile.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-£/g, "")
-        + "-" + userId.slice(0, 8);
+      const slug =
+        profile.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-£/g, "") +
+        "-" +
+        userId.slice(0, 8);
 
       await supabase.from("profiles").update({ slug }).eq("id", userId);
 
@@ -1712,17 +1995,20 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
 
 export async function resolveModeration(moderationId: string, approve: boolean): Promise<boolean> {
   if (approve) {
-    const { error } = await supabase
-      .from("moderation_queue")
-      .delete()
-      .eq("id", moderationId);
-    if (error) { console.error("resolveModeration (delete)", error); return false; }
+    const { error } = await supabase.from("moderation_queue").delete().eq("id", moderationId);
+    if (error) {
+      console.error("resolveModeration (delete)", error);
+      return false;
+    }
   } else {
     const { error } = await supabase
       .from("moderation_queue")
       .update({ status: "rejected" })
       .eq("id", moderationId);
-    if (error) { console.error("resolveModeration (reject)", error); return false; }
+    if (error) {
+      console.error("resolveModeration (reject)", error);
+      return false;
+    }
   }
 
   return true;
@@ -1733,12 +2019,12 @@ export async function resolveModeration(moderationId: string, approve: boolean):
 // ============================================================
 
 export async function updateBriefStatus(briefId: string, status: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("briefs")
-    .update({ status })
-    .eq("id", briefId);
+  const { error } = await supabase.from("briefs").update({ status }).eq("id", briefId);
 
-  if (error) { console.error("updateBriefStatus", error); return false; }
+  if (error) {
+    console.error("updateBriefStatus", error);
+    return false;
+  }
   return true;
 }
 
@@ -1747,12 +2033,12 @@ export async function updateBriefStatus(briefId: string, status: string): Promis
 // ============================================================
 
 export async function updateUserStatus(userId: string, status: string): Promise<boolean> {
-  const { error } = await supabase
-    .from("profiles")
-    .update({ status })
-    .eq("id", userId);
+  const { error } = await supabase.from("profiles").update({ status }).eq("id", userId);
 
-  if (error) { console.error("updateUserStatus", error); return false; }
+  if (error) {
+    console.error("updateUserStatus", error);
+    return false;
+  }
   return true;
 }
 
@@ -1760,13 +2046,19 @@ export async function updateUserStatus(userId: string, status: string): Promise<
 // UPDATE USER VERIFICATION STATUS (manual admin override)
 // ============================================================
 
-export async function updateUserVerificationStatus(userId: string, verification_status: string): Promise<boolean> {
+export async function updateUserVerificationStatus(
+  userId: string,
+  verification_status: string,
+): Promise<boolean> {
   const { error } = await supabase
     .from("profiles")
     .update({ verification_status })
     .eq("id", userId);
 
-  if (error) { console.error("updateUserVerificationStatus", error); return false; }
+  if (error) {
+    console.error("updateUserVerificationStatus", error);
+    return false;
+  }
   return true;
 }
 
@@ -1884,12 +2176,12 @@ export async function uploadVerificationDocument(
   documentType: string,
   documentNumber: string,
   file: File,
-  kycDetails?: { phone?: string; dob?: string; occupation?: string; fullName?: string }
+  kycDetails?: { phone?: string; dob?: string; occupation?: string; fullName?: string },
 ): Promise<VerificationDocument | null> {
   const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
-  let fileUrl = "";
+  let fileUrl: string;
   if (cloudName && uploadPreset) {
     const fd = new FormData();
     fd.append("upload_preset", uploadPreset);
@@ -1902,7 +2194,9 @@ export async function uploadVerificationDocument(
     const json = await res.json();
     fileUrl = json.secure_url;
   } else {
-    throw new Error("Cloudinary is not configured. Add VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.");
+    throw new Error(
+      "Cloudinary is not configured. Add VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.",
+    );
   }
 
   const { data, error } = await supabase
@@ -1918,16 +2212,13 @@ export async function uploadVerificationDocument(
 
   if (error) throw new Error(error.message);
 
-  const profileUpdates: any = { };
+  const profileUpdates: any = {};
   if (kycDetails?.phone) profileUpdates.phone = kycDetails.phone;
   if (kycDetails?.dob) profileUpdates.dob = kycDetails.dob;
   if (kycDetails?.occupation) profileUpdates.occupation = kycDetails.occupation;
   if (kycDetails?.fullName) profileUpdates.name = kycDetails.fullName;
 
-  await supabase
-    .from("profiles")
-    .update(profileUpdates)
-    .eq("id", userId);
+  await supabase.from("profiles").update(profileUpdates).eq("id", userId);
 
   return {
     id: data.id,
@@ -1943,7 +2234,9 @@ export async function uploadVerificationDocument(
   };
 }
 
-export async function fetchMyVerificationDocument(userId: string): Promise<VerificationDocument | null> {
+export async function fetchMyVerificationDocument(
+  userId: string,
+): Promise<VerificationDocument | null> {
   const { data } = await supabase
     .from("verification_documents")
     .select("*")
@@ -1970,8 +2263,8 @@ export async function fetchMyVerificationDocument(userId: string): Promise<Verif
 
 export async function payVerificationFee(userId: string): Promise<boolean> {
   // Simulate payment processing delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
   // Record the verification fee as a purchase
   const purchaseId = `VF-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
   await supabase.from("purchases").insert({
@@ -1980,9 +2273,9 @@ export async function payVerificationFee(userId: string): Promise<boolean> {
     price: 247,
     license: "Verification Fee",
     status: "APPROVED",
-    payment_method: "card"
+    payment_method: "card",
   });
-  
+
   const { error } = await supabase
     .from("profiles")
     .update({ verification_status: "pending" })
@@ -1992,7 +2285,7 @@ export async function payVerificationFee(userId: string): Promise<boolean> {
     console.error("payVerificationFee error", error);
     throw new Error(error.message);
   }
-  
+
   return true;
 }
 
@@ -2022,7 +2315,7 @@ export async function reviewVerificationDocument(
   documentId: string,
   status: "approved" | "rejected",
   adminNote: string,
-  reviewedBy: string
+  reviewedBy: string,
 ): Promise<boolean> {
   const { data: doc } = await supabase
     .from("verification_documents")
@@ -2062,10 +2355,7 @@ export interface AdminPaymentMethod {
 }
 
 export async function fetchAdminPaymentMethods(): Promise<AdminPaymentMethod[]> {
-  const { data } = await supabase
-    .from("admin_payment_methods")
-    .select("*")
-    .order("created_at");
+  const { data } = await supabase.from("admin_payment_methods").select("*").order("created_at");
 
   if (!data) return [];
   return data.map((m: any) => ({
@@ -2078,7 +2368,11 @@ export async function fetchAdminPaymentMethods(): Promise<AdminPaymentMethod[]> 
   }));
 }
 
-export async function createAdminPaymentMethod(methodType: string, name: string, details: string): Promise<AdminPaymentMethod> {
+export async function createAdminPaymentMethod(
+  methodType: string,
+  name: string,
+  details: string,
+): Promise<AdminPaymentMethod> {
   const { data, error } = await supabase
     .from("admin_payment_methods")
     .insert({ method_type: methodType, name, details })
@@ -2086,7 +2380,7 @@ export async function createAdminPaymentMethod(methodType: string, name: string,
     .single();
 
   if (error || !data) throw new Error(error?.message || "Failed to create payment method");
-  
+
   return {
     id: data.id,
     methodType: data.method_type,
@@ -2097,20 +2391,17 @@ export async function createAdminPaymentMethod(methodType: string, name: string,
   };
 }
 
-export async function updateAdminPaymentMethod(id: string, updates: { enabled?: boolean; details?: string; name?: string }): Promise<void> {
-  const { error } = await supabase
-    .from("admin_payment_methods")
-    .update(updates)
-    .eq("id", id);
-    
+export async function updateAdminPaymentMethod(
+  id: string,
+  updates: { enabled?: boolean; details?: string; name?: string },
+): Promise<void> {
+  const { error } = await supabase.from("admin_payment_methods").update(updates).eq("id", id);
+
   if (error) throw new Error(error.message);
 }
 
 export async function deleteAdminPaymentMethod(id: string): Promise<void> {
-  const { error } = await supabase
-    .from("admin_payment_methods")
-    .delete()
-    .eq("id", id);
-    
+  const { error } = await supabase.from("admin_payment_methods").delete().eq("id", id);
+
   if (error) throw new Error(error.message);
 }

@@ -1,17 +1,37 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router";
 import {
-  BadgeCheck, MapPin, Share2, Mail, ChevronDown, Camera, Download, Bookmark,
+  BadgeCheck,
+  MapPin,
+  Share2,
+  Mail,
+  ChevronDown,
+  Camera,
+  Download,
+  Bookmark,
 } from "lucide-react";
 import { toast } from "sonner";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { Button, Eyebrow } from "../components/ui";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { useRequest } from "../components/RequestModal";
-import { fetchPhotographer, fetchPhotosByPhotographer, type Photographer, type Photo, getOptimizedImageUrl } from "../data/db";
+import {
+  fetchPhotographer,
+  fetchPhotosByPhotographer,
+  type Photographer,
+  type Photo,
+  getOptimizedImageUrl,
+} from "../data/db";
 import { NotFound } from "./NotFound";
 import { useAuth } from "../context/AuthContext";
-import { toggleFollow, hasUserFollowedPhotographer, fetchFollowerCount, fetchFollowers, fetchFollowing, type FollowerInfo } from "../data/db";
+import {
+  toggleFollow,
+  hasUserFollowedPhotographer,
+  fetchFollowerCount,
+  fetchFollowers,
+  fetchFollowing,
+  type FollowerInfo,
+} from "../data/db";
 
 type Tab = "highlights" | "gallery" | "collections" | "statistics" | "followers" | "following";
 
@@ -33,8 +53,18 @@ export function PhotographerProfile() {
         setShots(photos);
         const count = await fetchFollowerCount(id ?? "");
         if (count > 0) setFollowerCount(count);
-        fetchFollowers(id ?? "").then(setFollowers).catch(() => toast.error("Failed to load data"));
-        fetchFollowing(id ?? "").then(setFollowingList).catch(() => toast.error("Failed to load data"));
+        fetchFollowers(id ?? "")
+          .then(setFollowers)
+          .catch(() => {
+            toast.error("An error occurred");
+            return null;
+          });
+        fetchFollowing(id ?? "")
+          .then(setFollowingList)
+          .catch(() => {
+            toast.error("An error occurred");
+            return null;
+          });
       }
     };
     load();
@@ -103,10 +133,13 @@ export function PhotographerProfile() {
           <Button
             variant={following ? "outline" : "solid"}
             onClick={async () => {
-              if (!user) { toast.error("Sign in to follow"); return; }
+              if (!user) {
+                toast.error("Sign in to follow");
+                return;
+              }
               const nowFollowing = await toggleFollow(user.id, photographer.id);
               setFollowing(nowFollowing);
-              setFollowerCount((c) => nowFollowing ? c + 1 : Math.max(c - 1, 0));
+              setFollowerCount((c) => (nowFollowing ? c + 1 : Math.max(c - 1, 0)));
               toast(nowFollowing ? `Following ${photographer.name}` : "Unfollowed");
             }}
           >
@@ -136,7 +169,9 @@ export function PhotographerProfile() {
             >
               {t.label}
               {t.count !== undefined && (
-                <span className={`text-xs ${tab === t.id ? "text-white/70" : "text-[#8a8f89]"}`}>{t.count}</span>
+                <span className={`text-xs ${tab === t.id ? "text-white/70" : "text-[#8a8f89]"}`}>
+                  {t.count}
+                </span>
               )}
               {t.badge && (
                 <span className="rounded-full bg-[#dce8df] px-1.5 py-0.5 font-mono text-[8px] tracking-[0.08em] text-[#285746]">
@@ -164,8 +199,8 @@ export function PhotographerProfile() {
 
       {/* Content */}
       <div className="py-10">
-        {tab === "gallery" && (
-          sorted.length > 0 ? (
+        {tab === "gallery" &&
+          (sorted.length > 0 ? (
             <ResponsiveMasonry columnsCountBreakPoints={{ 350: 1, 640: 2, 1024: 3 }}>
               <Masonry gutter="16px">
                 {sorted.map((p) => (
@@ -173,19 +208,25 @@ export function PhotographerProfile() {
                 ))}
               </Masonry>
             </ResponsiveMasonry>
-          ) : <Empty text="No published work yet." />
-        )}
+          ) : (
+            <Empty text="No published work yet." />
+          ))}
 
         {tab === "highlights" && <Empty text="No highlights pinned yet." />}
 
-        {tab === "collections" && <Empty text="This photographer hasn't shared any public collections." />}
+        {tab === "collections" && (
+          <Empty text="This photographer hasn't shared any public collections." />
+        )}
 
         {tab === "statistics" && (
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               { label: "TOTAL VIEWS", value: compact(totalViews) },
               { label: "TOTAL DOWNLOADS", value: compact(totalDownloads) },
-              { label: "AVG. LICENSE PRICE", value: `£${Math.round(shots.reduce((s, p) => s + p.price, 0) / (shots.length || 1))}` },
+              {
+                label: "AVG. LICENSE PRICE",
+                value: `£${Math.round(shots.reduce((s, p) => s + p.price, 0) / (shots.length || 1))}`,
+              },
             ].map((s) => (
               <div key={s.label} className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-6">
                 <p className="font-mono text-[9px] tracking-[0.1em] text-[#758078]">{s.label}</p>
@@ -196,7 +237,10 @@ export function PhotographerProfile() {
               <Eyebrow>GEAR</Eyebrow>
               <div className="mt-4 flex flex-wrap gap-3">
                 {photographer.gear?.map((g) => (
-                  <span key={g} className="flex items-center gap-2 border border-[#ececec] px-3 py-2 text-sm">
+                  <span
+                    key={g}
+                    className="flex items-center gap-2 border border-[#ececec] px-3 py-2 text-sm"
+                  >
                     <Camera className="size-4 text-[#1e4a3f]" /> {g}
                   </span>
                 ))}
@@ -208,21 +252,31 @@ export function PhotographerProfile() {
         {(tab === "followers" || tab === "following") && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(tab === "followers" ? followers : followingList).map((f) => (
-              <div key={f.followerId + f.followingId} className="flex items-center gap-3 border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4">
+              <div
+                key={f.followerId + f.followingId}
+                className="flex items-center gap-3 border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4"
+              >
                 <Avatar className="size-11">
                   <AvatarImage src={f.avatar || ""} className="object-cover" />
-                  <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-xs">{f.name?.charAt(0).toUpperCase() || "NS"}</AvatarFallback>
+                  <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-xs">
+                    {f.name?.charAt(0).toUpperCase() || "NS"}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{f.name}</p>
                 </div>
-                <button onClick={() => toast(tab === "following" ? "Unfollowed" : `Following ${f.name}`)} className="text-xs font-semibold text-[#1e4a3f]">
+                <button
+                  onClick={() => toast(tab === "following" ? "Unfollowed" : `Following ${f.name}`)}
+                  className="text-xs font-semibold text-[#1e4a3f]"
+                >
                   {tab === "following" ? "Following" : "Follow"}
                 </button>
               </div>
             ))}
             {tab === "followers" && (
-              <p key="more" className="text-sm text-[#8a8f89] col-span-full">…and {followerCount} more.</p>
+              <p key="more" className="text-sm text-[#8a8f89] col-span-full">
+                …and {followerCount} more.
+              </p>
             )}
           </div>
         )}
@@ -244,7 +298,12 @@ function GalleryTile({ photo, name }: { photo: Photo; name: string }) {
   return (
     <div className="group relative overflow-hidden bg-[#d7d8d2]">
       <Link to={`/photo/${photo.id}`}>
-        <img src={getOptimizedImageUrl(photo.image, 600)} alt={photo.title} loading="lazy" className="w-full object-cover" />
+        <img
+          src={getOptimizedImageUrl(photo.image, 600)}
+          alt={photo.title}
+          loading="lazy"
+          className="w-full object-cover"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10 opacity-100 md:opacity-0 transition md:group-hover:opacity-100" />
       </Link>
       <button
@@ -257,7 +316,10 @@ function GalleryTile({ photo, name }: { photo: Photo; name: string }) {
       <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between opacity-100 md:opacity-0 transition md:group-hover:opacity-100">
         <span className="truncate text-xs font-medium text-white">{name}</span>
         <button
-          onClick={(e) => { e.preventDefault(); toast.success("License to download"); }}
+          onClick={(e) => {
+            e.preventDefault();
+            toast.success("License to download");
+          }}
           className="pointer-events-auto flex items-center gap-1.5 bg-white px-3 py-1.5 text-xs font-semibold text-[#1e4a3f]"
         >
           <Download className="size-3.5" /> License

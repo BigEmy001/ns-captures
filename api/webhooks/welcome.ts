@@ -1,9 +1,17 @@
 import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
+import { rateLimit } from "../lib/rate-limit";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Rate limiting
+  const ip = (req.headers["x-forwarded-for"] as string) || "unknown";
+  const { limited } = rateLimit(ip);
+  if (limited) {
+    return res.status(429).json({ error: "Too many requests" });
   }
 
   // 1. Secure the endpoint by verifying the user's JWT token
@@ -15,13 +23,16 @@ export default async function handler(req: any, res: any) {
   const token = authHeader.replace("Bearer ", "");
   const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "";
-  
+
   if (!supabaseUrl || !supabaseKey) {
     return res.status(500).json({ error: "Server missing Supabase environment variables" });
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(token);
 
   if (authError || !user || !user.email) {
     return res.status(401).json({ error: "Unauthorized: Invalid token" });
