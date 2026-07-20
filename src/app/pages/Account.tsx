@@ -107,6 +107,7 @@ const nav = [
 
   // Creator Hub (Rendered conditionally later, but defined here)
   { id: "dashboard", label: "Dashboard", icon: Activity, heading: "CREATOR HUB", isCreator: true },
+  { id: "portfolio", label: "Portfolio", icon: ImageIcon, isCreator: true },
   { id: "payouts", label: "Payouts", icon: Wallet, isCreator: true },
 
   { id: "activity", label: "Activity", icon: Bell, heading: "ACCOUNT", divider: true },
@@ -1074,7 +1075,9 @@ export function Account() {
             </div>
           )}
 
-          {["dashboard", "payouts"].includes(active) && <CreatorTabs active={active} />}
+          {["dashboard", "portfolio", "payouts"].includes(active) && (
+            <CreatorTabs active={active} />
+          )}
         </div>
       </div>
 

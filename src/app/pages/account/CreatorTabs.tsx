@@ -46,6 +46,7 @@ import {
   fetchBalanceAdjustments,
   createPhoto,
   deletePhoto,
+  updatePhotoPrice,
   type Payout,
   getOptimizedImageUrl,
 } from "../../data/db";
@@ -156,6 +157,8 @@ export function CreatorTabs({
     avgPrice: 0,
   });
   const [followerCount, setFollowerCount] = useState(0);
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  const [editingPriceValue, setEditingPriceValue] = useState<string>("");
 
   // Dynamically resolve the photographerId and photographerProfile
   const photographerProfile = photographers.find((p) => p.id === user?.slug);
@@ -268,6 +271,24 @@ export function CreatorTabs({
         description: "Could not remove the asset from the database.",
       });
     }
+  };
+
+  const handlePriceUpdate = async (photoId: string) => {
+    const newPrice = parseInt(editingPriceValue, 10);
+    if (isNaN(newPrice) || newPrice < 1000) {
+      toast.error("Minimum price is £1,000");
+      return;
+    }
+    const ok = await updatePhotoPrice(photoId, newPrice);
+    if (ok) {
+      setPortfolioPhotos((prev) =>
+        prev.map((p) => (p.id === photoId ? { ...p, price: newPrice } : p)),
+      );
+      toast.success(`Price updated to £${newPrice.toLocaleString()}`);
+    } else {
+      toast.error("Failed to update price");
+    }
+    setEditingPriceId(null);
   };
 
   const handleFileDrop = (e: React.DragEvent) => {
@@ -1084,6 +1105,129 @@ export function CreatorTabs({
             </div>
           </div>
         </>
+      )}
+
+      {active === "portfolio" && (
+        <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
+          <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+              <div>
+                <Eyebrow>PORTFOLIO</Eyebrow>
+                <h1 className="mt-2 font-serif text-3xl sm:text-4xl tracking-tight text-[#18211f]">
+                  Your Archive
+                </h1>
+                <p className="text-sm text-[#6b716d] mt-1">
+                  {portfolioPhotos.length} photograph{portfolioPhotos.length !== 1 && "s"} published
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setUploadStep(1);
+                  setUploadOpen(true);
+                }}
+                className="flex items-center gap-2 bg-[#1e4a3f] hover:bg-[#123b31] px-5 py-2.5 text-sm font-semibold text-white rounded-full ns-shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+              >
+                <Upload className="size-4" /> Upload work
+              </button>
+            </div>
+
+            {portfolioPhotos.length > 0 ? (
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {portfolioPhotos.map((photo) => (
+                  <div
+                    key={photo.id}
+                    className="group bg-white border border-[#ececec] rounded-2xl overflow-hidden ns-shadow-sm hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300"
+                  >
+                    <div className="relative aspect-[4/5] overflow-hidden">
+                      <img
+                        src={getOptimizedImageUrl(photo.image, 480)}
+                        alt={photo.title}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <button
+                        onClick={() => handleDeletePhoto(photo.id)}
+                        className="absolute top-3 right-3 p-1.5 bg-white/90 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 cursor-pointer"
+                      >
+                        <Trash2 className="size-3.5 text-red-500" />
+                      </button>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-serif text-sm font-semibold text-[#18211f] truncate">
+                        {photo.title}
+                      </h3>
+                      <p className="text-[11px] text-[#758078] mt-0.5 capitalize">
+                        {photo.category} · {photo.orientation}
+                      </p>
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#ececec]/60">
+                        {editingPriceId === photo.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-[#758078]">£</span>
+                            <input
+                              type="number"
+                              value={editingPriceValue}
+                              onChange={(e) => setEditingPriceValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handlePriceUpdate(photo.id);
+                                if (e.key === "Escape") setEditingPriceId(null);
+                              }}
+                              autoFocus
+                              className="w-20 text-sm font-semibold text-[#1e4a3f] border border-[#1e4a3f]/30 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-[#1e4a3f]/20"
+                            />
+                            <button
+                              onClick={() => handlePriceUpdate(photo.id)}
+                              className="p-1 text-[#1e4a3f] hover:bg-[#1e4a3f]/10 rounded cursor-pointer"
+                            >
+                              <Check className="size-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setEditingPriceId(null)}
+                              className="p-1 text-[#758078] hover:bg-[#ececec] rounded cursor-pointer"
+                            >
+                              <X className="size-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setEditingPriceId(photo.id);
+                              setEditingPriceValue(String(photo.price));
+                            }}
+                            className="font-serif text-sm font-semibold text-[#1e4a3f] hover:underline cursor-pointer"
+                          >
+                            £{photo.price.toLocaleString()}
+                          </button>
+                        )}
+                        <div className="flex items-center gap-3 text-[11px] text-[#758078]">
+                          <span>{photo.downloads} downloads</span>
+                          <span>{photo.views} views</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white border border-dashed border-[#ececec] rounded-2xl p-16 text-center">
+                <Camera className="size-10 mx-auto text-[#c4cdc5]" />
+                <p className="mt-3 font-serif text-lg text-[#4a534e]">No photos yet</p>
+                <p className="text-xs text-[#758078] mt-1 max-w-xs mx-auto">
+                  Upload your first photograph to start building your portfolio.
+                </p>
+                <button
+                  onClick={() => {
+                    setUploadStep(1);
+                    setUploadOpen(true);
+                  }}
+                  className="mt-4 bg-[#1e4a3f] hover:bg-[#123b31] text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow transition-colors cursor-pointer"
+                >
+                  Upload work
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {active === "payouts" && (
