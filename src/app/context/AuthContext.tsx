@@ -290,7 +290,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = useCallback(
     async (data: Partial<AuthUser>) => {
       if (!user) return;
-      const { id: _id, role: _role, slug: _slug, verificationStatus: _vs, ...editableData } = data;
+      const { id: _id, role: _role, slug: _slug, ...editableData } = data;
 
       if (editableData.email && editableData.email !== user.email) {
         const { error: emailError } = await supabase.auth.updateUser({ email: editableData.email });
@@ -307,6 +307,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           dob: editableData.dob,
           social_links: editableData.socialLinks,
           profile_references: editableData.references,
+          verification_status: editableData.verificationStatus,
         })
         .eq("id", user.id);
 
@@ -322,7 +323,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const updated = {
         ...user,
         ...editableData,
-        verificationStatus: user.verificationStatus,
         slug: user.slug,
       };
       setUser(updated);

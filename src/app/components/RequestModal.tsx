@@ -26,7 +26,7 @@ export function RequestProvider({ children }: { children: ReactNode }) {
 function RequestModal({ onClose }: { onClose: () => void }) {
   const [license, setLicense] = useState(licenseOptions[0].id);
   const [licenseOpen, setLicenseOpen] = useState(false);
-  const [budget, setBudget] = useState(600);
+  const [budget, setBudget] = useState(1000);
   const [brief, setBrief] = useState("");
   const [email, setEmail] = useState("");
 
@@ -44,9 +44,13 @@ function RequestModal({ onClose }: { onClose: () => void }) {
       clientEmail: email,
     });
     if (result) {
-      toast.success("Brief submitted", { description: "We will match you with photographers within 24 hours." });
+      toast.success("Brief submitted", {
+        description: "We will match you with photographers within 24 hours.",
+      });
     } else {
-      toast.success("Brief submitted", { description: "We will match you with photographers within 24 hours." });
+      toast.error("Failed to submit brief", {
+        description: "Please try again or contact support.",
+      });
     }
     onClose();
   };
@@ -62,7 +66,9 @@ function RequestModal({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-start justify-between">
           <div>
-            <p className="font-mono text-[10px] tracking-[0.18em] text-[#547066]">CURATED REQUEST</p>
+            <p className="font-mono text-[10px] tracking-[0.18em] text-[#547066]">
+              CURATED REQUEST
+            </p>
             <h2 className="mt-2 font-serif text-3xl font-medium">What do you need?</h2>
           </div>
           <button onClick={onClose} className="p-1 text-[#55605b]">
@@ -70,7 +76,8 @@ function RequestModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <p className="mt-3 max-w-sm text-sm leading-6 text-[#68706b]">
-          Put a brief in front of our vetted photographer network. We will match you with the right eye.
+          Put a brief in front of our vetted photographer network. We will match you with the right
+          eye.
         </p>
         <input
           type="email"
@@ -91,7 +98,8 @@ function RequestModal({ onClose }: { onClose: () => void }) {
               onClick={() => setLicenseOpen((v) => !v)}
               className="flex w-full items-center justify-between border border-[#ececec] px-3 py-3 text-left text-xs text-[#68706b]"
             >
-              {licenseOptions.find((l) => l.id === license)?.label || license} <ChevronDown className="size-3" />
+              {licenseOptions.find((l) => l.id === license)?.label || license}{" "}
+              <ChevronDown className="size-3" />
             </button>
             {licenseOpen && (
               <div className="absolute z-10 mt-1 w-full border border-[#ececec] bg-white shadow-lg">

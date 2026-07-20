@@ -7,7 +7,10 @@ export function AuthRoute() {
   const location = useLocation();
 
   if (isLoading) return null;
-  if (!user) return <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />;
+  if (!user)
+    return (
+      <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />
+    );
 
   return <Outlet />;
 }
@@ -43,7 +46,13 @@ export function AdminRoute() {
 
   if (isLoading) return null;
   if (!user || user.role !== "Admin") {
-    return <Navigate to="/admin/login" state={{ from: `${location.pathname}${location.search}` }} replace />;
+    return (
+      <Navigate
+        to="/admin/login"
+        state={{ from: `${location.pathname}${location.search}` }}
+        replace
+      />
+    );
   }
 
   return <Outlet />;
@@ -55,9 +64,11 @@ export function PhotographerRoute() {
 
   if (isLoading) return null;
   if (!user || (user.role !== "Photographer" && user.role !== "Admin")) {
-    return <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />;
+    return (
+      <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />
+    );
   }
-  
+
   if (user.role !== "Admin" && user.verificationStatus !== "verified") {
     return (
       <>
@@ -76,11 +87,13 @@ export function EnterpriseRoute() {
 
   if (isLoading) return null;
   if (!user || (user.role !== "Enterprise" && user.role !== "Admin")) {
-    return <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />;
+    return (
+      <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />
+    );
   }
 
   if (user.role !== "Admin" && user.verificationStatus !== "verified") {
-    return <Navigate to="/account?tab=verification" replace />;
+    return <Navigate to="/account?tab=security" replace />;
   }
 
   return <Outlet />;

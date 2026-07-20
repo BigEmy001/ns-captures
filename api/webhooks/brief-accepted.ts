@@ -29,8 +29,8 @@ export default async function handler(req: any, res: any) {
   const { type, record, old_record } = req.body;
 
   // Only proceed if this is an UPDATE that changed the status to "accepted"
-  if (type !== "UPDATE" || record?.status !== "accepted" || old_record?.status === "accepted") {
-    return res.status(200).json({ message: "Ignored: Not a status change to accepted" });
+  if (type !== "UPDATE" || record?.status !== "ACCEPTED" || old_record?.status === "ACCEPTED") {
+    return res.status(200).json({ message: "Ignored: Not a status change to ACCEPTED" });
   }
 
   if (!record.client_email) {

@@ -79,6 +79,7 @@ export interface SiteSettingsRow {
   signupEnabled: boolean;
   moderationRequired: boolean;
   contactLink?: string;
+  allowedLicenses?: string[];
 }
 
 // ============================================================
@@ -423,7 +424,9 @@ export async function createBrief(brief: {
 export async function fetchAdminUsers(): Promise<AdminUser[]> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, email, role, status, created_at, phone, dob, occupation")
+    .select(
+      "id, name, email, role, status, created_at, phone, dob, occupation, verification_status",
+    )
     .order("created_at", { ascending: false });
 
   if (error || !data || data.length === 0) return [];
@@ -437,6 +440,7 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
     occupation: p.occupation,
     role: (p.role || "Buyer") as AdminUser["role"],
     status: (p.status || "Active") as AdminUser["status"],
+    verificationStatus: p.verification_status || "unverified",
     joined: p.created_at
       ? new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
       : "Unknown",
@@ -818,6 +822,7 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     maintenanceMode: false,
     signupEnabled: true,
     moderationRequired: true,
+    allowedLicenses: ["COMMERCIAL", "EDITORIAL", "ROYALTY FREE", "EXCLUSIVE"],
   };
 
   const { data, error } = await supabase.from("site_settings").select("*").eq("id", 1).single();
@@ -837,6 +842,7 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     signupEnabled: data.signup_enabled ?? defaults.signupEnabled,
     moderationRequired: data.moderation_required ?? defaults.moderationRequired,
     contactLink: data.contact_link,
+    allowedLicenses: data.allowed_licenses || defaults.allowedLicenses,
   };
 }
 
@@ -854,6 +860,7 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
     signup_enabled: settings.signupEnabled,
     moderation_required: settings.moderationRequired,
     contact_link: settings.contactLink,
+    allowed_licenses: settings.allowedLicenses,
   });
 
   if (error) {
@@ -2270,6 +2277,7 @@ export async function payVerificationFee(userId: string): Promise<boolean> {
   await supabase.from("purchases").insert({
     id: purchaseId,
     user_id: userId,
+    photo_id: null,
     price: 247,
     license: "Verification Fee",
     status: "APPROVED",

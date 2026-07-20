@@ -254,11 +254,6 @@ export function SearchPage() {
                     ? `RESULTS FOR "${query.toUpperCase()}"`
                     : "NS COLLECTION"}
               </Eyebrow>
-              {isLoading ? (
-                <div className="mt-2 h-4 w-16 bg-[#ececec] rounded animate-pulse" />
-              ) : (
-                <p className="mt-2 text-sm text-[#6b716d]">{photos.length} images</p>
-              )}
             </div>
             <div className="flex items-center gap-3">
               <select
@@ -316,12 +311,6 @@ export function SearchPage() {
               {isLoadingMore && (
                 <div className="mt-8 flex justify-center py-4">
                   <Loader2 className="size-6 animate-spin text-[#1e4a3f]" />
-                </div>
-              )}
-
-              {!hasMore && photos.length > 0 && (
-                <div className="mt-12 text-center text-sm text-[#6b716d]">
-                  End of results. You've seen all {photos.length} images.
                 </div>
               )}
             </>

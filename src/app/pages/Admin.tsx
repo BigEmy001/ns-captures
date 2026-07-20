@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router";
 import {
   LayoutDashboard,
@@ -46,7 +46,6 @@ import { Eyebrow, Badge, Button } from "../components/ui";
 import { SideNav } from "../components/SideNav";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabase";
-import { getPhoto } from "../data/photos";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
 import {
   sendContributorSubmissionStatus,
@@ -186,6 +185,34 @@ export function Admin() {
   const [verificationDocs, setVerificationDocs] = useState<VerificationDocument[]>([]);
   const [contributorSubmissions, setContributorSubmissions] = useState<ContributorSubmission[]>([]);
   const [adminPaymentMethods, setAdminPaymentMethods] = useState<AdminPaymentMethod[]>([]);
+
+  // Photo lookup map for moderation (avoids local getPhoto() which only searches mock data)
+  const photoMap = useMemo(() => {
+    const map = new Map<string, Photo>();
+    for (const p of assetsList) map.set(p.id, p);
+    return map;
+  }, [assetsList]);
+
+  useEffect(() => {
+    // Fetch moderation queue on mount for dashboard preview
+    if (queue.length === 0) {
+      fetchModerationQueue()
+        .then(setQueue)
+        .catch(() => {});
+    }
+    // Fetch assets on mount for moderation photo thumbnails
+    if (assetsList.length === 0) {
+      fetchPhotos()
+        .then(setAssetsList)
+        .catch(() => {});
+    }
+    // Fetch admin users on mount for verification tab user lookups
+    if (adminUsersList.length === 0) {
+      fetchAdminUsers()
+        .then(setAdminUsersList)
+        .catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     switch (active) {
@@ -426,6 +453,108 @@ export function Admin() {
     return matchesSearch && matchesStatus;
   });
 
+  const exportToCSV = async (name: string) => {
+    let headers: string[];
+    let rows: any[][];
+
+    if (name === "Monthly revenue report") {
+      let purchases = adminPurchases;
+      if (purchases.length === 0) {
+        const tid = toast.loading("Fetching report data...");
+        purchases = await fetchAllPurchases().catch(() => []);
+        toast.dismiss(tid);
+      }
+      headers = [
+        "Invoice ID",
+        "User ID",
+        "Photo ID",
+        "License Type",
+        "Price (GBP)",
+        "Date",
+        "Status",
+      ];
+      rows = purchases.map((p) => [
+        p.id,
+        p.userId,
+        p.photoId || "N/A",
+        p.license,
+        p.price,
+        p.date,
+        p.status,
+      ]);
+    } else if (name === "Contributor payout summary") {
+      let requests = payoutRequestList;
+      if (requests.length === 0) {
+        const tid = toast.loading("Fetching report data...");
+        requests = await fetchPayoutRequests().catch(() => []);
+        toast.dismiss(tid);
+      }
+      headers = ["Request ID", "Photographer ID", "Amount (GBP)", "Method", "Status", "Created At"];
+      rows = requests.map((p) => [
+        p.id,
+        p.photographerId,
+        p.amount,
+        p.method,
+        p.status,
+        p.requestedAt,
+      ]);
+    } else if (name === "License usage audit") {
+      let purchases = adminPurchases;
+      if (purchases.length === 0) {
+        const tid = toast.loading("Fetching report data...");
+        purchases = await fetchAllPurchases().catch(() => []);
+        toast.dismiss(tid);
+      }
+      headers = ["Invoice ID", "Photo ID", "License Type", "Price (GBP)", "Date"];
+      rows = purchases
+        .filter((p) => p.status === "APPROVED")
+        .map((p) => [p.id, p.photoId || "N/A", p.license, p.price, p.date]);
+    } else if (name === "Content moderation log") {
+      let q = queue;
+      if (q.length === 0) {
+        const tid = toast.loading("Fetching report data...");
+        q = await fetchModerationQueue().catch(() => []);
+        toast.dismiss(tid);
+      }
+      headers = ["Item ID", "Photo ID", "Photographer ID", "Reason", "Submitted At", "Status"];
+      rows = q.map((m) => [
+        m.id,
+        m.photoId,
+        m.photographer,
+        m.reason,
+        m.submitted,
+        m.status || "PENDING",
+      ]);
+    } else {
+      toast.error("Unknown report type");
+      return;
+    }
+
+    if (rows.length === 0) {
+      toast.error("No data available for this report.");
+      return;
+    }
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [
+        headers.join(","),
+        ...rows.map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(",")),
+      ].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `${name.toLowerCase().replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`,
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`${name} exported successfully`);
+  };
+
   const handleSettingsSave = async () => {
     const ok = await updateSiteSettings(siteSettingsState);
     if (ok) {
@@ -657,7 +786,7 @@ export function Admin() {
                   )}
                   <div className="mt-4 space-y-2">
                     {queue.slice(0, 3).map((m) => {
-                      const p = getPhoto(m.photoId);
+                      const p = photoMap.get(m.photoId) || null;
                       return (
                         <div
                           key={m.id}
@@ -805,7 +934,7 @@ export function Admin() {
                 </div>
               ) : (
                 queue.map((m) => {
-                  const p = getPhoto(m.photoId);
+                  const p = photoMap.get(m.photoId) || null;
                   return (
                     <div
                       key={m.id}
@@ -1333,7 +1462,7 @@ export function Admin() {
                     </div>
                   </div>
                   <button
-                    onClick={() => toast.success("Report exported")}
+                    onClick={() => exportToCSV(r.name)}
                     className="text-sm font-semibold text-[#1e4a3f] hover:underline"
                   >
                     Export CSV
@@ -1485,15 +1614,30 @@ export function Admin() {
                         Allowed Licenses
                       </span>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {["COMMERCIAL", "EDITORIAL", "ROYALTY FREE", "EXCLUSIVE"].map((l) => (
-                          <Badge
-                            key={l}
-                            tone="muted"
-                            className="cursor-pointer hover:tone-green transition-colors"
-                          >
-                            {l}
-                          </Badge>
-                        ))}
+                        {["COMMERCIAL", "EDITORIAL", "ROYALTY FREE", "EXCLUSIVE"].map((l) => {
+                          const isAllowed = (siteSettingsState.allowedLicenses || []).includes(l);
+                          return (
+                            <span
+                              key={l}
+                              className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 cursor-pointer hover:opacity-85 transition-all select-none ${
+                                isAllowed
+                                  ? "border-transparent bg-green-100 text-green-800"
+                                  : "border-transparent bg-gray-100 text-gray-500"
+                              }`}
+                              onClick={() => {
+                                const next = isAllowed
+                                  ? (siteSettingsState.allowedLicenses || []).filter((x) => x !== l)
+                                  : [...(siteSettingsState.allowedLicenses || []), l];
+                                setSiteSettingsState({
+                                  ...siteSettingsState,
+                                  allowedLicenses: next,
+                                });
+                              }}
+                            >
+                              {l}
+                            </span>
+                          );
+                        })}
                       </div>
                     </label>
                   </div>
@@ -1821,6 +1965,7 @@ export function Admin() {
                       <th className="px-4 py-3">Location & Contact</th>
                       <th className="px-4 py-3">Social</th>
                       <th className="px-4 py-3">Portfolio</th>
+                      <th className="px-4 py-3">Gear / Medium</th>
                       <th className="px-4 py-3">Status</th>
                       <th className="px-4 py-3">Admin Note</th>
                       <th className="px-4 py-3 text-right">Action</th>
@@ -1829,7 +1974,7 @@ export function Admin() {
                   <tbody className="divide-y divide-[#ececec]/60">
                     {filteredSubmissions.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-8 text-center text-sm text-[#6b716d]">
+                        <td colSpan={9} className="px-4 py-8 text-center text-sm text-[#6b716d]">
                           No submissions found
                         </td>
                       </tr>
@@ -1890,6 +2035,11 @@ export function Admin() {
                             >
                               Open Link
                             </a>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-[#4a534e] max-w-[200px]">
+                            <p className="truncate" title={sub.gearDescription}>
+                              {sub.gearDescription || <span className="text-[#8a8f89]">-</span>}
+                            </p>
                           </td>
                           <td className="px-4 py-3">
                             <span
@@ -2209,9 +2359,17 @@ function AdminUserModal({
                     "Are you sure you want to completely delete this user and all associated data? This action cannot be undone.",
                   )
                 ) {
-                  // We would call a delete API here. For now we just close and pretend it's deleted.
-                  toast.success("User deleted successfully.");
-                  onClose();
+                  try {
+                    const { error } = await supabase.rpc("delete_user_by_admin", {
+                      target_uid: user.id,
+                    });
+                    if (error) throw error;
+                    setAdminUsersList((prev) => prev.filter((u) => u.id !== user.id));
+                    toast.success("User deleted successfully.");
+                    onClose();
+                  } catch (err: any) {
+                    toast.error(err.message || "Failed to delete user");
+                  }
                 }
               }}
               className="flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-100 transition-all shadow-sm cursor-pointer ml-auto"

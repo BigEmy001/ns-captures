@@ -79,7 +79,7 @@ import {
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
-import { VerificationModal } from "../components/VerificationModal";
+import { GlobalVerificationModal } from "../components/GlobalVerificationModal";
 import { CreatorTabs } from "./account/CreatorTabs";
 import { SideNav } from "../components/SideNav";
 import {
@@ -89,12 +89,9 @@ import {
   fetchActivity,
   fetchUserPurchaseStats,
   fetchUserSavedPhotoIds,
-  fetchVerificationDocuments,
-  uploadVerificationDocument,
   type Purchase,
   type LicenseRecord,
   type ActivityLogItem,
-  type VerificationDocument,
   getOptimizedImageUrl,
   getFullQualityImageUrl,
 } from "../data/db";
@@ -179,11 +176,6 @@ export function Account() {
   const [references, setReferences] = useState<
     { name: string; email: string; phone: string; relationship: string }[]
   >(user?.references || []);
-  const [documents, setDocuments] = useState<VerificationDocument[]>([]);
-  const [uploadDocType, setUploadDocType] = useState("passport");
-  const [uploadDocNumber, setUploadDocNumber] = useState("");
-  const [uploadDocFile, setUploadDocFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -215,12 +207,6 @@ export function Account() {
       });
     fetchUserSavedPhotoIds(user.id)
       .then(setSavedPhotoIds)
-      .catch(() => {
-        toast.error("An error occurred");
-        return null;
-      });
-    fetchVerificationDocuments(user.id)
-      .then(setDocuments)
       .catch(() => {
         toast.error("An error occurred");
         return null;
@@ -280,34 +266,6 @@ export function Account() {
   };
 
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
-
-  const handleVerifyIdentity = async (type: string, number: string, file: File) => {
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-
-    if (!cloudName || !uploadPreset || !user) {
-      toast.error("Upload configuration missing.");
-      throw new Error("Missing config");
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", uploadPreset);
-
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) throw new Error("Upload failed");
-    const data = await response.json();
-
-    await uploadVerificationDocument(user.id, type, number, data.secure_url);
-    toast.success("Verification document submitted successfully. We will review it shortly.");
-
-    // Quick reload to reflect the new status
-    setTimeout(() => window.location.reload(), 1500);
-  };
 
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
@@ -468,19 +426,23 @@ export function Account() {
 
           {/* Mobile nav */}
           <div className="mt-6 flex gap-2 overflow-x-auto pb-2 md:hidden">
-            {nav.map((n) => (
-              <button
-                key={n.id}
-                onClick={() => setActive(n.id)}
-                className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-200 ${
-                  active === n.id
-                    ? "border-[#1e4a3f] bg-[#1e4a3f] text-white"
-                    : "border-[#ececec] bg-white text-[#6b716d]"
-                }`}
-              >
-                {n.label}
-              </button>
-            ))}
+            {nav
+              .filter(
+                (n) => !n.isCreator || user?.role === "Photographer" || user?.role === "Admin",
+              )
+              .map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => setActive(n.id)}
+                  className={`shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                    active === n.id
+                      ? "border-[#1e4a3f] bg-[#1e4a3f] text-white"
+                      : "border-[#ececec] bg-white text-[#6b716d]"
+                  }`}
+                >
+                  {n.label}
+                </button>
+              ))}
           </div>
 
           {active === "overview" && (
@@ -759,62 +721,67 @@ export function Account() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#ececec]/60">
-                    {purchases.map((pur) => {
-                      const p = purchasePhotos[pur.photoId];
-                      return (
-                        <tr key={pur.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={getOptimizedImageUrl(p?.image || "", 100)}
-                                alt=""
-                                loading="lazy"
-                                className="size-11 object-cover rounded-lg shadow-sm"
-                              />
-                              <Link
-                                to={`/photo/${pur.photoId}`}
-                                className="font-semibold text-[#18211f] hover:text-[#1e4a3f] hover:underline"
-                              >
-                                {p?.title}
-                              </Link>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <Badge tone="muted">{pur.license}</Badge>
-                          </td>
-                          <td className="px-6 py-4 text-[#6b716d] text-xs">{pur.date}</td>
-                          <td className="px-6 py-4 text-right">
-                            {pur.status === "APPROVED" ? (
-                              <button
-                                onClick={() => {
-                                  if (p?.image) {
-                                    const a = document.createElement("a");
-                                    a.href = getFullQualityImageUrl(p.image);
-                                    a.download = `NS-CAPTURES-${p.id}.jpg`;
-                                    a.target = "_blank";
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    document.body.removeChild(a);
-                                    toast.success("Download started");
-                                  }
-                                }}
-                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3.5 py-1.5 rounded-full transition-all duration-200"
-                              >
-                                <Download className="size-3.5" /> Download
-                              </button>
-                            ) : pur.status === "REJECTED" ? (
-                              <span className="text-xs font-semibold text-red-600 bg-red-50 px-3 py-1 rounded-full">
-                                Rejected
-                              </span>
-                            ) : (
-                              <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
-                                Pending Verification
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {purchases
+                      .filter((pur) => pur.photoId)
+                      .map((pur) => {
+                        const p = purchasePhotos[pur.photoId];
+                        return (
+                          <tr
+                            key={pur.id}
+                            className="hover:bg-[#FAF9F5] transition-all duration-150"
+                          >
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={getOptimizedImageUrl(p?.image || "", 100)}
+                                  alt=""
+                                  loading="lazy"
+                                  className="size-11 object-cover rounded-lg shadow-sm"
+                                />
+                                <Link
+                                  to={`/photo/${pur.photoId}`}
+                                  className="font-semibold text-[#18211f] hover:text-[#1e4a3f] hover:underline"
+                                >
+                                  {p?.title}
+                                </Link>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <Badge tone="muted">{pur.license}</Badge>
+                            </td>
+                            <td className="px-6 py-4 text-[#6b716d] text-xs">{pur.date}</td>
+                            <td className="px-6 py-4 text-right">
+                              {pur.status === "APPROVED" ? (
+                                <button
+                                  onClick={() => {
+                                    if (p?.image) {
+                                      const a = document.createElement("a");
+                                      a.href = getFullQualityImageUrl(p.image);
+                                      a.download = `NS-CAPTURES-${p.id}.jpg`;
+                                      a.target = "_blank";
+                                      document.body.appendChild(a);
+                                      a.click();
+                                      document.body.removeChild(a);
+                                      toast.success("Download started");
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3.5 py-1.5 rounded-full transition-all duration-200"
+                                >
+                                  <Download className="size-3.5" /> Download
+                                </button>
+                              ) : pur.status === "REJECTED" ? (
+                                <span className="text-xs font-semibold text-red-600 bg-red-50 px-3 py-1 rounded-full">
+                                  Rejected
+                                </span>
+                              ) : (
+                                <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
+                                  Pending Verification
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               )}
@@ -845,56 +812,61 @@ export function Account() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#ececec]/60">
-                    {licenses.map((lic) => {
-                      const p = licensePhotos[lic.photoId];
-                      return (
-                        <tr key={lic.id} className="hover:bg-[#FAF9F5] transition-all duration-150">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={getOptimizedImageUrl(p?.image || "", 100)}
-                                alt=""
-                                loading="lazy"
-                                className="size-11 object-cover rounded-lg shadow-sm"
-                              />
-                              <Link
-                                to={`/photo/${lic.photoId}`}
-                                className="font-semibold text-[#18211f] hover:text-[#1e4a3f] hover:underline"
+                    {licenses
+                      .filter((lic) => lic.photoId)
+                      .map((lic) => {
+                        const p = licensePhotos[lic.photoId];
+                        return (
+                          <tr
+                            key={lic.id}
+                            className="hover:bg-[#FAF9F5] transition-all duration-150"
+                          >
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={getOptimizedImageUrl(p?.image || "", 100)}
+                                  alt=""
+                                  loading="lazy"
+                                  className="size-11 object-cover rounded-lg shadow-sm"
+                                />
+                                <Link
+                                  to={`/photo/${lic.photoId}`}
+                                  className="font-semibold text-[#18211f] hover:text-[#1e4a3f] hover:underline"
+                                >
+                                  {p?.title}
+                                </Link>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <Badge tone={lic.licenseType === "EXTENDED" ? "green" : "muted"}>
+                                {lic.licenseType}
+                              </Badge>
+                            </td>
+                            <td className="px-6 py-4 font-mono text-xs text-[#4a534e]">{lic.id}</td>
+                            <td className="px-6 py-4 text-[#6b716d] text-xs">
+                              {lic.purchasedAt
+                                ? new Date(lic.purchasedAt).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "2-digit",
+                                    year: "numeric",
+                                  })
+                                : ""}
+                            </td>
+                            <td className="px-6 py-4 text-[#6b716d] text-xs">{lic.expiresAt}</td>
+                            <td className="px-6 py-4 text-[#18211f] font-mono text-sm">
+                              {lic.downloads}
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => toast.success("License certificate downloaded")}
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3.5 py-1.5 rounded-full transition-all duration-200"
                               >
-                                {p?.title}
-                              </Link>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <Badge tone={lic.licenseType === "EXTENDED" ? "green" : "muted"}>
-                              {lic.licenseType}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 font-mono text-xs text-[#4a534e]">{lic.id}</td>
-                          <td className="px-6 py-4 text-[#6b716d] text-xs">
-                            {lic.purchasedAt
-                              ? new Date(lic.purchasedAt).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "2-digit",
-                                  year: "numeric",
-                                })
-                              : ""}
-                          </td>
-                          <td className="px-6 py-4 text-[#6b716d] text-xs">{lic.expiresAt}</td>
-                          <td className="px-6 py-4 text-[#18211f] font-mono text-sm">
-                            {lic.downloads}
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button
-                              onClick={() => toast.success("License certificate downloaded")}
-                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3.5 py-1.5 rounded-full transition-all duration-200"
-                            >
-                              <FileText className="size-3.5" /> Certificate
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                                <FileText className="size-3.5" /> Certificate
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               )}
@@ -1118,10 +1090,9 @@ export function Account() {
         </div>
       </div>
 
-      <VerificationModal
+      <GlobalVerificationModal
         isOpen={isVerificationModalOpen}
         onClose={() => setIsVerificationModalOpen(false)}
-        onVerify={handleVerifyIdentity}
       />
     </div>
   );

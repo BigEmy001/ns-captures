@@ -1,22 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
-  Upload,
-  DollarSign,
-  Globe,
-  BadgeCheck,
   ArrowRight,
-  ShieldCheck,
   CheckCircle,
   HelpCircle,
   Phone,
   Mail,
-  FileText,
   ChevronDown,
-  Award,
   Clock,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Eyebrow, PartnerButton } from "../components/ui";
+import { Eyebrow } from "../components/ui";
 import { createContributorSubmission, logActivity } from "../data/db";
 import {
   sendContributorAcknowledgment,
@@ -504,7 +498,18 @@ export function Contribute() {
                     will begin your Technical Assessment within 3 business days.
                   </p>
                   <button
-                    onClick={() => setSubmitted(false)}
+                    onClick={() => {
+                      setSubmitted(false);
+                      setFullName("");
+                      setEmail("");
+                      setPhone("");
+                      setCountry("United Kingdom");
+                      setPreferredChannel("WhatsApp");
+                      setInvitationCode("");
+                      setPortfolioLink("");
+                      setGearDescription("");
+                      setSocialHandle("");
+                    }}
                     className="mt-8 rounded-full border border-[#1e4a3f] text-[#1e4a3f] px-6 py-2.5 text-xs font-semibold hover:bg-[#1e4a3f]/5 transition-colors"
                   >
                     Submit Another Portfolio
@@ -624,6 +629,7 @@ export function Contribute() {
                         type="text"
                         value={socialHandle}
                         onChange={(e) => setSocialHandle(e.target.value)}
+                        maxLength={120}
                         placeholder="@username or link"
                         className="w-full bg-[#f8f8f6] border border-[#ececec] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#1e4a3f]/50"
                       />
@@ -647,9 +653,16 @@ export function Contribute() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-mono tracking-wider text-[#59645f] uppercase mb-2">
-                      Brief Description of Gear/Medium *
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-mono tracking-wider text-[#59645f] uppercase">
+                        Brief Description of Gear/Medium *
+                      </label>
+                      <span
+                        className={`text-[10px] font-mono ${gearDescription.length < 20 ? "text-amber-600" : "text-[#8a8f89]"}`}
+                      >
+                        {gearDescription.length}/800
+                      </span>
+                    </div>
                     <textarea
                       required
                       rows={3}
@@ -697,8 +710,8 @@ export function Contribute() {
                   <h3 className="font-serif text-3xl text-white mt-2">Required Submissions</h3>
                   <p className="text-sm leading-relaxed text-white/70 mt-4">
                     For our Content Evaluation Team to properly verify authenticity, authorship, and
-                    dynamic range consistency, candidates are requested to submit a **minimum of 47
-                    images** in their Google Drive folder.
+                    dynamic range consistency, candidates are requested to submit a{" "}
+                    <strong>minimum of 47 images</strong> in their Google Drive folder.
                   </p>
                 </div>
 

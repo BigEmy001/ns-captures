@@ -82,6 +82,30 @@ serve(async (req) => {
     });
   }
 
+  // Auth: require a valid Bearer token or Supabase auth
+  const authHeader = req.headers.get("authorization");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Allow either service role key or a valid JWT
+  if (serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`) {
+    // Service role - proceed
+  } else if (anonKey && authHeader === `Bearer ${anonKey}`) {
+    // Anon key from client - proceed (client-side callers like email.ts use supabase.functions.invoke which auto-attaches the anon key)
+  } else {
+    return new Response(JSON.stringify({ error: "Invalid authorization" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const { to, subject, body } = await req.json();
     if (!to || !subject || !body) {
