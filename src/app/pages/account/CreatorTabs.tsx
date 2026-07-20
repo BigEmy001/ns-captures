@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router";
 import {
   LayoutGrid,
   Image as ImageIcon,
@@ -34,15 +33,7 @@ import {
 } from "recharts";
 import exifr from "exifr";
 import { Eyebrow, Badge } from "../../components/ui";
-import { Avatar, AvatarImage, AvatarFallback } from "../../components/ui/avatar";
-import { SideNav } from "../../components/SideNav";
-import {
-  type Photo,
-  type License,
-  type Orientation,
-  type Photographer,
-  type Brief,
-} from "../../data/photos";
+import { type Photo, type Orientation, type Photographer, type Brief } from "../../data/photos";
 import {
   fetchPhotos,
   fetchBriefs,
@@ -51,23 +42,12 @@ import {
   fetchPhotographerStats,
   fetchPhotographerMonthlyRevenue,
   fetchPhotographerWeeklyDownloads,
-  fetchPhotographerTopCategories,
   fetchFollowerCount,
-  updatePhotoPrice,
+  fetchBalanceAdjustments,
   createPhoto,
   deletePhoto,
-  updateBriefStatus,
-  fetchPhotographerProfileSettings,
-  upsertPhotographerProfileSettings,
   type Payout,
   getOptimizedImageUrl,
-  fetchPaymentMethods,
-  upsertPaymentMethod,
-  createPayoutRequest,
-  fetchPayoutRequests,
-  type PhotographerPaymentMethod,
-  type PayoutRequest,
-  type CryptoWalletEntry,
 } from "../../data/db";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
@@ -153,18 +133,9 @@ export function CreatorTabs({
 
   // Payouts from DB
   const [payouts, setPayouts] = useState<Payout[]>([]);
-  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
-  const [editingPriceValue, setEditingPriceValue] = useState<string>("");
-
-  // Payment methods
-  const [paymentMethods, setPaymentMethods] = useState<PhotographerPaymentMethod[]>([]);
-  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
-  const [payoutRequestAmount, setPayoutRequestAmount] = useState("");
-  const [payoutRequestMethod, setPayoutRequestMethod] = useState<"card" | "crypto" | "paypal">(
-    "card",
-  );
-  const [cryptoWallets, setCryptoWallets] = useState<CryptoWalletEntry[]>([]);
-  const [paypalEmail, setPaypalEmail] = useState("");
+  const [balanceAdjustments, setBalanceAdjustments] = useState<
+    { amount: number; balanceAfter: number; reason: string | null; createdAt: string }[]
+  >([]);
 
   // Photographer dashboard data
   const [revenueData, setRevenueData] = useState<{ m: string; v: number }[]>([]);
@@ -184,7 +155,6 @@ export function CreatorTabs({
     photoCount: 0,
     avgPrice: 0,
   });
-  const [topCategories, setTopCategories] = useState<{ name: string; pct: string }[]>([]);
   const [followerCount, setFollowerCount] = useState(0);
 
   // Dynamically resolve the photographerId and photographerProfile
@@ -203,6 +173,11 @@ export function CreatorTabs({
           toast.error("An error occurred");
           return null;
         });
+      if (user?.id) {
+        fetchBalanceAdjustments(user.id)
+          .then(setBalanceAdjustments)
+          .catch(() => {});
+      }
       fetchPhotographerMonthlyRevenue(photographerId)
         .then(setRevenueData)
         .catch(() => {
@@ -221,42 +196,8 @@ export function CreatorTabs({
           toast.error("An error occurred");
           return null;
         });
-      fetchPhotographerTopCategories(photographerId)
-        .then(setTopCategories)
-        .catch(() => {
-          toast.error("An error occurred");
-          return null;
-        });
       fetchFollowerCount(photographerId)
         .then(setFollowerCount)
-        .catch(() => {
-          toast.error("An error occurred");
-          return null;
-        });
-      fetchPaymentMethods(photographerId)
-        .then((methods) => {
-          setPaymentMethods(methods);
-          methods.forEach((m) => {
-            if (m.method === "crypto") {
-              const wallets = (m.details.wallets as CryptoWalletEntry[] | undefined) || [];
-              if (wallets.length > 0) {
-                setCryptoWallets(wallets);
-              } else if (m.details.wallet) {
-                // Migrate from old single-wallet format
-                setCryptoWallets([
-                  { coin: "ETH", network: "ERC20", address: String(m.details.wallet) },
-                ]);
-              }
-            }
-            if (m.method === "paypal" && m.details.email) setPaypalEmail(String(m.details.email));
-          });
-        })
-        .catch(() => {
-          toast.error("An error occurred");
-          return null;
-        });
-      fetchPayoutRequests(photographerId)
-        .then(setPayoutRequests)
         .catch(() => {
           toast.error("An error occurred");
           return null;
@@ -314,39 +255,6 @@ export function CreatorTabs({
   const [uploadOrientation, setUploadOrientation] = useState<Orientation>("portrait");
   const [uploadRatio, setUploadRatio] = useState("aspect-[4/5]");
   const [uploadColor, setUploadColor] = useState("#9a6b3f");
-
-  // Accept brief state
-  const [acceptedBriefs, setAcceptedBriefs] = useState<Record<string, boolean>>({});
-  const [acceptingId, setAcceptingId] = useState<string | null>(null);
-
-  // Photographer profile inputs
-  const [specialty, setSpecialty] = useState("Editorial");
-  const [location, setLocation] = useState("");
-  const [bio, setBio] = useState("");
-  const [profileSettingsLoaded, setProfileSettingsLoaded] = useState(false);
-  const [profileSettings, setProfileSettings] = useState<{
-    bankName: string;
-    bankAccountLast4: string;
-  }>({ bankName: "", bankAccountLast4: "" });
-
-  useEffect(() => {
-    if (user && !profileSettingsLoaded) {
-      fetchPhotographerProfileSettings(user.id)
-        .then((settings) => {
-          if (settings) {
-            setLocation(settings.location);
-            setSpecialty(settings.specialty);
-            setBio(settings.bio);
-            setProfileSettings({
-              bankName: settings.bankName,
-              bankAccountLast4: settings.bankAccountLast4,
-            });
-          }
-          setProfileSettingsLoaded(true);
-        })
-        .catch(() => setProfileSettingsLoaded(true));
-    }
-  }, [user, profileSettingsLoaded]);
 
   const handleDeletePhoto = async (id: string) => {
     const ok = await deletePhoto(id);
@@ -606,22 +514,6 @@ export function CreatorTabs({
     }
   };
 
-  const handleAcceptBrief = async (briefId: string) => {
-    setAcceptingId(briefId);
-    const ok = await updateBriefStatus(briefId, "accepted");
-    setAcceptingId(null);
-    if (ok) {
-      setAcceptedBriefs((prev) => ({ ...prev, [briefId]: true }));
-      toast.success("Brief Accepted!", {
-        description: "You have been matched. Review the onboarding files sent to your email.",
-      });
-    } else {
-      toast.error("Failed to accept brief", {
-        description: "Could not update the brief status.",
-      });
-    }
-  };
-
   const resetUploadWizard = () => {
     clearPendingUploadWork();
     if (objectUrlRef.current) {
@@ -647,24 +539,6 @@ export function CreatorTabs({
     setUploadOrientation("portrait");
     setUploadRatio("aspect-[4/5]");
     setUploadColor("#9a6b3f");
-  };
-
-  const handlePriceUpdate = async (photoId: string) => {
-    const newPrice = parseInt(editingPriceValue, 10);
-    if (isNaN(newPrice) || newPrice < 1000) {
-      toast.error("Minimum price is £1,000");
-      return;
-    }
-    const ok = await updatePhotoPrice(photoId, newPrice);
-    if (ok) {
-      setPortfolioPhotos((prev) =>
-        prev.map((p) => (p.id === photoId ? { ...p, price: newPrice } : p)),
-      );
-      toast.success(`Price updated to £${newPrice.toLocaleString()}`);
-    } else {
-      toast.error("Failed to update price");
-    }
-    setEditingPriceId(null);
   };
 
   const payoutsToRender = payouts.map((p) => ({
@@ -1210,6 +1084,170 @@ export function CreatorTabs({
             </div>
           </div>
         </>
+      )}
+
+      {active === "payouts" && (
+        <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
+          <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
+            <Eyebrow>PAYOUTS</Eyebrow>
+            <h1 className="mt-2 mb-8 font-serif text-3xl sm:text-4xl tracking-tight text-[#18211f]">
+              Earnings & Payouts
+            </h1>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+              <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
+                <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                  Available Balance
+                </p>
+                <p className="mt-2 font-serif text-3xl text-[#1e4a3f] font-semibold">
+                  £
+                  {(user?.payoutBalance ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-[11px] text-[#758078] mt-1.5">Admin-adjusted ledger balance</p>
+              </div>
+              <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
+                <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                  Lifetime Revenue
+                </p>
+                <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">
+                  £{photographerStats.totalRevenue.toLocaleString()}
+                </p>
+                <p className="text-[11px] text-[#758078] mt-1.5">Total earned from all sales</p>
+              </div>
+              <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
+                <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                  Pending Payout
+                </p>
+                <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">
+                  {pendingPayout ? `£${pendingPayout.amount.toLocaleString()}` : "—"}
+                </p>
+                <p className="text-[11px] text-[#758078] mt-1.5">
+                  {pendingPayout ? `Requested ${pendingPayout.date}` : "No pending requests"}
+                </p>
+              </div>
+            </div>
+
+            {payoutsToRender.length > 0 ? (
+              <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#ececec]">
+                  <h2 className="font-serif text-lg text-[#18211f]">Payout History</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-[#ececec]">
+                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                          Date
+                        </th>
+                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                          Method
+                        </th>
+                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase text-right">
+                          Amount
+                        </th>
+                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payoutsToRender.map((p) => (
+                        <tr key={p.id} className="border-b border-[#ececec]/50 last:border-0">
+                          <td className="px-6 py-4 text-sm text-[#4a534e]">{p.date}</td>
+                          <td className="px-6 py-4 text-sm text-[#4a534e] capitalize">
+                            {p.method}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-[#18211f] font-medium text-right">
+                            {p.amount}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
+                                p.status === "SUCCESSFUL"
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : p.status === "PENDING"
+                                    ? "bg-amber-50 text-amber-700"
+                                    : "bg-red-50 text-red-700"
+                              }`}
+                            >
+                              {p.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm p-12 text-center">
+                <Wallet className="size-10 mx-auto text-[#c4cdc5]" />
+                <p className="mt-3 font-serif text-lg text-[#4a534e]">No payouts yet</p>
+                <p className="text-xs text-[#758078] mt-1 max-w-xs mx-auto">
+                  When your photos are licensed, earnings will appear here. Your available balance
+                  reflects admin adjustments and earned commissions.
+                </p>
+              </div>
+            )}
+
+            {balanceAdjustments.length > 0 && (
+              <div className="mt-8 bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#ececec]">
+                  <h2 className="font-serif text-lg text-[#18211f]">Balance Adjustments</h2>
+                  <p className="text-[11px] text-[#758078] mt-0.5">
+                    Admin-ledger activity on your account
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-[#ececec]">
+                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                          Date
+                        </th>
+                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                          Reason
+                        </th>
+                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase text-right">
+                          Amount
+                        </th>
+                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase text-right">
+                          Balance After
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {balanceAdjustments.map((adj, i) => (
+                        <tr key={i} className="border-b border-[#ececec]/50 last:border-0">
+                          <td className="px-6 py-4 text-sm text-[#4a534e]">
+                            {new Date(adj.createdAt).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-[#6b716d] max-w-[200px] truncate">
+                            {adj.reason || "—"}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium text-right">
+                            <span className={adj.amount >= 0 ? "text-emerald-700" : "text-red-600"}>
+                              {adj.amount >= 0 ? "+" : ""}£
+                              {adj.amount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-[#18211f] font-medium text-right">
+                            £
+                            {adj.balanceAfter.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </>
   );

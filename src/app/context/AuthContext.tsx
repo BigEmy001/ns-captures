@@ -24,6 +24,7 @@ export interface AuthUser {
   references?: { name: string; email: string; phone: string; relationship: string }[];
   verificationStatus?: string;
   status?: string;
+  payoutBalance?: number;
 }
 
 interface AuthContextType {
@@ -42,6 +43,7 @@ interface AuthContextType {
   updateProfile: (data: Partial<AuthUser>) => Promise<void>;
   upgradeToCreator: () => Promise<void>;
   changePassword: (current: string, next: string) => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,6 +69,7 @@ function supabaseUserToAuthUser(supabaseUser: any, profile: any): AuthUser {
     references: profile?.profile_references || [],
     verificationStatus: profile?.verification_status || "unverified",
     status: profile?.status || "Active",
+    payoutBalance: profile?.payout_balance ?? 0,
   };
 }
 
@@ -384,6 +387,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
+  const refreshProfile = useCallback(async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", session.user.id)
+      .single();
+    if (profile) {
+      setUser(supabaseUserToAuthUser(session.user, profile));
+    }
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -396,6 +414,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateProfile,
         upgradeToCreator,
         changePassword,
+        refreshProfile,
       }}
     >
       {children}

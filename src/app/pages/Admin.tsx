@@ -2159,6 +2159,7 @@ export function Admin() {
           verificationDocs={verificationDocs}
           setVerificationDocs={setVerificationDocs}
           adminEmail={user?.email || "admin@nscaptures.com"}
+          adminId={user?.id || ""}
           setAdminUsersList={setAdminUsersList}
         />
       )}
@@ -2237,6 +2238,7 @@ interface AdminUserModalProps {
   verificationDocs: VerificationDocument[];
   setVerificationDocs: React.Dispatch<React.SetStateAction<VerificationDocument[]>>;
   adminEmail: string;
+  adminId: string;
   setAdminUsersList: React.Dispatch<React.SetStateAction<AdminUser[]>>;
 }
 
@@ -2251,6 +2253,7 @@ function AdminUserModal({
   verificationDocs,
   setVerificationDocs,
   adminEmail,
+  adminId,
   setAdminUsersList,
 }: AdminUserModalProps) {
   const isPhotographer = user.role === "Photographer";
@@ -2764,7 +2767,8 @@ function AdminUserModal({
                         toast.error("Please enter a valid adjustment amount");
                         return;
                       }
-                      const ok = await updateAdminBalance(user.id, amount);
+                      const note = noteEl?.value?.trim() || undefined;
+                      const ok = await updateAdminBalance(user.id, amount, note, adminId);
                       if (ok) {
                         setAdminUsersList((users) =>
                           users.map((u) =>

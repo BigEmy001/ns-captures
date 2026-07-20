@@ -2070,34 +2070,43 @@ export async function updateUserVerificationStatus(
   return true;
 }
 
-export async function updateAdminBalance(userId: string, adjustment: number): Promise<boolean> {
-  const { data, error: fetchError } = await supabase
-    .from("profiles")
-    .select("payout_balance")
-    .eq("id", userId)
-    .single();
-
-  if (fetchError || !data) {
-    console.error("updateAdminBalance fetch", fetchError);
-    return false;
-  }
-
-  const newBalance = (data.payout_balance ?? 0) + adjustment;
-  if (newBalance < 0) {
-    console.error("updateAdminBalance: balance cannot go below zero");
-    return false;
-  }
-
-  const { error } = await supabase
-    .from("profiles")
-    .update({ payout_balance: newBalance })
-    .eq("id", userId);
+export async function updateAdminBalance(
+  userId: string,
+  adjustment: number,
+  reason?: string,
+  adminId?: string,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("adjust_payout_balance", {
+    p_user_id: userId,
+    p_adjustment: adjustment,
+    p_reason: reason || null,
+    p_admin_id: adminId || null,
+  });
 
   if (error) {
-    console.error("updateAdminBalance update", error);
+    console.error("updateAdminBalance", error);
     return false;
   }
   return true;
+}
+
+export async function fetchBalanceAdjustments(
+  userId: string,
+): Promise<{ amount: number; balanceAfter: number; reason: string | null; createdAt: string }[]> {
+  const { data, error } = await supabase
+    .from("balance_adjustments")
+    .select("amount, balance_after, reason, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error || !data) return [];
+  return data.map((r: any) => ({
+    amount: r.amount,
+    balanceAfter: r.balance_after,
+    reason: r.reason,
+    createdAt: r.created_at,
+  }));
 }
 
 // ============================================================
