@@ -6,16 +6,21 @@ const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 async function checkUser() {
-  const { data, error } = await supabase
+  console.log("Scanning for any other photographers created under the old trigger...");
+  
+  const { data: profiles, error: pErr } = await supabase
     .from('profiles')
-    .select('email, verification_status, name')
-    .eq('email', 'emy.jnr@nscaptures.com');
-
-  if (error) {
-    console.error('Error fetching user:', error);
-  } else {
-    console.log('User Data:', JSON.stringify(data, null, 2));
+    .select('id, name, email, slug, role')
+    .eq('role', 'Photographer');
+    
+  if (pErr) {
+    console.error("Scan failed:", pErr);
+    return;
   }
+  
+  const broken = profiles.filter(p => !p.email || !p.slug);
+  console.log(`Found ${broken.length} photographer profiles with missing email or slug:`);
+  console.log(JSON.stringify(broken, null, 2));
 }
 
 checkUser();

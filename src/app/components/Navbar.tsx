@@ -824,7 +824,7 @@ export function Navbar() {
                 <span>Subtotal</span>
                 <span className="text-[#18211f] font-semibold">
                   £
-                  {subtotal.toLocaleString("en-US", {
+                  {subtotal.toLocaleString("en-GB", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -834,7 +834,7 @@ export function Navbar() {
                 <span className="font-serif">Total Due</span>
                 <span className="font-serif font-bold text-lg">
                   £
-                  {subtotal.toLocaleString("en-US", {
+                  {subtotal.toLocaleString("en-GB", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}

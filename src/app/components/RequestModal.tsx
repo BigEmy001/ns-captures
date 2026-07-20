@@ -119,7 +119,7 @@ function RequestModal({ onClose }: { onClose: () => void }) {
             )}
           </div>
           <div className="border border-[#ececec] px-3 py-2 text-xs text-[#68706b]">
-            <label className="font-mono text-[9px]">BUDGET: ${budget}</label>
+            <label className="font-mono text-[9px]">BUDGET: £{budget}</label>
             <input
               type="range"
               min={1000}
