@@ -528,27 +528,15 @@ export function CreatorTabs({
                 setUploadStep(2);
               }, 300);
             } catch {
-              toast.error("Upload response was invalid. Falling back to local preview.");
-              const objUrl = URL.createObjectURL(file);
-              objectUrlRef.current = objUrl;
-              setUploadedImageUrl(objUrl);
-              setUploadProgress(100);
-              uploadTimeoutRef.current = setTimeout(() => {
-                uploadTimeoutRef.current = null;
-                setUploadStep(2);
-              }, 300);
+              toast.error(
+                "Upload response was invalid. Please check your Cloudinary configuration and try again.",
+              );
+              setUploadProgress(0);
             }
           } else {
             console.error("Cloudinary upload failed", xhr.responseText);
-            toast.error("Cloudinary upload failed. Falling back to local preview.");
-            const objUrl = URL.createObjectURL(file);
-            objectUrlRef.current = objUrl;
-            setUploadedImageUrl(objUrl);
-            setUploadProgress(100);
-            uploadTimeoutRef.current = setTimeout(() => {
-              uploadTimeoutRef.current = null;
-              setUploadStep(2);
-            }, 300);
+            toast.error("Cloudinary upload failed. Please check your connection and try again.");
+            setUploadProgress(0);
           }
         }
       };
@@ -557,25 +545,9 @@ export function CreatorTabs({
       fd.append("file", file);
       xhr.send(fd);
     } else {
-      const objUrl = URL.createObjectURL(file);
-      objectUrlRef.current = objUrl;
-      setUploadedImageUrl(objUrl);
-      uploadIntervalRef.current = setInterval(() => {
-        setUploadProgress((p) => {
-          if (p >= 100) {
-            if (uploadIntervalRef.current) {
-              clearInterval(uploadIntervalRef.current);
-              uploadIntervalRef.current = null;
-            }
-            uploadTimeoutRef.current = setTimeout(() => {
-              uploadTimeoutRef.current = null;
-              setUploadStep(2);
-            }, 200);
-            return 100;
-          }
-          return p + 20;
-        });
-      }, 150);
+      toast.error(
+        "Cloudinary is not configured. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET in your environment.",
+      );
     }
   };
 
@@ -586,6 +558,11 @@ export function CreatorTabs({
     const imageUrl = uploadedImageUrl;
     if (!imageUrl) {
       toast.error("Please upload an image first");
+      return;
+    }
+    if (imageUrl.startsWith("blob:")) {
+      toast.error("Image was not uploaded to Cloudinary. Please re-upload and try again.");
+      setUploadStep(1);
       return;
     }
 
