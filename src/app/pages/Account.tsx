@@ -100,22 +100,13 @@ import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
 
 const nav = [
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    mobileLabel: "Home",
-    icon: Activity,
-    heading: "CREATOR HUB",
-    isCreator: true,
-  },
+  { id: "dashboard", label: "Home", icon: Activity, isCreator: true },
   { id: "overview", label: "Profile", icon: User },
   { id: "collections", label: "Collections", icon: FolderHeart },
   { id: "downloads", label: "Downloads", icon: Download },
   { id: "licenses", label: "Licenses", icon: FileText },
   { id: "portfolio", label: "Portfolio", icon: ImageIcon, isCreator: true },
   { id: "payouts", label: "Payouts", icon: Wallet, isCreator: true },
-
-  { id: "activity", label: "Activity", icon: Bell, heading: "ACCOUNT", divider: true },
   { id: "security", label: "Settings", icon: Settings },
   { id: "billing", label: "Billing", icon: CreditCard },
 ];
@@ -444,7 +435,7 @@ export function Account() {
                       : "border-[#ececec] bg-white text-[#6b716d]"
                   }`}
                 >
-                  {"mobileLabel" in n ? (n as any).mobileLabel : n.label}
+                  {n.label}
                 </button>
               ))}
           </div>
