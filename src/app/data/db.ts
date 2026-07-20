@@ -1937,6 +1937,22 @@ export async function updatePayoutRequestStatus(
   return !error;
 }
 
+export async function fetchPhotographerEmailBySlug(slug: string): Promise<string | null> {
+  if (!slug) return null;
+  const { data } = await supabase.from("profiles").select("email, name").eq("slug", slug).single();
+  if (!data) return null;
+  return data.email || null;
+}
+
+export async function fetchPhotographerContactBySlug(
+  slug: string,
+): Promise<{ email: string | null; name: string | null }> {
+  if (!slug) return { email: null, name: null };
+  const { data } = await supabase.from("profiles").select("email, name").eq("slug", slug).single();
+  if (!data) return { email: null, name: null };
+  return { email: data.email || null, name: data.name || null };
+}
+
 // ============================================================
 // PURCHASE WITH PAYMENT METHOD
 // ============================================================

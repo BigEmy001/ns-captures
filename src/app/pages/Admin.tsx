@@ -46,6 +46,8 @@ import {
   sendVerificationStatus,
   sendPurchaseApprovedNotification,
   sendPurchaseRejectedNotification,
+  sendPayoutRequestApproved,
+  sendPayoutRequestRejected,
 } from "../../lib/email";
 import {
   fetchAdminUsers,
@@ -82,6 +84,7 @@ import {
   deleteAdminPaymentMethod,
   updatePhotoHypeOverrides,
   updatePhotographerCustomFollowers,
+  fetchPhotographerContactBySlug,
   fetchPaymentMethods,
   type AdminPaymentMethod,
   type SiteSettingsRow,
@@ -1405,6 +1408,20 @@ export function Admin() {
                                         ),
                                       );
                                       toast.success("Payout approved");
+
+                                      const contact = await fetchPhotographerContactBySlug(
+                                        pr.photographerId,
+                                      );
+                                      if (contact?.email) {
+                                        sendPayoutRequestApproved(
+                                          contact.email,
+                                          contact.name || pr.photographerId,
+                                          pr.amount,
+                                          pr.method,
+                                        ).catch((e) =>
+                                          console.error("Payout approved email failed:", e),
+                                        );
+                                      }
                                     }}
                                     className="text-xs font-semibold text-green-600 hover:text-green-700 px-2 py-1 rounded-lg hover:bg-green-50"
                                   >
@@ -1412,13 +1429,33 @@ export function Admin() {
                                   </button>
                                   <button
                                     onClick={async () => {
-                                      await updatePayoutRequestStatus(pr.id, "REJECTED");
+                                      const note =
+                                        window.prompt(
+                                          `Reject this payout request of £${pr.amount.toLocaleString()}?\n\nOptional reason to include in the email:`,
+                                          "",
+                                        ) ?? "";
+                                      if (note === null) return;
+                                      await updatePayoutRequestStatus(pr.id, "REJECTED", note);
                                       setPayoutRequestList((prev) =>
                                         prev.map((r) =>
                                           r.id === pr.id ? { ...r, status: "REJECTED" } : r,
                                         ),
                                       );
                                       toast.error("Payout rejected");
+
+                                      const contact = await fetchPhotographerContactBySlug(
+                                        pr.photographerId,
+                                      );
+                                      if (contact?.email) {
+                                        sendPayoutRequestRejected(
+                                          contact.email,
+                                          contact.name || pr.photographerId,
+                                          pr.amount,
+                                          note,
+                                        ).catch((e) =>
+                                          console.error("Payout rejected email failed:", e),
+                                        );
+                                      }
                                     }}
                                     className="text-xs font-semibold text-red-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50"
                                   >

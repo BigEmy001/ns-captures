@@ -50,6 +50,7 @@ import {
   getOptimizedImageUrl,
 } from "../../data/db";
 import { getStagedPhotos, type StagedPhoto } from "../../../lib/staging";
+import { sendPayoutRequestSubmitted, sendAdminNotification } from "../../../lib/email";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 
@@ -2030,6 +2031,22 @@ export function CreatorTabs({
                         fetchPayoutRequests(photographerId)
                           .then(setPayoutRequests)
                           .catch(() => {});
+
+                        const photographerName =
+                          user?.name || photographerProfile?.name || "Photographer";
+                        const photographerEmail = user?.email || "";
+
+                        sendPayoutRequestSubmitted(
+                          photographerEmail,
+                          photographerName,
+                          amount,
+                          payoutMethod,
+                        ).catch((e) => console.error("Payout submission email failed:", e));
+
+                        sendAdminNotification(
+                          `Payout Request: ${photographerName}`,
+                          `<strong>${photographerName}</strong> requested a payout of <strong>£${amount.toFixed(2)}</strong> via <strong>${payoutMethod}</strong>. Photographer ID: <code>${photographerId}</code>. Pending review.`,
+                        ).catch((e) => console.error("Admin payout notification failed:", e));
                       } else {
                         toast.error("Failed to submit request");
                       }
