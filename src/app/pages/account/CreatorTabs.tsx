@@ -1,22 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  LayoutGrid,
-  Image as ImageIcon,
-  TrendingUp,
   Wallet,
-  Users,
-  Inbox,
-  Settings,
   Upload,
   Plus,
   Trash2,
   Check,
   X,
   Camera,
-  Aperture,
   AlertCircle,
-  FileText,
-  ChevronRight,
   Loader2,
   CheckCircle2,
 } from "lucide-react";
@@ -33,23 +24,30 @@ import {
 } from "recharts";
 import exifr from "exifr";
 import { Eyebrow, Badge } from "../../components/ui";
-import { type Photo, type Orientation, type Photographer, type Brief } from "../../data/photos";
+import { type Orientation, type Photographer, type Brief } from "../../data/photos";
 import {
   fetchPhotos,
   fetchBriefs,
   fetchPhotographers,
-  fetchPayouts,
   fetchPhotographerStats,
   fetchPhotographerMonthlyRevenue,
   fetchPhotographerWeeklyDownloads,
   fetchFollowerCount,
   fetchBalanceAdjustments,
-  createPhoto,
+  fetchPayouts,
+  fetchPaymentMethods,
+  upsertPaymentMethod,
+  createPayoutRequest,
   deletePhoto,
   updatePhotoPrice,
+  createPhoto,
   type Payout,
+  type PhotographerPaymentMethod,
+  type CryptoWalletEntry,
+  type Photo,
   getOptimizedImageUrl,
 } from "../../data/db";
+import { getStagedPhotos, type StagedPhoto } from "../../../lib/staging";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 
@@ -137,6 +135,12 @@ export function CreatorTabs({
   const [balanceAdjustments, setBalanceAdjustments] = useState<
     { amount: number; balanceAfter: number; reason: string | null; createdAt: string }[]
   >([]);
+  const [paymentMethods, setPaymentMethods] = useState<PhotographerPaymentMethod[]>([]);
+  const [editingMethod, setEditingMethod] = useState<string | null>(null);
+  const [cryptoWallets, setCryptoWallets] = useState<CryptoWalletEntry[]>([]);
+  const [payoutAmount, setPayoutAmount] = useState("");
+  const [payoutMethod, setPayoutMethod] = useState<"card" | "crypto" | "paypal">("card");
+  const [payoutDetails, setPayoutDetails] = useState<Record<string, string>>({});
 
   // Photographer dashboard data
   const [revenueData, setRevenueData] = useState<{ m: string; v: number }[]>([]);
@@ -176,6 +180,15 @@ export function CreatorTabs({
           toast.error("An error occurred");
           return null;
         });
+      fetchPaymentMethods(photographerId)
+        .then((methods) => {
+          setPaymentMethods(methods);
+          const crypto = methods.find((m) => m.method === "crypto");
+          if (crypto?.details?.wallets) {
+            setCryptoWallets(crypto.details.wallets as CryptoWalletEntry[]);
+          }
+        })
+        .catch(() => {});
       if (user?.id) {
         fetchBalanceAdjustments(user.id)
           .then(setBalanceAdjustments)
@@ -213,32 +226,30 @@ export function CreatorTabs({
   const [uploadStep, setUploadStep] = useState<1 | 2 | 3>(1);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  // Staged photos (browser IndexedDB)
+  const [stagedPhotos, setStagedPhotos] = useState<StagedPhoto[]>([]);
+
   // Refs for cleanup
-  const xhrRef = useRef<XMLHttpRequest | null>(null);
   const objectUrlRef = useRef<string | null>(null);
-  const uploadIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const uploadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearPendingUploadWork = () => {
-    if (xhrRef.current) {
-      xhrRef.current.abort();
-      xhrRef.current = null;
-    }
-    if (uploadIntervalRef.current) {
-      clearInterval(uploadIntervalRef.current);
-      uploadIntervalRef.current = null;
-    }
-    if (uploadTimeoutRef.current) {
-      clearTimeout(uploadTimeoutRef.current);
-      uploadTimeoutRef.current = null;
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
     }
   };
 
   useEffect(() => {
     return () => {
       clearPendingUploadWork();
-      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
     };
+  }, []);
+
+  // Load staged photos on mount
+  useEffect(() => {
+    getStagedPhotos()
+      .then(setStagedPhotos)
+      .catch(() => {});
   }, []);
 
   // Form states for upload metadata
@@ -248,7 +259,7 @@ export function CreatorTabs({
   const [uploadPrice, setUploadPrice] = useState("1000");
   const [uploadFileName, setUploadFileName] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
+  const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string>("");
   const [uploadCamera, setUploadCamera] = useState("");
   const [uploadLens, setUploadLens] = useState("");
   const [uploadIso, setUploadIso] = useState(0);
@@ -374,6 +385,11 @@ export function CreatorTabs({
     setUploadProgress(0);
     setUploadStep(1);
 
+    // Create local preview
+    const previewUrl = URL.createObjectURL(file);
+    objectUrlRef.current = previewUrl;
+    setUploadPreviewUrl(previewUrl);
+
     // Analyze dimensions, aspect ratio, orientation and dominant color dynamically
     analyzeImage(file).then(({ ratio, orientation, color }) => {
       setUploadRatio(ratio);
@@ -406,7 +422,7 @@ export function CreatorTabs({
             : "",
         };
       }
-    } catch (e) {
+    } catch {
       // EXIF extraction failed, continue without it
     }
 
@@ -420,140 +436,123 @@ export function CreatorTabs({
     if (exifData.location) setUploadLocation(exifData.location);
     // Generate title from filename
     const nameFromFilename = file.name
-      .replace(/\.[^.]+£/, "")
+      .replace(/\.[^.]+$/, "")
       .replace(/[-_]/g, " ")
       .trim();
     if (nameFromFilename) setUploadTitle(nameFromFilename);
 
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+    // File is now staged locally — no Cloudinary upload yet
+    setUploadProgress(100);
+    setUploadStep(2);
+  };
 
-    if (cloudName && uploadPreset) {
+  // Upload to Cloudinary and return the URL
+  const uploadToCloudinary = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+      if (!cloudName || !uploadPreset) {
+        reject(new Error("Cloudinary not configured"));
+        return;
+      }
+
       const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
       const xhr = new XMLHttpRequest();
-      xhrRef.current = xhr;
       const fd = new FormData();
-
-      xhr.open("POST", url, true);
 
       xhr.upload.addEventListener("progress", (e) => {
         if (e.lengthComputable) {
-          const percent = Math.round((e.loaded * 100) / e.total);
-          setUploadProgress(percent);
+          setUploadProgress(Math.round((e.loaded * 100) / e.total));
         }
       });
 
       xhr.onreadystatechange = () => {
         if (xhr.readyState === 4) {
-          if (xhrRef.current !== xhr) return;
-          xhrRef.current = null;
           if (xhr.status === 200) {
             try {
               const response = JSON.parse(xhr.responseText);
-              setUploadedImageUrl(response.secure_url);
-              setUploadProgress(100);
-              uploadTimeoutRef.current = setTimeout(() => {
-                uploadTimeoutRef.current = null;
-                setUploadStep(2);
-              }, 300);
+              resolve(response.secure_url);
             } catch {
-              toast.error(
-                "Upload response was invalid. Please check your Cloudinary configuration and try again.",
-              );
-              setUploadProgress(0);
+              reject(new Error("Invalid Cloudinary response"));
             }
           } else {
-            console.error("Cloudinary upload failed", xhr.responseText);
             let msg = "Cloudinary upload failed.";
             try {
               const err = JSON.parse(xhr.responseText);
               if (err?.error?.message) msg += " " + err.error.message;
             } catch {
-              /* response not JSON */
+              /* ignore parse error */
             }
-            if (xhr.status === 401 || xhr.status === 403) {
-              msg +=
-                " The upload preset may require authentication. Ensure VITE_CLOUDINARY_UPLOAD_PRESET is set to an unsigned preset in your Cloudinary dashboard.";
-            } else {
-              msg += " Please check your connection and try again.";
-            }
-            toast.error(msg);
-            setUploadProgress(0);
+            reject(new Error(msg));
           }
         }
       };
 
       fd.append("upload_preset", uploadPreset);
       fd.append("file", file);
+      xhr.open("POST", url, true);
       xhr.send(fd);
-    } else {
-      toast.error(
-        "Cloudinary is not configured. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET in your environment.",
-      );
-    }
+    });
   };
 
-  const handlePublishPhoto = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Publish: upload to Cloudinary + create DB record
+  const handlePublishPhoto = async (status: "published" | "draft" = "published") => {
+    if (!uploadFile) {
+      toast.error("No file selected");
+      return;
+    }
+
     setUploadStep(3);
+    setUploadProgress(0);
 
-    const imageUrl = uploadedImageUrl;
-    if (!imageUrl) {
-      toast.error("Please upload an image first");
-      return;
-    }
-    if (imageUrl.startsWith("blob:")) {
-      toast.error("Image was not uploaded to Cloudinary. Please re-upload and try again.");
-      setUploadStep(1);
-      return;
-    }
+    try {
+      const imageUrl = await uploadToCloudinary(uploadFile);
 
-    const newPhotoId = "upload-" + Date.now();
-    const newPhotoItem: Photo = {
-      id: newPhotoId,
-      title: uploadTitle || "Untitled Frame",
-      photographerId: photographerId,
-      photographer: user?.name || "Unknown Photographer",
-      license: "COMMERCIAL",
-      category: uploadCategory,
-      location: uploadLocation || "",
-      color: uploadColor,
-      orientation: uploadOrientation,
-      ratio: uploadRatio,
-      price: Math.max(Number(uploadPrice) || 1000, 1000),
-      downloads: 0,
-      views: 0,
-      likes: 0,
-      camera: uploadCamera || "",
-      lens: uploadLens || "",
-      iso: uploadIso || 0,
-      keywords: [uploadCategory.toLowerCase(), "new-release"],
-      image: imageUrl,
-      aperture: exifAperture || undefined,
-      shutterSpeed: exifShutterSpeed || undefined,
-      focalLength: exifFocalLength || undefined,
-    };
+      const newPhotoItem: Photo = {
+        id: "upload-" + Date.now(),
+        title: uploadTitle || "Untitled Frame",
+        photographerId: photographerId,
+        photographer: user?.name || "Unknown Photographer",
+        license: "COMMERCIAL",
+        category: uploadCategory,
+        location: uploadLocation || "",
+        color: uploadColor,
+        orientation: uploadOrientation,
+        ratio: uploadRatio,
+        price: Math.max(Number(uploadPrice) || 1000, 1000),
+        downloads: 0,
+        views: 0,
+        likes: 0,
+        camera: uploadCamera || "",
+        lens: uploadLens || "",
+        iso: uploadIso || 0,
+        keywords: [uploadCategory.toLowerCase(), "new-release"],
+        image: imageUrl,
+        aperture: exifAperture || undefined,
+        shutterSpeed: exifShutterSpeed || undefined,
+        focalLength: exifFocalLength || undefined,
+      };
 
-    // Save to Supabase using the stable photographer slug.
-    const saved = await createPhoto(newPhotoItem);
-    if (saved) {
-      setPortfolioPhotos((prev) => [saved, ...prev]);
-      toast.success("Photo published!", {
-        description: `"${uploadTitle || "Untitled Frame"}" is now visible under your portfolio.`,
-      });
-    } else {
-      toast.error("Photo was not published", {
-        description: "The upload could not be saved. Check your connection and try again.",
-      });
+      const saved = await createPhoto(newPhotoItem);
+      if (saved) {
+        setPortfolioPhotos((prev) => [saved, ...prev]);
+        toast.success(status === "draft" ? "Draft saved!" : "Photo published!", {
+          description: `"${uploadTitle || "Untitled Frame"}" is now ${status === "draft" ? "saved as draft" : "visible under your portfolio"}.`,
+        });
+      } else {
+        toast.error("Failed to save photo", {
+          description: "The upload could not be saved. Check your connection and try again.",
+        });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
+      setUploadStep(2);
     }
   };
 
   const resetUploadWizard = () => {
     clearPendingUploadWork();
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
     setUploadTitle("");
     setUploadCategory("Portrait");
     setUploadLocation("");
@@ -561,7 +560,7 @@ export function CreatorTabs({
     setUploadFileName("");
     setUploadProgress(0);
     setUploadFile(null);
-    setUploadedImageUrl("");
+    setUploadPreviewUrl("");
     setUploadStep(1);
     setUploadOpen(false);
     setUploadCamera("");
@@ -584,10 +583,21 @@ export function CreatorTabs({
   }));
 
   const stats = [
-    { label: "REVENUE (LIFETIME)", value: `£${photographerStats.totalRevenue.toLocaleString()}` },
+    {
+      label: "REVENUE (LIFETIME)",
+      value: `£${(user?.payoutBalance ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}`,
+    },
     { label: "DOWNLOADS", value: photographerStats.totalDownloads.toLocaleString() },
-    { label: "FOLLOWERS", value: followerCount.toLocaleString() },
-    { label: "PORTFOLIO", value: String(portfolioPhotos.length) },
+    { label: "LIKES", value: photographerStats.totalLikes.toLocaleString() },
+    {
+      label: "FOLLOWERS",
+      value: Math.max(
+        followerCount,
+        photographerProfile?.customFollowers
+          ? parseInt(photographerProfile.customFollowers.replace(/[^0-9]/g, ""), 10) || 0
+          : 0,
+      ).toLocaleString(),
+    },
   ];
 
   const pendingPayout = payouts.find((p) => p.status === "PENDING");
@@ -726,7 +736,11 @@ export function CreatorTabs({
                     <div className="space-y-2">
                       {portfolioPhotos
                         .filter((p) => p.photographerId === photographerId)
-                        .sort((a, b) => b.downloads - a.downloads)
+                        .sort(
+                          (a, b) =>
+                            Math.max(b.downloads || 0, b.customDownloads || 0) -
+                            Math.max(a.downloads || 0, a.customDownloads || 0),
+                        )
                         .slice(0, 4)
                         .map((p, i) => (
                           <div
@@ -745,11 +759,19 @@ export function CreatorTabs({
                                 {p.title}
                               </p>
                               <p className="text-xs text-[#6b716d]">
-                                {p.downloads.toLocaleString()} downloads
+                                {Math.max(
+                                  p.downloads || 0,
+                                  p.customDownloads || 0,
+                                ).toLocaleString()}{" "}
+                                downloads
                               </p>
                             </div>
                             <span className="font-serif text-base text-[#1e4a3f] font-semibold">
-                              £{((p.downloads * p.price) / 100).toFixed(0)}
+                              £
+                              {(
+                                (Math.max(p.downloads || 0, p.customDownloads || 0) * p.price) /
+                                100
+                              ).toFixed(0)}
                             </span>
                           </div>
                         ))}
@@ -856,35 +878,18 @@ export function CreatorTabs({
                       onClick={() => document.getElementById("file-upload-input")?.click()}
                       className="border-2 border-dashed border-[#ececec] hover:border-[#1e4a3f]/40 bg-[#FAF9F5]/50 hover:bg-[#FAF9F5] focus:outline-none focus:ring-2 focus:ring-[#1e4a3f] rounded-2xl py-12 text-center transition-all duration-300 cursor-pointer flex flex-col items-center justify-center group"
                     >
-                      {uploadProgress > 0 ? (
-                        <div className="space-y-3 flex flex-col items-center">
-                          <Loader2 className="size-10 text-[#1e4a3f] animate-spin" />
-                          <p className="text-sm font-semibold text-[#18211f]">
-                            Uploading & parsing EXIF data...
-                          </p>
-                          <div className="w-48 bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
-                            <div
-                              className="bg-[#1e4a3f] h-1.5 rounded-full transition-all duration-150"
-                              style={{ width: `${uploadProgress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="grid size-12 place-items-center rounded-full bg-[#dce8df]/60 text-[#1e4a3f] group-hover:scale-105 transition-transform duration-200 mb-3">
-                            <Upload className="size-6" />
-                          </div>
-                          <p className="text-sm font-semibold text-[#18211f]">
-                            Drag & drop camera RAW or High-Res JPEG
-                          </p>
-                          <p className="text-xs text-[#6b716d] mt-1">
-                            Accepts CR3, ARW, NEF, or TIFF up to 100MB
-                          </p>
-                          <span className="mt-4 inline-flex text-xs font-semibold text-[#1e4a3f] bg-[#dce8df] px-3.5 py-1.5 rounded-full">
-                            Select local file
-                          </span>
-                        </>
-                      )}
+                      <div className="grid size-12 place-items-center rounded-full bg-[#dce8df]/60 text-[#1e4a3f] group-hover:scale-105 transition-transform duration-200 mb-3">
+                        <Upload className="size-6" />
+                      </div>
+                      <p className="text-sm font-semibold text-[#18211f]">
+                        Drag & drop camera RAW or High-Res JPEG
+                      </p>
+                      <p className="text-xs text-[#6b716d] mt-1">
+                        File stays local until you publish — nothing uploaded yet
+                      </p>
+                      <span className="mt-4 inline-flex text-xs font-semibold text-[#1e4a3f] bg-[#dce8df] px-3.5 py-1.5 rounded-full">
+                        Select local file
+                      </span>
                     </div>
                     <div className="flex items-start gap-3 bg-[#FAF9F5] p-4 rounded-xl border border-[#ececec]/60">
                       <AlertCircle className="size-5 text-[#1e4a3f] shrink-0 mt-0.5" />
@@ -903,10 +908,10 @@ export function CreatorTabs({
                 )}
 
                 {uploadStep === 2 && (
-                  <form onSubmit={handlePublishPhoto} className="space-y-5">
+                  <div className="space-y-5">
                     <div className="flex items-center gap-4 bg-[#FAF9F5] p-3 rounded-xl border border-[#ececec]/60">
                       <img
-                        src={uploadedImageUrl || ""}
+                        src={uploadPreviewUrl}
                         alt="Preview"
                         loading="lazy"
                         className="size-16 object-cover rounded-lg shadow"
@@ -929,6 +934,9 @@ export function CreatorTabs({
                             No EXIF data — fill fields manually
                           </div>
                         )}
+                        <p className="text-[10px] text-[#758078] mt-1.5 font-mono">
+                          Staged locally — not uploaded yet
+                        </p>
                       </div>
                     </div>
 
@@ -1067,51 +1075,89 @@ export function CreatorTabs({
                       </div>
                     </div>
 
-                    <div className="flex justify-end pt-4 border-t border-[#ececec]">
+                    <div className="flex items-center justify-between pt-4 border-t border-[#ececec]">
                       <button
-                        type="submit"
-                        className="bg-[#1e4a3f] hover:bg-[#123b31] px-6 py-2.5 text-sm font-semibold text-white rounded-full transition-all duration-200 cursor-pointer shadow-md"
+                        type="button"
+                        onClick={resetUploadWizard}
+                        className="text-xs font-semibold text-[#6b716d] hover:text-[#18211f] transition-colors cursor-pointer"
                       >
-                        Publish to Archive
+                        Cancel
                       </button>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handlePublishPhoto("draft")}
+                          className="border border-[#ececec] hover:border-[#1e4a3f] text-[#4a534e] hover:text-[#1e4a3f] bg-white px-5 py-2.5 rounded-full text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          Save as Draft
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handlePublishPhoto("published")}
+                          className="bg-[#1e4a3f] hover:bg-[#123b31] px-6 py-2.5 text-sm font-semibold text-white rounded-full transition-all duration-200 cursor-pointer shadow-md"
+                        >
+                          Publish to Archive
+                        </button>
+                      </div>
                     </div>
-                  </form>
+                  </div>
                 )}
 
                 {uploadStep === 3 && (
                   <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
-                    <CheckCircle2 className="size-16 text-[#1e7a4f] animate-bounce" />
+                    <div className="relative">
+                      {uploadProgress > 0 && uploadProgress < 100 ? (
+                        <Loader2 className="size-16 text-[#1e4a3f] animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="size-16 text-[#1e7a4f] animate-bounce" />
+                      )}
+                    </div>
                     <div>
-                      <p className="font-serif text-2xl text-[#18211f]">Photograph Published</p>
-                      <p className="text-xs text-[#6d746e] mt-1.5 max-w-xs mx-auto">
-                        Your image has been published successfully. Our editors will review it for
-                        quality standards shortly.
+                      <p className="font-serif text-2xl text-[#18211f]">
+                        {uploadProgress > 0 && uploadProgress < 100
+                          ? "Uploading..."
+                          : "Photograph Published"}
                       </p>
+                      <p className="text-xs text-[#6d746e] mt-1.5 max-w-xs mx-auto">
+                        {uploadProgress > 0 && uploadProgress < 100
+                          ? "Your image is being uploaded to the archive..."
+                          : "Your image has been published successfully. Our editors will review it for quality standards shortly."}
+                      </p>
+                      {uploadProgress > 0 && uploadProgress < 100 && (
+                        <div className="w-48 bg-gray-200 rounded-full h-1.5 mt-3 mx-auto overflow-hidden">
+                          <div
+                            className="bg-[#1e4a3f] h-1.5 rounded-full transition-all duration-150"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
-                    <div className="pt-6 flex gap-4 w-full justify-center">
-                      <button
-                        onClick={() => {
-                          resetUploadWizard();
-                          onTabChange?.("portfolio");
-                        }}
-                        className="bg-[#1e4a3f] hover:bg-[#123b31] text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow transition-colors cursor-pointer"
-                      >
-                        View in Portfolio
-                      </button>
-                      <button
-                        onClick={() => {
-                          setUploadStep(1);
-                          setUploadProgress(0);
-                          setUploadFileName("");
-                          setUploadTitle("");
-                          setUploadFile(null);
-                          setUploadedImageUrl("");
-                        }}
-                        className="border border-[#ececec] hover:border-[#1e4a3f] text-[#4a534e] hover:text-[#1e4a3f] bg-white px-5 py-2.5 rounded-full text-xs font-semibold transition-colors cursor-pointer"
-                      >
-                        Upload Another
-                      </button>
-                    </div>
+                    {uploadProgress >= 100 && (
+                      <div className="pt-6 flex gap-4 w-full justify-center">
+                        <button
+                          onClick={() => {
+                            resetUploadWizard();
+                            onTabChange?.("portfolio");
+                          }}
+                          className="bg-[#1e4a3f] hover:bg-[#123b31] text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow transition-colors cursor-pointer"
+                        >
+                          View in Portfolio
+                        </button>
+                        <button
+                          onClick={() => {
+                            setUploadStep(1);
+                            setUploadProgress(0);
+                            setUploadFileName("");
+                            setUploadTitle("");
+                            setUploadFile(null);
+                            setUploadPreviewUrl("");
+                          }}
+                          className="border border-[#ececec] hover:border-[#1e4a3f] text-[#4a534e] hover:text-[#1e4a3f] bg-white px-5 py-2.5 rounded-full text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          Upload Another
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1213,8 +1259,10 @@ export function CreatorTabs({
                           </button>
                         )}
                         <div className="flex items-center gap-3 text-[11px] text-[#758078]">
-                          <span>{photo.downloads} downloads</span>
-                          <span>{photo.views} views</span>
+                          <span>
+                            {Math.max(photo.downloads || 0, photo.customDownloads || 0)} downloads
+                          </span>
+                          <span>{Math.max(photo.views || 0, photo.customViews || 0)} views</span>
                         </div>
                       </div>
                     </div>
@@ -1260,14 +1308,15 @@ export function CreatorTabs({
                   £
                   {(user?.payoutBalance ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-[11px] text-[#758078] mt-1.5">Admin-adjusted ledger balance</p>
+                <p className="text-[11px] text-[#758078] mt-1.5">Total earned from all sales</p>
               </div>
               <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
                 <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
                   Lifetime Revenue
                 </p>
                 <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">
-                  £{photographerStats.totalRevenue.toLocaleString()}
+                  £
+                  {(user?.payoutBalance ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
                 </p>
                 <p className="text-[11px] text-[#758078] mt-1.5">Total earned from all sales</p>
               </div>
@@ -1403,6 +1452,560 @@ export function CreatorTabs({
                 </div>
               </div>
             )}
+
+            <div className="mt-8 grid gap-6 lg:grid-cols-2">
+              <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#ececec]">
+                  <h2 className="font-serif text-lg text-[#18211f]">Payout Methods</h2>
+                  <p className="text-[11px] text-[#758078] mt-0.5">
+                    Configure how you receive your earnings
+                  </p>
+                </div>
+                <div className="p-6 space-y-4">
+                  {/* Bank Transfer */}
+                  <div className="border border-[#ececec] rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="grid size-9 place-items-center rounded-lg bg-[#f5f5f5]">
+                          <Wallet className="size-4 text-[#1e4a3f]" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-[#18211f]">Bank Transfer</p>
+                          <p className="text-[11px] text-[#758078]">
+                            Receive payouts via bank wire
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setEditingMethod(editingMethod === "card" ? null : "card")}
+                        className="text-xs font-semibold text-[#1e4a3f] hover:underline"
+                      >
+                        {editingMethod === "card"
+                          ? "Cancel"
+                          : paymentMethods.find((m) => m.method === "card")?.details?.bankName
+                            ? "Edit"
+                            : "Configure"}
+                      </button>
+                    </div>
+                    {paymentMethods.find((m) => m.method === "card")?.details?.bankName &&
+                      editingMethod !== "card" && (
+                        <div className="mt-1 pt-3 border-t border-[#ececec]/60 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Badge tone="green">Configured</Badge>
+                          </div>
+                          <p className="text-xs text-[#18211f] font-medium">
+                            {
+                              paymentMethods.find((m) => m.method === "card")?.details
+                                ?.bankName as string
+                            }
+                          </p>
+                          <p className="text-xs text-[#6b716d] font-mono">
+                            {
+                              paymentMethods.find((m) => m.method === "card")?.details
+                                ?.accountNumber as string
+                            }{" "}
+                            {paymentMethods.find((m) => m.method === "card")?.details?.sortCode
+                              ? `· ${paymentMethods.find((m) => m.method === "card")?.details?.sortCode}`
+                              : ""}
+                          </p>
+                        </div>
+                      )}
+                    {editingMethod === "card" && (
+                      <div className="space-y-3 mt-3 pt-3 border-t border-[#ececec]/60">
+                        <input
+                          type="text"
+                          placeholder="Bank name"
+                          defaultValue={
+                            (paymentMethods.find((m) => m.method === "card")?.details
+                              ?.bankName as string) || ""
+                          }
+                          id="pm-bank-name"
+                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Account number / IBAN"
+                          defaultValue={
+                            (paymentMethods.find((m) => m.method === "card")?.details
+                              ?.accountNumber as string) || ""
+                          }
+                          id="pm-bank-account"
+                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Sort code / SWIFT / BIC"
+                          defaultValue={
+                            (paymentMethods.find((m) => m.method === "card")?.details
+                              ?.sortCode as string) || ""
+                          }
+                          id="pm-bank-sort"
+                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        />
+                        <button
+                          onClick={async () => {
+                            const bankName = (
+                              document.getElementById("pm-bank-name") as HTMLInputElement
+                            )?.value;
+                            const accountNumber = (
+                              document.getElementById("pm-bank-account") as HTMLInputElement
+                            )?.value;
+                            const sortCode = (
+                              document.getElementById("pm-bank-sort") as HTMLInputElement
+                            )?.value;
+                            if (!bankName || !accountNumber) {
+                              toast.error("Fill in bank details");
+                              return;
+                            }
+                            const ok = await upsertPaymentMethod(photographerId, "card", true, {
+                              bankName,
+                              accountNumber,
+                              sortCode,
+                            });
+                            if (ok) {
+                              toast.success("Bank details saved");
+                              setEditingMethod(null);
+                              const methods = await fetchPaymentMethods(photographerId);
+                              setPaymentMethods(methods);
+                            } else {
+                              toast.error("Failed to save");
+                            }
+                          }}
+                          className="w-full rounded-full bg-[#1e4a3f] py-2 text-xs font-semibold text-white hover:bg-[#123b31] transition"
+                        >
+                          Save Bank Details
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Crypto */}
+                  <div className="border border-[#ececec] rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="grid size-9 place-items-center rounded-lg bg-[#f5f5f5]">
+                          <span className="text-sm font-bold text-[#1e4a3f]">₿</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-[#18211f]">Crypto Wallet</p>
+                          <p className="text-[11px] text-[#758078]">
+                            Receive payouts in cryptocurrency
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setEditingMethod(editingMethod === "crypto" ? null : "crypto")
+                        }
+                        className="text-xs font-semibold text-[#1e4a3f] hover:underline"
+                      >
+                        {editingMethod === "crypto"
+                          ? "Cancel"
+                          : paymentMethods.find((m) => m.method === "crypto")?.details?.wallets
+                            ? "Edit"
+                            : "Configure"}
+                      </button>
+                    </div>
+                    {paymentMethods.find((m) => m.method === "crypto")?.details?.wallets &&
+                      editingMethod !== "crypto" && (
+                        <div className="mt-1 pt-3 border-t border-[#ececec]/60 space-y-2">
+                          <Badge tone="green">Configured</Badge>
+                          {(
+                            paymentMethods.find((m) => m.method === "crypto")?.details
+                              ?.wallets as any[]
+                          )?.map((w: any, i: number) => (
+                            <div key={i} className="flex items-center gap-2 text-xs">
+                              <span className="font-semibold text-[#18211f]">{w.coin}</span>
+                              <span className="text-[#758078]">({w.network})</span>
+                              <span className="font-mono text-[#6b716d] truncate">{w.address}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    {editingMethod === "crypto" && (
+                      <div className="space-y-3 mt-3 pt-3 border-t border-[#ececec]/60">
+                        {cryptoWallets.map((w, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <select
+                              value={w.coin}
+                              onChange={(e) => {
+                                const next = [...cryptoWallets];
+                                const coin = COINS.find((c) => c.symbol === e.target.value);
+                                next[i] = {
+                                  coin: e.target.value,
+                                  network: coin?.networks[0] || "",
+                                  address: w.address,
+                                };
+                                setCryptoWallets(next);
+                              }}
+                              className="text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f] w-28"
+                            >
+                              {COINS.map((c) => (
+                                <option key={c.symbol} value={c.symbol}>
+                                  {c.symbol}
+                                </option>
+                              ))}
+                            </select>
+                            <select
+                              value={w.network}
+                              onChange={(e) => {
+                                const next = [...cryptoWallets];
+                                next[i] = { ...next[i], network: e.target.value };
+                                setCryptoWallets(next);
+                              }}
+                              className="text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f] flex-1"
+                            >
+                              {COINS.find((c) => c.symbol === w.coin)?.networks.map((n) => (
+                                <option key={n} value={n}>
+                                  {n}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              type="text"
+                              placeholder="Wallet address"
+                              value={w.address}
+                              onChange={(e) => {
+                                const next = [...cryptoWallets];
+                                next[i] = { ...next[i], address: e.target.value };
+                                setCryptoWallets(next);
+                              }}
+                              className="flex-1 text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                            />
+                            <button
+                              onClick={() =>
+                                setCryptoWallets((prev) => prev.filter((_, j) => j !== i))
+                              }
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() =>
+                            setCryptoWallets((prev) => [
+                              ...prev,
+                              { coin: "BTC", network: "Bitcoin", address: "" },
+                            ])
+                          }
+                          className="flex items-center gap-1 text-xs font-semibold text-[#1e4a3f] hover:underline"
+                        >
+                          <Plus className="size-3" /> Add wallet
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const valid = cryptoWallets.filter((w) => w.address);
+                            if (valid.length === 0) {
+                              toast.error("Add at least one wallet address");
+                              return;
+                            }
+                            const ok = await upsertPaymentMethod(photographerId, "crypto", true, {
+                              wallets: valid,
+                            });
+                            if (ok) {
+                              toast.success("Crypto wallets saved");
+                              setEditingMethod(null);
+                              const methods = await fetchPaymentMethods(photographerId);
+                              setPaymentMethods(methods);
+                            } else {
+                              toast.error("Failed to save");
+                            }
+                          }}
+                          className="w-full rounded-full bg-[#1e4a3f] py-2 text-xs font-semibold text-white hover:bg-[#123b31] transition"
+                        >
+                          Save Crypto Wallets
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PayPal */}
+                  <div className="border border-[#ececec] rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="grid size-9 place-items-center rounded-lg bg-[#f5f5f5]">
+                          <span className="text-sm font-bold text-[#1e4a3f]">P</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-[#18211f]">PayPal</p>
+                          <p className="text-[11px] text-[#758078]">Receive payouts via PayPal</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setEditingMethod(editingMethod === "paypal" ? null : "paypal")
+                        }
+                        className="text-xs font-semibold text-[#1e4a3f] hover:underline"
+                      >
+                        {editingMethod === "paypal"
+                          ? "Cancel"
+                          : paymentMethods.find((m) => m.method === "paypal")?.details?.email
+                            ? "Edit"
+                            : "Configure"}
+                      </button>
+                    </div>
+                    {paymentMethods.find((m) => m.method === "paypal")?.details?.email &&
+                      editingMethod !== "paypal" && (
+                        <div className="mt-1 pt-3 border-t border-[#ececec]/60 space-y-1">
+                          <Badge tone="green">Configured</Badge>
+                          <p className="text-xs text-[#6b716d] font-mono">
+                            {
+                              paymentMethods.find((m) => m.method === "paypal")?.details
+                                ?.email as string
+                            }
+                          </p>
+                        </div>
+                      )}
+                    {editingMethod === "paypal" && (
+                      <div className="space-y-3 mt-3 pt-3 border-t border-[#ececec]/60">
+                        <input
+                          type="email"
+                          placeholder="PayPal email"
+                          defaultValue={
+                            (paymentMethods.find((m) => m.method === "paypal")?.details
+                              ?.email as string) || ""
+                          }
+                          id="pm-paypal-email"
+                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        />
+                        <button
+                          onClick={async () => {
+                            const email = (
+                              document.getElementById("pm-paypal-email") as HTMLInputElement
+                            )?.value;
+                            if (!email) {
+                              toast.error("Enter PayPal email");
+                              return;
+                            }
+                            const ok = await upsertPaymentMethod(photographerId, "paypal", true, {
+                              email,
+                            });
+                            if (ok) {
+                              toast.success("PayPal saved");
+                              setEditingMethod(null);
+                              const methods = await fetchPaymentMethods(photographerId);
+                              setPaymentMethods(methods);
+                            } else {
+                              toast.error("Failed to save");
+                            }
+                          }}
+                          className="w-full rounded-full bg-[#1e4a3f] py-2 text-xs font-semibold text-white hover:bg-[#123b31] transition"
+                        >
+                          Save PayPal
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#ececec]">
+                  <h2 className="font-serif text-lg text-[#18211f]">Request Payout</h2>
+                  <p className="text-[11px] text-[#758078] mt-0.5">
+                    Withdraw your available balance
+                  </p>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="bg-[#f7f7f7] rounded-xl p-4 border border-[#ececec]">
+                    <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                      Available Balance
+                    </p>
+                    <p className="mt-1 font-serif text-2xl text-[#1e4a3f] font-semibold">
+                      £
+                      {(user?.payoutBalance ?? 0).toLocaleString("en-GB", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                      Amount (£)
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={payoutAmount}
+                      onChange={(e) => setPayoutAmount(e.target.value)}
+                      className="mt-2 w-full text-sm border border-[#ececec] rounded-xl px-4 py-3 outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                      Payout Method
+                    </label>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {(["card", "crypto", "paypal"] as const).map((m) => {
+                        const methodLabel =
+                          m === "card" ? "Bank" : m === "crypto" ? "Crypto" : "PayPal";
+                        const hasConfig =
+                          paymentMethods.find((pm) => pm.method === m)?.details &&
+                          (m === "card"
+                            ? paymentMethods.find((pm) => pm.method === m)?.details?.bankName
+                            : m === "crypto"
+                              ? (
+                                  paymentMethods.find((pm) => pm.method === m)?.details
+                                    ?.wallets as any[]
+                                )?.length > 0
+                              : paymentMethods.find((pm) => pm.method === m)?.details?.email);
+                        return (
+                          <button
+                            key={m}
+                            onClick={() => {
+                              setPayoutMethod(m);
+                              // Pre-fill from configured method
+                              const saved = paymentMethods.find((pm) => pm.method === m);
+                              if (saved?.details) {
+                                const d = saved.details as Record<string, any>;
+                                if (m === "card") {
+                                  setPayoutDetails({
+                                    bankName: d.bankName || "",
+                                    accountNumber: d.accountNumber || "",
+                                  });
+                                } else if (m === "crypto") {
+                                  const wallets = d.wallets as any[];
+                                  const first = wallets?.[0];
+                                  setPayoutDetails({
+                                    coin: first?.coin || "BTC",
+                                    address: first?.address || "",
+                                  });
+                                } else if (m === "paypal") {
+                                  setPayoutDetails({ email: d.email || "" });
+                                }
+                              } else {
+                                setPayoutDetails({});
+                              }
+                            }}
+                            className={`rounded-xl border px-3 py-2.5 text-xs font-semibold transition ${
+                              payoutMethod === m
+                                ? "border-[#1e4a3f] bg-[#1e4a3f]/5 text-[#1e4a3f]"
+                                : "border-[#ececec] text-[#6b716d] hover:border-[#1e4a3f]/30"
+                            }`}
+                          >
+                            {methodLabel}
+                            {hasConfig && (
+                              <span className="ml-1 inline-block size-1.5 rounded-full bg-[#1e4a3f]" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {payoutMethod === "card" && (
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Bank name"
+                        value={payoutDetails.bankName || ""}
+                        onChange={(e) =>
+                          setPayoutDetails((p) => ({ ...p, bankName: e.target.value }))
+                        }
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Account number / IBAN"
+                        value={payoutDetails.accountNumber || ""}
+                        onChange={(e) =>
+                          setPayoutDetails((p) => ({ ...p, accountNumber: e.target.value }))
+                        }
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                      />
+                    </div>
+                  )}
+                  {payoutMethod === "crypto" && (
+                    <div className="space-y-3">
+                      <select
+                        value={payoutDetails.coin || "BTC"}
+                        onChange={(e) => {
+                          const coin = COINS.find((c) => c.symbol === e.target.value);
+                          setPayoutDetails((p) => ({
+                            ...p,
+                            coin: e.target.value,
+                            network: coin?.networks[0] || "",
+                          }));
+                        }}
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                      >
+                        {COINS.map((c) => (
+                          <option key={c.symbol} value={c.symbol}>
+                            {c.name} ({c.symbol})
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Wallet address"
+                        value={payoutDetails.address || ""}
+                        onChange={(e) =>
+                          setPayoutDetails((p) => ({ ...p, address: e.target.value }))
+                        }
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                      />
+                    </div>
+                  )}
+                  {payoutMethod === "paypal" && (
+                    <input
+                      type="email"
+                      placeholder="PayPal email"
+                      value={payoutDetails.email || ""}
+                      onChange={(e) => setPayoutDetails((p) => ({ ...p, email: e.target.value }))}
+                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                    />
+                  )}
+                  <button
+                    onClick={async () => {
+                      const amount = parseFloat(payoutAmount);
+                      if (!amount || amount <= 0) {
+                        toast.error("Enter a valid amount");
+                        return;
+                      }
+                      if (amount > (user?.payoutBalance ?? 0)) {
+                        toast.error("Amount exceeds available balance");
+                        return;
+                      }
+                      if (
+                        payoutMethod === "card" &&
+                        (!payoutDetails.bankName || !payoutDetails.accountNumber)
+                      ) {
+                        toast.error("Fill in bank details");
+                        return;
+                      }
+                      if (payoutMethod === "crypto" && !payoutDetails.address) {
+                        toast.error("Enter wallet address");
+                        return;
+                      }
+                      if (payoutMethod === "paypal" && !payoutDetails.email) {
+                        toast.error("Enter PayPal email");
+                        return;
+                      }
+                      const req = await createPayoutRequest(
+                        photographerId,
+                        amount,
+                        payoutMethod,
+                        payoutDetails,
+                      );
+                      if (req) {
+                        toast.success("Payout request submitted");
+                        setPayoutAmount("");
+                        setPayoutDetails({});
+                      } else {
+                        toast.error("Failed to submit request");
+                      }
+                    }}
+                    className="w-full rounded-full bg-[#1e4a3f] py-2.5 text-sm font-semibold text-white hover:bg-[#123b31] transition"
+                  >
+                    Request Payout
+                  </button>
+                  <p className="text-[11px] text-[#758078] text-center">
+                    Payouts are reviewed and processed by the admin team within 3-5 business days.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

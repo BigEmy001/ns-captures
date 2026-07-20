@@ -12,6 +12,8 @@ export function AuthRoute() {
       <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />
     );
 
+  if (user.role === "Admin") return <Navigate to="/admin" replace />;
+
   return <Outlet />;
 }
 

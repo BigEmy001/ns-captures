@@ -105,6 +105,7 @@ export async function fetchPhotographers(): Promise<Photographer[]> {
         cover: p.cover || p.avatar || "",
         verified: p.verified || false,
         gear: p.gear || [],
+        customFollowers: p.custom_followers || undefined,
       }));
     },
     { maxRetries: 2, baseDelay: 800 },
@@ -138,6 +139,7 @@ export async function fetchPhotographer(id: string): Promise<Photographer | unde
       cover: photographer.cover || photographer.avatar || "",
       verified: photographer.verified || false,
       gear: photographer.gear || [],
+      customFollowers: photographer.custom_followers || undefined,
     };
   }
 
@@ -199,6 +201,9 @@ function rowToPhoto(row: any): Photo {
     aperture: row.aperture || undefined,
     shutterSpeed: row.shutter_speed || undefined,
     focalLength: row.focal_length || undefined,
+    customViews: row.custom_views || undefined,
+    customLikes: row.custom_likes || undefined,
+    customDownloads: row.custom_downloads || undefined,
   };
 }
 
@@ -208,6 +213,7 @@ export async function fetchPhotos(): Promise<Photo[]> {
       const { data, error } = await supabase
         .from("photos")
         .select("*")
+        .eq("status", "published")
         .order("uploaded_at", { ascending: false });
 
       if (error || !data || data.length === 0) {
@@ -241,7 +247,8 @@ export async function fetchPhotosPaginated(
         .from("photos")
         .select(filters.collectionId ? "*, collection_photos!inner(collection_id)" : "*", {
           count: "exact",
-        });
+        })
+        .eq("status", "published");
 
       if (filters.collectionId) {
         q = q.eq("collection_photos.collection_id", filters.collectionId);
@@ -425,7 +432,7 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, name, email, role, status, created_at, phone, dob, occupation, verification_status, payout_balance",
+      "id, name, email, role, status, created_at, phone, dob, occupation, verification_status, payout_balance, avatar, bio, location, social_links, profile_references, slug",
     )
     .order("created_at", { ascending: false });
 
@@ -433,6 +440,7 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
 
   return data.map((p: any, i: number) => ({
     id: p.id,
+    slug: p.slug || "",
     name: p.name || "Unknown",
     email: p.email || "Email not set",
     phone: p.phone,
@@ -442,6 +450,11 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
     status: (p.status || "Active") as AdminUser["status"],
     verificationStatus: p.verification_status || "unverified",
     payoutBalance: p.payout_balance ?? 0,
+    avatar: p.avatar || "",
+    bio: p.bio || "",
+    location: p.location || "",
+    socialLinks: p.social_links || {},
+    references: p.profile_references || [],
     joined: p.created_at
       ? new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
       : "Unknown",
@@ -1364,13 +1377,14 @@ export async function fetchMonthlyRevenue(): Promise<{ m: string; v: number }[]>
 // ============================================================
 
 export async function fetchCategoryStats(): Promise<{ name: string; downloads: number }[]> {
-  const { data } = await supabase.from("photos").select("category, downloads");
+  const { data } = await supabase.from("photos").select("category, downloads, custom_downloads");
 
   if (!data || data.length === 0) return [];
 
   const cats: Record<string, number> = {};
   data.forEach((r: any) => {
-    cats[r.category] = (cats[r.category] || 0) + (r.downloads || 0);
+    cats[r.category] =
+      (cats[r.category] || 0) + Math.max(r.downloads || 0, r.custom_downloads || 0);
   });
 
   return Object.entries(cats)
@@ -1499,14 +1513,71 @@ export async function updatePhotoHypeOverrides(
     customLikes?: number;
   },
 ): Promise<boolean> {
-  const updates: any = {};
+  const updates: Record<string, number> = {};
   if (metrics.customDownloads !== undefined) updates.custom_downloads = metrics.customDownloads;
   if (metrics.customViews !== undefined) updates.custom_views = metrics.customViews;
   if (metrics.customLikes !== undefined) updates.custom_likes = metrics.customLikes;
 
+  if (Object.keys(updates).length === 0) return true;
+
+  // If custom downloads increased, credit the photographer's balance
+  if (metrics.customDownloads !== undefined) {
+    const { data: photo } = await supabase
+      .from("photos")
+      .select("custom_downloads, price, photographer_id")
+      .eq("id", photoId)
+      .single();
+
+    if (photo) {
+      const oldCustom = photo.custom_downloads || 0;
+      const newCustom = metrics.customDownloads;
+      const extraDownloads = newCustom - oldCustom;
+
+      if (extraDownloads > 0 && photo.price > 0) {
+        // Look up platform fee and photographer profile
+        const { data: settings } = await supabase
+          .from("site_settings")
+          .select("platform_fee")
+          .eq("id", 1)
+          .single();
+        const commissionPct = 100 - (settings?.platform_fee ?? 20);
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("slug", photo.photographer_id)
+          .single();
+
+        if (profile) {
+          const creditAmount = Math.round(extraDownloads * photo.price * (commissionPct / 100));
+          await supabase.rpc("adjust_payout_balance", {
+            p_user_id: profile.id,
+            p_adjustment: creditAmount,
+            p_reason: `Hype Engine: +${extraDownloads} custom downloads on photo ${photoId}`,
+          });
+        }
+      }
+    }
+  }
+
   const { error } = await supabase.from("photos").update(updates).eq("id", photoId);
   if (error) {
     console.error("updatePhotoHypeOverrides error", error);
+    return false;
+  }
+  return true;
+}
+
+export async function updatePhotographerCustomFollowers(
+  photographerId: string,
+  customFollowers: string,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("photographers")
+    .update({ custom_followers: customFollowers || null })
+    .eq("id", photographerId);
+  if (error) {
+    console.error("updatePhotographerCustomFollowers error", error);
     return false;
   }
   return true;
@@ -1569,12 +1640,15 @@ export async function fetchPhotographerWeeklyDownloads(
 ): Promise<{ m: string; v: number }[]> {
   const { data: photos } = await supabase
     .from("photos")
-    .select("id, downloads")
+    .select("id, downloads, custom_downloads")
     .eq("photographer_id", photographerId);
 
   if (!photos || photos.length === 0) return [];
 
-  const total = photos.reduce((s: number, p: any) => s + (p.downloads || 0), 0);
+  const total = photos.reduce(
+    (s: number, p: any) => s + Math.max(p.downloads || 0, p.custom_downloads || 0),
+    0,
+  );
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   const weights = [0.16, 0.15, 0.14, 0.15, 0.16, 0.12, 0.12];
   return days.map((d, i) => ({ m: d, v: Math.round((total * weights[i]) / 7) }));
@@ -1589,14 +1663,15 @@ export async function fetchPhotographerTopCategories(
 ): Promise<{ name: string; pct: string }[]> {
   const { data: photos } = await supabase
     .from("photos")
-    .select("category, downloads")
+    .select("category, downloads, custom_downloads")
     .eq("photographer_id", photographerId);
 
   if (!photos || photos.length === 0) return [];
 
   const cats: Record<string, number> = {};
   photos.forEach((r: any) => {
-    cats[r.category] = (cats[r.category] || 0) + (r.downloads || 0);
+    cats[r.category] =
+      (cats[r.category] || 0) + Math.max(r.downloads || 0, r.custom_downloads || 0);
   });
 
   const total = Object.values(cats).reduce((s, v) => s + v, 0) || 1;

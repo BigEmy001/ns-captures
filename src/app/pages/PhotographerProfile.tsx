@@ -78,13 +78,34 @@ export function PhotographerProfile() {
     if (user && id) hasUserFollowedPhotographer(user.id, id).then(setFollowing);
   }, [user, id]);
 
-  if (!photographer) return <NotFound />;
+  if (!photographer) {
+    return (
+      <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12">
+        <div className="flex items-center gap-4">
+          <div className="size-20 sm:size-24 rounded-full bg-[#e7ebe2] animate-pulse" />
+          <div className="space-y-3">
+            <div className="h-8 w-48 bg-[#e7ebe2] rounded animate-pulse" />
+            <div className="h-4 w-72 bg-[#e7ebe2] rounded animate-pulse" />
+            <div className="h-4 w-36 bg-[#e7ebe2] rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const totalDownloads = shots.reduce((s, p) => s + p.downloads, 0);
-  const totalViews = shots.reduce((s, p) => s + p.views, 0);
+  const totalDownloads = shots.reduce(
+    (s, p) => s + Math.max(p.downloads || 0, p.customDownloads || 0),
+    0,
+  );
+  const totalViews = shots.reduce((s, p) => s + Math.max(p.views || 0, p.customViews || 0), 0);
   const followingCount = 0;
 
-  const sorted = [...shots].sort((a, b) => (sort === "popular" ? b.downloads - a.downloads : 0));
+  const sorted = [...shots].sort((a, b) =>
+    sort === "popular"
+      ? Math.max(b.downloads || 0, b.customDownloads || 0) -
+        Math.max(a.downloads || 0, a.customDownloads || 0)
+      : 0,
+  );
 
   const tabs: { id: Tab; label: string; count?: number; badge?: string }[] = [
     { id: "gallery", label: "Gallery", count: shots.length },
@@ -162,7 +183,11 @@ export function PhotographerProfile() {
       <div className="mt-8 grid grid-cols-2 divide-[#ececec] border border-[#ececec] bg-[#ffffff] ns-shadow-sm sm:grid-cols-3 lg:grid-cols-4 lg:divide-x">
         <StatCell value={compact(totalViews)} label="Total views" />
         <StatCell value={compact(totalDownloads)} label="Downloads" />
-        <StatCell value={photographer.followers} label="Followers" muted />
+        <StatCell
+          value={photographer.customFollowers || photographer.followers}
+          label="Followers"
+          muted
+        />
         <StatCell value={String(shots.length)} label="Published" muted />
       </div>
 

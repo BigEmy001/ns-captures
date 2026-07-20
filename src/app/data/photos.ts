@@ -10574,6 +10574,7 @@ export interface Photographer {
   cover?: string;
   verified?: boolean;
   gear?: string[];
+  customFollowers?: string;
 }
 
 export const photographers: Photographer[] = [
@@ -11033,6 +11034,7 @@ export const mockActivity: ActivityItem[] = [
 // Admin console mock data.
 export interface AdminUser {
   id: string;
+  slug?: string;
   verificationStatus?: string;
   name: string;
   email: string;
@@ -11044,6 +11046,11 @@ export interface AdminUser {
   joined: string;
   payoutBalance?: number;
   customFollowers?: string;
+  avatar?: string;
+  bio?: string;
+  location?: string;
+  socialLinks?: Record<string, string>;
+  references?: { name: string; relation: string; contact: string }[];
 }
 
 export const adminUsers: AdminUser[] = [

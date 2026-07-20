@@ -11,24 +11,17 @@ import {
   X,
   MoreHorizontal,
   Search,
-  Filter,
   Trash2,
   Settings,
   Logs,
-  Building2,
-  UserCheck,
-  UserX,
   Download,
   Eye,
-  Edit,
-  ChevronDown,
   Mail,
   Key,
   FolderHeart,
-  Heart,
   LogOut,
   ShieldCheck,
-  ShieldOff,
+  Wallet,
 } from "lucide-react";
 import {
   AreaChart,
@@ -43,6 +36,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { Eyebrow, Badge, Button } from "../components/ui";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { SideNav } from "../components/SideNav";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabase";
@@ -54,7 +48,6 @@ import {
   sendPurchaseRejectedNotification,
 } from "../../lib/email";
 import {
-  logActivity,
   fetchAdminUsers,
   fetchModerationQueue,
   fetchPhotos,
@@ -88,8 +81,11 @@ import {
   updateAdminPaymentMethod,
   deleteAdminPaymentMethod,
   updatePhotoHypeOverrides,
+  updatePhotographerCustomFollowers,
+  fetchPaymentMethods,
   type AdminPaymentMethod,
   type SiteSettingsRow,
+  getOptimizedImageUrl,
   type Payout,
   type Purchase,
   type AdminLogEntry,
@@ -186,6 +182,7 @@ export function Admin() {
   const [verificationDocs, setVerificationDocs] = useState<VerificationDocument[]>([]);
   const [contributorSubmissions, setContributorSubmissions] = useState<ContributorSubmission[]>([]);
   const [adminPaymentMethods, setAdminPaymentMethods] = useState<AdminPaymentMethod[]>([]);
+  const [adminEditMethod, setAdminEditMethod] = useState<string | null>(null);
 
   // Photo lookup map for moderation (avoids local getPhoto() which only searches mock data)
   const photoMap = useMemo(() => {
@@ -1692,81 +1689,170 @@ export function Admin() {
               </div>
 
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                <h3 className="font-serif text-lg text-[#18211f] mb-6">
+                <h3 className="font-serif text-lg text-[#18211f] mb-1">
                   Verification Payment Methods
                 </h3>
-                <p className="text-xs text-[#6b716d] mb-4">
-                  Add methods for photographers to pay their £247 verification fee.
+                <p className="text-xs text-[#6b716d] mb-6">
+                  Configure how photographers pay their £247 verification fee.
                 </p>
-                <div className="space-y-4 mb-4">
-                  {adminPaymentMethods.map((method) => (
-                    <div
-                      key={method.id}
-                      className="flex items-center justify-between p-4 border border-[#ececec] rounded-xl bg-[#f8f9f7]"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-[#18211f] text-sm">
-                            {method.name}
-                          </span>
-                          <span className="text-[9px] uppercase tracking-wider bg-[#ececec] px-2 py-0.5 rounded-full">
-                            {method.methodType}
-                          </span>
+                <div className="space-y-4">
+                  {[
+                    {
+                      key: "bank",
+                      label: "Bank Transfer",
+                      sub: "Receive verification fees via bank wire",
+                      icon: <Wallet className="size-4 text-[#1e4a3f]" />,
+                    },
+                    {
+                      key: "crypto",
+                      label: "Crypto Wallet",
+                      sub: "Receive verification fees in cryptocurrency",
+                      icon: <span className="text-sm font-bold text-[#1e4a3f]">₿</span>,
+                    },
+                    {
+                      key: "paypal",
+                      label: "PayPal",
+                      sub: "Receive verification fees via PayPal",
+                      icon: <span className="text-sm font-bold text-[#1e4a3f]">P</span>,
+                    },
+                  ].map((card) => {
+                    const existing = adminPaymentMethods.find(
+                      (m) => m.methodType === card.key || m.methodType.includes(card.key),
+                    );
+                    return (
+                      <div key={card.key} className="border border-[#ececec] rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div className="grid size-9 place-items-center rounded-lg bg-[#f5f5f5]">
+                              {card.icon}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-[#18211f]">{card.label}</p>
+                              <p className="text-[11px] text-[#758078]">{card.sub}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {existing && (
+                              <Toggle
+                                checked={existing.enabled}
+                                onChange={async (v) => {
+                                  await updateAdminPaymentMethod(existing.id, { enabled: v });
+                                  setAdminPaymentMethods(
+                                    adminPaymentMethods.map((m) =>
+                                      m.id === existing.id ? { ...m, enabled: v } : m,
+                                    ),
+                                  );
+                                  toast.success("Updated");
+                                }}
+                              />
+                            )}
+                            <button
+                              onClick={() =>
+                                setAdminEditMethod(adminEditMethod === card.key ? null : card.key)
+                              }
+                              className="text-xs font-semibold text-[#1e4a3f] hover:underline"
+                            >
+                              {adminEditMethod === card.key
+                                ? "Cancel"
+                                : existing
+                                  ? "Edit"
+                                  : "Configure"}
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-xs text-[#59645f] font-mono">{method.details}</p>
+                        {existing && adminEditMethod !== card.key && (
+                          <div className="mt-2 pt-2 border-t border-[#ececec]/60">
+                            <p className="text-xs text-[#18211f] font-medium">{existing.name}</p>
+                            <p className="text-xs text-[#6b716d] font-mono mt-0.5">
+                              {existing.details}
+                            </p>
+                          </div>
+                        )}
+                        {adminEditMethod === card.key && (
+                          <div className="space-y-3 mt-3 pt-3 border-t border-[#ececec]/60">
+                            <input
+                              type="text"
+                              placeholder="Display name (e.g. Bitcoin (BTC), Chase Bank)"
+                              defaultValue={existing?.name || ""}
+                              id={`admin-pm-name-${card.key}`}
+                              className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                            />
+                            <input
+                              type="text"
+                              placeholder={
+                                card.key === "bank"
+                                  ? "Account number / IBAN"
+                                  : card.key === "crypto"
+                                    ? "Wallet address"
+                                    : "PayPal email"
+                              }
+                              defaultValue={existing?.details || ""}
+                              id={`admin-pm-details-${card.key}`}
+                              className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={async () => {
+                                  const name = (
+                                    document.getElementById(
+                                      `admin-pm-name-${card.key}`,
+                                    ) as HTMLInputElement
+                                  )?.value;
+                                  const details = (
+                                    document.getElementById(
+                                      `admin-pm-details-${card.key}`,
+                                    ) as HTMLInputElement
+                                  )?.value;
+                                  if (!name || !details) {
+                                    toast.error("Fill in all fields");
+                                    return;
+                                  }
+                                  if (existing) {
+                                    await updateAdminPaymentMethod(existing.id, { name, details });
+                                    setAdminPaymentMethods(
+                                      adminPaymentMethods.map((m) =>
+                                        m.id === existing.id ? { ...m, name, details } : m,
+                                      ),
+                                    );
+                                  } else {
+                                    const newMethod = await createAdminPaymentMethod(
+                                      card.key,
+                                      name,
+                                      details,
+                                    );
+                                    setAdminPaymentMethods([...adminPaymentMethods, newMethod]);
+                                  }
+                                  toast.success(existing ? "Updated" : "Added");
+                                  setAdminEditMethod(null);
+                                }}
+                                className="flex-1 rounded-full bg-[#1e4a3f] py-2 text-xs font-semibold text-white hover:bg-[#123b31] transition"
+                              >
+                                {existing ? "Update" : "Save"}
+                              </button>
+                              {existing && (
+                                <button
+                                  onClick={async () => {
+                                    if (confirm("Delete this payment method?")) {
+                                      await deleteAdminPaymentMethod(existing.id);
+                                      setAdminPaymentMethods(
+                                        adminPaymentMethods.filter((m) => m.id !== existing.id),
+                                      );
+                                      toast.success("Deleted");
+                                      setAdminEditMethod(null);
+                                    }
+                                  }}
+                                  className="px-4 py-2 text-xs font-semibold text-[#d4183d] border border-[#ececec] rounded-full hover:bg-red-50 transition"
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Toggle
-                          checked={method.enabled}
-                          onChange={async (v) => {
-                            await updateAdminPaymentMethod(method.id, { enabled: v });
-                            setAdminPaymentMethods(
-                              adminPaymentMethods.map((m) =>
-                                m.id === method.id ? { ...m, enabled: v } : m,
-                              ),
-                            );
-                            toast.success("Payment method updated");
-                          }}
-                        />
-                        <button
-                          onClick={async () => {
-                            if (confirm("Delete this payment method?")) {
-                              await deleteAdminPaymentMethod(method.id);
-                              setAdminPaymentMethods(
-                                adminPaymentMethods.filter((m) => m.id !== method.id),
-                              );
-                              toast.success("Deleted successfully");
-                            }
-                          }}
-                          className="text-[#d4183d] hover:text-[#a0122e] p-2 rounded hover:bg-red-50 transition"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    const type = prompt("Type (e.g., crypto, bank, paypal):", "crypto");
-                    if (!type) return;
-                    const name = prompt("Name (e.g., Bitcoin (BTC), Chase Bank):");
-                    if (!name) return;
-                    const details = prompt("Details (e.g., Wallet Address, Account Number):");
-                    if (!details) return;
-
-                    try {
-                      const newMethod = await createAdminPaymentMethod(type, name, details);
-                      setAdminPaymentMethods([...adminPaymentMethods, newMethod]);
-                      toast.success("Payment method added");
-                    } catch (err: any) {
-                      toast.error(err.message);
-                    }
-                  }}
-                >
-                  Add Payment Method
-                </Button>
               </div>
 
               <div className="flex justify-end">
@@ -2189,6 +2275,7 @@ function Field({
         type={type}
         value={value}
         onChange={onChange}
+        placeholder={placeholder}
         className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
       />
     </label>
@@ -2259,6 +2346,7 @@ function AdminUserModal({
   const isPhotographer = user.role === "Photographer";
   const [userPurchasesList, setUserPurchasesList] = useState<Purchase[]>([]);
   const [modalTab, setModalTab] = useState<"overview" | "ledger" | "kyc" | "hype">("overview");
+  const [userPaymentMethods, setUserPaymentMethods] = useState<PhotographerPaymentMethod[]>([]);
 
   useEffect(() => {
     fetchPurchases(user.id)
@@ -2267,7 +2355,12 @@ function AdminUserModal({
         toast.error("An error occurred");
         return null;
       });
-  }, [user.id]);
+    if (isPhotographer && user.slug) {
+      fetchPaymentMethods(user.slug)
+        .then(setUserPaymentMethods)
+        .catch(() => {});
+    }
+  }, [user.id, isPhotographer, user.slug]);
 
   // Robustly query photographer photos using ID, name, or slug match
   const userPhotos = assets.filter(
@@ -2278,9 +2371,18 @@ function AdminUserModal({
       p.photographerId === user.name.toLowerCase().split(" ")[0],
   );
 
-  const totalDownloads = userPhotos.reduce((sum, p) => sum + p.downloads, 0);
-  const totalViews = userPhotos.reduce((sum, p) => sum + p.views, 0);
-  const totalLikes = userPhotos.reduce((sum, p) => sum + p.likes, 0);
+  const totalDownloads = userPhotos.reduce(
+    (sum, p) => sum + Math.max(p.downloads || 0, p.customDownloads || 0),
+    0,
+  );
+  const totalViews = userPhotos.reduce(
+    (sum, p) => sum + Math.max(p.views || 0, p.customViews || 0),
+    0,
+  );
+  const totalLikes = userPhotos.reduce(
+    (sum, p) => sum + Math.max(p.likes || 0, p.customLikes || 0),
+    0,
+  );
 
   const planName =
     user.role === "Enterprise" ? "Enterprise" : user.role === "Buyer" ? "Pro" : "Contributor";
@@ -2298,9 +2400,16 @@ function AdminUserModal({
         {/* Header */}
         <div className="flex items-start justify-between border-b border-[#ececec] pb-6">
           <div className="flex items-center gap-4">
-            <div className="grid size-14 place-items-center rounded-full bg-[#dce8df] text-lg font-semibold text-[#1e4a3f]">
-              {user.name.charAt(0)}
-            </div>
+            <Avatar className="size-14 shrink-0">
+              <AvatarImage
+                src={user.avatar ? getOptimizedImageUrl(user.avatar, 120) : ""}
+                alt={user.name}
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-[#dce8df] text-[#1e4a3f] text-lg font-semibold">
+                {user.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
             <div>
               <div className="flex items-center gap-2.5">
                 <h2 className="font-serif text-2xl font-semibold text-[#18211f]">{user.name}</h2>
@@ -2435,7 +2544,87 @@ function AdminUserModal({
         {/* Tab content settings */}
         <div className="mt-6 flex-1 flex flex-col">
           {modalTab === "overview" && (
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col space-y-6">
+              {/* Profile Details — shown for all user types */}
+              <div className="bg-white border border-[#ececec] rounded-2xl p-6 shadow-sm">
+                <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-4">
+                  Profile Details
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {[
+                    { label: "Full Name", value: user.name },
+                    { label: "Email", value: user.email },
+                    { label: "Phone", value: user.phone || "—" },
+                    { label: "Date of Birth", value: user.dob || "—" },
+                    { label: "Occupation", value: user.occupation || "—" },
+                    { label: "Location", value: user.location || "—" },
+                    { label: "Role", value: user.role },
+                    { label: "Status", value: user.status },
+                    { label: "Joined", value: user.joined },
+                    { label: "User ID", value: user.id },
+                  ].map((f) => (
+                    <div key={f.label}>
+                      <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                        {f.label}
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-[#18211f]">{f.value}</p>
+                    </div>
+                  ))}
+                </div>
+                {user.bio && (
+                  <div className="mt-4 pt-4 border-t border-[#ececec]">
+                    <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-1">
+                      Bio
+                    </p>
+                    <p className="text-sm text-[#4a534e] leading-relaxed">{user.bio}</p>
+                  </div>
+                )}
+                {user.socialLinks && Object.keys(user.socialLinks).length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-[#ececec]">
+                    <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">
+                      Social Links
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(user.socialLinks).map(([platform, url]) =>
+                        url ? (
+                          <a
+                            key={platform}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-medium text-[#1e4a3f] border border-[#ececec] rounded-full px-3 py-1 hover:bg-[#e7ebe2] transition-colors capitalize"
+                          >
+                            {platform}
+                          </a>
+                        ) : null,
+                      )}
+                    </div>
+                  </div>
+                )}
+                {user.references && user.references.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-[#ececec]">
+                    <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-2">
+                      References
+                    </p>
+                    <div className="space-y-2">
+                      {user.references.map((ref, i) => (
+                        <div key={i} className="flex items-center gap-3 text-sm">
+                          <div className="grid size-8 place-items-center rounded-full bg-[#e7ebe2] text-[#1e4a3f] font-serif text-xs font-semibold shrink-0">
+                            {ref.name?.charAt(0)?.toUpperCase() || "?"}
+                          </div>
+                          <div>
+                            <p className="font-medium text-[#18211f]">{ref.name}</p>
+                            <p className="text-xs text-[#6b716d]">
+                              {ref.relation} · {ref.contact}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {isPhotographer && (
                 <div className="flex-1 flex flex-col">
                   {/* Stats */}
@@ -2508,10 +2697,12 @@ function AdminUserModal({
                             </p>
                             <div className="flex items-center gap-2 mt-1.5 text-[8px] font-mono text-white/80">
                               <span className="flex items-center gap-0.5">
-                                <Eye className="size-2" /> {photo.views}
+                                <Eye className="size-2" />{" "}
+                                {Math.max(photo.views || 0, photo.customViews || 0)}
                               </span>
                               <span className="flex items-center gap-0.5">
-                                <Download className="size-2" /> {photo.downloads}
+                                <Download className="size-2" />{" "}
+                                {Math.max(photo.downloads || 0, photo.customDownloads || 0)}
                               </span>
                             </div>
                           </div>
@@ -2797,9 +2988,54 @@ function AdminUserModal({
               {isPhotographer && (
                 <div className="bg-white border border-[#ececec] rounded-2xl p-6 shadow-sm">
                   <h3 className="font-serif text-lg text-[#18211f] mb-4">Payout Methods</h3>
-                  <div className="border border-dashed border-[#ececec] bg-[#f8f9f7] p-6 rounded-xl text-center">
-                    <p className="text-xs text-[#6b716d]">No payout methods saved by this user.</p>
-                  </div>
+                  {userPaymentMethods.length === 0 ? (
+                    <div className="border border-dashed border-[#ececec] bg-[#f8f9f7] p-6 rounded-xl text-center">
+                      <p className="text-xs text-[#6b716d]">
+                        No payout methods configured by this user.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {userPaymentMethods.map((pm) => {
+                        const icon =
+                          pm.method === "card" ? "🏦" : pm.method === "crypto" ? "₿" : "P";
+                        const label =
+                          pm.method === "card"
+                            ? "Bank Transfer"
+                            : pm.method === "crypto"
+                              ? "Crypto Wallet"
+                              : "PayPal";
+                        const d = pm.details as Record<string, any>;
+                        const details: string =
+                          pm.method === "card"
+                            ? [d.bankName, d.accountNumber, d.sortCode].filter(Boolean).join(" · ")
+                            : pm.method === "crypto"
+                              ? (d.wallets as any[])
+                                  ?.map((w: any) => `${w.coin} (${w.network})`)
+                                  .join(", ") || "No wallets configured"
+                              : d.email || "No email configured";
+                        return (
+                          <div
+                            key={pm.id}
+                            className={`flex items-center gap-4 p-4 rounded-xl border ${pm.enabled ? "border-[#ececec] bg-[#f8f9f7]" : "border-dashed border-[#ececec] bg-white opacity-50"}`}
+                          >
+                            <div className="grid size-10 place-items-center rounded-full bg-[#1e4a3f] text-white text-sm font-bold shrink-0">
+                              {icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-[#18211f]">{label}</p>
+                                <Badge tone={pm.enabled ? "green" : "muted"}>
+                                  {pm.enabled ? "Active" : "Inactive"}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-[#6b716d] mt-0.5 truncate">{details}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -3044,6 +3280,44 @@ function AdminUserModal({
                       Manually override public metrics to boost creator visibility.
                     </p>
                   </div>
+                  <button
+                    onClick={async () => {
+                      // Save custom followers
+                      const followersVal =
+                        (document.getElementById("custom-followers-input") as HTMLInputElement)
+                          ?.value || "";
+                      const followersOk = await updatePhotographerCustomFollowers(
+                        user.id,
+                        followersVal,
+                      );
+
+                      // Save all photo overrides
+                      let photosOk = true;
+                      for (const photo of userPhotos.slice(0, 5)) {
+                        const v = (document.getElementById(`views-${photo.id}`) as HTMLInputElement)
+                          ?.value;
+                        const l = (document.getElementById(`likes-${photo.id}`) as HTMLInputElement)
+                          ?.value;
+                        const d = (document.getElementById(`dls-${photo.id}`) as HTMLInputElement)
+                          ?.value;
+                        const hasChanges = v !== undefined || l !== undefined || d !== undefined;
+                        if (hasChanges) {
+                          const ok = await updatePhotoHypeOverrides(photo.id, {
+                            customViews: v ? parseInt(v, 10) : undefined,
+                            customLikes: l ? parseInt(l, 10) : undefined,
+                            customDownloads: d ? parseInt(d, 10) : undefined,
+                          });
+                          if (!ok) photosOk = false;
+                        }
+                      }
+
+                      if (followersOk && photosOk) toast.success("All overrides saved!");
+                      else toast.error("Some overrides failed to save");
+                    }}
+                    className="rounded-full bg-[#1e4a3f] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#123b31] cursor-pointer"
+                  >
+                    Save All
+                  </button>
                 </div>
 
                 <div className="space-y-6">
@@ -3057,6 +3331,7 @@ function AdminUserModal({
                           Custom Followers Count
                         </label>
                         <input
+                          id="custom-followers-input"
                           defaultValue={user.customFollowers || ""}
                           type="text"
                           placeholder="e.g. 1.2k"
@@ -3114,29 +3389,6 @@ function AdminUserModal({
                                 title="Custom Downloads"
                               />
                             </div>
-                            <button
-                              onClick={async () => {
-                                const v = (
-                                  document.getElementById(`views-${photo.id}`) as HTMLInputElement
-                                )?.value;
-                                const l = (
-                                  document.getElementById(`likes-${photo.id}`) as HTMLInputElement
-                                )?.value;
-                                const d = (
-                                  document.getElementById(`dls-${photo.id}`) as HTMLInputElement
-                                )?.value;
-                                const ok = await updatePhotoHypeOverrides(photo.id, {
-                                  customViews: v ? parseInt(v, 10) : undefined,
-                                  customLikes: l ? parseInt(l, 10) : undefined,
-                                  customDownloads: d ? parseInt(d, 10) : undefined,
-                                });
-                                if (ok) toast.success("Overrides saved!");
-                                else toast.error("Failed to save overrides");
-                              }}
-                              className="text-xs font-semibold text-[#1e4a3f] hover:underline whitespace-nowrap cursor-pointer"
-                            >
-                              Save
-                            </button>
                           </div>
                         ))}
                       </div>

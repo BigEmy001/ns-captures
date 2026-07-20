@@ -4,25 +4,17 @@ import {
   Menu,
   Search,
   X,
-  Compass,
-  Trophy,
-  Flame,
   Award,
   Sparkles,
-  Video,
-  BookOpen,
   LogIn,
   Code2,
-  Puzzle,
   LifeBuoy,
   Flag,
-  Handshake,
   FileText,
   Globe,
   MoreHorizontal,
   ShoppingBag,
   Trash2,
-  ShieldCheck,
   ArrowRight,
   CheckCircle,
   Loader2,
@@ -30,7 +22,6 @@ import {
   LogOut,
   Settings,
   Building2,
-  Briefcase,
   Camera,
 } from "lucide-react";
 import { Monogram } from "./ui";
@@ -45,9 +36,8 @@ import {
   incrementPhotoDownloads,
   fetchPhoto,
   fetchPhotographer,
-  fetchPhotographers,
-  fetchPaymentMethods,
   fetchAdminPaymentMethods,
+  getOptimizedImageUrl,
 } from "../data/db";
 import {
   sendPurchaseReceipt,
@@ -139,6 +129,14 @@ const getMoreItems = (
       { label: "Language: English", icon: Globe, flag: "🇺🇸", to: "/" },
     ];
   }
+  if (role === "Admin") {
+    return [
+      { label: "Admin Console", icon: Code2, to: "/admin" },
+      { label: "Settings", icon: Settings, to: "/admin?tab=settings" },
+      { divider: true, label: "d3" },
+      { label: "Sign out", icon: LogOut, action: "logout" },
+    ];
+  }
   const items: DropdownItem[] = [
     { label: "Dashboard", icon: User, to: "/account" },
     { label: "Public Profile", icon: Camera, to: `/photographer/${user.slug || user.id}` },
@@ -146,12 +144,6 @@ const getMoreItems = (
   ];
   if (role === "Enterprise") {
     items.push({ label: "Enterprise Portal", icon: Building2, to: "/enterprise" });
-  }
-  if (role === "Admin") {
-    items.push(
-      { divider: true, label: "d-admin" },
-      { label: "Admin Console", icon: Code2, to: "/admin" },
-    );
   }
   items.push(
     { divider: true, label: "d3" },
@@ -458,17 +450,16 @@ export function Navbar() {
               items={moreItems}
               trigger={
                 isAuthenticated ? (
-                  user?.avatar ? (
-                    <img
-                      src={user.avatar}
+                  <Avatar className="size-8">
+                    <AvatarImage
+                      src={user?.avatar ? getOptimizedImageUrl(user.avatar, 64) : ""}
                       alt="Profile"
-                      className="size-8 rounded-full object-cover border border-[#ececec] hover:opacity-90 transition-opacity"
+                      className="object-cover"
                     />
-                  ) : (
-                    <div className="grid size-8 place-items-center rounded-full bg-[#1e4a3f] text-white font-serif text-sm font-semibold hover:opacity-90 transition-opacity">
+                    <AvatarFallback className="bg-[#1e4a3f] text-white font-serif text-sm font-semibold">
                       {user?.name?.charAt(0) || "U"}
-                    </div>
-                  )
+                    </AvatarFallback>
+                  </Avatar>
                 ) : (
                   <MoreHorizontal className="size-5 text-[#4a534e]" />
                 )
@@ -1026,25 +1017,5 @@ export function Navbar() {
         )}
       </div>
     </>
-  );
-}
-
-// Small Lock helper since it's used in footer
-function Lock({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
-      className={className}
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"
-      />
-    </svg>
   );
 }

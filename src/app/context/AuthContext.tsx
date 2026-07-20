@@ -316,11 +316,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw new Error(error.message);
 
-      if (user.role === "Photographer" && user.slug && editableData.name) {
-        await supabase
-          .from("photographers")
-          .update({ name: editableData.name })
-          .eq("id", user.slug);
+      if (user.role === "Photographer" && user.slug) {
+        const photographerUpdate: Record<string, unknown> = {};
+        if (editableData.name) photographerUpdate.name = editableData.name;
+        if (editableData.avatar !== undefined) photographerUpdate.avatar = editableData.avatar;
+        if (Object.keys(photographerUpdate).length > 0) {
+          await supabase.from("photographers").update(photographerUpdate).eq("id", user.slug);
+        }
       }
 
       const updated = {

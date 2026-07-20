@@ -1,10 +1,27 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router";
-import { Heart, Share2, Bookmark, Check, Eye, Download, MapPin, Camera, Aperture } from "lucide-react";
+import {
+  Heart,
+  Share2,
+  Bookmark,
+  Check,
+  Eye,
+  Download,
+  MapPin,
+  Camera,
+  Aperture,
+} from "lucide-react";
 import { toast } from "sonner";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow, Button, Badge } from "../components/ui";
-import { fetchPhoto, type Photo, getOptimizedImageUrl } from "../data/db";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
+import {
+  fetchPhoto,
+  fetchPhotographer,
+  type Photo,
+  type Photographer,
+  getOptimizedImageUrl,
+} from "../data/db";
 import { NotFound } from "./NotFound";
 import { addToCart } from "../data/cart";
 import { useAuth } from "../context/AuthContext";
@@ -23,6 +40,7 @@ export function PhotoDetail() {
   const { id } = useParams();
   const { user } = useAuth();
   const [photo, setPhoto] = useState<Photo | null>(null);
+  const [photographer, setPhotographer] = useState<Photographer | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState("COMMERCIAL");
   const [saved, setSaved] = useState(false);
@@ -30,12 +48,17 @@ export function PhotoDetail() {
 
   useEffect(() => {
     if (!id) return;
-    fetchPhoto(id).then((p) => {
-      setPhoto(p || null);
-      setLoading(false);
-    }).catch(() => {
-      setLoading(false);
-    });
+    fetchPhoto(id)
+      .then((p) => {
+        setPhoto(p || null);
+        setLoading(false);
+        if (p?.photographerId) {
+          fetchPhotographer(p.photographerId).then(setPhotographer);
+        }
+      })
+      .catch(() => {
+        setLoading(false);
+      });
   }, [id]);
 
   useEffect(() => {
@@ -65,10 +88,38 @@ export function PhotoDetail() {
 
   const MIN_PRICE = 1000;
   const options: LicenseOption[] = [
-    { id: "COMMERCIAL", price: Math.max(photo.price, MIN_PRICE), usage: "Ads, packaging, web & social for a business.", restrictions: "No resale as stock.", duration: "Perpetual", coverage: "Worldwide" },
-    { id: "EDITORIAL", price: Math.max(Math.round(photo.price * 0.7), MIN_PRICE), usage: "News, blogs, education & non-commercial.", restrictions: "No commercial promotion.", duration: "Perpetual", coverage: "Worldwide" },
-    { id: "EXTENDED", price: Math.max(Math.round(photo.price * 2.4), MIN_PRICE), usage: "Merchandise for resale, unlimited prints.", restrictions: "None.", duration: "Perpetual", coverage: "Worldwide" },
-    { id: "EXCLUSIVE", price: Math.max(Math.round(photo.price * 6), MIN_PRICE), usage: "Sole rights — removed from the library.", restrictions: "Buyer owns exclusive use.", duration: "Perpetual", coverage: "Worldwide" },
+    {
+      id: "COMMERCIAL",
+      price: Math.max(photo.price, MIN_PRICE),
+      usage: "Ads, packaging, web & social for a business.",
+      restrictions: "No resale as stock.",
+      duration: "Perpetual",
+      coverage: "Worldwide",
+    },
+    {
+      id: "EDITORIAL",
+      price: Math.max(Math.round(photo.price * 0.7), MIN_PRICE),
+      usage: "News, blogs, education & non-commercial.",
+      restrictions: "No commercial promotion.",
+      duration: "Perpetual",
+      coverage: "Worldwide",
+    },
+    {
+      id: "EXTENDED",
+      price: Math.max(Math.round(photo.price * 2.4), MIN_PRICE),
+      usage: "Merchandise for resale, unlimited prints.",
+      restrictions: "None.",
+      duration: "Perpetual",
+      coverage: "Worldwide",
+    },
+    {
+      id: "EXCLUSIVE",
+      price: Math.max(Math.round(photo.price * 6), MIN_PRICE),
+      usage: "Sole rights — removed from the library.",
+      restrictions: "Buyer owns exclusive use.",
+      duration: "Perpetual",
+      coverage: "Worldwide",
+    },
   ];
 
   const current = options.find((o) => o.id === selected)!;
@@ -82,11 +133,17 @@ export function PhotoDetail() {
   return (
     <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-12 min-h-screen">
       <nav className="mb-6 flex items-center gap-2 text-xs text-[#6b716d]">
-        <Link to="/search" className="hover:text-[#1e4a3f]">Library</Link>
+        <Link to="/search" className="hover:text-[#1e4a3f]">
+          Library
+        </Link>
         <span>/</span>
-        <Link to={categoryHref} className="hover:text-[#1e4a3f]">{photo.category}</Link>
+        <Link to={categoryHref} className="hover:text-[#1e4a3f]">
+          {photo.category}
+        </Link>
         <span>/</span>
-        <span className="text-[#18211f] truncate max-w-[200px] inline-block align-bottom">{photo.title}</span>
+        <span className="text-[#18211f] truncate max-w-[200px] inline-block align-bottom">
+          {photo.title}
+        </span>
       </nav>
 
       <div className="grid gap-10 lg:grid-cols-[1.6fr_1fr]">
@@ -100,27 +157,75 @@ export function PhotoDetail() {
             <div>
               <h1 className="font-serif text-3xl leading-snug sm:text-4xl">{photo.title}</h1>
               <p className="mt-2 text-sm text-[#6b716d]">
-                by <Link to={photographerHref} className="font-semibold text-[#1e4a3f] hover:underline">{photo.photographer}</Link>
+                by{" "}
+                <Link
+                  to={photographerHref}
+                  className="font-semibold text-[#1e4a3f] hover:underline"
+                >
+                  {photo.photographer}
+                </Link>
               </p>
             </div>
             <div className="flex gap-2">
-              <button onClick={async () => { if (!user) { toast.error("Sign in to save"); return; } const now = await toggleSave(user.id, photo.id); setSaved(now); toast(now ? "Saved to collection" : "Removed from collection"); }} className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer">
-                {saved ? <Check className="size-4 text-[#1e4a3f]" /> : <Bookmark className="size-4" />} Save
+              <button
+                onClick={async () => {
+                  if (!user) {
+                    toast.error("Sign in to save");
+                    return;
+                  }
+                  const now = await toggleSave(user.id, photo.id);
+                  setSaved(now);
+                  toast(now ? "Saved to collection" : "Removed from collection");
+                }}
+                className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer"
+              >
+                {saved ? (
+                  <Check className="size-4 text-[#1e4a3f]" />
+                ) : (
+                  <Bookmark className="size-4" />
+                )}{" "}
+                Save
               </button>
-              <button onClick={() => toast("Link copied")} className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer">
+              <button
+                onClick={() => toast("Link copied")}
+                className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer"
+              >
                 <Share2 className="size-4" /> Share
               </button>
-              <button onClick={async () => { if (!user) { toast.error("Sign in to like"); return; } const now = await toggleLike(user.id, photo.id); setLiked(now); toast(now ? "Liked" : "Unliked"); }} className={`grid place-items-center rounded-full border bg-white/50 px-3 py-2 transition hover:border-[#1e4a3f] cursor-pointer ${liked ? "border-[#1e4a3f] text-[#1e4a3f]" : "border-[#ececec]"}`}>
+              <button
+                onClick={async () => {
+                  if (!user) {
+                    toast.error("Sign in to like");
+                    return;
+                  }
+                  const now = await toggleLike(user.id, photo.id);
+                  setLiked(now);
+                  toast(now ? "Liked" : "Unliked");
+                }}
+                className={`grid place-items-center rounded-full border bg-white/50 px-3 py-2 transition hover:border-[#1e4a3f] cursor-pointer ${liked ? "border-[#1e4a3f] text-[#1e4a3f]" : "border-[#ececec]"}`}
+              >
                 <Heart className="size-4" fill={liked ? "#1e4a3f" : "none"} />
               </button>
             </div>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-6 border-y border-[#ececec] py-4 text-sm text-[#6b716d]">
-            <span className="flex items-center gap-2"><Eye className="size-4" /> {photo.views.toLocaleString()} views</span>
-            <span className="flex items-center gap-2"><Download className="size-4" /> {photo.downloads.toLocaleString()} downloads</span>
-            <span className="flex items-center gap-2"><Heart className="size-4" /> {photo.likes.toLocaleString()} likes</span>
-            <span className="flex items-center gap-2"><MapPin className="size-4" /> {photo.location}</span>
+            <span className="flex items-center gap-2">
+              <Eye className="size-4" />{" "}
+              {Math.max(photo.views || 0, photo.customViews || 0).toLocaleString()} views
+            </span>
+            <span className="flex items-center gap-2">
+              <Download className="size-4" />{" "}
+              {Math.max(photo.downloads || 0, photo.customDownloads || 0).toLocaleString()}{" "}
+              downloads
+            </span>
+            <span className="flex items-center gap-2">
+              <Heart className="size-4" />{" "}
+              {Math.max(photo.likes || 0, photo.customLikes || 0).toLocaleString()} likes
+            </span>
+            <span className="flex items-center gap-2">
+              <MapPin className="size-4" /> {photo.location}
+            </span>
           </div>
 
           {/* EXIF */}
@@ -135,12 +240,21 @@ export function PhotoDetail() {
                 { icon: null, label: "SHUTTER SPEED", value: photo.shutterSpeed },
                 { icon: null, label: "FOCAL LENGTH", value: photo.focalLength },
                 { icon: null, label: "LICENSING RIGHTS", value: photo.license },
-              ].filter((e) => e.value).map((e) => (
-                <div key={e.label} className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4 rounded-xl">
-                  <p className="font-mono text-[9px] tracking-[0.1em] text-[#758078]">{e.label}</p>
-                  <p className="mt-1.5 text-sm font-semibold truncate" title={e.value}>{e.value}</p>
-                </div>
-              ))}
+              ]
+                .filter((e) => e.value)
+                .map((e) => (
+                  <div
+                    key={e.label}
+                    className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4 rounded-xl"
+                  >
+                    <p className="font-mono text-[9px] tracking-[0.1em] text-[#758078]">
+                      {e.label}
+                    </p>
+                    <p className="mt-1.5 text-sm font-semibold truncate" title={e.value}>
+                      {e.value}
+                    </p>
+                  </div>
+                ))}
             </div>
           </div>
 
@@ -149,7 +263,11 @@ export function PhotoDetail() {
             <Eyebrow>KEYWORDS</Eyebrow>
             <div className="mt-4 flex flex-wrap gap-2">
               {(photo.keywords || []).map((k) => (
-                <Link key={k} to={`/search?q=${k}`} className="rounded-full border border-[#ececec] bg-white/50 px-3 py-1.5 text-xs text-[#4a534e] hover:border-[#1e4a3f]">
+                <Link
+                  key={k}
+                  to={`/search?q=${k}`}
+                  className="rounded-full border border-[#ececec] bg-white/50 px-3 py-1.5 text-xs text-[#4a534e] hover:border-[#1e4a3f]"
+                >
                   {k}
                 </Link>
               ))}
@@ -167,7 +285,9 @@ export function PhotoDetail() {
                   key={o.id}
                   onClick={() => setSelected(o.id)}
                   className={`flex w-full items-center justify-between border px-4 py-3 text-left transition rounded-xl cursor-pointer ${
-                    selected === o.id ? "border-[#1e4a3f] bg-[#e7ebe2] ns-shadow-sm" : "border-[#ececec] bg-white hover:border-[#c3c8bf]"
+                    selected === o.id
+                      ? "border-[#1e4a3f] bg-[#e7ebe2] ns-shadow-sm"
+                      : "border-[#ececec] bg-white hover:border-[#c3c8bf]"
                   }`}
                 >
                   <span className="text-sm font-semibold capitalize">{o.id.toLowerCase()}</span>
@@ -206,10 +326,24 @@ export function PhotoDetail() {
             >
               License & download
             </Button>
-            <p className="mt-3 text-center text-xs text-[#8a8f89]">Instant download · Royalty-free after purchase</p>
+            <p className="mt-3 text-center text-xs text-[#8a8f89]">
+              Instant download · Royalty-free after purchase
+            </p>
 
-            <Link to={photographerHref} className="mt-6 flex items-center gap-3 border-t border-[#ececec] pt-5 hover:opacity-80">
-              <div className="grid size-10 place-items-center rounded-full bg-[#dce8df] text-xs font-semibold text-[#1e4a3f]">{photo.photographer.charAt(0)}</div>
+            <Link
+              to={photographerHref}
+              className="mt-6 flex items-center gap-3 border-t border-[#ececec] pt-5 hover:opacity-80"
+            >
+              <Avatar className="size-10 shrink-0">
+                <AvatarImage
+                  src={photographer?.avatar ? getOptimizedImageUrl(photographer.avatar, 80) : ""}
+                  alt={photo.photographer}
+                  className="object-cover"
+                />
+                <AvatarFallback className="bg-[#dce8df] text-[#1e4a3f] text-xs font-semibold">
+                  {photo.photographer.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
               <div className="text-xs">
                 <p className="font-semibold">{photo.photographer}</p>
                 <p className="text-[#6b716d]">{photo.location}</p>
@@ -238,7 +372,9 @@ export function PhotoDetail() {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-4">
-      <span className="w-24 shrink-0 font-mono text-[10px] tracking-[0.08em] text-[#758078]">{label.toUpperCase()}</span>
+      <span className="w-24 shrink-0 font-mono text-[10px] tracking-[0.08em] text-[#758078]">
+        {label.toUpperCase()}
+      </span>
       <span className="text-[#4a534e]">{value}</span>
     </div>
   );

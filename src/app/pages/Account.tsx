@@ -1,59 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 import {
-  LayoutGrid,
-  Image as ImageIcon,
-  Wallet,
-  Users,
-  Inbox,
-  Aperture,
-  Check,
-  X,
-  ChevronRight,
   Activity,
-} from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
-import exifr from "exifr";
-import { type Orientation, type Photographer, type Brief } from "../data/photos";
-import {
-  fetchPhotos,
-  fetchBriefs,
-  fetchPhotographers,
-  fetchPayouts,
-  fetchPhotographerStats,
-  fetchPhotographerMonthlyRevenue,
-  fetchPhotographerWeeklyDownloads,
-  fetchPhotographerTopCategories,
-  fetchFollowerCount,
-  updatePhotoPrice,
-  createPhoto,
-  deletePhoto,
-  updateBriefStatus,
-  fetchPhotographerProfileSettings,
-  upsertPhotographerProfileSettings,
-  type Payout,
-  fetchPaymentMethods,
-  upsertPaymentMethod,
-  createPayoutRequest,
-  fetchPayoutRequests,
-  type PhotographerPaymentMethod,
-  type PayoutRequest,
-  type CryptoWalletEntry,
-  fetchPhotosByIds,
-} from "../data/db";
-
-import { Link, useSearchParams } from "react-router";
-import {
   Download,
   Heart,
   FolderHeart,
@@ -62,19 +10,17 @@ import {
   CreditCard,
   LogOut,
   Bell,
-  Shield,
   FileText,
   TrendingUp,
   AlertCircle,
   Eye,
   EyeOff,
-  User,
   ShieldCheck,
-  ShieldOff,
-  Upload,
   Plus,
   Trash2,
   Camera,
+  Image as ImageIcon,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
@@ -83,12 +29,12 @@ import { GlobalVerificationModal } from "../components/GlobalVerificationModal";
 import { CreatorTabs } from "./account/CreatorTabs";
 import { SideNav } from "../components/SideNav";
 import {
-  fetchPhoto,
   fetchPurchases,
   fetchLicenses,
   fetchActivity,
   fetchUserPurchaseStats,
   fetchUserSavedPhotoIds,
+  fetchPhotosByIds,
   type Purchase,
   type LicenseRecord,
   type ActivityLogItem,
@@ -96,12 +42,12 @@ import {
   getFullQualityImageUrl,
 } from "../data/db";
 import type { Photo } from "../data/db";
+import { Link, useSearchParams } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
 
 const nav = [
   { id: "dashboard", label: "Home", icon: Activity, isCreator: true },
-  { id: "overview", label: "Profile", icon: User },
   { id: "collections", label: "Collections", icon: FolderHeart },
   { id: "downloads", label: "Downloads", icon: Download },
   { id: "licenses", label: "Licenses", icon: FileText },
@@ -111,28 +57,13 @@ const nav = [
   { id: "billing", label: "Billing", icon: CreditCard },
 ];
 
-const CustomTooltip = ({ active, payload, label, prefix = "" }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="rounded-xl border border-white/10 bg-[#12231f]/95 p-3 text-white shadow-xl backdrop-blur-md">
-        <p className="font-mono text-[9px] tracking-wider text-white/50">{label}</p>
-        <p className="mt-1 font-serif text-sm font-semibold">
-          {prefix}
-          {payload[0].value.toLocaleString()}
-        </p>
-      </div>
-    );
-  }
-  return null;
-};
-
 export function Account() {
   const { user, updateProfile, changePassword, isAuthenticated, logout, upgradeToCreator } =
     useAuth();
   const [params, setParams] = useSearchParams();
   const requestedTab = params.get("tab");
   const defaultTab =
-    user?.role === "Photographer" || user?.role === "Admin" ? "dashboard" : "overview";
+    user?.role === "Photographer" || user?.role === "Admin" ? "dashboard" : "security";
   const active = nav.some((item) => item.id === requestedTab) ? requestedTab! : defaultTab;
   const setActive = (id: string) => {
     const next = new URLSearchParams(params);
@@ -294,7 +225,7 @@ export function Account() {
       } else {
         toast.error("Failed to upload image");
       }
-    } catch (error) {
+    } catch {
       toast.error("Upload error");
     } finally {
       setIsUploadingAvatar(false);
@@ -334,18 +265,17 @@ export function Account() {
           onSelect={setActive}
           header={() => (
             <div className="flex min-w-0 items-center gap-3">
-              {user?.avatar ? (
-                <img
-                  src={user.avatar}
+              <Avatar className="size-10 shrink-0 ring-2 ring-[#1e4a3f]/10">
+                <AvatarImage
+                  src={user?.avatar ? getOptimizedImageUrl(user.avatar, 80) : ""}
                   alt=""
                   loading="lazy"
-                  className="size-10 rounded-full object-cover ring-2 ring-[#1e4a3f]/10"
+                  className="object-cover"
                 />
-              ) : (
-                <div className="grid size-10 place-items-center rounded-full bg-[#1e4a3f] text-white font-serif text-sm font-semibold ring-2 ring-[#1e4a3f]/10">
+                <AvatarFallback className="bg-[#1e4a3f] text-white font-serif text-sm font-semibold">
                   {user?.name?.charAt(0)?.toUpperCase() || "U"}
-                </div>
-              )}
+                </AvatarFallback>
+              </Avatar>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{user?.name || "User"}</p>
                 <p className="text-xs text-[#6b716d] capitalize">{user?.role || "Buyer"}</p>
@@ -373,31 +303,31 @@ export function Account() {
           </div>
 
           {/* Profile Header Cover */}
-          <div className="relative h-44 w-full rounded-2xl overflow-hidden mb-8 shadow-sm border border-[#ececec]/80">
+          <div className="relative h-28 w-full rounded-2xl overflow-hidden mb-8 ns-shadow-sm">
             {user?.avatar ? (
               <img
                 src={user.avatar}
                 alt=""
                 loading="lazy"
-                className="w-full h-full object-cover opacity-50 blur-sm"
+                className="w-full h-full object-cover opacity-40 blur-md scale-110"
               />
             ) : (
-              <div className="w-full h-full bg-[#1e4a3f] opacity-20" />
+              <div className="w-full h-full bg-gradient-to-br from-[#1e4a3f] to-[#2a5e4f]" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-            <div className="absolute bottom-6 left-6 flex items-center gap-4">
-              <div className="relative group size-16 rounded-full border-2 border-white shadow-md overflow-hidden bg-white">
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            <div className="absolute bottom-4 left-6 flex items-center gap-4">
+              <div className="relative group size-14 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white">
                 <Avatar className="w-full h-full object-cover">
                   <AvatarImage src={user?.avatar || ""} alt="" loading="lazy" />
-                  <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-xl">
+                  <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-lg">
                     {user?.name?.slice(0, 2).toUpperCase() || "NS"}
                   </AvatarFallback>
                 </Avatar>
-                <label className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity cursor-pointer">
+                <label className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                   {isUploadingAvatar ? (
                     <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <Camera className="size-5" />
+                    <Camera className="size-4" />
                   )}
                   <input
                     type="file"
@@ -409,15 +339,33 @@ export function Account() {
                 </label>
               </div>
               <div className="text-white">
-                <h1 className="font-serif text-2xl sm:text-3xl font-semibold leading-tight">
+                <h1 className="font-serif text-xl sm:text-2xl font-semibold leading-tight">
                   {user?.name || "User"}
                 </h1>
-                <p className="text-xs text-white/80 font-mono tracking-wider uppercase mt-1">
-                  {user?.role || "Buyer"} · {user?.company || ""}
+                <p className="text-xs text-white/70 font-medium tracking-wide mt-0.5">
+                  {user?.role || "Buyer"}
+                  {user?.company ? ` · ${user.company}` : ""}
                 </p>
               </div>
             </div>
           </div>
+
+          {user?.role === "Buyer" && (
+            <div className="mb-6 bg-gradient-to-r from-[#1e4a3f] to-[#2a5e4f] rounded-2xl p-6 sm:p-8 ns-shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+              <div>
+                <h3 className="font-serif text-xl text-white mb-1">Become a Contributor</h3>
+                <p className="text-sm text-white/70 max-w-md">
+                  Upload photos, manage your portfolio, and earn revenue from licenses.
+                </p>
+              </div>
+              <button
+                onClick={upgradeToCreator}
+                className="shrink-0 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-[#1e4a3f] transition hover:bg-white/90"
+              >
+                Start Selling
+              </button>
+            </div>
+          )}
 
           {/* Mobile nav */}
           <div className="mt-6 flex gap-2 overflow-x-auto pb-2 md:hidden">
@@ -440,228 +388,11 @@ export function Account() {
               ))}
           </div>
 
-          {active === "overview" && (
-            <div className="space-y-8">
-              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                {[
-                  { label: "ACCOUNT TYPE", value: user?.role || "Buyer" },
-                  { label: "PURCHASES", value: String(purchaseStats.totalPurchases) },
-                  { label: "SAVED ITEMS", value: String(savedPhotoIds.length) },
-                  { label: "MEMBER SINCE", value: user?.memberSince || "—" },
-                ].map((s) => (
-                  <div
-                    key={s.label}
-                    className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm ns-lift hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300"
-                  >
-                    <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
-                      {s.label}
-                    </p>
-                    <p className="mt-2 font-serif text-2xl text-[#18211f] font-medium">{s.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Usage Meter - removed, not applicable for per-photo marketplace */}
-
-              {user?.role === "Buyer" && (
-                <div className="border border-[#1e4a3f] bg-[#1e4a3f]/5 rounded-2xl p-6 sm:p-8 ns-shadow-sm transition-all duration-300 relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
-                  <div className="relative z-10">
-                    <h3 className="font-serif text-2xl text-[#18211f] mb-2">
-                      Become a Contributor
-                    </h3>
-                    <p className="text-sm text-[#4a534e] max-w-md">
-                      Ready to share your vision with the world? Upgrade your account to start
-                      uploading photos, managing your portfolio, and earning revenue from licenses.
-                    </p>
-                  </div>
-                  <button
-                    onClick={upgradeToCreator}
-                    className="relative z-10 shrink-0 rounded-full bg-[#1e4a3f] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#123b31]"
-                  >
-                    Start Selling
-                  </button>
-                  <Camera className="absolute -bottom-6 -right-6 size-40 text-[#1e4a3f]/5 rotate-12 pointer-events-none" />
-                </div>
-              )}
-
-              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
-                <h3 className="font-serif text-xl text-[#18211f] mb-6">Profile details</h3>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <Field
-                    label="Full name"
-                    value={profileData.name}
-                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                  />
-                  <Field
-                    label="Email"
-                    value={profileData.email}
-                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  />
-                  <Field
-                    label="Company"
-                    value={profileData.company}
-                    onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
-                  />
-                  <div className="block">
-                    <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
-                      Role
-                    </span>
-                    <p className="mt-2 rounded-xl border border-[#ececec] bg-[#f7f7f7] px-4 py-3 text-sm text-[#6b716d]">
-                      {user?.role || "Buyer"}
-                    </p>
-                  </div>
-                  <Field label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                  <Field
-                    label="Occupation"
-                    value={occupation}
-                    onChange={(e) => setOccupation(e.target.value)}
-                  />
-                  <Field
-                    label="Date of Birth"
-                    type="date"
-                    value={dob}
-                    onChange={(e) => setDob(e.target.value)}
-                  />
-                </div>
-                <div className="mt-6">
-                  <h4 className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase mb-3">
-                    Social Profiles
-                  </h4>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {["instagram", "twitter", "linkedin", "website"].map((platform) => (
-                      <label key={platform} className="block">
-                        <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
-                          {platform}
-                        </span>
-                        <input
-                          type="text"
-                          placeholder={
-                            platform === "website" ? "https://your-site.com" : `@${platform}`
-                          }
-                          value={socialLinks[platform] || ""}
-                          onChange={(e) =>
-                            setSocialLinks((prev) => ({ ...prev, [platform]: e.target.value }))
-                          }
-                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
-                        />
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="mt-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
-                      References
-                    </h4>
-                    <button
-                      onClick={() =>
-                        setReferences((prev) => [
-                          ...prev,
-                          { name: "", email: "", phone: "", relationship: "" },
-                        ])
-                      }
-                      className="flex items-center gap-1 text-xs font-semibold text-[#1e4a3f] hover:text-[#123b31] transition-colors"
-                    >
-                      <Plus className="size-3.5" /> Add reference
-                    </button>
-                  </div>
-                  {references.length === 0 ? (
-                    <p className="text-xs text-[#6b716d]">No references added yet.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {references.map((ref, i) => (
-                        <div
-                          key={i}
-                          className="flex flex-wrap items-end gap-3 p-4 rounded-xl border border-[#ececec]/60 bg-[#f8f9f7]"
-                        >
-                          <div className="flex-1 min-w-[140px]">
-                            <span className="text-[10px] font-medium text-[#6b716d] mb-1 block">
-                              Name
-                            </span>
-                            <input
-                              type="text"
-                              placeholder="Full name"
-                              value={ref.name}
-                              onChange={(e) => {
-                                const next = [...references];
-                                next[i] = { ...next[i], name: e.target.value };
-                                setReferences(next);
-                              }}
-                              className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40 bg-white"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-[140px]">
-                            <span className="text-[10px] font-medium text-[#6b716d] mb-1 block">
-                              Email
-                            </span>
-                            <input
-                              type="email"
-                              placeholder="email@example.com"
-                              value={ref.email}
-                              onChange={(e) => {
-                                const next = [...references];
-                                next[i] = { ...next[i], email: e.target.value };
-                                setReferences(next);
-                              }}
-                              className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40 bg-white"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-[100px]">
-                            <span className="text-[10px] font-medium text-[#6b716d] mb-1 block">
-                              Phone
-                            </span>
-                            <input
-                              type="text"
-                              placeholder="+1 234 567 8900"
-                              value={ref.phone}
-                              onChange={(e) => {
-                                const next = [...references];
-                                next[i] = { ...next[i], phone: e.target.value };
-                                setReferences(next);
-                              }}
-                              className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40 bg-white"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-[100px]">
-                            <span className="text-[10px] font-medium text-[#6b716d] mb-1 block">
-                              Relationship
-                            </span>
-                            <input
-                              type="text"
-                              placeholder="Colleague, client..."
-                              value={ref.relationship}
-                              onChange={(e) => {
-                                const next = [...references];
-                                next[i] = { ...next[i], relationship: e.target.value };
-                                setReferences(next);
-                              }}
-                              className="w-full text-xs border border-[#ececec] rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#1e4a3f]/40 bg-white"
-                            />
-                          </div>
-                          <button
-                            onClick={() => setReferences((prev) => prev.filter((_, j) => j !== i))}
-                            className="p-1.5 text-[#b91c1c] hover:bg-red-50 rounded-lg transition-colors"
-                            title="Remove reference"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="mt-8 flex justify-end">
-                  <Button onClick={handleProfileSave}>Save changes</Button>
-                </div>
-              </div>
-            </div>
-          )}
-
           {active === "collections" && (
             <div className="space-y-4 pt-4">
               <p className="text-sm text-[#6b716d]">Saved items and collections appear here.</p>
               {savedPhotoIds.length === 0 ? (
-                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-8 ns-shadow-sm text-center">
+                <div className="bg-white rounded-2xl p-8 ns-shadow-sm text-center">
                   <FolderHeart className="size-10 text-[#9aa09b] mx-auto mb-3" />
                   <p className="font-serif text-lg text-[#18211f]">No saved items yet</p>
                   <p className="mt-1 text-sm text-[#6b716d]">
@@ -696,7 +427,7 @@ export function Account() {
           )}
 
           {active === "downloads" && (
-            <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
+            <div className="overflow-hidden bg-white rounded-2xl ns-shadow-sm">
               {purchases.length === 0 ? (
                 <div className="p-8 text-center">
                   <Download className="size-10 text-[#9aa09b] mx-auto mb-3" />
@@ -707,11 +438,14 @@ export function Account() {
                 </div>
               ) : (
                 <table className="w-full min-w-[560px] text-left text-sm">
-                  <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.12em] text-[#8a8f89] uppercase border-b border-[#ececec]">
+                  <thead className="bg-[#f7f7f7] font-mono text-[11px] tracking-[0.1em] text-[#8a8f89] uppercase border-b border-[#ececec]">
                     <tr>
                       <th className="px-6 py-4">Image</th>
                       <th className="px-6 py-4">License</th>
                       <th className="px-6 py-4">Date</th>
+                      <th className="px-6 py-4 text-right">Downloads</th>
+                      <th className="px-6 py-4 text-right">Views</th>
+                      <th className="px-6 py-4 text-right">Likes</th>
                       <th className="px-6 py-4 text-right">Action</th>
                     </tr>
                   </thead>
@@ -745,6 +479,24 @@ export function Account() {
                               <Badge tone="muted">{pur.license}</Badge>
                             </td>
                             <td className="px-6 py-4 text-[#6b716d] text-xs">{pur.date}</td>
+                            <td className="px-6 py-4 text-right text-xs font-mono text-[#18211f]">
+                              {p
+                                ? Math.max(
+                                    p.downloads || 0,
+                                    p.customDownloads || 0,
+                                  ).toLocaleString()
+                                : "—"}
+                            </td>
+                            <td className="px-6 py-4 text-right text-xs font-mono text-[#18211f]">
+                              {p
+                                ? Math.max(p.views || 0, p.customViews || 0).toLocaleString()
+                                : "—"}
+                            </td>
+                            <td className="px-6 py-4 text-right text-xs font-mono text-[#18211f]">
+                              {p
+                                ? Math.max(p.likes || 0, p.customLikes || 0).toLocaleString()
+                                : "—"}
+                            </td>
                             <td className="px-6 py-4 text-right">
                               {pur.status === "APPROVED" ? (
                                 <button
@@ -784,7 +536,7 @@ export function Account() {
           )}
 
           {active === "licenses" && (
-            <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
+            <div className="overflow-hidden bg-white rounded-2xl ns-shadow-sm">
               {licenses.length === 0 ? (
                 <div className="p-8 text-center">
                   <FileText className="size-10 text-[#9aa09b] mx-auto mb-3" />
@@ -795,7 +547,7 @@ export function Account() {
                 </div>
               ) : (
                 <table className="w-full min-w-[720px] text-left text-sm">
-                  <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.12em] text-[#8a8f89] uppercase border-b border-[#ececec]">
+                  <thead className="bg-[#f7f7f7] font-mono text-[11px] tracking-[0.1em] text-[#8a8f89] uppercase border-b border-[#ececec]">
                     <tr>
                       <th className="px-6 py-4">Image</th>
                       <th className="px-6 py-4">License</th>
@@ -871,7 +623,7 @@ export function Account() {
           {active === "activity" && (
             <div className="space-y-3">
               {activity.length === 0 ? (
-                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-8 ns-shadow-sm text-center">
+                <div className="bg-white rounded-2xl p-8 ns-shadow-sm text-center">
                   <Bell className="size-10 text-[#9aa09b] mx-auto mb-3" />
                   <p className="font-serif text-lg text-[#18211f]">No activity yet</p>
                   <p className="mt-1 text-sm text-[#6b716d]">
@@ -891,7 +643,7 @@ export function Account() {
                   return (
                     <div
                       key={a.id}
-                      className="flex items-start gap-4 border border-[#ececec]/80 bg-white rounded-2xl p-5 ns-shadow-sm hover:border-[#1e4a3f]/20 transition-all duration-300"
+                      className="flex items-start gap-4 bg-white rounded-2xl p-5 ns-shadow-sm transition-all duration-300"
                     >
                       <div className="flex-shrink-0 grid size-10 place-items-center rounded-xl bg-[#f5f5f5]">
                         {iconMap[a.type as keyof typeof iconMap]}
@@ -912,7 +664,154 @@ export function Account() {
 
           {active === "security" && (
             <div className="space-y-6">
-              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
+              <div className="bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm transition-all duration-300">
+                <h3 className="font-serif text-xl text-[#18211f] mb-6">Profile details</h3>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <Field
+                    label="Full name"
+                    value={profileData.name}
+                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                  />
+                  <Field
+                    label="Email"
+                    value={profileData.email}
+                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                  />
+                  <Field
+                    label="Company"
+                    value={profileData.company}
+                    onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
+                  />
+                  <div className="block">
+                    <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                      Role
+                    </span>
+                    <p className="mt-2 rounded-xl border border-[#ececec] bg-[#f7f7f7] px-4 py-3 text-sm text-[#6b716d]">
+                      {user?.role || "Buyer"}
+                    </p>
+                  </div>
+                  <Field label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <Field
+                    label="Occupation"
+                    value={occupation}
+                    onChange={(e) => setOccupation(e.target.value)}
+                  />
+                  <Field
+                    label="Date of Birth"
+                    type="date"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                  />
+                </div>
+                <div className="mt-6">
+                  <h4 className="text-[13px] font-medium text-[#758078] uppercase tracking-wide mb-3">
+                    Social Profiles
+                  </h4>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {["instagram", "twitter", "linkedin", "website"].map((platform) => (
+                      <label key={platform} className="block">
+                        <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                          {platform}
+                        </span>
+                        <input
+                          type="text"
+                          placeholder={
+                            platform === "website" ? "https://your-site.com" : `@${platform}`
+                          }
+                          value={socialLinks[platform] || ""}
+                          onChange={(e) =>
+                            setSocialLinks((prev) => ({ ...prev, [platform]: e.target.value }))
+                          }
+                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                      References
+                    </h4>
+                    <button
+                      onClick={() =>
+                        setReferences((prev) => [
+                          ...prev,
+                          { name: "", email: "", phone: "", relationship: "" },
+                        ])
+                      }
+                      className="flex items-center gap-1.5 text-[13px] font-semibold text-[#1e4a3f] hover:text-[#123b31] transition-colors"
+                    >
+                      <Plus className="size-4" /> Add
+                    </button>
+                  </div>
+                  {references.length === 0 ? (
+                    <p className="text-sm text-[#6b716d]">No references added yet.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {references.map((ref, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-4 p-4 rounded-xl bg-[#f8f9f7] group"
+                        >
+                          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#e7ebe2] text-[#1e4a3f] font-serif text-sm font-semibold">
+                            {ref.name?.charAt(0)?.toUpperCase() || "?"}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <input
+                              type="text"
+                              placeholder="Full name"
+                              value={ref.name}
+                              onChange={(e) => {
+                                const next = [...references];
+                                next[i] = { ...next[i], name: e.target.value };
+                                setReferences(next);
+                              }}
+                              className="block w-full bg-transparent text-sm font-semibold text-[#18211f] placeholder-[#b0b5b1] outline-none border-b border-transparent focus:border-[#1e4a3f]/20 transition pb-0.5"
+                            />
+                            <div className="flex items-center gap-3 mt-1">
+                              <input
+                                type="email"
+                                placeholder="email@example.com"
+                                value={ref.email}
+                                onChange={(e) => {
+                                  const next = [...references];
+                                  next[i] = { ...next[i], email: e.target.value };
+                                  setReferences(next);
+                                }}
+                                className="block w-full bg-transparent text-xs text-[#6b716d] placeholder-[#b0b5b1] outline-none border-b border-transparent focus:border-[#1e4a3f]/20 transition pb-0.5"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Relationship"
+                                value={ref.relationship}
+                                onChange={(e) => {
+                                  const next = [...references];
+                                  next[i] = { ...next[i], relationship: e.target.value };
+                                  setReferences(next);
+                                }}
+                                className="block w-32 shrink-0 bg-transparent text-xs text-[#6b716d] placeholder-[#b0b5b1] outline-none border-b border-transparent focus:border-[#1e4a3f]/20 transition pb-0.5"
+                              />
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setReferences((prev) => prev.filter((_, j) => j !== i))}
+                            className="shrink-0 p-1.5 text-[#b91c1c]/40 hover:text-[#b91c1c] hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                            title="Remove reference"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-8 flex justify-end">
+                  <Button onClick={handleProfileSave}>Save changes</Button>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
                 <h3 className="font-serif text-xl text-[#18211f] mb-6">Identity Verification</h3>
                 <div className="max-w-md space-y-4">
                   <div className="bg-[#f7f7f7] rounded-xl p-4 border border-[#ececec]">
@@ -954,7 +853,7 @@ export function Account() {
                 </div>
               </div>
 
-              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
+              <div className="bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
                 <h3 className="font-serif text-xl text-[#18211f] mb-6">Security & Password</h3>
                 <div className="max-w-md space-y-6">
                   <div className="border border-[#ececec] rounded-xl p-4">
@@ -1018,9 +917,9 @@ export function Account() {
 
           {active === "billing" && (
             <div className="space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-6 border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/20 transition-all duration-200">
+              <div className="flex flex-wrap items-center justify-between gap-6 bg-white rounded-2xl p-6 ns-shadow-sm transition-all duration-200">
                 <div>
-                  <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                  <p className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
                     Account Summary
                   </p>
                   <p className="mt-1 font-serif text-2xl text-[#18211f] font-semibold">
@@ -1040,9 +939,9 @@ export function Account() {
                 <div className="mb-4">
                   <Eyebrow>INVOICES</Eyebrow>
                 </div>
-                <div className="overflow-hidden border border-[#ececec]/80 bg-white rounded-2xl ns-shadow-sm">
+                <div className="overflow-hidden bg-white rounded-2xl ns-shadow-sm">
                   <table className="w-full min-w-[480px] text-left text-sm">
-                    <thead className="bg-[#f7f7f7] font-mono text-[10px] tracking-[0.12em] text-[#8a8f89] uppercase border-b border-[#ececec]">
+                    <thead className="bg-[#f7f7f7] font-mono text-[11px] tracking-[0.1em] text-[#8a8f89] uppercase border-b border-[#ececec]">
                       <tr>
                         <th className="px-6 py-4">Invoice</th>
                         <th className="px-6 py-4">Date</th>
@@ -1102,7 +1001,7 @@ function Field({
   const isPassword = type === "password";
   return (
     <label className="block">
-      <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+      <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
         {label}
       </span>
       <div className="relative mt-2">

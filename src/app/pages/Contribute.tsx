@@ -440,7 +440,7 @@ export function Contribute() {
             {
               step: "Step 2",
               title: "Technical Assessment",
-              desc: "Our Content Evaluation Team reviews the collection for resolution, digital metadata integrity, originality, and commercial licensing viability within 3 business days.",
+              desc: "Our Content Evaluation Team reviews the collection for resolution, digital metadata integrity, originality, and commercial licensing viability within 24 hours.",
             },
             {
               step: "Step 3",
@@ -495,7 +495,7 @@ export function Contribute() {
                   <p className="text-sm text-[#59645f] mt-3 max-w-md mx-auto">
                     We've sent a detailed confirmation to{" "}
                     <strong className="text-[#18211f]">{email}</strong>. Our Content Evaluation Team
-                    will begin your Technical Assessment within 3 business days.
+                    will begin your Technical Assessment within 24 hours.
                   </p>
                   <button
                     onClick={() => {
@@ -721,8 +721,8 @@ export function Contribute() {
                     <div>
                       <h4 className="font-serif text-base text-white">Evaluation Timeline</h4>
                       <p className="text-xs text-white/60 mt-1">
-                        Assessment takes approximately 3 business days. You will be notified via
-                        your preferred contact channel.
+                        Assessment takes approximately 24 hours. You will be notified via your
+                        preferred contact channel.
                       </p>
                     </div>
                   </div>
