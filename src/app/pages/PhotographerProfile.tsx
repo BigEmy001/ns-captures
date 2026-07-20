@@ -98,11 +98,21 @@ export function PhotographerProfile() {
       {/* Header */}
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div className="flex items-start gap-5">
-          <img
-            src={getOptimizedImageUrl(photographer.avatar, 200)}
-            alt={photographer.name}
-            className="size-20 shrink-0 rounded-full object-cover sm:size-24"
-          />
+          <Avatar className="size-20 shrink-0 sm:size-24">
+            <AvatarImage
+              src={photographer.avatar ? getOptimizedImageUrl(photographer.avatar, 200) : ""}
+              alt={photographer.name}
+              className="object-cover"
+            />
+            <AvatarFallback className="bg-[#1e4a3f] text-white font-serif text-2xl sm:text-3xl">
+              {photographer.name
+                ?.split(" ")
+                .map((n) => n[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase() || "NS"}
+            </AvatarFallback>
+          </Avatar>
           <div className="pt-1">
             <div className="flex items-center gap-2">
               <h1 className="font-serif text-3xl leading-none sm:text-4xl">{photographer.name}</h1>

@@ -357,7 +357,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error: photoError } = await supabase.from("photographers").insert({
         id: slug,
         name: user.name,
-        image: user.avatar || "https://images.unsplash.com/photo-1593351799227-75df2026356b",
+        avatar: user.avatar || "",
       });
 
       if (photoError) throw new Error(photoError.message);
