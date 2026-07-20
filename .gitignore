@@ -7,3 +7,4 @@ cloudinary-test.mjs
 scratch_upload.mjs
 *.png
 supabase/.temp
+.vercel

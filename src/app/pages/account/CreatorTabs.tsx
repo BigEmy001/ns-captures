@@ -35,6 +35,7 @@ import {
   fetchFollowerCount,
   fetchBalanceAdjustments,
   fetchPayouts,
+  fetchPayoutRequests,
   fetchPaymentMethods,
   upsertPaymentMethod,
   createPayoutRequest,
@@ -42,6 +43,7 @@ import {
   updatePhotoPrice,
   createPhoto,
   type Payout,
+  type PayoutRequest,
   type PhotographerPaymentMethod,
   type CryptoWalletEntry,
   type Photo,
@@ -132,6 +134,7 @@ export function CreatorTabs({
 
   // Payouts from DB
   const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
   const [balanceAdjustments, setBalanceAdjustments] = useState<
     { amount: number; balanceAfter: number; reason: string | null; createdAt: string }[]
   >([]);
@@ -180,6 +183,9 @@ export function CreatorTabs({
           toast.error("An error occurred");
           return null;
         });
+      fetchPayoutRequests(photographerId)
+        .then(setPayoutRequests)
+        .catch(() => {});
       fetchPaymentMethods(photographerId)
         .then((methods) => {
           setPaymentMethods(methods);
@@ -574,18 +580,31 @@ export function CreatorTabs({
     setUploadColor("#9a6b3f");
   };
 
-  const payoutsToRender = payouts.map((p) => ({
-    id: p.id,
-    date: p.date,
-    method: p.method,
-    amount: `£${p.amount.toLocaleString()}`,
-    status: p.status,
-  }));
+  const payoutsToRender = [
+    ...payouts.map((p) => ({
+      id: p.id,
+      date: p.date,
+      method: p.method,
+      amount: `£${p.amount.toLocaleString()}`,
+      status: p.status,
+    })),
+    ...payoutRequests.map((r) => ({
+      id: r.id,
+      date: new Date(r.requestedAt).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }),
+      method: r.method,
+      amount: `£${r.amount.toLocaleString()}`,
+      status: r.status,
+    })),
+  ];
 
   const stats = [
     {
       label: "REVENUE (LIFETIME)",
-      value: `£${(user?.payoutBalance ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}`,
+      value: `£${photographerStats.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 2 })}`,
     },
     { label: "DOWNLOADS", value: photographerStats.totalDownloads.toLocaleString() },
     { label: "LIKES", value: photographerStats.totalLikes.toLocaleString() },
@@ -600,7 +619,17 @@ export function CreatorTabs({
     },
   ];
 
-  const pendingPayout = payouts.find((p) => p.status === "PENDING");
+  const pendingPayoutRequest = payoutRequests.find((r) => r.status === "PENDING");
+  const pendingPayout = pendingPayoutRequest
+    ? {
+        amount: pendingPayoutRequest.amount,
+        date: new Date(pendingPayoutRequest.requestedAt).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
+      }
+    : payouts.find((p) => p.status === "PENDING");
   const successfulPayouts = payouts.filter((p) => p.status === "SUCCESSFUL");
   const lastPayout = successfulPayouts[0];
 
@@ -1308,7 +1337,9 @@ export function CreatorTabs({
                   £
                   {(user?.payoutBalance ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-[11px] text-[#758078] mt-1.5">Total earned from all sales</p>
+                <p className="text-[11px] text-[#758078] mt-1.5">
+                  Withdrawable after admin approval
+                </p>
               </div>
               <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
                 <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
@@ -1316,7 +1347,9 @@ export function CreatorTabs({
                 </p>
                 <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">
                   £
-                  {(user?.payoutBalance ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                  {photographerStats.totalRevenue.toLocaleString("en-GB", {
+                    minimumFractionDigits: 2,
+                  })}
                 </p>
                 <p className="text-[11px] text-[#758078] mt-1.5">Total earned from all sales</p>
               </div>
@@ -1369,14 +1402,16 @@ export function CreatorTabs({
                           <td className="px-6 py-4">
                             <span
                               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
-                                p.status === "SUCCESSFUL"
+                                p.status === "SUCCESSFUL" ||
+                                p.status === "PAID" ||
+                                p.status === "APPROVED"
                                   ? "bg-emerald-50 text-emerald-700"
                                   : p.status === "PENDING"
                                     ? "bg-amber-50 text-amber-700"
                                     : "bg-red-50 text-red-700"
                               }`}
                             >
-                              {p.status}
+                              {p.status === "SUCCESSFUL" ? "PAID" : p.status}
                             </span>
                           </td>
                         </tr>
@@ -1388,10 +1423,10 @@ export function CreatorTabs({
             ) : (
               <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm p-12 text-center">
                 <Wallet className="size-10 mx-auto text-[#c4cdc5]" />
-                <p className="mt-3 font-serif text-lg text-[#4a534e]">No payouts yet</p>
+                <p className="mt-3 font-serif text-lg text-[#4a534e]">No payout history</p>
                 <p className="text-xs text-[#758078] mt-1 max-w-xs mx-auto">
-                  When your photos are licensed, earnings will appear here. Your available balance
-                  reflects admin adjustments and earned commissions.
+                  Once a payout is processed or you submit a withdrawal request, it will appear
+                  here.
                 </p>
               </div>
             )}
@@ -1992,6 +2027,9 @@ export function CreatorTabs({
                         toast.success("Payout request submitted");
                         setPayoutAmount("");
                         setPayoutDetails({});
+                        fetchPayoutRequests(photographerId)
+                          .then(setPayoutRequests)
+                          .catch(() => {});
                       } else {
                         toast.error("Failed to submit request");
                       }
