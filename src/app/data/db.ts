@@ -2142,6 +2142,53 @@ export async function updateUserStatus(userId: string, status: string): Promise<
 }
 
 // ============================================================
+// ADMIN CREATE USER (invokes the admin-create-user edge function)
+// ============================================================
+
+export interface AdminCreateUserInput {
+  email: string;
+  password?: string;
+  name: string;
+  role: "Buyer" | "Photographer" | "Enterprise" | "Admin";
+  status?: "Active" | "Pending" | "Suspended" | "Blocked";
+  verificationStatus?: "unverified" | "pending" | "verified" | "rejected";
+  phone?: string;
+  dob?: string;
+  occupation?: string;
+  location?: string;
+  bio?: string;
+}
+
+export interface AdminCreateUserResult {
+  ok: boolean;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    status: string;
+    verificationStatus: string;
+  };
+  password: string;
+  tempPasswordGenerated: boolean;
+}
+
+export async function adminCreateUser(input: AdminCreateUserInput): Promise<AdminCreateUserResult> {
+  const { data, error } = await supabase.functions.invoke("admin-create-user", {
+    body: input,
+  });
+
+  if (error) {
+    console.error("adminCreateUser", error);
+    throw new Error(error.message || "Failed to create user");
+  }
+  if (!data?.ok) {
+    throw new Error(data?.error || "Failed to create user");
+  }
+  return data as AdminCreateUserResult;
+}
+
+// ============================================================
 // UPDATE USER VERIFICATION STATUS (manual admin override)
 // ============================================================
 
