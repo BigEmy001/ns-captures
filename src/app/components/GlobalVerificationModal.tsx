@@ -144,60 +144,74 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
   if (isOpen === false) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-3xl p-8 max-w-xl w-full shadow-2xl border border-[#ececec] max-h-[90vh] overflow-y-auto relative">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-300">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl p-5 sm:p-8 max-w-xl w-full shadow-2xl border border-[#ececec] max-h-[95vh] sm:max-h-[90vh] overflow-y-auto relative animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300">
         {onClose && (
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full text-[#6b716d] hover:bg-[#f0f4f2] transition"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 rounded-full text-[#6b716d] hover:bg-[#f0f4f2] transition z-10"
             title="Close"
+            aria-label="Close"
           >
             <X className="size-5" />
           </button>
         )}
 
         {user.verificationStatus === "pending" && (
-          <div className="text-center py-8">
-            <div className="mx-auto bg-[#fff8e6] text-[#b38600] rounded-full p-4 w-16 h-16 flex items-center justify-center mb-6">
-              <CheckCircle className="size-8" />
+          <div className="text-center py-6 sm:py-8">
+            <div className="mx-auto bg-[#fff8e6] text-[#b38600] rounded-full p-3.5 sm:p-4 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center mb-4 sm:mb-6">
+              <CheckCircle className="size-7 sm:size-8" />
             </div>
-            <h2 className="text-2xl font-serif text-[#18211f] font-semibold mb-3">
+            <h2 className="text-xl sm:text-2xl font-serif text-[#18211f] font-semibold mb-2 sm:mb-3 px-2">
               Verification Pending
             </h2>
-            <p className="text-[#59645f] leading-relaxed">
+            <p className="text-sm sm:text-base text-[#59645f] leading-relaxed px-2">
               Your identity documents and payment have been received. An administrator is currently
               reviewing your application. You will be notified once approved.
             </p>
           </div>
         )}
 
-        {user.verificationStatus === "rejected" && (
+        {(user.verificationStatus === "rejected" || user.verificationStatus === "unverified") && (
           <>
-            <div className="text-center mb-8">
-              <div className="mx-auto bg-[#fff0f0] text-[#e63946] rounded-full p-4 w-16 h-16 flex items-center justify-center mb-6">
-                <AlertTriangle className="size-8" />
+            <div className="text-center mb-6 sm:mb-8 px-1">
+              <div
+                className={`mx-auto rounded-full p-3.5 sm:p-4 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center mb-4 sm:mb-6 ${
+                  user.verificationStatus === "rejected"
+                    ? "bg-[#fff0f0] text-[#e63946]"
+                    : "bg-[#f0f4f2] text-[#1e4a3f]"
+                }`}
+              >
+                {user.verificationStatus === "rejected" ? (
+                  <AlertTriangle className="size-7 sm:size-8" />
+                ) : (
+                  <ShieldCheck className="size-7 sm:size-8" />
+                )}
               </div>
-              <h2 className="text-2xl font-serif text-[#18211f] font-semibold mb-3">
-                Verification Rejected
+              <h2 className="text-xl sm:text-2xl font-serif text-[#18211f] font-semibold mb-2 sm:mb-3">
+                {user.verificationStatus === "rejected"
+                  ? "Verification Rejected"
+                  : "Verify Your Account"}
               </h2>
-              <p className="text-[#59645f] leading-relaxed">
-                Your previous verification was not approved. Please review the admin feedback and
-                resubmit with corrected information.
+              <p className="text-sm sm:text-base text-[#59645f] leading-relaxed px-1">
+                {user.verificationStatus === "rejected"
+                  ? "Your previous verification was not approved. Please review the admin feedback and resubmit with corrected information."
+                  : "Complete your verification to unlock your photographer dashboard and start monetizing your work."}
               </p>
             </div>
 
-            <div className="flex items-center justify-center mb-8">
-              <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-center mb-6 sm:mb-8">
+              <div className="flex items-center space-x-1.5 sm:space-x-2">
                 <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${activeStep === "upload" ? "bg-[#1e4a3f] text-white" : "bg-[#1e4a3f]/10 text-[#1e4a3f]"}`}
+                  className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full font-bold text-xs sm:text-sm ${activeStep === "upload" ? "bg-[#1e4a3f] text-white" : "bg-[#1e4a3f]/10 text-[#1e4a3f]"}`}
                 >
                   1
                 </div>
                 <div
-                  className={`h-1 w-12 rounded-full ${activeStep === "pay" ? "bg-[#1e4a3f]" : "bg-[#ececec]"}`}
-                ></div>
+                  className={`h-1 w-8 sm:w-12 rounded-full ${activeStep === "pay" ? "bg-[#1e4a3f]" : "bg-[#ececec]"}`}
+                />
                 <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${activeStep === "pay" ? "bg-[#1e4a3f] text-white" : "bg-[#ececec] text-[#a4aca8]"}`}
+                  className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full font-bold text-xs sm:text-sm ${activeStep === "pay" ? "bg-[#1e4a3f] text-white" : "bg-[#ececec] text-[#a4aca8]"}`}
                 >
                   2
                 </div>
@@ -205,55 +219,55 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
             </div>
 
             {activeStep === "upload" && (
-              <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4 sm:space-y-5 animate-in slide-in-from-right-4 duration-300">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
+                    <label className="text-[10px] sm:text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
                       Phone Number
                     </label>
                     <input
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
+                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-3 sm:px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
                       placeholder="+1 234 567 8900"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
+                    <label className="text-[10px] sm:text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
                       Date of Birth
                     </label>
                     <input
                       type="date"
                       value={dob}
                       onChange={(e) => setDob(e.target.value)}
-                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
+                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-3 sm:px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
+                  <label className="text-[10px] sm:text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
                     Occupation
                   </label>
                   <input
                     type="text"
                     value={occupation}
                     onChange={(e) => setOccupation(e.target.value)}
-                    className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
+                    className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-3 sm:px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
                     placeholder="e.g. Freelance Photographer"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
+                    <label className="text-[10px] sm:text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
                       ID Type
                     </label>
                     <select
                       value={uploadDocType}
                       onChange={(e: any) => setUploadDocType(e.target.value)}
-                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
+                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-3 sm:px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
                     >
                       <option value="passport">Passport</option>
                       <option value="driver_license">Driver's License</option>
@@ -261,24 +275,24 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
+                    <label className="text-[10px] sm:text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
                       ID Number
                     </label>
                     <input
                       type="text"
                       value={uploadDocNumber}
                       onChange={(e) => setUploadDocNumber(e.target.value)}
-                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
+                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-3 sm:px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
                       placeholder="A12345678"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
+                  <label className="text-[10px] sm:text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
                     Upload ID Document
                   </label>
-                  <label className="mt-1 flex items-center justify-center gap-2 p-5 border-2 border-dashed border-[#ececec] rounded-xl hover:border-[#1e4a3f]/40 transition-colors cursor-pointer bg-[#f8f9f7]">
+                  <label className="mt-1 flex items-center justify-center gap-2 p-4 sm:p-5 border-2 border-dashed border-[#ececec] rounded-xl hover:border-[#1e4a3f]/40 transition-colors cursor-pointer bg-[#f8f9f7]">
                     <input
                       type="file"
                       accept="image/*,.pdf"
@@ -286,12 +300,12 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                       onChange={(e) => setUploadDocFile(e.target.files?.[0] || null)}
                     />
                     {uploadDocFile ? (
-                      <span className="text-sm text-[#1e4a3f] font-medium">
+                      <span className="text-sm text-[#1e4a3f] font-medium break-all text-center px-2">
                         {uploadDocFile.name}
                       </span>
                     ) : (
-                      <span className="text-sm text-[#6b716d] flex items-center gap-2">
-                        <Upload className="size-4" /> Click to upload image or PDF
+                      <span className="text-sm text-[#6b716d] flex items-center gap-2 text-center">
+                        <Upload className="size-4 flex-shrink-0" /> Click to upload image or PDF
                       </span>
                     )}
                   </label>
@@ -300,7 +314,7 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                 <button
                   onClick={handleUploadSubmit}
                   disabled={isUploading}
-                  className="w-full mt-4 rounded-full bg-[#1e4a3f] py-3 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full mt-2 sm:mt-4 rounded-full bg-[#1e4a3f] py-3 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isUploading ? "Uploading..." : "Continue to Payment"}
                 </button>
@@ -310,12 +324,16 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
             {activeStep === "pay" && (
               <form
                 onSubmit={handlePaymentSubmit}
-                className="space-y-5 animate-in slide-in-from-right-4 duration-300"
+                className="space-y-4 sm:space-y-5 animate-in slide-in-from-right-4 duration-300"
               >
-                <div className="bg-[#f8f9f7] p-5 rounded-2xl border border-[#ececec] mb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[#59645f] font-medium">One-time Verification Fee</span>
-                    <span className="text-xl font-serif font-bold text-[#18211f]">£247.00</span>
+                <div className="bg-[#f8f9f7] p-4 sm:p-5 rounded-2xl border border-[#ececec] mb-4 sm:mb-6">
+                  <div className="flex items-center justify-between mb-2 gap-2">
+                    <span className="text-xs sm:text-sm text-[#59645f] font-medium">
+                      One-time Verification Fee
+                    </span>
+                    <span className="text-lg sm:text-xl font-serif font-bold text-[#18211f]">
+                      £247.00
+                    </span>
                   </div>
                   <p className="text-xs text-[#758078]">
                     This fee covers the background check and lifetime platform access.
@@ -323,7 +341,7 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-3 block">
+                  <label className="text-[10px] sm:text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-3 block">
                     Select Payment Method
                   </label>
                   {paymentMethods.length === 0 ? (
@@ -338,36 +356,36 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                           <div
                             key={method.id}
                             onClick={() => setSelectedMethodId(method.id)}
-                            className={`cursor-pointer border rounded-xl p-4 transition-all ${
+                            className={`cursor-pointer border rounded-xl p-3 sm:p-4 transition-all ${
                               selectedMethodId === method.id
                                 ? "border-[#1e4a3f] bg-[#f0f4f2]"
                                 : "border-[#ececec] bg-white hover:border-[#1e4a3f]/40"
                             }`}
                           >
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-between mb-1 gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
                                 <div
-                                  className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedMethodId === method.id ? "border-[#1e4a3f]" : "border-[#ececec]"}`}
+                                  className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedMethodId === method.id ? "border-[#1e4a3f]" : "border-[#ececec]"}`}
                                 >
                                   {selectedMethodId === method.id && (
                                     <div className="w-2 h-2 rounded-full bg-[#1e4a3f]" />
                                   )}
                                 </div>
-                                <span className="font-semibold text-[#18211f] text-sm">
+                                <span className="font-semibold text-[#18211f] text-sm truncate">
                                   {method.name}
                                 </span>
                               </div>
-                              <span className="text-[10px] uppercase tracking-wider bg-white border border-[#ececec] px-2 py-0.5 rounded-full">
+                              <span className="text-[9px] sm:text-[10px] uppercase tracking-wider bg-white border border-[#ececec] px-2 py-0.5 rounded-full flex-shrink-0">
                                 {method.methodType}
                               </span>
                             </div>
 
                             {selectedMethodId === method.id && (
                               <div className="mt-3 pt-3 border-t border-[#1e4a3f]/10 animate-in slide-in-from-top-2 duration-200">
-                                <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1">
+                                <p className="text-[9px] sm:text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1">
                                   Payment Details
                                 </p>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-start gap-2">
                                   <code className="flex-1 bg-white border border-[#ececec] p-2 rounded text-xs text-[#1e4a3f] break-all">
                                     {method.details}
                                   </code>
@@ -378,8 +396,9 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                                       navigator.clipboard.writeText(method.details);
                                       toast.success("Copied to clipboard!");
                                     }}
-                                    className="p-2 border border-[#ececec] rounded bg-white hover:bg-[#f8f9f7] text-[#6b716d] transition"
+                                    className="p-2 border border-[#ececec] rounded bg-white hover:bg-[#f8f9f7] text-[#6b716d] transition flex-shrink-0"
                                     title="Copy Details"
+                                    aria-label="Copy details"
                                   >
                                     <Copy className="size-4" />
                                   </button>
@@ -392,19 +411,19 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-[#ececec]">
-                  <p className="text-xs text-[#6b716d] mb-4 text-center">
+                <div className="pt-3 sm:pt-4 border-t border-[#ececec]">
+                  <p className="text-xs text-[#6b716d] mb-3 sm:mb-4 text-center px-2">
                     After making your payment to the details above, click "I Have Paid" below to
                     submit your application for review.
                   </p>
 
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     {contactLink && (
                       <a
                         href={contactLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 bg-white border border-[#ececec] text-[#18211f] text-sm font-semibold py-3.5 rounded-full hover:bg-[#f8f9f7] transition flex items-center justify-center gap-2"
+                        className="flex-1 bg-white border border-[#ececec] text-[#18211f] text-sm font-semibold py-3 sm:py-3.5 rounded-full hover:bg-[#f8f9f7] transition flex items-center justify-center gap-2"
                       >
                         <MessageCircle className="size-4 text-[#1e4a3f]" />
                         Contact Admin
@@ -414,262 +433,7 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                     <button
                       type="submit"
                       disabled={isPaying || !selectedMethodId}
-                      className="flex-1 bg-[#1e4a3f] py-3.5 text-sm font-semibold text-white rounded-full transition hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {isPaying ? "Processing..." : "I Have Paid"}
-                      <CheckCircle className="size-4" />
-                    </button>
-                  </div>
-                </div>
-              </form>
-            )}
-          </>
-        )}
-
-        {user.verificationStatus === "unverified" && (
-          <>
-            <div className="text-center mb-8">
-              <div className="mx-auto bg-[#f0f4f2] text-[#1e4a3f] rounded-full p-4 w-16 h-16 flex items-center justify-center mb-4">
-                <ShieldCheck className="size-8" />
-              </div>
-              <h2 className="text-2xl font-serif text-[#18211f] font-semibold mb-2">
-                Verify Your Account
-              </h2>
-              <p className="text-[#59645f]">
-                Complete your verification to unlock your photographer dashboard and start
-                monetizing your work.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-center mb-8">
-              <div className="flex items-center space-x-2">
-                <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${activeStep === "upload" ? "bg-[#1e4a3f] text-white" : "bg-[#1e4a3f]/10 text-[#1e4a3f]"}`}
-                >
-                  1
-                </div>
-                <div
-                  className={`h-1 w-12 rounded-full ${activeStep === "pay" ? "bg-[#1e4a3f]" : "bg-[#ececec]"}`}
-                ></div>
-                <div
-                  className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${activeStep === "pay" ? "bg-[#1e4a3f] text-white" : "bg-[#ececec] text-[#a4aca8]"}`}
-                >
-                  2
-                </div>
-              </div>
-            </div>
-
-            {activeStep === "upload" && (
-              <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
-                      placeholder="+1 234 567 8900"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
-                      Date of Birth
-                    </label>
-                    <input
-                      type="date"
-                      value={dob}
-                      onChange={(e) => setDob(e.target.value)}
-                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
-                    Occupation
-                  </label>
-                  <input
-                    type="text"
-                    value={occupation}
-                    onChange={(e) => setOccupation(e.target.value)}
-                    className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
-                    placeholder="e.g. Freelance Photographer"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
-                      ID Type
-                    </label>
-                    <select
-                      value={uploadDocType}
-                      onChange={(e: any) => setUploadDocType(e.target.value)}
-                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
-                    >
-                      <option value="passport">Passport</option>
-                      <option value="driver_license">Driver's License</option>
-                      <option value="national_id">National ID</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
-                      ID Number
-                    </label>
-                    <input
-                      type="text"
-                      value={uploadDocNumber}
-                      onChange={(e) => setUploadDocNumber(e.target.value)}
-                      className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
-                      placeholder="A12345678"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
-                    Upload ID Document
-                  </label>
-                  <label className="mt-1 flex items-center justify-center gap-2 p-5 border-2 border-dashed border-[#ececec] rounded-xl hover:border-[#1e4a3f]/40 transition-colors cursor-pointer bg-[#f8f9f7]">
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      className="hidden"
-                      onChange={(e) => setUploadDocFile(e.target.files?.[0] || null)}
-                    />
-                    {uploadDocFile ? (
-                      <span className="text-sm text-[#1e4a3f] font-medium">
-                        {uploadDocFile.name}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-[#6b716d] flex items-center gap-2">
-                        <Upload className="size-4" /> Click to upload image or PDF
-                      </span>
-                    )}
-                  </label>
-                </div>
-
-                <button
-                  onClick={handleUploadSubmit}
-                  disabled={isUploading}
-                  className="w-full mt-4 rounded-full bg-[#1e4a3f] py-3 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isUploading ? "Uploading..." : "Continue to Payment"}
-                </button>
-              </div>
-            )}
-
-            {activeStep === "pay" && (
-              <form
-                onSubmit={handlePaymentSubmit}
-                className="space-y-5 animate-in slide-in-from-right-4 duration-300"
-              >
-                <div className="bg-[#f8f9f7] p-5 rounded-2xl border border-[#ececec] mb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[#59645f] font-medium">One-time Verification Fee</span>
-                    <span className="text-xl font-serif font-bold text-[#18211f]">£247.00</span>
-                  </div>
-                  <p className="text-xs text-[#758078]">
-                    This fee covers the background check and lifetime platform access.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-3 block">
-                    Select Payment Method
-                  </label>
-                  {paymentMethods.length === 0 ? (
-                    <div className="p-4 border border-[#ececec] rounded-xl text-sm text-[#6b716d] text-center bg-[#f8f9f7]">
-                      No payment methods configured. Please contact support.
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {paymentMethods
-                        .filter((m) => m.enabled)
-                        .map((method) => (
-                          <div
-                            key={method.id}
-                            onClick={() => setSelectedMethodId(method.id)}
-                            className={`cursor-pointer border rounded-xl p-4 transition-all ${
-                              selectedMethodId === method.id
-                                ? "border-[#1e4a3f] bg-[#f0f4f2]"
-                                : "border-[#ececec] bg-white hover:border-[#1e4a3f]/40"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedMethodId === method.id ? "border-[#1e4a3f]" : "border-[#ececec]"}`}
-                                >
-                                  {selectedMethodId === method.id && (
-                                    <div className="w-2 h-2 rounded-full bg-[#1e4a3f]" />
-                                  )}
-                                </div>
-                                <span className="font-semibold text-[#18211f] text-sm">
-                                  {method.name}
-                                </span>
-                              </div>
-                              <span className="text-[10px] uppercase tracking-wider bg-white border border-[#ececec] px-2 py-0.5 rounded-full">
-                                {method.methodType}
-                              </span>
-                            </div>
-
-                            {selectedMethodId === method.id && (
-                              <div className="mt-3 pt-3 border-t border-[#1e4a3f]/10 animate-in slide-in-from-top-2 duration-200">
-                                <p className="text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1">
-                                  Payment Details
-                                </p>
-                                <div className="flex items-center gap-2">
-                                  <code className="flex-1 bg-white border border-[#ececec] p-2 rounded text-xs text-[#1e4a3f] break-all">
-                                    {method.details}
-                                  </code>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      navigator.clipboard.writeText(method.details);
-                                      toast.success("Copied to clipboard!");
-                                    }}
-                                    className="p-2 border border-[#ececec] rounded bg-white hover:bg-[#f8f9f7] text-[#6b716d] transition"
-                                    title="Copy Details"
-                                  >
-                                    <Copy className="size-4" />
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t border-[#ececec]">
-                  <p className="text-xs text-[#6b716d] mb-4 text-center">
-                    After making your payment to the details above, click "I Have Paid" below to
-                    submit your application for review.
-                  </p>
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    {contactLink && (
-                      <a
-                        href={contactLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 bg-white border border-[#ececec] text-[#18211f] text-sm font-semibold py-3.5 rounded-full hover:bg-[#f8f9f7] transition flex items-center justify-center gap-2"
-                      >
-                        <MessageCircle className="size-4 text-[#1e4a3f]" />
-                        Contact Admin
-                      </a>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={isPaying || !selectedMethodId}
-                      className="flex-1 bg-[#1e4a3f] py-3.5 text-sm font-semibold text-white rounded-full transition hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="flex-1 bg-[#1e4a3f] py-3 sm:py-3.5 text-sm font-semibold text-white rounded-full transition hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {isPaying ? "Processing..." : "I Have Paid"}
                       <CheckCircle className="size-4" />
