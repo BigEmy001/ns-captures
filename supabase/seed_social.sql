@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS user_likes (
 );
 
 ALTER TABLE user_likes ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.user_likes TO anon, authenticated, service_role;
 
 CREATE POLICY "Public read user_likes" ON user_likes FOR SELECT USING (true);
 CREATE POLICY "Authenticated insert user_likes" ON user_likes FOR INSERT WITH CHECK (true);
@@ -26,6 +27,7 @@ CREATE TABLE IF NOT EXISTS user_saves (
 );
 
 ALTER TABLE user_saves ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON TABLE public.user_saves TO anon, authenticated, service_role;
 
 CREATE POLICY "Public read user_saves" ON user_saves FOR SELECT USING (true);
 CREATE POLICY "Authenticated insert user_saves" ON user_saves FOR INSERT WITH CHECK (true);

@@ -24,6 +24,9 @@ GRANT SELECT, INSERT, UPDATE ON public.licenses TO authenticated;
 GRANT SELECT, INSERT ON public.activity_log TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.moderation_queue TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.payouts TO authenticated;
+GRANT ALL ON public.verification_documents TO anon, authenticated, service_role;
+GRANT ALL ON public.user_saves TO anon, authenticated, service_role;
+GRANT ALL ON public.user_likes TO anon, authenticated, service_role;
 
 -- Allow authenticated photographers to insert/update photos
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.photos TO authenticated;
