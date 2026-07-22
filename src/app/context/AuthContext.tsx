@@ -326,6 +326,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const photographerUpdate: Record<string, unknown> = {};
         if (editableData.name) photographerUpdate.name = editableData.name;
         if (editableData.avatar !== undefined) photographerUpdate.avatar = editableData.avatar;
+        if (editableData.bio !== undefined) photographerUpdate.bio = editableData.bio;
+        if (editableData.location !== undefined)
+          photographerUpdate.location = editableData.location;
         if (Object.keys(photographerUpdate).length > 0) {
           await supabase.from("photographers").update(photographerUpdate).eq("id", user.slug);
         }
