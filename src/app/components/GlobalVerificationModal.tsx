@@ -8,6 +8,11 @@ import {
   Copy,
   MessageCircle,
   X,
+  Clock,
+  FileCheck,
+  CreditCard,
+  CircleCheckBig,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -17,6 +22,7 @@ import {
   fetchAdminPaymentMethods,
   fetchSiteSettings,
   type AdminPaymentMethod,
+  type VerificationDocument,
 } from "../data/db";
 
 interface GlobalVerificationModalProps {
@@ -28,6 +34,7 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
   const { user, updateProfile } = useAuth();
   const [activeStep, setActiveStep] = useState<"upload" | "pay">("upload");
   const [isLoadingDoc, setIsLoadingDoc] = useState(true);
+  const [verificationDoc, setVerificationDoc] = useState<VerificationDocument | null>(null);
 
   // App Config State
   const [paymentMethods, setPaymentMethods] = useState<AdminPaymentMethod[]>([]);
@@ -57,11 +64,14 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
       })
       .catch(console.error);
 
-    if (user?.role === "Photographer" && user?.verificationStatus === "unverified") {
+    if (user?.role === "Photographer" && user?.verificationStatus !== "verified") {
       fetchMyVerificationDocument(user.id)
         .then((doc) => {
           if (doc) {
-            setActiveStep("pay");
+            setVerificationDoc(doc);
+            if (user.verificationStatus === "unverified") {
+              setActiveStep("pay");
+            }
           }
           setIsLoadingDoc(false);
         })
@@ -158,17 +168,178 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
         )}
 
         {user.verificationStatus === "pending" && (
-          <div className="text-center py-6 sm:py-8">
-            <div className="mx-auto bg-[#fff8e6] text-[#b38600] rounded-full p-3.5 sm:p-4 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center mb-4 sm:mb-6">
-              <CheckCircle className="size-7 sm:size-8" />
+          <div className="py-4 sm:py-6">
+            <div className="text-center mb-6 sm:mb-8">
+              <div className="mx-auto bg-[#fff8e6] text-[#b38600] rounded-full p-3.5 sm:p-4 w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center mb-4 sm:mb-6">
+                <Clock className="size-7 sm:size-8" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-serif text-[#18211f] font-semibold mb-2 sm:mb-3 px-2">
+                Verification In Progress
+              </h2>
+              <p className="text-sm sm:text-base text-[#59645f] leading-relaxed px-2">
+                Your documents and payment have been received. Our team is reviewing your
+                application.
+              </p>
             </div>
-            <h2 className="text-xl sm:text-2xl font-serif text-[#18211f] font-semibold mb-2 sm:mb-3 px-2">
-              Verification Pending
-            </h2>
-            <p className="text-sm sm:text-base text-[#59645f] leading-relaxed px-2">
-              Your identity documents and payment have been received. An administrator is currently
-              reviewing your application. You will be notified once approved.
-            </p>
+
+            {/* Timeline */}
+            <div className="bg-[#f8f9f7] rounded-2xl p-4 sm:p-5 mb-5 sm:mb-6 border border-[#ececec]/60">
+              <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider mb-4">
+                Verification Steps
+              </p>
+              <div className="space-y-0">
+                {[
+                  {
+                    icon: <Upload className="size-4" />,
+                    label: "Documents Submitted",
+                    desc: "Identity document uploaded",
+                    done: true,
+                  },
+                  {
+                    icon: <CreditCard className="size-4" />,
+                    label: "Payment Received",
+                    desc: "£247 verification fee confirmed",
+                    done: true,
+                  },
+                  {
+                    icon: <FileCheck className="size-4" />,
+                    label: "Under Review",
+                    desc: "An administrator is verifying your documents",
+                    done: false,
+                    active: true,
+                  },
+                  {
+                    icon: <CircleCheckBig className="size-4" />,
+                    label: "Approved",
+                    desc: "Full dashboard access unlocked",
+                    done: false,
+                  },
+                ].map((step, i) => (
+                  <div key={i} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <div
+                        className={`size-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          step.done
+                            ? "bg-[#1e4a3f] text-white"
+                            : step.active
+                              ? "bg-[#fff8e6] text-[#b38600] ring-2 ring-[#b38600]/20"
+                              : "bg-[#ececec] text-[#a4aca8]"
+                        }`}
+                      >
+                        {step.done ? (
+                          <CheckCircle className="size-4" />
+                        ) : (
+                          step.icon
+                        )}
+                      </div>
+                      {i < 3 && (
+                        <div
+                          className={`w-0.5 h-6 ${step.done ? "bg-[#1e4a3f]" : "bg-[#ececec]"}`}
+                        />
+                      )}
+                    </div>
+                    <div className="pb-4">
+                      <p
+                        className={`text-sm font-semibold ${
+                          step.done || step.active ? "text-[#18211f]" : "text-[#a4aca8]"
+                        }`}
+                      >
+                        {step.label}
+                      </p>
+                      <p
+                        className={`text-xs mt-0.5 ${
+                          step.done || step.active ? "text-[#6b716d]" : "text-[#a4aca8]"
+                        }`}
+                      >
+                        {step.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Submission details */}
+            {verificationDoc && (
+              <div className="bg-white border border-[#ececec] rounded-xl p-4 mb-5 sm:mb-6">
+                <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider mb-3">
+                  Your Submission
+                </p>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-[#6b716d]">Document type</span>
+                    <span className="text-xs font-medium text-[#18211f] capitalize">
+                      {verificationDoc.documentType.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-[#6b716d]">Submitted</span>
+                    <span className="text-xs font-medium text-[#18211f]">
+                      {new Date(verificationDoc.submittedAt).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-[#6b716d]">Payment</span>
+                    <span className="text-xs font-medium text-[#18211f]">£247.00 confirmed</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-[#6b716d]">Status</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">
+                      Under Review
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* What happens next */}
+            <div className="bg-[#f0f4f2] rounded-xl p-4 mb-5 sm:mb-6 border border-[#1e4a3f]/10">
+              <p className="text-[10px] font-bold text-[#1e4a3f] uppercase tracking-wider mb-2">
+                What happens next?
+              </p>
+              <ul className="space-y-1.5">
+                <li className="text-xs text-[#59645f] flex items-start gap-2">
+                  <span className="text-[#1e4a3f] mt-0.5">•</span>
+                  An administrator will review your identity document and payment within 24–48 hours.
+                </li>
+                <li className="text-xs text-[#59645f] flex items-start gap-2">
+                  <span className="text-[#1e4a3f] mt-0.5">•</span>
+                  You will receive an email notification once your verification is approved or if
+                  additional information is needed.
+                </li>
+                <li className="text-xs text-[#59645f] flex items-start gap-2">
+                  <span className="text-[#1e4a3f] mt-0.5">•</span>
+                  Once approved, you'll have full access to your photographer dashboard, portfolio,
+                  and payout tools.
+                </li>
+              </ul>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              {contactLink && (
+                <a
+                  href={contactLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 bg-white border border-[#ececec] text-[#18211f] text-sm font-semibold py-3 rounded-full hover:bg-[#f8f9f7] transition flex items-center justify-center gap-2"
+                >
+                  <MessageCircle className="size-4 text-[#1e4a3f]" />
+                  Contact Support
+                </a>
+              )}
+              <a
+                href="mailto:support@nscaptures.com"
+                className="flex-1 bg-white border border-[#ececec] text-[#18211f] text-sm font-semibold py-3 rounded-full hover:bg-[#f8f9f7] transition flex items-center justify-center gap-2"
+              >
+                <Mail className="size-4 text-[#1e4a3f]" />
+                Email Us
+              </a>
+            </div>
           </div>
         )}
 
@@ -386,7 +557,12 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                                   Payment Details
                                 </p>
                                 <div className="space-y-1">
-                                  {method.methodType === "bank" && method.details ? (
+                                  {method.methodType === "bank" &&
+                                  method.details &&
+                                  (method.details.bankName ||
+                                    method.details.iban ||
+                                    method.details.swift ||
+                                    method.details.accountNumber) ? (
                                     <>
                                       {method.details.bankName && (
                                         <p className="text-xs text-[#18211f]">

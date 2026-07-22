@@ -21,6 +21,7 @@ import {
   Camera,
   Image as ImageIcon,
   Wallet,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
@@ -62,8 +63,16 @@ export function Account() {
     useAuth();
   const [params, setParams] = useSearchParams();
   const requestedTab = params.get("tab");
+  const isPendingVerification =
+    user?.role === "Photographer" && user?.verificationStatus === "pending";
+  const isRejectedVerification =
+    user?.role === "Photographer" && user?.verificationStatus === "rejected";
   const defaultTab =
-    user?.role === "Photographer" || user?.role === "Admin" ? "dashboard" : "security";
+    user?.role === "Photographer" || user?.role === "Admin"
+      ? isPendingVerification || isRejectedVerification
+        ? "security"
+        : "dashboard"
+      : "security";
   const active = nav.some((item) => item.id === requestedTab) ? requestedTab! : defaultTab;
   const setActive = (id: string) => {
     const next = new URLSearchParams(params);
@@ -259,7 +268,10 @@ export function Account() {
       <div className="mx-auto flex max-w-[1440px] gap-8 px-5 sm:px-8 lg:px-12">
         <SideNav
           items={nav.filter(
-            (n) => !n.isCreator || user?.role === "Photographer" || user?.role === "Admin",
+            (n) =>
+              !n.isCreator ||
+              (user?.role === "Admin") ||
+              (user?.role === "Photographer" && user?.verificationStatus === "verified"),
           )}
           active={active}
           onSelect={setActive}
@@ -367,11 +379,58 @@ export function Account() {
             </div>
           )}
 
+          {isPendingVerification && (
+            <div className="mb-6 bg-gradient-to-r from-[#fff8e6] to-[#fef3cd] rounded-2xl p-6 sm:p-8 ns-shadow-sm border border-[#b38600]/20">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="grid size-10 place-items-center rounded-full bg-[#b38600]/10 flex-shrink-0">
+                  <Clock className="size-5 text-[#b38600]" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-serif text-lg text-[#18211f] mb-1">Verification In Progress</h3>
+                  <p className="text-sm text-[#59645f]">
+                    Your documents are being reviewed. Dashboard access (portfolio, payouts, uploads) will unlock once approved.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActive("security")}
+                  className="shrink-0 rounded-full bg-[#1e4a3f] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#123b31]"
+                >
+                  View Status
+                </button>
+              </div>
+            </div>
+          )}
+
+          {isRejectedVerification && (
+            <div className="mb-6 bg-gradient-to-r from-[#fff0f0] to-[#fde8e8] rounded-2xl p-6 sm:p-8 ns-shadow-sm border border-[#e63946]/20">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="grid size-10 place-items-center rounded-full bg-[#e63946]/10 flex-shrink-0">
+                  <AlertCircle className="size-5 text-[#e63946]" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-serif text-lg text-[#18211f] mb-1">Verification Needs Attention</h3>
+                  <p className="text-sm text-[#59645f]">
+                    Your previous verification was not approved. Please review the feedback and resubmit.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActive("security")}
+                  className="shrink-0 rounded-full bg-[#e63946] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#c1303d]"
+                >
+                  Resubmit
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Mobile nav */}
           <div className="mt-6 flex gap-2 overflow-x-auto pb-2 md:hidden">
             {nav
               .filter(
-                (n) => !n.isCreator || user?.role === "Photographer" || user?.role === "Admin",
+                (n) =>
+                  !n.isCreator ||
+                  (user?.role === "Admin") ||
+                  (user?.role === "Photographer" && user?.verificationStatus === "verified"),
               )
               .map((n) => (
                 <button

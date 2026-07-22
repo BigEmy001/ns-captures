@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { GlobalVerificationModal } from "./GlobalVerificationModal";
@@ -63,6 +64,7 @@ export function AdminRoute() {
 export function PhotographerRoute() {
   const { user, isLoading } = useAuth();
   const location = useLocation();
+  const [showVerification, setShowVerification] = useState(true);
 
   if (isLoading) return null;
   if (!user || (user.role !== "Photographer" && user.role !== "Admin")) {
@@ -75,7 +77,9 @@ export function PhotographerRoute() {
     return (
       <>
         <Outlet />
-        <GlobalVerificationModal />
+        {showVerification && (
+          <GlobalVerificationModal onClose={() => setShowVerification(false)} />
+        )}
       </>
     );
   }
