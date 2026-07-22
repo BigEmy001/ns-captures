@@ -1345,7 +1345,7 @@ export function CreatorTabs({
 
             {payoutTab === "overview" && (
               <>
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+                <div className="grid gap-6 sm:grid-cols-2 mb-10">
                   <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
                       Available Balance
@@ -1356,28 +1356,18 @@ export function CreatorTabs({
                         minimumFractionDigits: 2,
                       })}
                     </p>
-                    <p className="text-[11px] text-[#758078] mt-1.5">
-                      Withdrawable after admin approval
-                    </p>
-                  </div>
-                  <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
-                    <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
-                      Lifetime Revenue
-                    </p>
-                    <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">
-                      £
-                      {photographerStats.totalRevenue.toLocaleString("en-GB", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </p>
-                    <p className="text-[11px] text-[#758078] mt-1.5">Total earned from all sales</p>
                   </div>
                   <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
                       Pending Payout
                     </p>
                     <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">
-                      {pendingPayout ? `£${pendingPayout.amount.toLocaleString()}` : "—"}
+                      £
+                      {pendingPayout
+                        ? pendingPayout.amount.toLocaleString("en-GB", {
+                            minimumFractionDigits: 2,
+                          })
+                        : "0.00"}
                     </p>
                     <p className="text-[11px] text-[#758078] mt-1.5">
                       {pendingPayout ? `Requested ${pendingPayout.date}` : "No pending requests"}
