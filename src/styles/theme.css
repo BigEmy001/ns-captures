@@ -175,6 +175,7 @@
     font-size: var(--text-base);
     font-weight: var(--font-weight-medium);
     line-height: 1.5;
+    transition: all 0.2s ease;
   }
 
   input {
@@ -187,25 +188,35 @@
 @layer components {
   /* Restrained, clean depth for a pure-white premium surface. */
   .ns-shadow {
-    box-shadow: 0 1px 2px rgba(24, 33, 31, 0.04), 0 10px 30px -20px rgba(24, 33, 31, 0.16);
+    box-shadow:
+      0 1px 2px rgba(24, 33, 31, 0.04),
+      0 10px 30px -20px rgba(24, 33, 31, 0.16);
   }
   .ns-shadow-sm {
     box-shadow: 0 1px 2px rgba(24, 33, 31, 0.04);
   }
   .ns-shadow-lg {
-    box-shadow: 0 1px 3px rgba(24, 33, 31, 0.05), 0 24px 48px -30px rgba(24, 33, 31, 0.22);
+    box-shadow:
+      0 1px 3px rgba(24, 33, 31, 0.05),
+      0 24px 48px -30px rgba(24, 33, 31, 0.22);
   }
   /* Popover / dropdown depth (Pexels-style menus). */
   .ns-popover {
-    box-shadow: 0 2px 4px rgba(24, 33, 31, 0.04), 0 12px 32px -12px rgba(24, 33, 31, 0.16);
+    box-shadow:
+      0 2px 4px rgba(24, 33, 31, 0.04),
+      0 12px 32px -12px rgba(24, 33, 31, 0.16);
   }
   /* Subtle lift on hover for interactive cards. */
   .ns-lift {
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    transition:
+      transform 0.25s ease,
+      box-shadow 0.25s ease;
   }
   .ns-lift:hover {
     transform: translateY(-2px);
-    box-shadow: 0 1px 3px rgba(24, 33, 31, 0.05), 0 18px 40px -28px rgba(24, 33, 31, 0.24);
+    box-shadow:
+      0 1px 3px rgba(24, 33, 31, 0.05),
+      0 18px 40px -28px rgba(24, 33, 31, 0.24);
   }
 }
 
@@ -224,4 +235,3 @@
 .animate-aurora-bg {
   animation: aurora-bg 20s ease infinite;
 }
-
