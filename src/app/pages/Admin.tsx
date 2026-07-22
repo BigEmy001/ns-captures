@@ -86,7 +86,6 @@ import {
   updateAdminPaymentMethod,
   deleteAdminPaymentMethod,
   updatePhotoHypeOverrides,
-  updatePhotographerCustomFollowers,
   fetchPhotographerContactBySlug,
   fetchPaymentMethods,
   adminCreateUser,
@@ -3719,15 +3718,6 @@ function AdminUserModal({
                   </div>
                   <button
                     onClick={async () => {
-                      // Save custom followers
-                      const followersVal =
-                        (document.getElementById("custom-followers-input") as HTMLInputElement)
-                          ?.value || "";
-                      const followersOk = await updatePhotographerCustomFollowers(
-                        user.id,
-                        followersVal,
-                      );
-
                       // Save all photo overrides
                       let photosOk = true;
                       for (const photo of userPhotos.slice(0, 5)) {
@@ -3748,7 +3738,7 @@ function AdminUserModal({
                         }
                       }
 
-                      if (followersOk && photosOk) toast.success("All overrides saved!");
+                      if (photosOk) toast.success("All overrides saved!");
                       else toast.error("Some overrides failed to save");
                     }}
                     className="rounded-full bg-[#1e4a3f] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#123b31] cursor-pointer"
@@ -3758,26 +3748,6 @@ function AdminUserModal({
                 </div>
 
                 <div className="space-y-6">
-                  <div>
-                    <p className="text-xs font-bold text-[#18211f] uppercase tracking-wider mb-3 pb-2 border-b border-[#ececec]">
-                      Account Overrides
-                    </p>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1.5">
-                          Custom Followers Count
-                        </label>
-                        <input
-                          id="custom-followers-input"
-                          defaultValue={user.customFollowers || ""}
-                          type="text"
-                          placeholder="e.g. 1.2k"
-                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                   <div>
                     <p className="text-xs font-bold text-[#18211f] uppercase tracking-wider mb-3 pb-2 border-b border-[#ececec]">
                       Asset Overrides

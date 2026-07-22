@@ -96,14 +96,12 @@ export async function fetchPhotographers(): Promise<Photographer[]> {
         name: p.name,
         location: p.location || "",
         specialty: p.specialty || "",
-        followers: p.followers || "0",
         images: 0,
         avatar: p.avatar || "",
         bio: p.bio || "",
         cover: p.cover || p.avatar || "",
         verified: p.verified || false,
         gear: p.gear || [],
-        customFollowers: p.custom_followers || undefined,
       }));
     },
     { maxRetries: 2, baseDelay: 800 },
@@ -130,14 +128,12 @@ export async function fetchPhotographer(id: string): Promise<Photographer | unde
       name: photographer.name,
       location: photographer.location || "",
       specialty: photographer.specialty || "",
-      followers: photographer.followers || "0",
       images: photoCount || 0,
       avatar: photographer.avatar || "",
       bio: photographer.bio || "",
       cover: photographer.cover || photographer.avatar || "",
       verified: photographer.verified || false,
       gear: photographer.gear || [],
-      customFollowers: photographer.custom_followers || undefined,
     };
   }
 
@@ -150,17 +146,12 @@ export async function fetchPhotographer(id: string): Promise<Photographer | unde
   if (!shots || shots.length === 0) return undefined;
 
   const first = shots[0];
-  const { count: likeCount } = await supabase
-    .from("photos")
-    .select("id", { count: "exact", head: true })
-    .eq("photographer_id", id);
 
   return {
     id,
     name: first.photographer_name || first.photographer_id,
     location: first.location || "",
     specialty: first.category || "",
-    followers: `${((likeCount || 0) / 1000).toFixed(1)}k`,
     images: photoCount,
     avatar: first.image || "",
     cover: first.image || "",
@@ -2114,7 +2105,6 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
           name: profile.name,
           location: "",
           specialty: "",
-          followers: "0",
           avatar: "",
           bio: "",
           cover: "",

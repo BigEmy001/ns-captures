@@ -10567,14 +10567,12 @@ export interface Photographer {
   name: string;
   location: string;
   specialty: string;
-  followers: string;
   images: number;
   avatar: string;
   bio?: string;
   cover?: string;
   verified?: boolean;
   gear?: string[];
-  customFollowers?: string;
 }
 
 export const photographers: Photographer[] = [
@@ -10583,7 +10581,6 @@ export const photographers: Photographer[] = [
     name: "James Anderson",
     location: "London, UK",
     specialty: "Editorial",
-    followers: "24.1k",
     images: 8,
     avatar: photos[8].image,
     verified: true,
@@ -10596,7 +10593,6 @@ export const photographers: Photographer[] = [
     name: "Jessica Felicio",
     location: "Lisbon, Portugal",
     specialty: "Lifestyle",
-    followers: "31.6k",
     images: 1,
     avatar: photos[1].image,
     verified: true,
@@ -10609,7 +10605,6 @@ export const photographers: Photographer[] = [
     name: "Mateo Silva",
     location: "London, UK",
     specialty: "Culture",
-    followers: "18.9k",
     images: 2,
     avatar: photos[5].image,
     verified: true,
@@ -10622,7 +10617,6 @@ export const photographers: Photographer[] = [
     name: "Elena Rossi",
     location: "Milan, Italy",
     specialty: "Portrait",
-    followers: "12.4k",
     images: 1,
     avatar: photos[0].image,
     verified: true,
@@ -10635,7 +10629,6 @@ export const photographers: Photographer[] = [
     name: "Chloe Dupont",
     location: "London, UK",
     specialty: "Portrait",
-    followers: "10.2k",
     images: 9,
     avatar:
       "https://images.unsplash.com/photo-1593351799227-75df2026356b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
@@ -10650,7 +10643,6 @@ export const photographers: Photographer[] = [
     name: "Yuki Tanaka",
     location: "Tokyo, Japan",
     specialty: "Fashion",
-    followers: "9.4k",
     images: 9,
     avatar:
       "https://images.unsplash.com/photo-1711464669343-2596d0f1b526?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
@@ -10665,7 +10657,6 @@ export const photographers: Photographer[] = [
     name: "Sinitta Leunen",
     location: "Amsterdam, NL",
     specialty: "Portrait",
-    followers: "10.8k",
     images: 9,
     avatar:
       "https://images.unsplash.com/photo-1619694770795-e21c58464159?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
@@ -10680,7 +10671,6 @@ export const photographers: Photographer[] = [
     name: "Tony Luginsland",
     location: "Berlin, Germany",
     specialty: "Fashion",
-    followers: "1.1k",
     images: 1,
     avatar:
       "https://images.unsplash.com/photo-1584805164144-ab4169cea20d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
@@ -10695,7 +10685,6 @@ export const photographers: Photographer[] = [
     name: "Leroy Skalstad",
     location: "Chicago, USA",
     specialty: "Documentary",
-    followers: "3.7k",
     images: 1,
     avatar:
       "https://images.unsplash.com/photo-1699903905361-4d408679753f?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
@@ -10710,7 +10699,6 @@ export const photographers: Photographer[] = [
     name: "Liam O'Connor",
     location: "London, UK",
     specialty: "Architecture",
-    followers: "3.5k",
     images: 1,
     avatar:
       "https://images.unsplash.com/photo-1749058387715-1efad0eadc8c?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
@@ -10725,7 +10713,6 @@ export const photographers: Photographer[] = [
     name: "Sofia Martinez",
     location: "London, UK",
     specialty: "Architecture",
-    followers: "1.8k",
     images: 8,
     avatar:
       "https://images.unsplash.com/photo-1559833064-6f4573ec1ac9?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
@@ -10740,7 +10727,6 @@ export const photographers: Photographer[] = [
     name: "Lucas Wagner",
     location: "London, UK",
     specialty: "Architecture",
-    followers: "3.6k",
     images: 9,
     avatar:
       "https://images.unsplash.com/photo-1640475167310-9112316627fa?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
@@ -10755,7 +10741,6 @@ export const photographers: Photographer[] = [
     name: "Amira Hassan",
     location: "London, UK",
     specialty: "Architecture",
-    followers: "1.0k",
     images: 9,
     avatar:
       "https://images.unsplash.com/photo-1658394818344-20f0f11a9121?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=1080",
@@ -10771,7 +10756,6 @@ export const photographers: Photographer[] = [
     name: "Patrick Watson Quine",
     location: "Montreal, Canada",
     specialty: "Landscape",
-    followers: "8.9k",
     images: 47,
     avatar:
       "https://res.cloudinary.com/odu5iecy/image/upload/v1784203446/ns-captures/AM%20Downtown%20Closeup%20C-1.jpg",
@@ -10786,7 +10770,6 @@ export const photographers: Photographer[] = [
     name: "Lexmond Dennis",
     location: "Amsterdam, Netherlands",
     specialty: "Landscape",
-    followers: "14.8k",
     images: 201,
     avatar:
       "https://res.cloudinary.com/odu5iecy/image/upload/v1784205071/ns-captures-lexmond/lexmond_photo_2.jpg",
@@ -10801,7 +10784,6 @@ export const photographers: Photographer[] = [
     name: "Haru Tanaka",
     location: "Tokyo, Japan",
     specialty: "Documentary",
-    followers: "8.2k",
     images: 187,
     avatar:
       "https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=150",
@@ -11000,7 +10982,6 @@ export interface AdminUser {
   status: "Active" | "Pending" | "Suspended" | "Blocked";
   joined: string;
   payoutBalance?: number;
-  customFollowers?: string;
   avatar?: string;
   bio?: string;
   location?: string;

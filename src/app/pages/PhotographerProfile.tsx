@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
-import { Button, Eyebrow } from "../components/ui";
+import { Eyebrow } from "../components/ui";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import {
   fetchPhotographer,
@@ -22,26 +22,13 @@ import {
   getOptimizedImageUrl,
 } from "../data/db";
 import { NotFound } from "./NotFound";
-import { useAuth } from "../context/AuthContext";
-import {
-  toggleFollow,
-  hasUserFollowedPhotographer,
-  fetchFollowerCount,
-  fetchFollowers,
-  fetchFollowing,
-  type FollowerInfo,
-} from "../data/db";
 
-type Tab = "highlights" | "gallery" | "collections" | "statistics" | "followers" | "following";
+type Tab = "highlights" | "gallery" | "collections" | "statistics";
 
 export function PhotographerProfile() {
   const { id } = useParams();
-  const { user } = useAuth();
   const [photographer, setPhotographer] = useState<Photographer | null>(null);
   const [shots, setShots] = useState<Photo[]>([]);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followers, setFollowers] = useState<FollowerInfo[]>([]);
-  const [followingList, setFollowingList] = useState<FollowerInfo[]>([]);
 
   useEffect(() => {
     const load = async () => {
@@ -50,31 +37,12 @@ export function PhotographerProfile() {
       if (p) {
         const photos = await fetchPhotosByPhotographer(id ?? "");
         setShots(photos);
-        const count = await fetchFollowerCount(id ?? "");
-        if (count > 0) setFollowerCount(count);
-        fetchFollowers(id ?? "")
-          .then(setFollowers)
-          .catch(() => {
-            toast.error("An error occurred");
-            return null;
-          });
-        fetchFollowing(id ?? "")
-          .then(setFollowingList)
-          .catch(() => {
-            toast.error("An error occurred");
-            return null;
-          });
       }
     };
     load();
   }, [id]);
   const [tab, setTab] = useState<Tab>("gallery");
-  const [following, setFollowing] = useState(false);
   const [sort, setSort] = useState<"recency" | "popular">("recency");
-
-  useEffect(() => {
-    if (user && id) hasUserFollowedPhotographer(user.id, id).then(setFollowing);
-  }, [user, id]);
 
   if (!photographer) {
     return (
@@ -96,7 +64,6 @@ export function PhotographerProfile() {
     0,
   );
   const totalViews = shots.reduce((s, p) => s + Math.max(p.views || 0, p.customViews || 0), 0);
-  const followingCount = 0;
 
   const sorted = [...shots].sort((a, b) =>
     sort === "popular"
@@ -108,8 +75,6 @@ export function PhotographerProfile() {
   const tabs: { id: Tab; label: string; count?: number; badge?: string }[] = [
     { id: "gallery", label: "Gallery", count: shots.length },
     { id: "statistics", label: "Statistics", badge: "NEW" },
-    { id: "followers", label: "Followers", count: followerCount },
-    { id: "following", label: "Following", count: followingCount },
   ];
 
   return (
@@ -159,33 +124,13 @@ export function PhotographerProfile() {
           >
             <Mail className="size-4" />
           </Link>
-          <Button
-            variant={following ? "outline" : "solid"}
-            onClick={async () => {
-              if (!user) {
-                toast.error("Sign in to follow");
-                return;
-              }
-              const nowFollowing = await toggleFollow(user.id, photographer.id);
-              setFollowing(nowFollowing);
-              setFollowerCount((c) => (nowFollowing ? c + 1 : Math.max(c - 1, 0)));
-              toast(nowFollowing ? `Following ${photographer.name}` : "Unfollowed");
-            }}
-          >
-            {following ? "Following" : "Follow"}
-          </Button>
         </div>
       </div>
 
       {/* Stat strip */}
-      <div className="mt-8 grid grid-cols-2 divide-[#ececec] border border-[#ececec] bg-[#ffffff] ns-shadow-sm sm:grid-cols-3 lg:grid-cols-4 lg:divide-x">
+      <div className="mt-8 grid grid-cols-2 divide-[#ececec] border border-[#ececec] bg-[#ffffff] ns-shadow-sm sm:grid-cols-3 lg:grid-cols-3 lg:divide-x">
         <StatCell value={compact(totalViews)} label="Total views" />
         <StatCell value={compact(totalDownloads)} label="Downloads" />
-        <StatCell
-          value={photographer.customFollowers || photographer.followers}
-          label="Followers"
-          muted
-        />
         <StatCell value={String(shots.length)} label="Published" muted />
       </div>
 
@@ -279,38 +224,6 @@ export function PhotographerProfile() {
                 ))}
               </div>
             </div>
-          </div>
-        )}
-
-        {(tab === "followers" || tab === "following") && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(tab === "followers" ? followers : followingList).map((f) => (
-              <div
-                key={f.followerId + f.followingId}
-                className="flex items-center gap-3 border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4"
-              >
-                <Avatar className="size-11">
-                  <AvatarImage src={f.avatar || ""} className="object-cover" />
-                  <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-xs">
-                    {f.name?.charAt(0).toUpperCase() || "NS"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{f.name}</p>
-                </div>
-                <button
-                  onClick={() => toast(tab === "following" ? "Unfollowed" : `Following ${f.name}`)}
-                  className="text-xs font-semibold text-[#1e4a3f]"
-                >
-                  {tab === "following" ? "Following" : "Follow"}
-                </button>
-              </div>
-            ))}
-            {tab === "followers" && (
-              <p key="more" className="text-sm text-[#8a8f89] col-span-full">
-                …and {followerCount} more.
-              </p>
-            )}
           </div>
         )}
       </div>

@@ -238,9 +238,7 @@ export function Home() {
                 </div>
                 <div className="mt-5 flex items-center justify-between text-xs text-[#6b716d]">
                   <span>{p.specialty}</span>
-                  <span>
-                    {p.followers} followers · {p.images} images
-                  </span>
+                  <span>{p.images} images</span>
                 </div>
               </Link>
             ))}

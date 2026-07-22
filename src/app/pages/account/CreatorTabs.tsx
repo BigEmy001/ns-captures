@@ -32,7 +32,6 @@ import {
   fetchPhotographerStats,
   fetchPhotographerMonthlyRevenue,
   fetchPhotographerWeeklyDownloads,
-  fetchFollowerCount,
   fetchBalanceAdjustments,
   fetchPayouts,
   fetchPayoutRequests,
@@ -161,7 +160,6 @@ export function CreatorTabs({
     photoCount: 0,
     avgPrice: 0,
   });
-  const [followerCount, setFollowerCount] = useState(0);
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editingPriceValue, setEditingPriceValue] = useState<string>("");
 
@@ -230,12 +228,6 @@ export function CreatorTabs({
         });
       fetchPhotographerStats(photographerId)
         .then(setPhotographerStats)
-        .catch(() => {
-          toast.error("An error occurred");
-          return null;
-        });
-      fetchFollowerCount(photographerId)
-        .then(setFollowerCount)
         .catch(() => {
           toast.error("An error occurred");
           return null;
@@ -624,15 +616,6 @@ export function CreatorTabs({
     },
     { label: "DOWNLOADS", value: photographerStats.totalDownloads.toLocaleString() },
     { label: "LIKES", value: photographerStats.totalLikes.toLocaleString() },
-    {
-      label: "FOLLOWERS",
-      value: Math.max(
-        followerCount,
-        photographerProfile?.customFollowers
-          ? parseInt(photographerProfile.customFollowers.replace(/[^0-9]/g, ""), 10) || 0
-          : 0,
-      ).toLocaleString(),
-    },
   ];
 
   const pendingPayoutRequest = payoutRequests.find((r) => r.status === "PENDING");
