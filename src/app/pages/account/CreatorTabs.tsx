@@ -135,6 +135,7 @@ export function CreatorTabs({
   >([]);
   const [paymentMethods, setPaymentMethods] = useState<PhotographerPaymentMethod[]>([]);
   const [editingMethod, setEditingMethod] = useState<string | null>(null);
+  const [payoutTab, setPayoutTab] = useState<"overview" | "methods" | "request">("overview");
   const [cryptoWallets, setCryptoWallets] = useState<CryptoWalletEntry[]>([]);
   const [payoutAmount, setPayoutAmount] = useState("");
   const [payoutMethod, setPayoutMethod] = useState<"card" | "local_bank" | "crypto" | "paypal">(
@@ -1298,172 +1299,204 @@ export function CreatorTabs({
         <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
           <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
             <Eyebrow>PAYOUTS</Eyebrow>
-            <h1 className="mt-2 mb-8 font-serif text-3xl sm:text-4xl tracking-tight text-[#18211f]">
+            <h1 className="mt-2 mb-4 font-serif text-3xl sm:text-4xl tracking-tight text-[#18211f]">
               Earnings & Payouts
             </h1>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
-              <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
-                <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
-                  Available Balance
-                </p>
-                <p className="mt-2 font-serif text-3xl text-[#1e4a3f] font-semibold">
-                  £
-                  {(user?.payoutBalance ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}
-                </p>
-                <p className="text-[11px] text-[#758078] mt-1.5">
-                  Withdrawable after admin approval
-                </p>
-              </div>
-              <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
-                <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
-                  Lifetime Revenue
-                </p>
-                <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">
-                  £
-                  {photographerStats.totalRevenue.toLocaleString("en-GB", {
-                    minimumFractionDigits: 2,
-                  })}
-                </p>
-                <p className="text-[11px] text-[#758078] mt-1.5">Total earned from all sales</p>
-              </div>
-              <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
-                <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
-                  Pending Payout
-                </p>
-                <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">
-                  {pendingPayout ? `£${pendingPayout.amount.toLocaleString()}` : "—"}
-                </p>
-                <p className="text-[11px] text-[#758078] mt-1.5">
-                  {pendingPayout ? `Requested ${pendingPayout.date}` : "No pending requests"}
-                </p>
-              </div>
+            <div className="flex gap-1 border-b border-[#ececec] mb-8">
+              {(
+                [
+                  { id: "overview" as const, label: "Overview" },
+                  { id: "methods" as const, label: "Methods" },
+                  { id: "request" as const, label: "Request Payout" },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setPayoutTab(t.id)}
+                  className={`px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px ${
+                    payoutTab === t.id
+                      ? "border-[#1e4a3f] text-[#1e4a3f]"
+                      : "border-transparent text-[#6b716d] hover:text-[#18211f]"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
 
-            {payoutsToRender.length > 0 ? (
-              <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-[#ececec]">
-                  <h2 className="font-serif text-lg text-[#18211f]">Payout History</h2>
+            {payoutTab === "overview" && (
+              <>
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-10">
+                  <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
+                    <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                      Available Balance
+                    </p>
+                    <p className="mt-2 font-serif text-3xl text-[#1e4a3f] font-semibold">
+                      £
+                      {(user?.payoutBalance ?? 0).toLocaleString("en-GB", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </p>
+                    <p className="text-[11px] text-[#758078] mt-1.5">
+                      Withdrawable after admin approval
+                    </p>
+                  </div>
+                  <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
+                    <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                      Lifetime Revenue
+                    </p>
+                    <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">
+                      £
+                      {photographerStats.totalRevenue.toLocaleString("en-GB", {
+                        minimumFractionDigits: 2,
+                      })}
+                    </p>
+                    <p className="text-[11px] text-[#758078] mt-1.5">Total earned from all sales</p>
+                  </div>
+                  <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
+                    <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                      Pending Payout
+                    </p>
+                    <p className="mt-2 font-serif text-3xl text-[#18211f] font-medium">
+                      {pendingPayout ? `£${pendingPayout.amount.toLocaleString()}` : "—"}
+                    </p>
+                    <p className="text-[11px] text-[#758078] mt-1.5">
+                      {pendingPayout ? `Requested ${pendingPayout.date}` : "No pending requests"}
+                    </p>
+                  </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b border-[#ececec]">
-                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
-                          Method
-                        </th>
-                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase text-right">
-                          Amount
-                        </th>
-                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
-                          Status
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {payoutsToRender.map((p) => (
-                        <tr key={p.id} className="border-b border-[#ececec]/50 last:border-0">
-                          <td className="px-6 py-4 text-sm text-[#4a534e]">{p.date}</td>
-                          <td className="px-6 py-4 text-sm text-[#4a534e] capitalize">
-                            {p.method}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-[#18211f] font-medium text-right">
-                            {p.amount}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
-                                p.status === "SUCCESSFUL" ||
-                                p.status === "PAID" ||
-                                p.status === "APPROVED"
-                                  ? "bg-emerald-50 text-emerald-700"
-                                  : p.status === "PENDING"
-                                    ? "bg-amber-50 text-amber-700"
-                                    : "bg-red-50 text-red-700"
-                              }`}
-                            >
-                              {p.status === "SUCCESSFUL" ? "PAID" : p.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm p-12 text-center">
-                <Wallet className="size-10 mx-auto text-[#c4cdc5]" />
-                <p className="mt-3 font-serif text-lg text-[#4a534e]">No payout history</p>
-                <p className="text-xs text-[#758078] mt-1 max-w-xs mx-auto">
-                  Once a payout is processed or you submit a withdrawal request, it will appear
-                  here.
-                </p>
-              </div>
+
+                {payoutsToRender.length > 0 ? (
+                  <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-[#ececec]">
+                      <h2 className="font-serif text-lg text-[#18211f]">Payout History</h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-[#ececec]">
+                            <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Date
+                            </th>
+                            <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Method
+                            </th>
+                            <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase text-right">
+                              Amount
+                            </th>
+                            <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {payoutsToRender.map((p) => (
+                            <tr key={p.id} className="border-b border-[#ececec]/50 last:border-0">
+                              <td className="px-6 py-4 text-sm text-[#4a534e]">{p.date}</td>
+                              <td className="px-6 py-4 text-sm text-[#4a534e] capitalize">
+                                {p.method}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-[#18211f] font-medium text-right">
+                                {p.amount}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
+                                    p.status === "SUCCESSFUL" ||
+                                    p.status === "PAID" ||
+                                    p.status === "APPROVED"
+                                      ? "bg-emerald-50 text-emerald-700"
+                                      : p.status === "PENDING"
+                                        ? "bg-amber-50 text-amber-700"
+                                        : "bg-red-50 text-red-700"
+                                  }`}
+                                >
+                                  {p.status === "SUCCESSFUL" ? "PAID" : p.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm p-12 text-center">
+                    <Wallet className="size-10 mx-auto text-[#c4cdc5]" />
+                    <p className="mt-3 font-serif text-lg text-[#4a534e]">No payout history</p>
+                    <p className="text-xs text-[#758078] mt-1 max-w-xs mx-auto">
+                      Once a payout is processed or you submit a withdrawal request, it will appear
+                      here.
+                    </p>
+                  </div>
+                )}
+
+                {balanceAdjustments.length > 0 && (
+                  <div className="mt-8 bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-[#ececec]">
+                      <h2 className="font-serif text-lg text-[#18211f]">Balance Adjustments</h2>
+                      <p className="text-[11px] text-[#758078] mt-0.5">
+                        Admin-ledger activity on your account
+                      </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-[#ececec]">
+                            <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Date
+                            </th>
+                            <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Reason
+                            </th>
+                            <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase text-right">
+                              Amount
+                            </th>
+                            <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase text-right">
+                              Balance After
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {balanceAdjustments.map((adj, i) => (
+                            <tr key={i} className="border-b border-[#ececec]/50 last:border-0">
+                              <td className="px-6 py-4 text-sm text-[#4a534e]">
+                                {new Date(adj.createdAt).toLocaleDateString("en-GB", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-[#6b716d] max-w-[200px] truncate">
+                                {adj.reason || "—"}
+                              </td>
+                              <td className="px-6 py-4 text-sm font-medium text-right">
+                                <span
+                                  className={adj.amount >= 0 ? "text-emerald-700" : "text-red-600"}
+                                >
+                                  {adj.amount >= 0 ? "+" : ""}£
+                                  {adj.amount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-[#18211f] font-medium text-right">
+                                £
+                                {adj.balanceAfter.toLocaleString("en-GB", {
+                                  minimumFractionDigits: 2,
+                                })}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
-            {balanceAdjustments.length > 0 && (
-              <div className="mt-8 bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-[#ececec]">
-                  <h2 className="font-serif text-lg text-[#18211f]">Balance Adjustments</h2>
-                  <p className="text-[11px] text-[#758078] mt-0.5">
-                    Admin-ledger activity on your account
-                  </p>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b border-[#ececec]">
-                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
-                          Reason
-                        </th>
-                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase text-right">
-                          Amount
-                        </th>
-                        <th className="px-6 py-3 font-mono text-[9px] tracking-wider text-[#758078] uppercase text-right">
-                          Balance After
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {balanceAdjustments.map((adj, i) => (
-                        <tr key={i} className="border-b border-[#ececec]/50 last:border-0">
-                          <td className="px-6 py-4 text-sm text-[#4a534e]">
-                            {new Date(adj.createdAt).toLocaleDateString("en-GB", {
-                              day: "numeric",
-                              month: "short",
-                              year: "numeric",
-                            })}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-[#6b716d] max-w-[200px] truncate">
-                            {adj.reason || "—"}
-                          </td>
-                          <td className="px-6 py-4 text-sm font-medium text-right">
-                            <span className={adj.amount >= 0 ? "text-emerald-700" : "text-red-600"}>
-                              {adj.amount >= 0 ? "+" : ""}£
-                              {adj.amount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-[#18211f] font-medium text-right">
-                            £
-                            {adj.balanceAfter.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-8 grid gap-6 lg:grid-cols-2">
-              <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
+            {payoutTab === "methods" && (
+              <div className="mt-0 bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-[#ececec]">
                   <h2 className="font-serif text-lg text-[#18211f]">Payout Methods</h2>
                   <p className="text-[11px] text-[#758078] mt-0.5">
@@ -2160,7 +2193,9 @@ export function CreatorTabs({
                   </div>
                 </div>
               </div>
+            )}
 
+            {payoutTab === "request" && (
               <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
                 <div className="px-6 py-4 border-b border-[#ececec]">
                   <h2 className="font-serif text-lg text-[#18211f]">Request Payout</h2>
@@ -2509,7 +2544,7 @@ export function CreatorTabs({
                   </p>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

@@ -333,55 +333,55 @@ export function Account() {
             <Eyebrow>MY ACCOUNT</Eyebrow>
           </div>
 
-          {/* Profile Header Cover — dashboard only */}
-          {active === "dashboard" && (
-            <div className="relative h-28 w-full rounded-2xl overflow-hidden mb-8 ns-shadow-sm">
-              {user?.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt=""
-                  loading="lazy"
-                  className="w-full h-full object-cover opacity-40 blur-md scale-110"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[#1e4a3f] to-[#2a5e4f]" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-6 flex items-center gap-4">
-                <div className="relative group size-14 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white">
-                  <Avatar className="w-full h-full object-cover">
-                    <AvatarImage src={user?.avatar || ""} alt="" loading="lazy" />
-                    <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-lg">
-                      {user?.name?.slice(0, 2).toUpperCase() || "NS"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <label className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                    {isUploadingAvatar ? (
-                      <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Camera className="size-4" />
-                    )}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleAvatarUpload}
-                      disabled={isUploadingAvatar}
-                    />
-                  </label>
-                </div>
-                <div className="text-white">
-                  <h1 className="font-serif text-xl sm:text-2xl font-semibold leading-tight">
-                    {user?.name || "User"}
-                  </h1>
-                  <p className="text-xs text-white/70 font-medium tracking-wide mt-0.5">
-                    {user?.role || "Buyer"}
-                    {user?.company ? ` · ${user.company}` : ""}
-                  </p>
-                </div>
+          {/* Profile Header Cover — always on mobile, dashboard only on desktop */}
+          <div
+            className={`relative h-28 w-full rounded-2xl overflow-hidden mb-8 ns-shadow-sm ${active !== "dashboard" ? "sm:hidden" : ""}`}
+          >
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt=""
+                loading="lazy"
+                className="w-full h-full object-cover opacity-40 blur-md scale-110"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#1e4a3f] to-[#2a5e4f]" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            <div className="absolute bottom-4 left-6 flex items-center gap-4">
+              <div className="relative group size-14 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white">
+                <Avatar className="w-full h-full object-cover">
+                  <AvatarImage src={user?.avatar || ""} alt="" loading="lazy" />
+                  <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-lg">
+                    {user?.name?.slice(0, 2).toUpperCase() || "NS"}
+                  </AvatarFallback>
+                </Avatar>
+                <label className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  {isUploadingAvatar ? (
+                    <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Camera className="size-4" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                    disabled={isUploadingAvatar}
+                  />
+                </label>
+              </div>
+              <div className="text-white">
+                <h1 className="font-serif text-xl sm:text-2xl font-semibold leading-tight">
+                  {user?.name || "User"}
+                </h1>
+                <p className="text-xs text-white/70 font-medium tracking-wide mt-0.5">
+                  {user?.role || "Buyer"}
+                  {user?.company ? ` · ${user.company}` : ""}
+                </p>
               </div>
             </div>
-          )}
+          </div>
 
           {user?.role === "Buyer" && (
             <div className="mb-6 bg-gradient-to-r from-[#1e4a3f] to-[#2a5e4f] rounded-2xl p-6 sm:p-8 ns-shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
