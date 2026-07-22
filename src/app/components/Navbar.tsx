@@ -255,15 +255,13 @@ export function Navbar() {
         const methods = await fetchAdminPaymentMethods();
 
         // Map the admin payment methods into the expected UI format
+        const bankMethods = methods.filter((m) => m.methodType === "bank" && m.enabled);
+        const primaryBank = bankMethods[0];
         setAvailableMethods([
           {
             method: "card",
-            enabled: !!methods.find((m) => m.methodType === "bank" && m.enabled),
-            details: {
-              instructions: methods
-                .filter((m) => m.methodType === "bank" && m.enabled)
-                .map((m) => m.details),
-            },
+            enabled: bankMethods.length > 0,
+            details: primaryBank?.details || {},
           },
           {
             method: "crypto",
@@ -895,16 +893,114 @@ export function Navbar() {
                         Bank Transfer Details
                       </p>
                       <p className="text-[11px] text-[#6b716d]">
-                        Transfer the total amount to the photographer's bank account. Reference your
-                        order ID after payment.
+                        Transfer the total amount to the account below. Include your order ID as the
+                        payment reference.
                       </p>
                       <div className="mt-3 space-y-1.5">
-                        <p className="text-xs text-[#18211f]">
-                          Bank: <span className="font-medium">Provided by photographer</span>
-                        </p>
-                        <p className="text-xs text-[#18211f]">
-                          Account: <span className="font-medium">Shown on order confirmation</span>
-                        </p>
+                        {availableMethods.find((m) => m.method === "card")?.details?.bankName && (
+                          <p className="text-xs text-[#18211f]">
+                            Bank:{" "}
+                            <span className="font-medium">
+                              {String(
+                                availableMethods.find((m) => m.method === "card")?.details
+                                  ?.bankName,
+                              )}
+                            </span>
+                          </p>
+                        )}
+                        {availableMethods.find((m) => m.method === "card")?.details
+                          ?.accountHolder && (
+                          <p className="text-xs text-[#18211f]">
+                            Account holder:{" "}
+                            <span className="font-medium">
+                              {String(
+                                availableMethods.find((m) => m.method === "card")?.details
+                                  ?.accountHolder,
+                              )}
+                            </span>
+                          </p>
+                        )}
+                        {availableMethods.find((m) => m.method === "card")?.details?.iban && (
+                          <p className="text-xs text-[#18211f] font-mono">
+                            IBAN:{" "}
+                            <span className="font-medium">
+                              {String(
+                                availableMethods.find((m) => m.method === "card")?.details?.iban,
+                              )}
+                            </span>
+                          </p>
+                        )}
+                        {availableMethods.find((m) => m.method === "card")?.details?.swift && (
+                          <p className="text-xs text-[#18211f] font-mono">
+                            SWIFT/BIC:{" "}
+                            <span className="font-medium">
+                              {String(
+                                availableMethods.find((m) => m.method === "card")?.details?.swift,
+                              )}
+                            </span>
+                          </p>
+                        )}
+                        {availableMethods.find((m) => m.method === "card")?.details
+                          ?.accountNumber && (
+                          <p className="text-xs text-[#18211f] font-mono">
+                            Account:{" "}
+                            <span className="font-medium">
+                              {String(
+                                availableMethods.find((m) => m.method === "card")?.details
+                                  ?.accountNumber,
+                              )}
+                            </span>
+                          </p>
+                        )}
+                        {availableMethods.find((m) => m.method === "card")?.details
+                          ?.routingCode && (
+                          <p className="text-xs text-[#18211f] font-mono">
+                            Sort/Routing:{" "}
+                            <span className="font-medium">
+                              {String(
+                                availableMethods.find((m) => m.method === "card")?.details
+                                  ?.routingCode,
+                              )}
+                            </span>
+                          </p>
+                        )}
+                        {availableMethods.find((m) => m.method === "card")?.details?.currency && (
+                          <p className="text-xs text-[#18211f]">
+                            Currency:{" "}
+                            <span className="font-medium">
+                              {String(
+                                availableMethods.find((m) => m.method === "card")?.details
+                                  ?.currency,
+                              )}
+                            </span>
+                          </p>
+                        )}
+                        {availableMethods.find((m) => m.method === "card")?.details
+                          ?.paymentReference && (
+                          <p className="text-xs text-[#18211f]">
+                            Reference:{" "}
+                            <span className="font-medium">
+                              {String(
+                                availableMethods.find((m) => m.method === "card")?.details
+                                  ?.paymentReference,
+                              )}
+                            </span>
+                          </p>
+                        )}
+                        {availableMethods.find((m) => m.method === "card")?.details
+                          ?.bankAddress && (
+                          <p className="text-[10px] text-[#758078] mt-1">
+                            {String(
+                              availableMethods.find((m) => m.method === "card")?.details
+                                ?.bankAddress,
+                            )}
+                          </p>
+                        )}
+                        {!availableMethods.find((m) => m.method === "card")?.details?.bankName && (
+                          <p className="text-xs text-[#6b716d] italic">
+                            Bank details will be provided on order confirmation.
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -958,6 +1054,7 @@ export function Navbar() {
                         <p className="text-xs font-mono text-[#18211f]">
                           {String(
                             availableMethods.find((m) => m.method === "paypal")?.details?.email ||
+                              availableMethods.find((m) => m.method === "paypal")?.details?.value ||
                               "admin@ns-captures.com",
                           )}
                         </p>

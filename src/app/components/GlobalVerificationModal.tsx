@@ -385,15 +385,57 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                                 <p className="text-[9px] sm:text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1">
                                   Payment Details
                                 </p>
-                                <div className="flex items-start gap-2">
-                                  <code className="flex-1 bg-white border border-[#ececec] p-2 rounded text-xs text-[#1e4a3f] break-all">
-                                    {method.details}
-                                  </code>
+                                <div className="space-y-1">
+                                  {method.methodType === "bank" && method.details ? (
+                                    <>
+                                      {method.details.bankName && (
+                                        <p className="text-xs text-[#18211f]">
+                                          Bank:{" "}
+                                          <span className="font-medium">
+                                            {String(method.details.bankName)}
+                                          </span>
+                                        </p>
+                                      )}
+                                      {method.details.iban && (
+                                        <p className="text-xs text-[#18211f] font-mono">
+                                          IBAN: {String(method.details.iban)}
+                                        </p>
+                                      )}
+                                      {method.details.swift && (
+                                        <p className="text-xs text-[#18211f] font-mono">
+                                          SWIFT: {String(method.details.swift)}
+                                        </p>
+                                      )}
+                                      {method.details.accountNumber && !method.details.iban && (
+                                        <p className="text-xs text-[#18211f] font-mono">
+                                          Acc: {String(method.details.accountNumber)}
+                                        </p>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <code className="flex-1 bg-white border border-[#ececec] p-2 rounded text-xs text-[#1e4a3f] break-all block">
+                                      {typeof method.details === "object"
+                                        ? method.details?.value ||
+                                          method.details?.email ||
+                                          method.details?.address ||
+                                          JSON.stringify(method.details)
+                                        : String(method.details)}
+                                    </code>
+                                  )}
+                                </div>
+                                <div className="flex items-start gap-2 mt-2">
                                   <button
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      navigator.clipboard.writeText(method.details);
+                                      const text =
+                                        typeof method.details === "object"
+                                          ? method.details?.value ||
+                                            method.details?.email ||
+                                            method.details?.address ||
+                                            JSON.stringify(method.details)
+                                          : String(method.details);
+                                      navigator.clipboard.writeText(text);
                                       toast.success("Copied to clipboard!");
                                     }}
                                     className="p-2 border border-[#ececec] rounded bg-white hover:bg-[#f8f9f7] text-[#6b716d] transition flex-shrink-0"

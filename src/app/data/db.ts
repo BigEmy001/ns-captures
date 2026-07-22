@@ -2535,7 +2535,7 @@ export interface AdminPaymentMethod {
   id: string;
   methodType: string;
   name: string;
-  details: string;
+  details: Record<string, any>;
   enabled: boolean;
   createdAt: string;
 }
@@ -2548,7 +2548,7 @@ export async function fetchAdminPaymentMethods(): Promise<AdminPaymentMethod[]> 
     id: m.id,
     methodType: m.method_type,
     name: m.name,
-    details: m.details,
+    details: typeof m.details === "string" ? JSON.parse(m.details || "{}") : m.details || {},
     enabled: m.enabled,
     createdAt: m.created_at,
   }));
@@ -2557,7 +2557,7 @@ export async function fetchAdminPaymentMethods(): Promise<AdminPaymentMethod[]> 
 export async function createAdminPaymentMethod(
   methodType: string,
   name: string,
-  details: string,
+  details: Record<string, any>,
 ): Promise<AdminPaymentMethod> {
   const { data, error } = await supabase
     .from("admin_payment_methods")
@@ -2571,7 +2571,8 @@ export async function createAdminPaymentMethod(
     id: data.id,
     methodType: data.method_type,
     name: data.name,
-    details: data.details,
+    details:
+      typeof data.details === "string" ? JSON.parse(data.details || "{}") : data.details || {},
     enabled: data.enabled,
     createdAt: data.created_at,
   };
@@ -2579,7 +2580,7 @@ export async function createAdminPaymentMethod(
 
 export async function updateAdminPaymentMethod(
   id: string,
-  updates: { enabled?: boolean; details?: string; name?: string },
+  updates: { enabled?: boolean; details?: Record<string, any>; name?: string },
 ): Promise<void> {
   const { error } = await supabase.from("admin_payment_methods").update(updates).eq("id", id);
 

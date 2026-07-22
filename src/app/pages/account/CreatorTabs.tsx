@@ -1532,22 +1532,59 @@ export function CreatorTabs({
                           <p className="text-xs text-[#18211f] font-medium">
                             {
                               paymentMethods.find((m) => m.method === "card")?.details
+                                ?.recipientName as string
+                            }
+                          </p>
+                          <p className="text-xs text-[#18211f]">
+                            {
+                              paymentMethods.find((m) => m.method === "card")?.details
                                 ?.bankName as string
                             }
                           </p>
                           <p className="text-xs text-[#6b716d] font-mono">
+                            IBAN:{" "}
                             {
                               paymentMethods.find((m) => m.method === "card")?.details
-                                ?.accountNumber as string
-                            }{" "}
-                            {paymentMethods.find((m) => m.method === "card")?.details?.sortCode
-                              ? `· ${paymentMethods.find((m) => m.method === "card")?.details?.sortCode}`
-                              : ""}
+                                ?.iban as string
+                            }
+                          </p>
+                          <p className="text-xs text-[#6b716d] font-mono">
+                            SWIFT:{" "}
+                            {
+                              paymentMethods.find((m) => m.method === "card")?.details
+                                ?.swift as string
+                            }
                           </p>
                         </div>
                       )}
                     {editingMethod === "card" && (
                       <div className="space-y-3 mt-3 pt-3 border-t border-[#ececec]/60">
+                        <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider">
+                          Recipient Information
+                        </p>
+                        <input
+                          type="text"
+                          placeholder="Recipient full legal name"
+                          defaultValue={
+                            (paymentMethods.find((m) => m.method === "card")?.details
+                              ?.recipientName as string) || ""
+                          }
+                          id="pm-bank-recipient-name"
+                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Recipient physical address"
+                          defaultValue={
+                            (paymentMethods.find((m) => m.method === "card")?.details
+                              ?.recipientAddress as string) || ""
+                          }
+                          id="pm-bank-recipient-address"
+                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        />
+                        <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider pt-2">
+                          Bank Details
+                        </p>
                         <input
                           type="text"
                           placeholder="Bank name"
@@ -1560,44 +1597,195 @@ export function CreatorTabs({
                         />
                         <input
                           type="text"
-                          placeholder="Account number / IBAN"
+                          placeholder="Bank physical address"
                           defaultValue={
                             (paymentMethods.find((m) => m.method === "card")?.details
-                              ?.accountNumber as string) || ""
+                              ?.bankAddress as string) || ""
                           }
-                          id="pm-bank-account"
+                          id="pm-bank-address"
                           className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
                         />
+                        <div className="grid grid-cols-2 gap-3">
+                          <input
+                            type="text"
+                            placeholder="SWIFT / BIC code"
+                            defaultValue={
+                              (paymentMethods.find((m) => m.method === "card")?.details
+                                ?.swift as string) || ""
+                            }
+                            id="pm-bank-swift"
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                          />
+                          <input
+                            type="text"
+                            placeholder="IBAN"
+                            defaultValue={
+                              (paymentMethods.find((m) => m.method === "card")?.details
+                                ?.iban as string) || ""
+                            }
+                            id="pm-bank-iban"
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <input
+                            type="text"
+                            placeholder="Local account number"
+                            defaultValue={
+                              (paymentMethods.find((m) => m.method === "card")?.details
+                                ?.accountNumber as string) || ""
+                            }
+                            id="pm-bank-account"
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                          />
+                          <select
+                            defaultValue={
+                              (paymentMethods.find((m) => m.method === "card")?.details
+                                ?.routingType as string) || ""
+                            }
+                            id="pm-bank-routing-type"
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                          >
+                            <option value="">Routing code type</option>
+                            <option value="ABA">ABA (US)</option>
+                            <option value="Sort Code">Sort Code (UK)</option>
+                            <option value="BSB">BSB (AU)</option>
+                            <option value="CLABE">CLABE (MX)</option>
+                            <option value="IFSC">IFSC (IN)</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
                         <input
                           type="text"
-                          placeholder="Sort code / SWIFT / BIC"
+                          placeholder="Local routing code"
                           defaultValue={
                             (paymentMethods.find((m) => m.method === "card")?.details
-                              ?.sortCode as string) || ""
+                              ?.routingCode as string) || ""
                           }
-                          id="pm-bank-sort"
+                          id="pm-bank-routing"
                           className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
                         />
+                        <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider pt-2">
+                          Intermediary Bank (Optional)
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <input
+                            type="text"
+                            placeholder="Intermediary SWIFT code"
+                            defaultValue={
+                              (paymentMethods.find((m) => m.method === "card")?.details
+                                ?.intermediarySwift as string) || ""
+                            }
+                            id="pm-bank-intermediary-swift"
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Intermediary bank name"
+                            defaultValue={
+                              (paymentMethods.find((m) => m.method === "card")?.details
+                                ?.intermediaryName as string) || ""
+                            }
+                            id="pm-bank-intermediary-name"
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <select
+                            defaultValue={
+                              (paymentMethods.find((m) => m.method === "card")?.details
+                                ?.currency as string) || "GBP"
+                            }
+                            id="pm-bank-currency"
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                          >
+                            <option value="GBP">GBP (£)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="EUR">EUR (€)</option>
+                            <option value="NGN">NGN (₦)</option>
+                            <option value="CAD">CAD (C$)</option>
+                            <option value="AUD">AUD (A$)</option>
+                          </select>
+                          <input
+                            type="text"
+                            placeholder="Payment reference"
+                            defaultValue={
+                              (paymentMethods.find((m) => m.method === "card")?.details
+                                ?.paymentReference as string) || ""
+                            }
+                            id="pm-bank-reference"
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                          />
+                        </div>
                         <button
                           onClick={async () => {
+                            const recipientName = (
+                              document.getElementById("pm-bank-recipient-name") as HTMLInputElement
+                            )?.value;
                             const bankName = (
                               document.getElementById("pm-bank-name") as HTMLInputElement
                             )?.value;
-                            const accountNumber = (
-                              document.getElementById("pm-bank-account") as HTMLInputElement
+                            const iban = (
+                              document.getElementById("pm-bank-iban") as HTMLInputElement
                             )?.value;
-                            const sortCode = (
-                              document.getElementById("pm-bank-sort") as HTMLInputElement
+                            const swift = (
+                              document.getElementById("pm-bank-swift") as HTMLInputElement
                             )?.value;
-                            if (!bankName || !accountNumber) {
-                              toast.error("Fill in bank details");
+                            if (!recipientName || !bankName) {
+                              toast.error("Recipient name and bank name are required");
                               return;
                             }
-                            const ok = await upsertPaymentMethod(photographerId, "card", true, {
+                            const details = {
+                              recipientName,
+                              recipientAddress:
+                                (
+                                  document.getElementById(
+                                    "pm-bank-recipient-address",
+                                  ) as HTMLInputElement
+                                )?.value || "",
                               bankName,
-                              accountNumber,
-                              sortCode,
-                            });
+                              bankAddress:
+                                (document.getElementById("pm-bank-address") as HTMLInputElement)
+                                  ?.value || "",
+                              swift,
+                              iban,
+                              accountNumber:
+                                (document.getElementById("pm-bank-account") as HTMLInputElement)
+                                  ?.value || "",
+                              routingType:
+                                (
+                                  document.getElementById(
+                                    "pm-bank-routing-type",
+                                  ) as HTMLSelectElement
+                                )?.value || "",
+                              routingCode:
+                                (document.getElementById("pm-bank-routing") as HTMLInputElement)
+                                  ?.value || "",
+                              intermediarySwift:
+                                (
+                                  document.getElementById(
+                                    "pm-bank-intermediary-swift",
+                                  ) as HTMLInputElement
+                                )?.value || "",
+                              intermediaryName:
+                                (
+                                  document.getElementById(
+                                    "pm-bank-intermediary-name",
+                                  ) as HTMLInputElement
+                                )?.value || "",
+                              currency:
+                                (document.getElementById("pm-bank-currency") as HTMLSelectElement)
+                                  ?.value || "GBP",
+                              paymentReference:
+                                (document.getElementById("pm-bank-reference") as HTMLInputElement)
+                                  ?.value || "",
+                            };
+                            const ok = await upsertPaymentMethod(
+                              photographerId,
+                              "card",
+                              true,
+                              details,
+                            );
                             if (ok) {
                               toast.success("Bank details saved");
                               setEditingMethod(null);
@@ -1886,7 +2074,7 @@ export function CreatorTabs({
                                   paymentMethods.find((pm) => pm.method === m)?.details
                                     ?.wallets as any[]
                                 )?.length > 0
-                              : paymentMethods.find((pm) => pm.method === m)?.details?.email);
+                              : !!paymentMethods.find((pm) => pm.method === m)?.details?.bankName);
                         return (
                           <button
                             key={m}
@@ -1898,8 +2086,16 @@ export function CreatorTabs({
                                 const d = saved.details as Record<string, any>;
                                 if (m === "card") {
                                   setPayoutDetails({
+                                    recipientName: d.recipientName || "",
+                                    recipientAddress: d.recipientAddress || "",
                                     bankName: d.bankName || "",
+                                    bankAddress: d.bankAddress || "",
+                                    swift: d.swift || "",
+                                    iban: d.iban || "",
                                     accountNumber: d.accountNumber || "",
+                                    routingType: d.routingType || "",
+                                    routingCode: d.routingCode || "",
+                                    currency: d.currency || "GBP",
                                   });
                                 } else if (m === "crypto") {
                                   const wallets = d.wallets as any[];
@@ -1932,6 +2128,30 @@ export function CreatorTabs({
                   </div>
                   {payoutMethod === "card" && (
                     <div className="space-y-3">
+                      <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider">
+                        Recipient
+                      </p>
+                      <input
+                        type="text"
+                        placeholder="Recipient full legal name"
+                        value={payoutDetails.recipientName || ""}
+                        onChange={(e) =>
+                          setPayoutDetails((p) => ({ ...p, recipientName: e.target.value }))
+                        }
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Recipient physical address"
+                        value={payoutDetails.recipientAddress || ""}
+                        onChange={(e) =>
+                          setPayoutDetails((p) => ({ ...p, recipientAddress: e.target.value }))
+                        }
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                      />
+                      <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider pt-1">
+                        Bank
+                      </p>
                       <input
                         type="text"
                         placeholder="Bank name"
@@ -1941,12 +2161,41 @@ export function CreatorTabs({
                         }
                         className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
                       />
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          placeholder="SWIFT / BIC"
+                          value={payoutDetails.swift || ""}
+                          onChange={(e) =>
+                            setPayoutDetails((p) => ({ ...p, swift: e.target.value }))
+                          }
+                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        />
+                        <input
+                          type="text"
+                          placeholder="IBAN"
+                          value={payoutDetails.iban || ""}
+                          onChange={(e) =>
+                            setPayoutDetails((p) => ({ ...p, iban: e.target.value }))
+                          }
+                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        />
+                      </div>
                       <input
                         type="text"
-                        placeholder="Account number / IBAN"
+                        placeholder="Local account number"
                         value={payoutDetails.accountNumber || ""}
                         onChange={(e) =>
                           setPayoutDetails((p) => ({ ...p, accountNumber: e.target.value }))
+                        }
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Local routing code"
+                        value={payoutDetails.routingCode || ""}
+                        onChange={(e) =>
+                          setPayoutDetails((p) => ({ ...p, routingCode: e.target.value }))
                         }
                         className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
                       />
@@ -2005,9 +2254,9 @@ export function CreatorTabs({
                       }
                       if (
                         payoutMethod === "card" &&
-                        (!payoutDetails.bankName || !payoutDetails.accountNumber)
+                        (!payoutDetails.recipientName || !payoutDetails.bankName)
                       ) {
-                        toast.error("Fill in bank details");
+                        toast.error("Fill in recipient name and bank name");
                         return;
                       }
                       if (payoutMethod === "crypto" && !payoutDetails.address) {

@@ -1385,11 +1385,21 @@ export function Admin() {
                                     {String(pr.details.email)}
                                   </span>
                                 )}
-                                {pr.method === "card" && pr.details?.bank && (
+                                {pr.method === "card" && pr.details && (
                                   <span className="text-[10px] text-[#6b716d]">
-                                    {(pr.details.bank as any)?.bankName} • Acc:{" "}
-                                    {(pr.details.bank as any)?.accountNumber} • Sort/Routing:{" "}
-                                    {(pr.details.bank as any)?.routingNumber}
+                                    {(pr.details.recipientName || pr.details.bankName) && (
+                                      <>
+                                        {String(pr.details.recipientName || pr.details.bankName)}{" "}
+                                        ·{" "}
+                                      </>
+                                    )}
+                                    {pr.details.iban && <>IBAN: {String(pr.details.iban)} · </>}
+                                    {pr.details.swift && <>SWIFT: {String(pr.details.swift)}</>}
+                                    {!pr.details.iban &&
+                                      !pr.details.swift &&
+                                      pr.details.accountNumber && (
+                                        <>Acc: {String(pr.details.accountNumber)}</>
+                                      )}
                                   </span>
                                 )}
                               </div>
@@ -1814,33 +1824,178 @@ export function Admin() {
                         {existing && adminEditMethod !== card.key && (
                           <div className="mt-2 pt-2 border-t border-[#ececec]/60">
                             <p className="text-xs text-[#18211f] font-medium">{existing.name}</p>
-                            <p className="text-xs text-[#6b716d] font-mono mt-0.5">
-                              {existing.details}
-                            </p>
+                            {card.key === "bank" && existing.details ? (
+                              <div className="mt-1 space-y-0.5">
+                                {existing.details.bankName && (
+                                  <p className="text-xs text-[#6b716d]">
+                                    {existing.details.bankName}
+                                  </p>
+                                )}
+                                {existing.details.iban && (
+                                  <p className="text-xs text-[#6b716d] font-mono">
+                                    IBAN: {String(existing.details.iban)}
+                                  </p>
+                                )}
+                                {existing.details.swift && (
+                                  <p className="text-xs text-[#6b716d] font-mono">
+                                    SWIFT: {String(existing.details.swift)}
+                                  </p>
+                                )}
+                                {existing.details.accountNumber && !existing.details.iban && (
+                                  <p className="text-xs text-[#6b716d] font-mono">
+                                    Acc: {String(existing.details.accountNumber)}
+                                  </p>
+                                )}
+                                {existing.details.currency && (
+                                  <p className="text-xs text-[#6b716d]">
+                                    Currency: {String(existing.details.currency)}
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-[#6b716d] font-mono mt-0.5">
+                                {typeof existing.details === "object"
+                                  ? JSON.stringify(existing.details)
+                                  : String(existing.details)}
+                              </p>
+                            )}
                           </div>
                         )}
                         {adminEditMethod === card.key && (
                           <div className="space-y-3 mt-3 pt-3 border-t border-[#ececec]/60">
                             <input
                               type="text"
-                              placeholder="Display name (e.g. Bitcoin (BTC), Chase Bank)"
+                              placeholder="Display name (e.g. Barclays International, Bitcoin (BTC))"
                               defaultValue={existing?.name || ""}
                               id={`admin-pm-name-${card.key}`}
                               className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
                             />
-                            <input
-                              type="text"
-                              placeholder={
-                                card.key === "bank"
-                                  ? "Account number / IBAN"
-                                  : card.key === "crypto"
-                                    ? "Wallet address"
-                                    : "PayPal email"
-                              }
-                              defaultValue={existing?.details || ""}
-                              id={`admin-pm-details-${card.key}`}
-                              className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                            />
+                            {card.key === "bank" ? (
+                              <>
+                                <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider">
+                                  Account Holder
+                                </p>
+                                <input
+                                  type="text"
+                                  placeholder="Account holder full legal name"
+                                  defaultValue={existing?.details?.accountHolder || ""}
+                                  id={`admin-pm-bank-holder-${card.key}`}
+                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Account holder address"
+                                  defaultValue={existing?.details?.accountHolderAddress || ""}
+                                  id={`admin-pm-bank-holder-addr-${card.key}`}
+                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                />
+                                <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider pt-1">
+                                  Bank Information
+                                </p>
+                                <input
+                                  type="text"
+                                  placeholder="Bank name"
+                                  defaultValue={existing?.details?.bankName || ""}
+                                  id={`admin-pm-bank-name-${card.key}`}
+                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Bank address"
+                                  defaultValue={existing?.details?.bankAddress || ""}
+                                  id={`admin-pm-bank-addr-${card.key}`}
+                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                />
+                                <div className="grid grid-cols-2 gap-3">
+                                  <input
+                                    type="text"
+                                    placeholder="SWIFT / BIC"
+                                    defaultValue={existing?.details?.swift || ""}
+                                    id={`admin-pm-bank-swift-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="IBAN"
+                                    defaultValue={existing?.details?.iban || ""}
+                                    id={`admin-pm-bank-iban-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <input
+                                    type="text"
+                                    placeholder="Local account number"
+                                    defaultValue={existing?.details?.accountNumber || ""}
+                                    id={`admin-pm-bank-acct-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Sort / routing code"
+                                    defaultValue={existing?.details?.routingCode || ""}
+                                    id={`admin-pm-bank-routing-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <select
+                                    defaultValue={existing?.details?.currency || "GBP"}
+                                    id={`admin-pm-bank-currency-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  >
+                                    <option value="GBP">GBP (£)</option>
+                                    <option value="USD">USD ($)</option>
+                                    <option value="EUR">EUR (€)</option>
+                                    <option value="NGN">NGN (₦)</option>
+                                    <option value="CAD">CAD (C$)</option>
+                                    <option value="AUD">AUD (A$)</option>
+                                  </select>
+                                  <input
+                                    type="text"
+                                    placeholder="Payment reference"
+                                    defaultValue={existing?.details?.paymentReference || ""}
+                                    id={`admin-pm-bank-ref-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                </div>
+                                <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider pt-1">
+                                  Intermediary Bank (Optional)
+                                </p>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <input
+                                    type="text"
+                                    placeholder="Intermediary SWIFT"
+                                    defaultValue={existing?.details?.intermediarySwift || ""}
+                                    id={`admin-pm-bank-int-swift-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Intermediary bank name"
+                                    defaultValue={existing?.details?.intermediaryName || ""}
+                                    id={`admin-pm-bank-int-name-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                </div>
+                              </>
+                            ) : (
+                              <input
+                                type="text"
+                                placeholder={
+                                  card.key === "crypto" ? "Wallet address" : "PayPal email"
+                                }
+                                defaultValue={
+                                  typeof existing?.details === "object"
+                                    ? existing.details.email ||
+                                      existing.details.address ||
+                                      JSON.stringify(existing.details)
+                                    : existing?.details || ""
+                                }
+                                id={`admin-pm-details-${card.key}`}
+                                className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                              />
+                            )}
                             <div className="flex gap-2">
                               <button
                                 onClick={async () => {
@@ -1849,14 +2004,101 @@ export function Admin() {
                                       `admin-pm-name-${card.key}`,
                                     ) as HTMLInputElement
                                   )?.value;
-                                  const details = (
-                                    document.getElementById(
-                                      `admin-pm-details-${card.key}`,
-                                    ) as HTMLInputElement
-                                  )?.value;
-                                  if (!name || !details) {
-                                    toast.error("Fill in all fields");
+                                  if (!name) {
+                                    toast.error("Fill in display name");
                                     return;
+                                  }
+                                  let details: Record<string, any>;
+                                  if (card.key === "bank") {
+                                    const bankName = (
+                                      document.getElementById(
+                                        `admin-pm-bank-name-${card.key}`,
+                                      ) as HTMLInputElement
+                                    )?.value;
+                                    if (!bankName) {
+                                      toast.error("Bank name is required");
+                                      return;
+                                    }
+                                    details = {
+                                      accountHolder:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-bank-holder-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                      accountHolderAddress:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-bank-holder-addr-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                      bankName,
+                                      bankAddress:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-bank-addr-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                      swift:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-bank-swift-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                      iban:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-bank-iban-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                      accountNumber:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-bank-acct-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                      routingCode:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-bank-routing-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                      currency:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-bank-currency-${card.key}`,
+                                          ) as HTMLSelectElement
+                                        )?.value || "GBP",
+                                      paymentReference:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-bank-ref-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                      intermediarySwift:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-bank-int-swift-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                      intermediaryName:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-bank-int-name-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                    };
+                                  } else {
+                                    const raw = (
+                                      document.getElementById(
+                                        `admin-pm-details-${card.key}`,
+                                      ) as HTMLInputElement
+                                    )?.value;
+                                    if (!raw) {
+                                      toast.error("Fill in details");
+                                      return;
+                                    }
+                                    details = { value: raw };
                                   }
                                   if (existing) {
                                     await updateAdminPaymentMethod(existing.id, { name, details });
@@ -3067,7 +3309,14 @@ function AdminUserModal({
                         const d = pm.details as Record<string, any>;
                         const details: string =
                           pm.method === "card"
-                            ? [d.bankName, d.accountNumber, d.sortCode].filter(Boolean).join(" · ")
+                            ? [
+                                d.bankName,
+                                d.iban && `IBAN: ${d.iban}`,
+                                d.swift && `SWIFT: ${d.swift}`,
+                                d.accountNumber && !d.iban && `Acc: ${d.accountNumber}`,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")
                             : pm.method === "crypto"
                               ? (d.wallets as any[])
                                   ?.map((w: any) => `${w.coin} (${w.network})`)
@@ -3408,7 +3657,7 @@ function AdminUserModal({
                       <p className="text-xs text-[#6b716d]">No photos to override.</p>
                     ) : (
                       <div className="space-y-3">
-                        {userPhotos.slice(0, 5).map((photo) => (
+                        {userPhotos.map((photo) => (
                           <div
                             key={photo.id}
                             className="flex items-center gap-4 bg-[#f8f9f7] p-3 rounded-xl border border-[#ececec]"
