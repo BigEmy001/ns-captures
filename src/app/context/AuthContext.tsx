@@ -20,6 +20,8 @@ export interface AuthUser {
   phone?: string;
   occupation?: string;
   dob?: string;
+  location?: string;
+  bio?: string;
   socialLinks?: Record<string, string>;
   references?: { name: string; email: string; phone: string; relationship: string }[];
   verificationStatus?: string;
@@ -65,6 +67,8 @@ function supabaseUserToAuthUser(supabaseUser: any, profile: any): AuthUser {
     phone: profile?.phone || "",
     occupation: profile?.occupation || "",
     dob: profile?.dob || "",
+    location: profile?.location || "",
+    bio: profile?.bio || "",
     socialLinks: profile?.social_links || {},
     references: profile?.profile_references || [],
     verificationStatus: profile?.verification_status || "unverified",
@@ -308,6 +312,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone: editableData.phone,
           occupation: editableData.occupation,
           dob: editableData.dob,
+          location: editableData.location,
+          bio: editableData.bio,
           social_links: editableData.socialLinks,
           profile_references: editableData.references,
           verification_status: editableData.verificationStatus,

@@ -46,6 +46,7 @@ const AdminLogin = lazy(() =>
 );
 const About = lazy(() => import("./pages/About").then((m) => ({ default: m.About })));
 const Contact = lazy(() => import("./pages/Contact").then((m) => ({ default: m.Contact })));
+const Legal = lazy(() => import("./pages/Legal").then((m) => ({ default: m.Legal })));
 
 const fallback = (
   <div className="flex items-center justify-center min-h-screen">
@@ -136,6 +137,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={fallback}>
             <Contact />
+          </Suspense>
+        ),
+      },
+      {
+        path: "legal",
+        element: (
+          <Suspense fallback={fallback}>
+            <Legal />
           </Suspense>
         ),
       },

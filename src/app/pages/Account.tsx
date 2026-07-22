@@ -73,7 +73,14 @@ export function Account() {
         ? "security"
         : "dashboard"
       : "security";
-  const active = nav.some((item) => item.id === requestedTab) ? requestedTab! : defaultTab;
+  const active = (() => {
+    if (!requestedTab) return defaultTab;
+    const navItem = nav.find((item) => item.id === requestedTab);
+    if (!navItem) return defaultTab;
+    if (navItem.isCreator && user?.role !== "Photographer" && user?.role !== "Admin")
+      return defaultTab;
+    return requestedTab;
+  })();
   const setActive = (id: string) => {
     const next = new URLSearchParams(params);
     if (id === defaultTab) next.delete("tab");
@@ -84,6 +91,8 @@ export function Account() {
     name: user?.name || "",
     email: user?.email || "",
     company: user?.company || "",
+    location: user?.location || "",
+    bio: user?.bio || "",
   });
   const [passwordData, setPasswordData] = useState({ current: "", next: "", confirm: "" });
 
@@ -187,6 +196,8 @@ export function Account() {
           name: profileData.name,
           email: profileData.email,
           company: profileData.company,
+          location: profileData.location,
+          bio: profileData.bio,
           phone,
           occupation,
           dob,
@@ -270,7 +281,7 @@ export function Account() {
           items={nav.filter(
             (n) =>
               !n.isCreator ||
-              (user?.role === "Admin") ||
+              user?.role === "Admin" ||
               (user?.role === "Photographer" && user?.verificationStatus === "verified"),
           )}
           active={active}
@@ -386,9 +397,12 @@ export function Account() {
                   <Clock className="size-5 text-[#b38600]" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-serif text-lg text-[#18211f] mb-1">Verification In Progress</h3>
+                  <h3 className="font-serif text-lg text-[#18211f] mb-1">
+                    Verification In Progress
+                  </h3>
                   <p className="text-sm text-[#59645f]">
-                    Your documents are being reviewed. Dashboard access (portfolio, payouts, uploads) will unlock once approved.
+                    Your documents are being reviewed. Dashboard access (portfolio, payouts,
+                    uploads) will unlock once approved.
                   </p>
                 </div>
                 <button
@@ -408,9 +422,12 @@ export function Account() {
                   <AlertCircle className="size-5 text-[#e63946]" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-serif text-lg text-[#18211f] mb-1">Verification Needs Attention</h3>
+                  <h3 className="font-serif text-lg text-[#18211f] mb-1">
+                    Verification Needs Attention
+                  </h3>
                   <p className="text-sm text-[#59645f]">
-                    Your previous verification was not approved. Please review the feedback and resubmit.
+                    Your previous verification was not approved. Please review the feedback and
+                    resubmit.
                   </p>
                 </div>
                 <button
@@ -429,7 +446,7 @@ export function Account() {
               .filter(
                 (n) =>
                   !n.isCreator ||
-                  (user?.role === "Admin") ||
+                  user?.role === "Admin" ||
                   (user?.role === "Photographer" && user?.verificationStatus === "verified"),
               )
               .map((n) => (
@@ -741,6 +758,11 @@ export function Account() {
                     value={profileData.company}
                     onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
                   />
+                  <Field
+                    label="Location"
+                    value={profileData.location}
+                    onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                  />
                   <div className="block">
                     <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
                       Role
@@ -786,6 +808,20 @@ export function Account() {
                       </label>
                     ))}
                   </div>
+                </div>
+                <div className="mt-6">
+                  <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                    Bio
+                  </span>
+                  <textarea
+                    rows={3}
+                    maxLength={500}
+                    placeholder="Tell visitors about your work and style..."
+                    value={profileData.bio}
+                    onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                    className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm resize-none"
+                  />
+                  <p className="mt-1 text-xs text-[#8a8f89]">{profileData.bio.length}/500</p>
                 </div>
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-4">

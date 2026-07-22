@@ -10826,39 +10826,6 @@ export interface Brief {
   clientEmail?: string;
 }
 
-export const briefs: Brief[] = [
-  {
-    id: "047",
-    title: "River work, Thames",
-    location: "London, UK",
-    license: "COMMERCIAL",
-    budget: 600,
-    delivery: "72 hours",
-    status: "MATCHING",
-    description: "Riverboat workers on the water at daybreak — human, documentary, unhurried.",
-  },
-  {
-    id: "046",
-    title: "Fintech office, London",
-    location: "London, UK",
-    license: "COMMERCIAL",
-    budget: 1200,
-    delivery: "5 days",
-    status: "IN PROGRESS",
-    description: "A young European entrepreneur working inside a modern fintech office.",
-  },
-  {
-    id: "045",
-    title: "Market colour study, Paris",
-    location: "Paris, France",
-    license: "EDITORIAL",
-    budget: 450,
-    delivery: "48 hours",
-    status: "DELIVERED",
-    description: "Textiles and produce, saturated and close, in an open-air market.",
-  },
-];
-
 // The signed-in user (buyer) — powers the account/profile area.
 export interface Purchase {
   id: string;

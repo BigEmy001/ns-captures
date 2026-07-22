@@ -28,6 +28,7 @@ const publicGroups = [
       { to: "/contact", label: "Contact & Support" },
       { to: "/dashboard", label: "Photographer Portal" },
       { to: "/enterprise", label: "Enterprise Portal" },
+      { to: "/legal", label: "Legal & Terms" },
     ],
   },
 ];
@@ -56,6 +57,7 @@ const buyerGroups = [
       { to: "/about", label: "About Us" },
       { to: "/contact", label: "Contact & Support" },
       { to: "/contribute", label: "Become a contributor" },
+      { to: "/legal", label: "Legal & Terms" },
     ],
   },
 ];
@@ -85,6 +87,7 @@ const photographerGroups = [
       { to: "/contact", label: "Contact & Support" },
       { to: "/pricing", label: "Licensing Rates" },
       { to: "/contribute", label: "Contributor Guide" },
+      { to: "/legal", label: "Legal & Terms" },
     ],
   },
 ];
@@ -113,6 +116,7 @@ const enterpriseGroups = [
       { to: "/about", label: "About Us" },
       { to: "/contact", label: "Contact & Support" },
       { to: "/pricing", label: "Licensing" },
+      { to: "/legal", label: "Legal & Terms" },
     ],
   },
 ];
@@ -135,6 +139,7 @@ const adminGroups = [
       { to: "/contact", label: "Contact & Support" },
       { to: "/admin?tab=reports", label: "Reports" },
       { to: "/admin?tab=logs", label: "System Logs" },
+      { to: "/legal", label: "Legal & Terms" },
     ],
   },
 ];
@@ -170,7 +175,9 @@ export function Footer() {
           </div>
           {groups.map((g) => (
             <div key={g.title}>
-              <p className="font-mono text-[10px] tracking-[0.16em] text-white/45">{g.title.toUpperCase()}</p>
+              <p className="font-mono text-[10px] tracking-[0.16em] text-white/45">
+                {g.title.toUpperCase()}
+              </p>
               <ul className="mt-4 grid gap-2.5 text-sm text-white/75">
                 {g.links.map((l) => (
                   <li key={l.label}>
@@ -183,11 +190,17 @@ export function Footer() {
             </div>
           ))}
         </div>
-        
+
         {/* Legal Compliance Notice */}
         <div className="mt-12 border-t border-white/10 pt-8">
           <p className="text-[11px] leading-relaxed text-white/40 max-w-5xl">
-            <strong>Regulatory Compliance Notice:</strong> NS CAPTURES operates under strict compliance with international copyright frameworks, digital asset monetization standards, and cross-border commercial trade regulations. All submitted portfolios undergo mandatory authorship tracing and metadata tracking to protect legal licensees. Vendor profile setup, secure asset encryption, and final payment disbursements are processed exclusively in tandem with certified legal counsel and corporate compliance clearing houses.
+            <strong>Regulatory Compliance Notice:</strong> NS CAPTURES operates under strict
+            compliance with international copyright frameworks, digital asset monetization
+            standards, and cross-border commercial trade regulations. All submitted portfolios
+            undergo mandatory authorship tracing and metadata tracking to protect legal licensees.
+            Vendor profile setup, secure asset encryption, and final payment disbursements are
+            processed exclusively in tandem with certified legal counsel and corporate compliance
+            clearing houses.
           </p>
         </div>
 
