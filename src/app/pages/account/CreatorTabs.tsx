@@ -619,8 +619,8 @@ export function CreatorTabs({
 
   const stats = [
     {
-      label: "REVENUE (LIFETIME)",
-      value: `£${photographerStats.totalRevenue.toLocaleString("en-GB", { minimumFractionDigits: 2 })}`,
+      label: "BALANCE",
+      value: `£${(user?.payoutBalance ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}`,
     },
     { label: "DOWNLOADS", value: photographerStats.totalDownloads.toLocaleString() },
     { label: "LIKES", value: photographerStats.totalLikes.toLocaleString() },

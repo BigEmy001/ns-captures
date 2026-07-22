@@ -1866,12 +1866,30 @@ export async function updatePayoutRequestStatus(
   status: "APPROVED" | "REJECTED" | "PAID",
   adminNote: string = "",
 ): Promise<boolean> {
+  // Fetch the request first to get user + amount for balance debit
+  const { data: request } = await supabase
+    .from("payout_requests")
+    .select("user_id, amount")
+    .eq("id", id)
+    .single();
+
   const { error } = await supabase
     .from("payout_requests")
     .update({ status, admin_note: adminNote, processed_at: new Date().toISOString() })
     .eq("id", id);
 
-  return !error;
+  if (error) return false;
+
+  // Debit balance when payout is approved or paid
+  if (request && (status === "APPROVED" || status === "PAID")) {
+    await supabase.rpc("adjust_payout_balance", {
+      p_user_id: request.user_id,
+      p_adjustment: -(request.amount || 0),
+      p_reason: `Payout ${status.toLowerCase()}: request ${id}`,
+    });
+  }
+
+  return true;
 }
 
 export async function fetchPhotographerEmailBySlug(slug: string): Promise<string | null> {
@@ -1924,12 +1942,55 @@ export async function approvePurchase(
   photoId: string,
   userId: string,
 ): Promise<boolean> {
+  // Fetch purchase + photo + settings to compute photographer share
+  const { data: purchase } = await supabase
+    .from("purchases")
+    .select("price, status")
+    .eq("id", purchaseId)
+    .single();
+
   const { error: pErr } = await supabase
     .from("purchases")
     .update({ status: "APPROVED" })
     .eq("id", purchaseId);
 
   if (pErr) return false;
+
+  // Credit photographer's unified payout_balance (only on first approval)
+  if (purchase && purchase.status !== "APPROVED" && photoId) {
+    const { data: photo } = await supabase
+      .from("photos")
+      .select("photographer_id, price")
+      .eq("id", photoId)
+      .single();
+
+    const { data: settings } = await supabase
+      .from("site_settings")
+      .select("platform_fee")
+      .eq("id", 1)
+      .single();
+
+    if (photo && settings) {
+      const commissionPct = 100 - (settings.platform_fee ?? 20);
+      const photographerShare = Math.round(
+        (purchase.price || photo.price || 0) * (commissionPct / 100),
+      );
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("slug", photo.photographer_id)
+        .single();
+
+      if (profile && photographerShare > 0) {
+        await supabase.rpc("adjust_payout_balance", {
+          p_user_id: profile.id,
+          p_adjustment: photographerShare,
+          p_reason: `Sale approved: photo ${photoId}`,
+        });
+      }
+    }
+  }
 
   // Find the corresponding license and update expires_at
   const { data: licenses } = await supabase
