@@ -27,7 +27,6 @@ import {
 import { Monogram } from "./ui";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Dropdown, DropdownItem } from "./Dropdown";
-import { useRequest } from "./RequestModal";
 import { getCart, removeFromCart, clearCart, CartItem } from "../data/cart";
 import {
   createPurchaseWithMethod,
@@ -51,7 +50,6 @@ import { useAuth, UserRole } from "../context/AuthContext";
 const publicLinks = [
   { to: "/search", label: "Discover" },
   { to: "/collections", label: "Collections" },
-  { to: "/requests", label: "Requests" },
   { to: "/pricing", label: "Licensing" },
 ];
 
@@ -59,14 +57,12 @@ const photographerLinks = [
   { to: "/search", label: "Discover" },
   { to: "/account", label: "Dashboard" },
   { to: "/collections", label: "Collections" },
-  { to: "/requests", label: "Requests" },
 ];
 
 const buyerLinks = [
   { to: "/search", label: "Discover" },
   { to: "/account", label: "Dashboard" },
   { to: "/collections", label: "Collections" },
-  { to: "/requests", label: "Requests" },
   { to: "/pricing", label: "Licensing" },
 ];
 
@@ -75,7 +71,6 @@ const enterpriseLinks = [
   { to: "/enterprise", label: "Enterprise" },
   { to: "/account", label: "Dashboard" },
   { to: "/collections", label: "Collections" },
-  { to: "/requests", label: "Requests" },
 ];
 
 const adminLinks = [
@@ -160,7 +155,6 @@ export function Navbar() {
   const [menu, setMenu] = useState(false);
   const [q, setQ] = useState("");
   const navigate = useNavigate();
-  const openRequest = useRequest();
 
   // Cart States
   const [cartOpen, setCartOpen] = useState(false);
@@ -487,12 +481,12 @@ export function Navbar() {
             )}
 
             {user?.role !== "Admin" && (
-              <button
-                onClick={openRequest}
+              <Link
+                to="/contribute"
                 className="rounded-full bg-[#1e4a3f] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#123b31]"
               >
                 Start a project
-              </button>
+              </Link>
             )}
             {!isAuthenticated && !isLoading && (
               <Link
@@ -672,15 +666,13 @@ export function Navbar() {
             {/* Footer / CTA section */}
             <div className="border-t border-white/10 pt-6 mt-auto space-y-4">
               {user?.role !== "Admin" && (
-                <button
-                  onClick={() => {
-                    setMenu(false);
-                    openRequest();
-                  }}
-                  className="w-full rounded-full bg-white px-5 py-3 text-center text-sm font-bold text-[#12231f] hover:bg-white/90 transition-colors cursor-pointer"
+                <Link
+                  to="/contribute"
+                  onClick={() => setMenu(false)}
+                  className="w-full rounded-full bg-white px-5 py-3 text-center text-sm font-bold text-[#12231f] hover:bg-white/90 transition-colors"
                 >
                   Start a project
-                </button>
+                </Link>
               )}
               <div className="flex justify-between items-center text-[10px] font-mono tracking-widest text-white/40">
                 <span>NS CAPTURES © 2026</span>

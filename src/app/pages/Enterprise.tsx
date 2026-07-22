@@ -1,16 +1,37 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 import {
-  FolderKanban, Library, FileText, ShieldCheck, ArrowRight, CheckCircle2,
+  FolderKanban,
+  Library,
+  FileText,
+  ShieldCheck,
+  ArrowRight,
+  CheckCircle2,
 } from "lucide-react";
 import { Eyebrow, Button, Badge } from "../components/ui";
-import { useRequest } from "../components/RequestModal";
+import { Link } from "react-router";
 
 const features = [
-  { icon: FolderKanban, title: "Projects & briefs", body: "Organise creative work into projects with approval workflows." },
-  { icon: Library, title: "Brand libraries", body: "Shared, permissioned collections your whole team can license from." },
-  { icon: FileText, title: "Contracts & invoices", body: "Custom licensing, consolidated billing, downloadable audit trails." },
-  { icon: ShieldCheck, title: "Usage tracking", body: "Know exactly where every licensed asset is live across campaigns." },
+  {
+    icon: FolderKanban,
+    title: "Projects & briefs",
+    body: "Organise creative work into projects with approval workflows.",
+  },
+  {
+    icon: Library,
+    title: "Brand libraries",
+    body: "Shared, permissioned collections your whole team can license from.",
+  },
+  {
+    icon: FileText,
+    title: "Contracts & invoices",
+    body: "Custom licensing, consolidated billing, downloadable audit trails.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Usage tracking",
+    body: "Know exactly where every licensed asset is live across campaigns.",
+  },
 ];
 
 const projects = [
@@ -28,7 +49,6 @@ export function Enterprise() {
     else next.set("tab", nextTab);
     setParams(next);
   };
-  const openRequest = useRequest();
 
   return (
     <div>
@@ -56,11 +76,16 @@ export function Enterprise() {
               One visual operating system for your whole organisation.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-7 text-[#59645f]">
-              Teams, projects, brand libraries, licensing and usage — managed together, with the controls enterprise buyers expect.
+              Teams, projects, brand libraries, licensing and usage — managed together, with the
+              controls enterprise buyers expect.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Button onClick={() => setTab("portal")}>See the portal <ArrowRight className="size-4" /></Button>
-              <Button variant="outline" onClick={openRequest}>Talk to sales</Button>
+              <Button onClick={() => setTab("portal")}>
+                See the portal <ArrowRight className="size-4" />
+              </Button>
+              <Link to="/contact">
+                <Button variant="outline">Talk to sales</Button>
+              </Link>
             </div>
           </section>
 
@@ -80,18 +105,23 @@ export function Enterprise() {
             <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
               <div>
                 <Eyebrow>WHY TEAMS SWITCH</Eyebrow>
-                <h2 className="mt-3 font-serif text-4xl leading-[1.04] sm:text-5xl">Rights your legal team will actually approve.</h2>
+                <h2 className="mt-3 font-serif text-4xl leading-[1.04] sm:text-5xl">
+                  Rights your legal team will actually approve.
+                </h2>
                 <ul className="mt-6 space-y-3">
-                  {["Plain-language licenses & contracts", "SSO, roles and granular permissions", "Consolidated invoicing & procurement", "Priority access to curated requests"].map((f) => (
+                  {[
+                    "Plain-language licenses & contracts",
+                    "SSO, roles and granular permissions",
+                    "Consolidated invoicing & procurement",
+                    "Priority access to curated requests",
+                  ].map((f) => (
                     <li key={f} className="flex items-center gap-3 text-[#4a534e]">
                       <CheckCircle2 className="size-5 text-[#1e4a3f]" /> {f}
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {[]}
-              </div>
+              <div className="grid grid-cols-2 gap-3">{[]}</div>
             </div>
           </section>
         </>
@@ -105,7 +135,9 @@ export function Enterprise() {
             </div>
             <div className="flex -space-x-2">
               {[]}
-              <span className="grid size-9 place-items-center rounded-full border-2 border-[#ffffff] bg-[#1e4a3f] text-xs text-white">+8</span>
+              <span className="grid size-9 place-items-center rounded-full border-2 border-[#ffffff] bg-[#1e4a3f] text-xs text-white">
+                +8
+              </span>
             </div>
           </div>
 
@@ -131,10 +163,15 @@ export function Enterprise() {
               </div>
               <div className="space-y-3">
                 {projects.map((p) => (
-                  <div key={p.name} className="flex items-center justify-between border border-[#ececec] bg-white p-4">
+                  <div
+                    key={p.name}
+                    className="flex items-center justify-between border border-[#ececec] bg-white p-4"
+                  >
                     <div>
                       <p className="text-sm font-semibold">{p.name}</p>
-                      <p className="mt-1 text-xs text-[#6b716d]">{p.assets} assets · {p.members} members</p>
+                      <p className="mt-1 text-xs text-[#6b716d]">
+                        {p.assets} assets · {p.members} members
+                      </p>
                     </div>
                     <Badge tone={p.status === "COMPLETE" ? "muted" : "green"}>{p.status}</Badge>
                   </div>
@@ -146,9 +183,7 @@ export function Enterprise() {
                 <Library className="size-5 text-[#1e4a3f]" />
                 <h3 className="font-serif text-xl">Brand libraries</h3>
               </div>
-              <div className="space-y-3">
-                {[]}
-              </div>
+              <div className="space-y-3">{[]}</div>
             </div>
           </div>
         </div>

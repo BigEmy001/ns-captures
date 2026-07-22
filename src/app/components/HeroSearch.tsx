@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { ArrowUpRight, Search, Sparkles, Send } from "lucide-react";
-import { useRequest } from "./RequestModal";
+import { ArrowUpRight, Search, Sparkles } from "lucide-react";
 
 export function HeroSearch() {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
-  const openRequest = useRequest();
-  const [activeTab, setActiveTab] = useState<"Library" | "Request">("Library");
-  const tabs = ["Library", "Request"] as const;
+  const [activeTab, setActiveTab] = useState<"Library">("Library");
+  const tabs = ["Library"] as const;
 
   const go = () => navigate(`/search?q=${encodeURIComponent(query)}`);
 
@@ -18,14 +16,15 @@ export function HeroSearch() {
         {tabs.map((item) => (
           <button
             key={item}
-            onClick={() => (item === "Request" ? openRequest() : setActiveTab(item))}
+            onClick={() => setActiveTab(item)}
             className={`relative px-3 pb-3 text-xs font-semibold tracking-[0.07em] transition sm:px-5 ${
-              item === "Request" ? "text-[#74766f] hover:text-[#18211f]" : activeTab === item ? "text-[#173c33]" : "text-[#74766f] hover:text-[#18211f]"
+              activeTab === item ? "text-[#173c33]" : "text-[#74766f] hover:text-[#18211f]"
             }`}
           >
-            {item === "Request" && <Send className="mr-1.5 inline size-3.5" />}
             {item}
-            {item !== "Request" && activeTab === item && <span className="absolute inset-x-3 bottom-0 h-0.5 bg-[#1e4a3f]" />}
+            {activeTab === item && (
+              <span className="absolute inset-x-3 bottom-0 h-0.5 bg-[#1e4a3f]" />
+            )}
           </button>
         ))}
       </div>

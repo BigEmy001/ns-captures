@@ -19,7 +19,6 @@ const PhotoDetail = lazy(() =>
 const Collections = lazy(() =>
   import("./pages/Collections").then((m) => ({ default: m.Collections })),
 );
-const Requests = lazy(() => import("./pages/Requests").then((m) => ({ default: m.Requests })));
 const Pricing = lazy(() => import("./pages/Pricing").then((m) => ({ default: m.Pricing })));
 const Enterprise = lazy(() =>
   import("./pages/Enterprise").then((m) => ({ default: m.Enterprise })),
@@ -97,14 +96,6 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={fallback}>
             <Collections />
-          </Suspense>
-        ),
-      },
-      {
-        path: "requests",
-        element: (
-          <Suspense fallback={fallback}>
-            <Requests />
           </Suspense>
         ),
       },

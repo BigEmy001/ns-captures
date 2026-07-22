@@ -10814,18 +10814,6 @@ export const photographers: Photographer[] = [
   // MIGRATED_PHOTOGRAPHERS_END
 ];
 
-export interface Brief {
-  id: string;
-  title: string;
-  location: string;
-  license: string;
-  budget: number;
-  delivery: string;
-  status: "OPEN" | "MATCHING" | "ACCEPTED" | "COMPLETED" | "IN PROGRESS" | "DELIVERED";
-  description: string;
-  clientEmail?: string;
-}
-
 // The signed-in user (buyer) — powers the account/profile area.
 export interface Purchase {
   id: string;

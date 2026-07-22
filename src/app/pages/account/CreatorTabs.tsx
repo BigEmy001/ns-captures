@@ -25,10 +25,9 @@ import {
 } from "recharts";
 import exifr from "exifr";
 import { Eyebrow, Badge } from "../../components/ui";
-import { type Orientation, type Photographer, type Brief } from "../../data/photos";
+import { type Orientation, type Photographer } from "../../data/photos";
 import {
   fetchPhotos,
-  fetchBriefs,
   fetchPhotographers,
   fetchPhotographerStats,
   fetchPhotographerMonthlyRevenue,
@@ -110,7 +109,6 @@ export function CreatorTabs({
 
   // Supabase data
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [briefs, setBriefs] = useState<Brief[]>([]);
   const [photographers, setPhotographers] = useState<Photographer[]>([]);
 
   useEffect(() => {
@@ -119,17 +117,12 @@ export function CreatorTabs({
         toast.error("An error occurred");
         return null;
       }),
-      fetchBriefs().catch(() => {
-        toast.error("An error occurred");
-        return null;
-      }),
       fetchPhotographers().catch(() => {
         toast.error("An error occurred");
         return null;
       }),
-    ]).then(([photos, briefs, photographers]) => {
+    ]).then(([photos, photographers]) => {
       if (photos) setPhotos(photos);
-      if (briefs) setBriefs(briefs);
       if (photographers) setPhotographers(photographers);
     });
   }, []);
@@ -808,29 +801,6 @@ export function CreatorTabs({
                             </span>
                           </div>
                         ))}
-                    </div>
-                  </div>
-                  <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm hover:border-[#1e4a3f]/10 transition-all duration-300">
-                    <h3 className="mb-4 font-serif text-lg text-[#18211f]">Incoming requests</h3>
-                    <div className="space-y-3">
-                      {briefs.map((b) => (
-                        <div
-                          key={b.id}
-                          className="border-l-4 border-l-[#1e4a3f] border border-[#ececec]/60 rounded-xl bg-white p-4 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-semibold text-[#18211f] truncate">
-                              {b.title}
-                            </p>
-                            <Badge tone={b.status === "DELIVERED" ? "muted" : "green"}>
-                              {b.status}
-                            </Badge>
-                          </div>
-                          <p className="mt-2 text-xs text-[#6b716d] font-mono">
-                            £{b.budget} · {b.delivery}
-                          </p>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </div>

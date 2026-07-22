@@ -15,7 +15,6 @@ const publicGroups = [
   {
     title: "Platform",
     links: [
-      { to: "/requests", label: "Curated requests" },
       { to: "/pricing", label: "Licensing" },
       { to: "/enterprise", label: "For teams" },
       { to: "/contribute", label: "Become a contributor" },
@@ -39,7 +38,6 @@ const buyerGroups = [
     links: [
       { to: "/search", label: "Library" },
       { to: "/collections", label: "Collections" },
-      { to: "/requests", label: "Curated requests" },
     ],
   },
   {
@@ -76,7 +74,6 @@ const photographerGroups = [
       { to: "/account?tab=dashboard", label: "Dashboard" },
       { to: "/account?tab=portfolio", label: "My Portfolio" },
       { to: "/account?tab=analytics", label: "Analytics" },
-      { to: "/account?tab=requests", label: "Creative Briefs" },
       { to: "/account?tab=payouts", label: "Payouts" },
     ],
   },
@@ -98,7 +95,6 @@ const enterpriseGroups = [
     links: [
       { to: "/search", label: "Library" },
       { to: "/collections", label: "Collections" },
-      { to: "/requests", label: "Curated requests" },
     ],
   },
   {

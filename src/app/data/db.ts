@@ -2,7 +2,6 @@ export type {
   Photo,
   Photographer,
   Collection,
-  Brief,
   AdminUser,
   ModerationItem,
   License,
@@ -13,7 +12,6 @@ import {
   Photo,
   Photographer,
   Collection,
-  Brief,
   AdminUser,
   ModerationItem,
   License,
@@ -356,72 +354,6 @@ export async function fetchCollections(): Promise<Collection[]> {
     },
     { maxRetries: 2, baseDelay: 800 },
   );
-}
-
-// ============================================================
-// BRIEFS
-// ============================================================
-
-export async function fetchBriefs(): Promise<Brief[]> {
-  const { data, error } = await supabase.from("briefs").select("*");
-
-  if (error || !data || data.length === 0) return [];
-
-  return data.map((b: any) => ({
-    id: b.id,
-    title: b.title,
-    location: b.location || "",
-    license: b.license || "COMMERCIAL",
-    budget: b.budget || 0,
-    delivery: b.delivery || "",
-    status: b.status || "MATCHING",
-    description: b.description || "",
-    clientEmail: b.client_email || "",
-  }));
-}
-
-// ============================================================
-// CREATE BRIEF (Request modal)
-// ============================================================
-
-export async function createBrief(brief: {
-  title: string;
-  location: string;
-  license: string;
-  budget: number;
-  description: string;
-  clientEmail: string;
-}): Promise<Brief | null> {
-  const id = `BRF-${Date.now().toString(36)}`;
-  const { data, error } = await supabase
-    .from("briefs")
-    .insert({
-      id,
-      title: brief.title,
-      location: brief.location,
-      license: brief.license,
-      budget: brief.budget,
-      description: brief.description,
-      client_email: brief.clientEmail,
-      status: "OPEN",
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error("createBrief", error);
-    return null;
-  }
-  return {
-    id: data.id,
-    title: data.title,
-    location: data.location,
-    license: data.license,
-    budget: data.budget,
-    delivery: data.delivery || "",
-    status: data.status,
-    description: data.description || "",
-  };
 }
 
 // ============================================================
@@ -2110,20 +2042,6 @@ export async function resolveModeration(moderationId: string, approve: boolean):
     }
   }
 
-  return true;
-}
-
-// ============================================================
-// UPDATE BRIEF STATUS (photographer accepts a brief)
-// ============================================================
-
-export async function updateBriefStatus(briefId: string, status: string): Promise<boolean> {
-  const { error } = await supabase.from("briefs").update({ status }).eq("id", briefId);
-
-  if (error) {
-    console.error("updateBriefStatus", error);
-    return false;
-  }
   return true;
 }
 

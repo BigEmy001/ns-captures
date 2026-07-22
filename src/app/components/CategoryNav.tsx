@@ -8,7 +8,6 @@ const items = [
   { label: "Architecture", to: "/search?cat=Architecture" },
   { label: "Lifestyle", to: "/search?cat=Lifestyle" },
   { label: "Fashion", to: "/search?cat=Fashion" },
-  { label: "Requests", to: "/requests", badge: "NEW" },
 ];
 
 // Pill category bar shown under the hero, matching the modern reference.
@@ -31,11 +30,6 @@ export function CategoryNav({ active = "All" }: { active?: string }) {
                 }`}
               >
                 {i.label}
-                {i.badge && (
-                  <span className="rounded-full bg-[#dce8df] px-1.5 py-0.5 font-mono text-[8px] tracking-[0.08em] text-[#285746]">
-                    {i.badge}
-                  </span>
-                )}
               </Link>
             );
           })}

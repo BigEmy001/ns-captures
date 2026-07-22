@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { Button, Eyebrow } from "../components/ui";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { useRequest } from "../components/RequestModal";
 import {
   fetchPhotographer,
   fetchPhotosByPhotographer,
@@ -72,7 +71,6 @@ export function PhotographerProfile() {
   const [tab, setTab] = useState<Tab>("gallery");
   const [following, setFollowing] = useState(false);
   const [sort, setSort] = useState<"recency" | "popular">("recency");
-  const openRequest = useRequest();
 
   useEffect(() => {
     if (user && id) hasUserFollowedPhotographer(user.id, id).then(setFollowing);
@@ -154,13 +152,13 @@ export function PhotographerProfile() {
           >
             <Share2 className="size-4" />
           </button>
-          <button
-            onClick={openRequest}
+          <Link
+            to="/contact"
             aria-label="Message"
             className="grid size-10 place-items-center border border-[#ececec] text-[#4a534e] transition hover:border-[#1e4a3f]"
           >
             <Mail className="size-4" />
-          </button>
+          </Link>
           <Button
             variant={following ? "outline" : "solid"}
             onClick={async () => {

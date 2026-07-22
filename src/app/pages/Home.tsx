@@ -7,14 +7,12 @@ import { TopicRail } from "../components/TopicRail";
 import { PhotoCard } from "../components/PhotoCard";
 import { Eyebrow, Button, Badge, PartnerButton } from "../components/ui";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
-import { useRequest } from "../components/RequestModal";
 import { toast } from "sonner";
-import type { Photo, Collection, Photographer, Brief } from "../data/photos";
+import type { Photo, Collection, Photographer } from "../data/photos";
 import {
   fetchPhotos,
   fetchCollections,
   fetchPhotographers,
-  fetchBriefs,
   getOptimizedImageUrl,
 } from "../data/db";
 import { AnimatedRays } from "../components/ui/animated-rays";
@@ -43,11 +41,9 @@ const testimonials = [
 const companies = ["MERIDIAN", "PALMWINE", "NORTHWIND", "STUDIO LINE", "CONTINENTAL", "ATLAS & CO"];
 
 export function Home() {
-  const openRequest = useRequest();
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [photographers, setPhotographers] = useState<Photographer[]>([]);
-  const [briefs, setBriefs] = useState<Brief[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -63,21 +59,14 @@ export function Home() {
         toast.error("An error occurred");
         return null;
       }),
-      fetchBriefs().catch(() => {
-        toast.error("An error occurred");
-        return null;
-      }),
-    ]).then(([photos, collections, photographers, briefs]) => {
+    ]).then(([photos, collections, photographers]) => {
       if (photos) setPhotos(photos);
       if (collections) setCollections(collections);
       if (photographers) setPhotographers(photographers);
-      if (briefs) setBriefs(briefs);
     });
   }, []);
 
   const trendingTags = ["Portrait", "Lifestyle", "Architecture", "Fashion"];
-
-  const firstBrief = briefs[0];
 
   return (
     <>
@@ -207,64 +196,6 @@ export function Home() {
         </div>
       </section>
 
-      {/* Requests */}
-      <section className="mx-auto grid max-w-[1440px] gap-10 px-5 py-16 sm:px-8 md:grid-cols-2 md:items-center lg:px-12 lg:py-24">
-        <div>
-          <Eyebrow>BEYOND THE ARCHIVE</Eyebrow>
-          <h2 className="mt-4 font-serif text-4xl leading-[1.05] sm:text-5xl">
-            When the image does not exist, commission it.
-          </h2>
-          <p className="mt-5 max-w-md text-base leading-7 text-[#59645f]">
-            Turn a creative need into a precise brief. We connect your team to trusted photographers
-            who know the place, the moment, and the work.
-          </p>
-          <div className="mt-8 flex gap-4">
-            <Button onClick={openRequest}>Request a shoot</Button>
-            <Link to="/requests">
-              <Button variant="outline">See live briefs</Button>
-            </Link>
-          </div>
-        </div>
-        <div className="border border-[#e2e2e2] bg-[#fafafa] p-5 sm:p-7">
-          {firstBrief ? (
-            <>
-              <div className="flex items-center justify-between border-b border-[#ececec] pb-5">
-                <span className="font-mono text-[10px] tracking-[0.14em] text-[#49685d]">
-                  ACTIVE BRIEF / {firstBrief.id}
-                </span>
-                <Badge>{firstBrief.status}</Badge>
-              </div>
-              <h3 className="mt-8 font-serif text-2xl">{firstBrief.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-[#68706b]">{firstBrief.description}</p>
-              <div className="mt-7 grid grid-cols-3 gap-3 border-t border-[#ececec] pt-5">
-                <div>
-                  <p className="font-mono text-[9px] text-[#758078]">LICENSE</p>
-                  <p className="mt-1 text-xs font-semibold">{firstBrief.license}</p>
-                </div>
-                <div>
-                  <p className="font-mono text-[9px] text-[#758078]">BUDGET</p>
-                  <p className="mt-1 text-xs font-semibold">£{firstBrief.budget}</p>
-                </div>
-                <div>
-                  <p className="font-mono text-[9px] text-[#758078]">DELIVERY</p>
-                  <p className="mt-1 text-xs font-semibold">{firstBrief.delivery}</p>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="py-10 text-center">
-              <p className="text-sm text-[#6b716d]">No active briefs yet.</p>
-              <button
-                onClick={openRequest}
-                className="mt-3 text-sm font-semibold text-[#1e4a3f] hover:underline"
-              >
-                Submit a request →
-              </button>
-            </div>
-          )}
-        </div>
-      </section>
-
       {/* Contributors */}
       <section className="border-y border-[#ececec] bg-[#fafafa]">
         <div className="mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-12">
@@ -360,7 +291,9 @@ export function Home() {
               <Eyebrow>TRUSTED BY TEAMS</Eyebrow>
               <h2 className="mt-3 font-serif text-3xl sm:text-4xl">What our partners say.</h2>
             </div>
-            <PartnerButton onClick={openRequest} label="Become a partner" />
+            <Link to="/contribute">
+              <PartnerButton label="Become a partner" />
+            </Link>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             {testimonials.map((t) => (
