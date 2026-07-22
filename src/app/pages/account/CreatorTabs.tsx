@@ -191,6 +191,24 @@ export function CreatorTabs({
           if (crypto?.details?.wallets) {
             setCryptoWallets(crypto.details.wallets as CryptoWalletEntry[]);
           }
+          const orderedMethods: ("card" | "local_bank" | "crypto" | "paypal")[] = [
+            "card",
+            "local_bank",
+            "crypto",
+            "paypal",
+          ];
+          const firstConfigured = orderedMethods.find((m) => {
+            const pm = methods.find((x) => x.method === m);
+            if (!pm?.details) return false;
+            if (m === "card") return !!pm.details.bankName;
+            if (m === "local_bank") return !!pm.details.bankName;
+            if (m === "crypto") return ((pm.details.wallets as any[]) || []).length > 0;
+            if (m === "paypal") return !!pm.details.email;
+            return false;
+          });
+          if (firstConfigured) {
+            setPayoutMethod(firstConfigured);
+          }
         })
         .catch(() => {});
       if (user?.id) {
@@ -2254,8 +2272,7 @@ export function CreatorTabs({
                                     paymentMethods.find((pm) => pm.method === m)?.details
                                       ?.wallets as any[]
                                   )?.length > 0
-                                : !!paymentMethods.find((pm) => pm.method === m)?.details
-                                    ?.bankName);
+                                : !!paymentMethods.find((pm) => pm.method === m)?.details?.email);
                         return (
                           <button
                             key={m}
@@ -2391,83 +2408,117 @@ export function CreatorTabs({
                   )}
                   {payoutMethod === "local_bank" && (
                     <div className="space-y-3">
+                      <div className="bg-[#f7f7f7] border border-[#ececec] rounded-lg px-3 py-2">
+                        <p className="text-[11px] text-[#758078]">
+                          Sending to your configured local bank account
+                        </p>
+                      </div>
                       <input
                         type="text"
+                        readOnly
                         placeholder="Bank name"
                         value={payoutDetails.bankName || ""}
-                        onChange={(e) =>
-                          setPayoutDetails((p) => ({ ...p, bankName: e.target.value }))
-                        }
-                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none bg-[#f7f7f7] text-[#4a534e] cursor-not-allowed"
                       />
                       <input
                         type="text"
+                        readOnly
                         placeholder="Account number"
                         value={payoutDetails.accountNumber || ""}
-                        onChange={(e) =>
-                          setPayoutDetails((p) => ({ ...p, accountNumber: e.target.value }))
-                        }
-                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none bg-[#f7f7f7] text-[#4a534e] cursor-not-allowed"
                       />
                       <input
                         type="text"
+                        readOnly
                         placeholder="Sort code"
                         value={payoutDetails.sortCode || ""}
-                        onChange={(e) =>
-                          setPayoutDetails((p) => ({ ...p, sortCode: e.target.value }))
-                        }
-                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none bg-[#f7f7f7] text-[#4a534e] cursor-not-allowed"
                       />
                       <input
                         type="text"
+                        readOnly
                         placeholder="Account holder name"
                         value={payoutDetails.accountHolder || ""}
-                        onChange={(e) =>
-                          setPayoutDetails((p) => ({ ...p, accountHolder: e.target.value }))
-                        }
-                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none bg-[#f7f7f7] text-[#4a534e] cursor-not-allowed"
                       />
+                      <p className="text-[10px] text-[#758078]">
+                        Bank details are locked to your saved configuration. Edit in Methods.
+                      </p>
                     </div>
                   )}
-                  {payoutMethod === "crypto" && (
-                    <div className="space-y-3">
-                      <select
-                        value={payoutDetails.coin || "BTC"}
-                        onChange={(e) => {
-                          const coin = COINS.find((c) => c.symbol === e.target.value);
-                          setPayoutDetails((p) => ({
-                            ...p,
-                            coin: e.target.value,
-                            network: coin?.networks[0] || "",
-                          }));
-                        }}
-                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                      >
-                        {COINS.map((c) => (
-                          <option key={c.symbol} value={c.symbol}>
-                            {c.name} ({c.symbol})
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="text"
-                        placeholder="Wallet address"
-                        value={payoutDetails.address || ""}
-                        onChange={(e) =>
-                          setPayoutDetails((p) => ({ ...p, address: e.target.value }))
-                        }
-                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                      />
-                    </div>
-                  )}
+                  {payoutMethod === "crypto" &&
+                    (() => {
+                      const cryptoMethod = paymentMethods.find((pm) => pm.method === "crypto");
+                      const savedWallets = (cryptoMethod?.details?.wallets as any[]) || [];
+                      const configuredCoins =
+                        savedWallets.length > 0
+                          ? (savedWallets
+                              .map((w: any) => COINS.find((c) => c.symbol === w.coin))
+                              .filter(Boolean) as typeof COINS)
+                          : COINS;
+                      return (
+                        <div className="space-y-3">
+                          <div className="bg-[#f7f7f7] border border-[#ececec] rounded-lg px-3 py-2">
+                            <p className="text-[11px] text-[#758078]">
+                              Sending to your configured wallet
+                              {savedWallets.length > 0
+                                ? ` — ${savedWallets.length} wallet${savedWallets.length === 1 ? "" : "s"} on file`
+                                : " (no wallet configured yet)"}
+                            </p>
+                          </div>
+                          <select
+                            value={payoutDetails.coin || configuredCoins[0]?.symbol || "BTC"}
+                            onChange={(e) => {
+                              const coin = configuredCoins.find((c) => c.symbol === e.target.value);
+                              const matchingWallet = savedWallets.find(
+                                (w: any) => w.coin === e.target.value,
+                              );
+                              setPayoutDetails((p) => ({
+                                ...p,
+                                coin: e.target.value,
+                                network: matchingWallet?.network || coin?.networks[0] || "",
+                                address: matchingWallet?.address ?? p.address,
+                              }));
+                            }}
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                          >
+                            {configuredCoins.map((c) => (
+                              <option key={c.symbol} value={c.symbol}>
+                                {c.name} ({c.symbol})
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            readOnly
+                            placeholder="Wallet address"
+                            value={payoutDetails.address || ""}
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none bg-[#f7f7f7] text-[#4a534e] cursor-not-allowed"
+                          />
+                          <p className="text-[10px] text-[#758078]">
+                            Wallet address is locked to your saved configuration. Edit in Methods.
+                          </p>
+                        </div>
+                      );
+                    })()}
                   {payoutMethod === "paypal" && (
-                    <input
-                      type="email"
-                      placeholder="PayPal email"
-                      value={payoutDetails.email || ""}
-                      onChange={(e) => setPayoutDetails((p) => ({ ...p, email: e.target.value }))}
-                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                    />
+                    <div className="space-y-3">
+                      <div className="bg-[#f7f7f7] border border-[#ececec] rounded-lg px-3 py-2">
+                        <p className="text-[11px] text-[#758078]">
+                          Sending to your saved PayPal account
+                        </p>
+                      </div>
+                      <input
+                        type="email"
+                        readOnly
+                        placeholder="PayPal email"
+                        value={payoutDetails.email || ""}
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none bg-[#f7f7f7] text-[#4a534e] cursor-not-allowed"
+                      />
+                      <p className="text-[10px] text-[#758078]">
+                        PayPal email is locked to your saved configuration. Edit in Methods.
+                      </p>
+                    </div>
                   )}
                   <button
                     onClick={async () => {

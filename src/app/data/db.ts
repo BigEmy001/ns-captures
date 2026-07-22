@@ -1758,14 +1758,19 @@ export async function upsertPaymentMethod(
   enabled: boolean,
   details: Record<string, unknown> = {},
 ): Promise<boolean> {
-  const { error } = await supabase
+  const { error: upsertError } = await supabase
     .from("photographer_payment_methods")
     .upsert(
       { photographer_id: photographerId, method, enabled, details },
       { onConflict: "photographer_id,method" },
     );
 
-  return !error;
+  if (upsertError) {
+    console.error("upsertPaymentMethod", upsertError);
+    return false;
+  }
+
+  return true;
 }
 
 export async function fetchAllPaymentMethods(): Promise<PhotographerPaymentMethod[]> {
