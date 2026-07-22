@@ -1786,7 +1786,7 @@ export interface CryptoWalletEntry {
 export interface PhotographerPaymentMethod {
   id: string;
   photographerId: string;
-  method: "card" | "crypto" | "paypal";
+  method: "card" | "local_bank" | "crypto" | "paypal";
   enabled: boolean;
   details: Record<string, unknown>;
 }
@@ -1822,7 +1822,7 @@ export async function fetchPaymentMethods(
 
 export async function upsertPaymentMethod(
   photographerId: string,
-  method: "card" | "crypto" | "paypal",
+  method: "card" | "local_bank" | "crypto" | "paypal",
   enabled: boolean,
   details: Record<string, unknown> = {},
 ): Promise<boolean> {
@@ -1858,7 +1858,7 @@ export interface PayoutRequest {
   id: string;
   photographerId: string;
   amount: number;
-  method: "card" | "crypto" | "paypal";
+  method: "card" | "local_bank" | "crypto" | "paypal";
   details: Record<string, unknown>;
   status: "PENDING" | "APPROVED" | "REJECTED" | "PAID";
   adminNote: string;
@@ -1869,7 +1869,7 @@ export interface PayoutRequest {
 export async function createPayoutRequest(
   photographerId: string,
   amount: number,
-  method: "card" | "crypto" | "paypal",
+  method: "card" | "local_bank" | "crypto" | "paypal",
   details: Record<string, unknown> = {},
 ): Promise<PayoutRequest | null> {
   const { data, error } = await supabase

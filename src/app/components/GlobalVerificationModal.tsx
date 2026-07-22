@@ -226,11 +226,7 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                               : "bg-[#ececec] text-[#a4aca8]"
                         }`}
                       >
-                        {step.done ? (
-                          <CheckCircle className="size-4" />
-                        ) : (
-                          step.icon
-                        )}
+                        {step.done ? <CheckCircle className="size-4" /> : step.icon}
                       </div>
                       {i < 3 && (
                         <div
@@ -304,7 +300,8 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
               <ul className="space-y-1.5">
                 <li className="text-xs text-[#59645f] flex items-start gap-2">
                   <span className="text-[#1e4a3f] mt-0.5">•</span>
-                  An administrator will review your identity document and payment within 24–48 hours.
+                  An administrator will review your identity document and payment within 24–48
+                  hours.
                 </li>
                 <li className="text-xs text-[#59645f] flex items-start gap-2">
                   <span className="text-[#1e4a3f] mt-0.5">•</span>
@@ -557,7 +554,8 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                                   Payment Details
                                 </p>
                                 <div className="space-y-1">
-                                  {method.methodType === "bank" &&
+                                  {(method.methodType === "bank" ||
+                                    method.methodType === "local_bank") &&
                                   method.details &&
                                   (method.details.bankName ||
                                     method.details.iban ||
@@ -587,6 +585,17 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                                           Acc: {String(method.details.accountNumber)}
                                         </p>
                                       )}
+                                      {method.details.sortCode && (
+                                        <p className="text-xs text-[#18211f] font-mono">
+                                          Sort: {String(method.details.sortCode)}
+                                        </p>
+                                      )}
+                                      {method.details.accountHolder &&
+                                        method.methodType === "local_bank" && (
+                                          <p className="text-xs text-[#6b716d]">
+                                            {String(method.details.accountHolder)}
+                                          </p>
+                                        )}
                                     </>
                                   ) : (
                                     <code className="flex-1 bg-white border border-[#ececec] p-2 rounded text-xs text-[#1e4a3f] break-all block">

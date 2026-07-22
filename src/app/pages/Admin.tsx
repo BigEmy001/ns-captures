@@ -22,6 +22,7 @@ import {
   LogOut,
   ShieldCheck,
   Wallet,
+  Landmark,
   UserPlus,
 } from "lucide-react";
 import {
@@ -165,6 +166,10 @@ export function Admin() {
     else next.set("tab", id);
     setParams(next);
   };
+
+  useEffect(() => {
+    requestAnimationFrame(() => window.scrollTo(0, 0));
+  }, [active]);
 
   // Supabase data
   const [queue, setQueue] = useState<ModerationItem[]>([]);
@@ -1776,6 +1781,12 @@ export function Admin() {
                       sub: "Receive verification fees via PayPal",
                       icon: <span className="text-sm font-bold text-[#1e4a3f]">P</span>,
                     },
+                    {
+                      key: "local_bank",
+                      label: "Local Bank",
+                      sub: "Simple domestic bank transfer (account number + sort code)",
+                      icon: <Landmark className="size-4 text-[#1e4a3f]" />,
+                    },
                   ].map((card) => {
                     const existing = adminPaymentMethods.find(
                       (m) => m.methodType === card.key || m.methodType.includes(card.key),
@@ -1852,6 +1863,29 @@ export function Admin() {
                                   </p>
                                 )}
                               </div>
+                            ) : card.key === "local_bank" && existing.details ? (
+                              <div className="mt-1 space-y-0.5">
+                                {existing.details.bankName && (
+                                  <p className="text-xs text-[#6b716d]">
+                                    {existing.details.bankName}
+                                  </p>
+                                )}
+                                {existing.details.accountNumber && (
+                                  <p className="text-xs text-[#6b716d] font-mono">
+                                    Acc: {String(existing.details.accountNumber)}
+                                  </p>
+                                )}
+                                {existing.details.sortCode && (
+                                  <p className="text-xs text-[#6b716d] font-mono">
+                                    Sort: {String(existing.details.sortCode)}
+                                  </p>
+                                )}
+                                {existing.details.accountHolder && (
+                                  <p className="text-xs text-[#6b716d]">
+                                    {existing.details.accountHolder}
+                                  </p>
+                                )}
+                              </div>
                             ) : (
                               <p className="text-xs text-[#6b716d] font-mono mt-0.5">
                                 {typeof existing.details === "object"
@@ -1892,6 +1926,20 @@ export function Admin() {
                                 <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider pt-1">
                                   Bank Information
                                 </p>
+                                <input
+                                  type="text"
+                                  placeholder="Bank name"
+                                  defaultValue={existing?.details?.bankName || ""}
+                                  id={`admin-pm-bank-name-${card.key}`}
+                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Bank address"
+                                  defaultValue={existing?.details?.bankAddress || ""}
+                                  id={`admin-pm-bank-addr-${card.key}`}
+                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                />
                                 <input
                                   type="text"
                                   placeholder="Bank name"
@@ -1978,6 +2026,39 @@ export function Admin() {
                                     className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
                                   />
                                 </div>
+                              </>
+                            ) : card.key === "local_bank" ? (
+                              <>
+                                <input
+                                  type="text"
+                                  placeholder="Bank name"
+                                  defaultValue={existing?.details?.bankName || ""}
+                                  id={`admin-pm-local-bank-name-${card.key}`}
+                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                />
+                                <div className="grid grid-cols-2 gap-3">
+                                  <input
+                                    type="text"
+                                    placeholder="Account number"
+                                    defaultValue={existing?.details?.accountNumber || ""}
+                                    id={`admin-pm-local-acct-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Sort code"
+                                    defaultValue={existing?.details?.sortCode || ""}
+                                    id={`admin-pm-local-sort-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                </div>
+                                <input
+                                  type="text"
+                                  placeholder="Account holder name"
+                                  defaultValue={existing?.details?.accountHolder || ""}
+                                  id={`admin-pm-local-holder-${card.key}`}
+                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                />
                               </>
                             ) : (
                               <input
@@ -2085,6 +2166,37 @@ export function Admin() {
                                         (
                                           document.getElementById(
                                             `admin-pm-bank-int-name-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                    };
+                                  } else if (card.key === "local_bank") {
+                                    const bankName = (
+                                      document.getElementById(
+                                        `admin-pm-local-bank-name-${card.key}`,
+                                      ) as HTMLInputElement
+                                    )?.value;
+                                    if (!bankName) {
+                                      toast.error("Bank name is required");
+                                      return;
+                                    }
+                                    details = {
+                                      bankName,
+                                      accountNumber:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-local-acct-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                      sortCode:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-local-sort-${card.key}`,
+                                          ) as HTMLInputElement
+                                        )?.value || "",
+                                      accountHolder:
+                                        (
+                                          document.getElementById(
+                                            `admin-pm-local-holder-${card.key}`,
                                           ) as HTMLInputElement
                                         )?.value || "",
                                     };
@@ -3299,13 +3411,21 @@ function AdminUserModal({
                     <div className="space-y-3">
                       {userPaymentMethods.map((pm) => {
                         const icon =
-                          pm.method === "card" ? "🏦" : pm.method === "crypto" ? "₿" : "P";
+                          pm.method === "card"
+                            ? "🏦"
+                            : pm.method === "local_bank"
+                              ? "🏠"
+                              : pm.method === "crypto"
+                                ? "₿"
+                                : "P";
                         const label =
                           pm.method === "card"
                             ? "Bank Transfer"
-                            : pm.method === "crypto"
-                              ? "Crypto Wallet"
-                              : "PayPal";
+                            : pm.method === "local_bank"
+                              ? "Local Bank"
+                              : pm.method === "crypto"
+                                ? "Crypto Wallet"
+                                : "PayPal";
                         const d = pm.details as Record<string, any>;
                         const details: string =
                           pm.method === "card"
@@ -3317,11 +3437,20 @@ function AdminUserModal({
                               ]
                                 .filter(Boolean)
                                 .join(" · ")
-                            : pm.method === "crypto"
-                              ? (d.wallets as any[])
-                                  ?.map((w: any) => `${w.coin} (${w.network})`)
-                                  .join(", ") || "No wallets configured"
-                              : d.email || "No email configured";
+                            : pm.method === "local_bank"
+                              ? [
+                                  d.bankName,
+                                  d.accountHolder,
+                                  d.accountNumber && `Acc: ${d.accountNumber}`,
+                                  d.sortCode && `Sort: ${d.sortCode}`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")
+                              : pm.method === "crypto"
+                                ? (d.wallets as any[])
+                                    ?.map((w: any) => `${w.coin} (${w.network})`)
+                                    .join(", ") || "No wallets configured"
+                                : d.email || "No email configured";
                         return (
                           <div
                             key={pm.id}

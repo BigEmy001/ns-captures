@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Wallet,
+  Landmark,
   Upload,
   Plus,
   Trash2,
@@ -143,7 +144,9 @@ export function CreatorTabs({
   const [editingMethod, setEditingMethod] = useState<string | null>(null);
   const [cryptoWallets, setCryptoWallets] = useState<CryptoWalletEntry[]>([]);
   const [payoutAmount, setPayoutAmount] = useState("");
-  const [payoutMethod, setPayoutMethod] = useState<"card" | "crypto" | "paypal">("card");
+  const [payoutMethod, setPayoutMethod] = useState<"card" | "local_bank" | "crypto" | "paypal">(
+    "card",
+  );
   const [payoutDetails, setPayoutDetails] = useState<Record<string, string>>({});
 
   // Photographer dashboard data
@@ -1803,6 +1806,170 @@ export function CreatorTabs({
                     )}
                   </div>
 
+                  {/* Local Bank */}
+                  <div className="border border-[#ececec] rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="grid size-9 place-items-center rounded-lg bg-[#f5f5f5]">
+                          <Landmark className="size-4 text-[#1e4a3f]" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-[#18211f]">Local Bank</p>
+                          <p className="text-[11px] text-[#758078]">
+                            Simple domestic transfer (account + sort code)
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() =>
+                          setEditingMethod(editingMethod === "local_bank" ? null : "local_bank")
+                        }
+                        className="text-xs font-semibold text-[#1e4a3f] hover:underline"
+                      >
+                        {editingMethod === "local_bank"
+                          ? "Cancel"
+                          : paymentMethods.find((m) => m.method === "local_bank")?.details?.bankName
+                            ? "Edit"
+                            : "Configure"}
+                      </button>
+                    </div>
+                    {paymentMethods.find((m) => m.method === "local_bank")?.details?.bankName &&
+                      editingMethod !== "local_bank" && (
+                        <div className="mt-1 pt-3 border-t border-[#ececec]/60 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Badge tone="green">Configured</Badge>
+                          </div>
+                          <p className="text-xs text-[#18211f] font-medium">
+                            {
+                              paymentMethods.find((m) => m.method === "local_bank")?.details
+                                ?.accountHolder as string
+                            }
+                          </p>
+                          <p className="text-xs text-[#18211f]">
+                            {
+                              paymentMethods.find((m) => m.method === "local_bank")?.details
+                                ?.bankName as string
+                            }
+                          </p>
+                          <p className="text-xs text-[#6b716d] font-mono">
+                            Acc:{" "}
+                            {
+                              paymentMethods.find((m) => m.method === "local_bank")?.details
+                                ?.accountNumber as string
+                            }
+                          </p>
+                          <p className="text-xs text-[#6b716d] font-mono">
+                            Sort:{" "}
+                            {
+                              paymentMethods.find((m) => m.method === "local_bank")?.details
+                                ?.sortCode as string
+                            }
+                          </p>
+                        </div>
+                      )}
+                    {editingMethod === "local_bank" && (
+                      <div className="space-y-3 mt-3 pt-3 border-t border-[#ececec]/60">
+                        <input
+                          type="text"
+                          placeholder="Bank name"
+                          defaultValue={
+                            (paymentMethods.find((m) => m.method === "local_bank")?.details
+                              ?.bankName as string) || ""
+                          }
+                          id="pm-local-bank-name"
+                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        />
+                        <div className="grid grid-cols-2 gap-3">
+                          <input
+                            type="text"
+                            placeholder="Account number"
+                            defaultValue={
+                              (paymentMethods.find((m) => m.method === "local_bank")?.details
+                                ?.accountNumber as string) || ""
+                            }
+                            id="pm-local-acct"
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Sort code"
+                            defaultValue={
+                              (paymentMethods.find((m) => m.method === "local_bank")?.details
+                                ?.sortCode as string) || ""
+                            }
+                            id="pm-local-sort"
+                            className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Account holder name"
+                          defaultValue={
+                            (paymentMethods.find((m) => m.method === "local_bank")?.details
+                              ?.accountHolder as string) || ""
+                          }
+                          id="pm-local-holder"
+                          className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                        />
+                        <button
+                          onClick={async () => {
+                            const bankName = (
+                              document.getElementById("pm-local-bank-name") as HTMLInputElement
+                            )?.value;
+                            if (!bankName) {
+                              toast.error("Bank name is required");
+                              return;
+                            }
+                            const details = {
+                              bankName,
+                              accountNumber:
+                                (document.getElementById("pm-local-acct") as HTMLInputElement)
+                                  ?.value || "",
+                              sortCode:
+                                (document.getElementById("pm-local-sort") as HTMLInputElement)
+                                  ?.value || "",
+                              accountHolder:
+                                (document.getElementById("pm-local-holder") as HTMLInputElement)
+                                  ?.value || "",
+                            };
+                            const ok = await upsertPaymentMethod(
+                              photographerId,
+                              "local_bank",
+                              true,
+                              details,
+                            );
+                            if (ok) {
+                              setPaymentMethods(
+                                paymentMethods
+                                  .map((m) => (m.method === "local_bank" ? { ...m, details } : m))
+                                  .concat(
+                                    paymentMethods.find((m) => m.method === "local_bank")
+                                      ? []
+                                      : [
+                                          {
+                                            id: `pm-${photographerId}-local_bank`,
+                                            photographerId,
+                                            method: "local_bank" as const,
+                                            enabled: true,
+                                            details,
+                                          },
+                                        ],
+                                  ),
+                              );
+                              setEditingMethod(null);
+                              toast.success("Local bank details saved");
+                            } else {
+                              toast.error("Failed to save");
+                            }
+                          }}
+                          className="w-full rounded-full bg-[#1e4a3f] py-2 text-xs font-semibold text-white hover:bg-[#123b31] transition"
+                        >
+                          Save Local Bank Details
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Crypto */}
                   <div className="border border-[#ececec] rounded-xl p-4">
                     <div className="flex items-center justify-between mb-3">
@@ -2061,20 +2228,29 @@ export function CreatorTabs({
                     <label className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
                       Payout Method
                     </label>
-                    <div className="mt-2 grid grid-cols-3 gap-2">
-                      {(["card", "crypto", "paypal"] as const).map((m) => {
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {(["card", "local_bank", "crypto", "paypal"] as const).map((m) => {
                         const methodLabel =
-                          m === "card" ? "Bank" : m === "crypto" ? "Crypto" : "PayPal";
+                          m === "card"
+                            ? "Bank"
+                            : m === "local_bank"
+                              ? "Local Bank"
+                              : m === "crypto"
+                                ? "Crypto"
+                                : "PayPal";
                         const hasConfig =
                           paymentMethods.find((pm) => pm.method === m)?.details &&
                           (m === "card"
                             ? paymentMethods.find((pm) => pm.method === m)?.details?.bankName
-                            : m === "crypto"
-                              ? (
-                                  paymentMethods.find((pm) => pm.method === m)?.details
-                                    ?.wallets as any[]
-                                )?.length > 0
-                              : !!paymentMethods.find((pm) => pm.method === m)?.details?.bankName);
+                            : m === "local_bank"
+                              ? paymentMethods.find((pm) => pm.method === m)?.details?.bankName
+                              : m === "crypto"
+                                ? (
+                                    paymentMethods.find((pm) => pm.method === m)?.details
+                                      ?.wallets as any[]
+                                  )?.length > 0
+                                : !!paymentMethods.find((pm) => pm.method === m)?.details
+                                    ?.bankName);
                         return (
                           <button
                             key={m}
@@ -2103,6 +2279,13 @@ export function CreatorTabs({
                                   setPayoutDetails({
                                     coin: first?.coin || "BTC",
                                     address: first?.address || "",
+                                  });
+                                } else if (m === "local_bank") {
+                                  setPayoutDetails({
+                                    bankName: d.bankName || "",
+                                    accountNumber: d.accountNumber || "",
+                                    sortCode: d.sortCode || "",
+                                    accountHolder: d.accountHolder || "",
                                   });
                                 } else if (m === "paypal") {
                                   setPayoutDetails({ email: d.email || "" });
@@ -2201,6 +2384,46 @@ export function CreatorTabs({
                       />
                     </div>
                   )}
+                  {payoutMethod === "local_bank" && (
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Bank name"
+                        value={payoutDetails.bankName || ""}
+                        onChange={(e) =>
+                          setPayoutDetails((p) => ({ ...p, bankName: e.target.value }))
+                        }
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Account number"
+                        value={payoutDetails.accountNumber || ""}
+                        onChange={(e) =>
+                          setPayoutDetails((p) => ({ ...p, accountNumber: e.target.value }))
+                        }
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Sort code"
+                        value={payoutDetails.sortCode || ""}
+                        onChange={(e) =>
+                          setPayoutDetails((p) => ({ ...p, sortCode: e.target.value }))
+                        }
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Account holder name"
+                        value={payoutDetails.accountHolder || ""}
+                        onChange={(e) =>
+                          setPayoutDetails((p) => ({ ...p, accountHolder: e.target.value }))
+                        }
+                        className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                      />
+                    </div>
+                  )}
                   {payoutMethod === "crypto" && (
                     <div className="space-y-3">
                       <select
@@ -2257,6 +2480,13 @@ export function CreatorTabs({
                         (!payoutDetails.recipientName || !payoutDetails.bankName)
                       ) {
                         toast.error("Fill in recipient name and bank name");
+                        return;
+                      }
+                      if (
+                        payoutMethod === "local_bank" &&
+                        (!payoutDetails.bankName || !payoutDetails.accountNumber)
+                      ) {
+                        toast.error("Fill in bank name and account number");
                         return;
                       }
                       if (payoutMethod === "crypto" && !payoutDetails.address) {

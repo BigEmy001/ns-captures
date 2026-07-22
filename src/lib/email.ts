@@ -269,11 +269,17 @@ export async function sendPayoutRequestSubmitted(
   photographerEmail: string,
   photographerName: string,
   amount: number,
-  method: "card" | "crypto" | "paypal",
+  method: "card" | "local_bank" | "crypto" | "paypal",
 ) {
   const safeName = escapeHtml(photographerName);
   const methodLabel =
-    method === "card" ? "Bank Transfer" : method === "crypto" ? "Crypto Wallet" : "PayPal";
+    method === "card"
+      ? "Bank Transfer"
+      : method === "local_bank"
+        ? "Local Bank"
+        : method === "crypto"
+          ? "Crypto Wallet"
+          : "PayPal";
 
   await send(
     photographerEmail,
@@ -295,11 +301,17 @@ export async function sendPayoutRequestApproved(
   photographerEmail: string,
   photographerName: string,
   amount: number,
-  method: "card" | "crypto" | "paypal",
+  method: "card" | "local_bank" | "crypto" | "paypal",
 ) {
   const safeName = escapeHtml(photographerName);
   const methodLabel =
-    method === "card" ? "Bank Transfer" : method === "crypto" ? "Crypto Wallet" : "PayPal";
+    method === "card"
+      ? "Bank Transfer"
+      : method === "local_bank"
+        ? "Local Bank"
+        : method === "crypto"
+          ? "Crypto Wallet"
+          : "PayPal";
 
   await send(
     photographerEmail,

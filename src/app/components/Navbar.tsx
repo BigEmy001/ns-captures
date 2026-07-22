@@ -169,9 +169,9 @@ export function Navbar() {
   const [checkoutStep, setCheckoutStep] = useState<"select-method" | "payment-details" | "confirm">(
     "select-method",
   );
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "crypto" | "paypal">(
-    "card",
-  );
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    "card" | "crypto" | "paypal" | "local_bank"
+  >("card");
   const [availableMethods, setAvailableMethods] = useState<
     { method: string; enabled: boolean; details: Record<string, unknown> }[]
   >([]);
@@ -280,6 +280,11 @@ export function Navbar() {
                 methods.find((m) => m.methodType === "paypal" && m.enabled)?.details ||
                 "admin@ns-captures.com",
             },
+          },
+          {
+            method: "local_bank",
+            enabled: !!methods.find((m) => m.methodType === "local_bank" && m.enabled),
+            details: methods.find((m) => m.methodType === "local_bank" && m.enabled)?.details || {},
           },
         ]);
 
@@ -839,6 +844,7 @@ export function Navbar() {
                   <div className="flex gap-2">
                     {[
                       { id: "card" as const, label: "Bank Transfer", icon: "🏦" },
+                      { id: "local_bank" as const, label: "Local Bank", icon: "🏠" },
                       { id: "crypto" as const, label: "Crypto", icon: "₿" },
                       { id: "paypal" as const, label: "PayPal", icon: "PP" },
                     ]
@@ -1002,6 +1008,57 @@ export function Navbar() {
                           </p>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {selectedPaymentMethod === "local_bank" && (
+                    <div className="bg-[#f8f9f7] rounded-xl p-4 border border-[#ececec]/60">
+                      <p className="text-xs font-semibold text-[#18211f] mb-2">
+                        Local Bank Payment
+                      </p>
+                      <p className="text-[11px] text-[#6b716d] mb-3">
+                        Transfer the exact amount to the account below. Include your order ID as
+                        reference.
+                      </p>
+                      {availableMethods.find((m) => m.method === "local_bank")?.details
+                        ?.bankName ? (
+                        <div className="space-y-1">
+                          <p className="text-xs text-[#18211f] font-medium">
+                            {String(
+                              availableMethods.find((m) => m.method === "local_bank")?.details
+                                ?.bankName,
+                            )}
+                          </p>
+                          {availableMethods.find((m) => m.method === "local_bank")?.details
+                            ?.accountHolder && (
+                            <p className="text-xs text-[#6b716d]">
+                              Acc Holder:{" "}
+                              {String(
+                                availableMethods.find((m) => m.method === "local_bank")?.details
+                                  ?.accountHolder,
+                              )}
+                            </p>
+                          )}
+                          <p className="text-xs text-[#6b716d] font-mono">
+                            Acc:{" "}
+                            {String(
+                              availableMethods.find((m) => m.method === "local_bank")?.details
+                                ?.accountNumber,
+                            )}
+                          </p>
+                          <p className="text-xs text-[#6b716d] font-mono">
+                            Sort:{" "}
+                            {String(
+                              availableMethods.find((m) => m.method === "local_bank")?.details
+                                ?.sortCode,
+                            )}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-[#6b716d] italic">
+                          Local bank details will be provided on order confirmation.
+                        </p>
+                      )}
                     </div>
                   )}
 

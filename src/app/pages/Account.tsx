@@ -87,6 +87,10 @@ export function Account() {
     else next.set("tab", id);
     setParams(next);
   };
+
+  useEffect(() => {
+    requestAnimationFrame(() => window.scrollTo(0, 0));
+  }, [active]);
   const [profileData, setProfileData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -274,6 +278,8 @@ export function Account() {
     }
   };
 
+  if (!user) return null;
+
   return (
     <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
       <div className="mx-auto flex max-w-[1440px] gap-8 px-5 sm:px-8 lg:px-12">
@@ -309,7 +315,6 @@ export function Account() {
             <button
               onClick={() => {
                 logout();
-                toast.success("Signed out");
               }}
               title={collapsed ? "Sign out" : undefined}
               className={`flex w-full items-center rounded-lg py-2.5 text-sm text-[#4a534e] transition hover:bg-[#eef1ec] ${collapsed ? "justify-center px-0" : "gap-3 px-3"}`}
@@ -758,11 +763,69 @@ export function Account() {
                     value={profileData.company}
                     onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
                   />
-                  <Field
-                    label="Location"
-                    value={profileData.location}
-                    onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                  />
+                  <div className="block">
+                    <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                      Location
+                    </span>
+                    <select
+                      value={profileData.location}
+                      onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                      className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                    >
+                      <option value="">Select location</option>
+                      <optgroup label="Africa">
+                        <option value="Lagos, Nigeria">Lagos, Nigeria</option>
+                        <option value="Abuja, Nigeria">Abuja, Nigeria</option>
+                        <option value="Nairobi, Kenya">Nairobi, Kenya</option>
+                        <option value="Accra, Ghana">Accra, Ghana</option>
+                        <option value="Cape Town, South Africa">Cape Town, South Africa</option>
+                        <option value="Johannesburg, South Africa">
+                          Johannesburg, South Africa
+                        </option>
+                        <option value="Cairo, Egypt">Cairo, Egypt</option>
+                        <option value="Addis Ababa, Ethiopia">Addis Ababa, Ethiopia</option>
+                        <option value="Dar es Salaam, Tanzania">Dar es Salaam, Tanzania</option>
+                        <option value="Kigali, Rwanda">Kigali, Rwanda</option>
+                      </optgroup>
+                      <optgroup label="Europe">
+                        <option value="London, UK">London, UK</option>
+                        <option value="Paris, France">Paris, France</option>
+                        <option value="Berlin, Germany">Berlin, Germany</option>
+                        <option value="Amsterdam, Netherlands">Amsterdam, Netherlands</option>
+                        <option value="Barcelona, Spain">Barcelona, Spain</option>
+                        <option value="Rome, Italy">Rome, Italy</option>
+                        <option value="Lisbon, Portugal">Lisbon, Portugal</option>
+                        <option value="Istanbul, Turkey">Istanbul, Turkey</option>
+                      </optgroup>
+                      <optgroup label="North America">
+                        <option value="New York, USA">New York, USA</option>
+                        <option value="Los Angeles, USA">Los Angeles, USA</option>
+                        <option value="Chicago, USA">Chicago, USA</option>
+                        <option value="Toronto, Canada">Toronto, Canada</option>
+                        <option value="Vancouver, Canada">Vancouver, Canada</option>
+                        <option value="Mexico City, Mexico">Mexico City, Mexico</option>
+                      </optgroup>
+                      <optgroup label="South America">
+                        <option value="São Paulo, Brazil">São Paulo, Brazil</option>
+                        <option value="Buenos Aires, Argentina">Buenos Aires, Argentina</option>
+                        <option value="Bogotá, Colombia">Bogotá, Colombia</option>
+                      </optgroup>
+                      <optgroup label="Asia">
+                        <option value="Tokyo, Japan">Tokyo, Japan</option>
+                        <option value="Seoul, South Korea">Seoul, South Korea</option>
+                        <option value="Bangkok, Thailand">Bangkok, Thailand</option>
+                        <option value="Mumbai, India">Mumbai, India</option>
+                        <option value="Dubai, UAE">Dubai, UAE</option>
+                        <option value="Singapore">Singapore</option>
+                        <option value="Hong Kong">Hong Kong</option>
+                      </optgroup>
+                      <optgroup label="Oceania">
+                        <option value="Sydney, Australia">Sydney, Australia</option>
+                        <option value="Melbourne, Australia">Melbourne, Australia</option>
+                        <option value="Auckland, New Zealand">Auckland, New Zealand</option>
+                      </optgroup>
+                    </select>
+                  </div>
                   <div className="block">
                     <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
                       Role
