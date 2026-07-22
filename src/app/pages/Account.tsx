@@ -803,56 +803,82 @@ export function Account() {
                         className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
                       >
                         <option value="">Select location</option>
-                        <optgroup label="Africa">
-                          <option value="Lagos, Nigeria">Lagos, Nigeria</option>
-                          <option value="Abuja, Nigeria">Abuja, Nigeria</option>
-                          <option value="Nairobi, Kenya">Nairobi, Kenya</option>
-                          <option value="Accra, Ghana">Accra, Ghana</option>
-                          <option value="Cape Town, South Africa">Cape Town, South Africa</option>
-                          <option value="Johannesburg, South Africa">
-                            Johannesburg, South Africa
-                          </option>
-                          <option value="Cairo, Egypt">Cairo, Egypt</option>
-                          <option value="Addis Ababa, Ethiopia">Addis Ababa, Ethiopia</option>
-                          <option value="Dar es Salaam, Tanzania">Dar es Salaam, Tanzania</option>
-                          <option value="Kigali, Rwanda">Kigali, Rwanda</option>
-                        </optgroup>
                         <optgroup label="Europe">
                           <option value="London, UK">London, UK</option>
+                          <option value="Manchester, UK">Manchester, UK</option>
+                          <option value="Edinburgh, UK">Edinburgh, UK</option>
                           <option value="Paris, France">Paris, France</option>
+                          <option value="Lyon, France">Lyon, France</option>
                           <option value="Berlin, Germany">Berlin, Germany</option>
+                          <option value="Munich, Germany">Munich, Germany</option>
                           <option value="Amsterdam, Netherlands">Amsterdam, Netherlands</option>
                           <option value="Barcelona, Spain">Barcelona, Spain</option>
+                          <option value="Madrid, Spain">Madrid, Spain</option>
                           <option value="Rome, Italy">Rome, Italy</option>
+                          <option value="Milan, Italy">Milan, Italy</option>
                           <option value="Lisbon, Portugal">Lisbon, Portugal</option>
+                          <option value="Porto, Portugal">Porto, Portugal</option>
                           <option value="Istanbul, Turkey">Istanbul, Turkey</option>
+                          <option value="Vienna, Austria">Vienna, Austria</option>
+                          <option value="Prague, Czech Republic">Prague, Czech Republic</option>
+                          <option value="Zurich, Switzerland">Zurich, Switzerland</option>
+                          <option value="Geneva, Switzerland">Geneva, Switzerland</option>
+                          <option value="Brussels, Belgium">Brussels, Belgium</option>
+                          <option value="Copenhagen, Denmark">Copenhagen, Denmark</option>
+                          <option value="Stockholm, Sweden">Stockholm, Sweden</option>
+                          <option value="Oslo, Norway">Oslo, Norway</option>
+                          <option value="Helsinki, Finland">Helsinki, Finland</option>
+                          <option value="Warsaw, Poland">Warsaw, Poland</option>
+                          <option value="Krakow, Poland">Krakow, Poland</option>
+                          <option value="Budapest, Hungary">Budapest, Hungary</option>
+                          <option value="Athens, Greece">Athens, Greece</option>
+                          <option value="Dublin, Ireland">Dublin, Ireland</option>
+                          <option value="Edinburgh, UK">Edinburgh, UK</option>
+                          <option value="Reykjavik, Iceland">Reykjavik, Iceland</option>
+                          <option value="Santorini, Greece">Santorini, Greece</option>
+                          <option value="Split, Croatia">Split, Croatia</option>
+                          <option value="Bucharest, Romania">Bucharest, Romania</option>
                         </optgroup>
                         <optgroup label="North America">
                           <option value="New York, USA">New York, USA</option>
                           <option value="Los Angeles, USA">Los Angeles, USA</option>
                           <option value="Chicago, USA">Chicago, USA</option>
+                          <option value="San Francisco, USA">San Francisco, USA</option>
+                          <option value="Miami, USA">Miami, USA</option>
+                          <option value="Austin, USA">Austin, USA</option>
                           <option value="Toronto, Canada">Toronto, Canada</option>
                           <option value="Vancouver, Canada">Vancouver, Canada</option>
+                          <option value="Montreal, Canada">Montreal, Canada</option>
                           <option value="Mexico City, Mexico">Mexico City, Mexico</option>
                         </optgroup>
                         <optgroup label="South America">
                           <option value="São Paulo, Brazil">São Paulo, Brazil</option>
+                          <option value="Rio de Janeiro, Brazil">Rio de Janeiro, Brazil</option>
                           <option value="Buenos Aires, Argentina">Buenos Aires, Argentina</option>
                           <option value="Bogotá, Colombia">Bogotá, Colombia</option>
+                          <option value="Medellín, Colombia">Medellín, Colombia</option>
+                          <option value="Lima, Peru">Lima, Peru</option>
+                          <option value="Santiago, Chile">Santiago, Chile</option>
                         </optgroup>
                         <optgroup label="Asia">
                           <option value="Tokyo, Japan">Tokyo, Japan</option>
+                          <option value="Kyoto, Japan">Kyoto, Japan</option>
                           <option value="Seoul, South Korea">Seoul, South Korea</option>
                           <option value="Bangkok, Thailand">Bangkok, Thailand</option>
                           <option value="Mumbai, India">Mumbai, India</option>
                           <option value="Dubai, UAE">Dubai, UAE</option>
+                          <option value="Abu Dhabi, UAE">Abu Dhabi, UAE</option>
                           <option value="Singapore">Singapore</option>
                           <option value="Hong Kong">Hong Kong</option>
+                          <option value="Taipei, Taiwan">Taipei, Taiwan</option>
+                          <option value="Shanghai, China">Shanghai, China</option>
+                          <option value="Beijing, China">Beijing, China</option>
                         </optgroup>
                         <optgroup label="Oceania">
                           <option value="Sydney, Australia">Sydney, Australia</option>
                           <option value="Melbourne, Australia">Melbourne, Australia</option>
                           <option value="Auckland, New Zealand">Auckland, New Zealand</option>
+                          <option value="Brisbane, Australia">Brisbane, Australia</option>
                         </optgroup>
                       </select>
                     </div>

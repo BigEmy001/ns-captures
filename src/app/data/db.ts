@@ -1960,10 +1960,31 @@ export async function rejectPurchase(purchaseId: string): Promise<boolean> {
 // ============================================================
 
 export async function deletePhoto(photoId: string): Promise<boolean> {
-  const { error } = await supabase.from("photos").delete().eq("id", photoId);
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (error) {
-    console.error("deletePhoto", error);
+  if (!session) {
+    console.error("deletePhoto: not authenticated");
+    return false;
+  }
+
+  const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
+
+  const res = await fetch(`${supabaseUrl}/functions/v1/delete-photo`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: supabaseAnonKey,
+    },
+    body: JSON.stringify({ photoId }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Unknown error" }));
+    console.error("deletePhoto", body);
     return false;
   }
   return true;
