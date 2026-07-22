@@ -1531,14 +1531,6 @@ export async function fetchPhotographerMonthlyRevenue(
 
   const photoIds = photos.map((p: any) => p.id);
 
-  const { data: purchases } = await supabase
-    .from("purchases")
-    .select("price, date, photo_id")
-    .in("photo_id", photoIds);
-
-  if (!purchases || purchases.length === 0) return [];
-
-  const months: Record<string, number> = {};
   const monthNames = [
     "Jan",
     "Feb",
@@ -1554,11 +1546,40 @@ export async function fetchPhotographerMonthlyRevenue(
     "Dec",
   ];
 
-  purchases.forEach((r: any) => {
+  const months: Record<string, number> = {};
+
+  // 1. Real purchase revenue
+  const { data: purchases } = await supabase
+    .from("purchases")
+    .select("price, date, photo_id")
+    .in("photo_id", photoIds);
+
+  (purchases || []).forEach((r: any) => {
     const d = new Date(r.date);
     const key = monthNames[d.getMonth()] + " " + d.getFullYear();
     months[key] = (months[key] || 0) + (r.price || 0);
   });
+
+  // 2. Hype Engine revenue from balance_adjustments ledger
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("slug", photographerId)
+    .single();
+
+  if (profile) {
+    const { data: adjustments } = await supabase
+      .from("balance_adjustments")
+      .select("amount, created_at, reason")
+      .eq("user_id", profile.id)
+      .like("reason", "Hype Engine%");
+
+    (adjustments || []).forEach((r: any) => {
+      const d = new Date(r.created_at);
+      const key = monthNames[d.getMonth()] + " " + d.getFullYear();
+      months[key] = (months[key] || 0) + (r.amount || 0);
+    });
+  }
 
   return Object.entries(months).map(([m, v]) => ({ m, v }));
 }
