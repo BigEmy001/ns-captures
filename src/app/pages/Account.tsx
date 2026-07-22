@@ -99,6 +99,9 @@ export function Account() {
     bio: user?.bio || "",
   });
   const [passwordData, setPasswordData] = useState({ current: "", next: "", confirm: "" });
+  const [settingsTab, setSettingsTab] = useState<"profile" | "verification" | "security">(
+    "profile",
+  );
 
   // Fetch photos for purchases/licenses
   const [purchasePhotos, setPurchasePhotos] = useState<Record<string, Photo>>({});
@@ -330,53 +333,55 @@ export function Account() {
             <Eyebrow>MY ACCOUNT</Eyebrow>
           </div>
 
-          {/* Profile Header Cover */}
-          <div className="relative h-28 w-full rounded-2xl overflow-hidden mb-8 ns-shadow-sm">
-            {user?.avatar ? (
-              <img
-                src={user.avatar}
-                alt=""
-                loading="lazy"
-                className="w-full h-full object-cover opacity-40 blur-md scale-110"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#1e4a3f] to-[#2a5e4f]" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-            <div className="absolute bottom-4 left-6 flex items-center gap-4">
-              <div className="relative group size-14 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white">
-                <Avatar className="w-full h-full object-cover">
-                  <AvatarImage src={user?.avatar || ""} alt="" loading="lazy" />
-                  <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-lg">
-                    {user?.name?.slice(0, 2).toUpperCase() || "NS"}
-                  </AvatarFallback>
-                </Avatar>
-                <label className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                  {isUploadingAvatar ? (
-                    <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Camera className="size-4" />
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarUpload}
-                    disabled={isUploadingAvatar}
-                  />
-                </label>
-              </div>
-              <div className="text-white">
-                <h1 className="font-serif text-xl sm:text-2xl font-semibold leading-tight">
-                  {user?.name || "User"}
-                </h1>
-                <p className="text-xs text-white/70 font-medium tracking-wide mt-0.5">
-                  {user?.role || "Buyer"}
-                  {user?.company ? ` · ${user.company}` : ""}
-                </p>
+          {/* Profile Header Cover — dashboard only */}
+          {active === "dashboard" && (
+            <div className="relative h-28 w-full rounded-2xl overflow-hidden mb-8 ns-shadow-sm">
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt=""
+                  loading="lazy"
+                  className="w-full h-full object-cover opacity-40 blur-md scale-110"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#1e4a3f] to-[#2a5e4f]" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-6 flex items-center gap-4">
+                <div className="relative group size-14 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white">
+                  <Avatar className="w-full h-full object-cover">
+                    <AvatarImage src={user?.avatar || ""} alt="" loading="lazy" />
+                    <AvatarFallback className="bg-[#e7ebe2] text-[#1e4a3f] font-mono text-lg">
+                      {user?.name?.slice(0, 2).toUpperCase() || "NS"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <label className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                    {isUploadingAvatar ? (
+                      <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Camera className="size-4" />
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                      disabled={isUploadingAvatar}
+                    />
+                  </label>
+                </div>
+                <div className="text-white">
+                  <h1 className="font-serif text-xl sm:text-2xl font-semibold leading-tight">
+                    {user?.name || "User"}
+                  </h1>
+                  <p className="text-xs text-white/70 font-medium tracking-wide mt-0.5">
+                    {user?.role || "Buyer"}
+                    {user?.company ? ` · ${user.company}` : ""}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {user?.role === "Buyer" && (
             <div className="mb-6 bg-gradient-to-r from-[#1e4a3f] to-[#2a5e4f] rounded-2xl p-6 sm:p-8 ns-shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
@@ -744,332 +749,366 @@ export function Account() {
           )}
 
           {active === "security" && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm transition-all duration-300">
-                <h3 className="font-serif text-xl text-[#18211f] mb-6">Profile details</h3>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <Field
-                    label="Full name"
-                    value={profileData.name}
-                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                  />
-                  <Field
-                    label="Email"
-                    value={profileData.email}
-                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  />
-                  <Field
-                    label="Company"
-                    value={profileData.company}
-                    onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
-                  />
-                  <div className="block">
-                    <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
-                      Location
-                    </span>
-                    <select
-                      value={profileData.location}
-                      onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                      className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
-                    >
-                      <option value="">Select location</option>
-                      <optgroup label="Africa">
-                        <option value="Lagos, Nigeria">Lagos, Nigeria</option>
-                        <option value="Abuja, Nigeria">Abuja, Nigeria</option>
-                        <option value="Nairobi, Kenya">Nairobi, Kenya</option>
-                        <option value="Accra, Ghana">Accra, Ghana</option>
-                        <option value="Cape Town, South Africa">Cape Town, South Africa</option>
-                        <option value="Johannesburg, South Africa">
-                          Johannesburg, South Africa
-                        </option>
-                        <option value="Cairo, Egypt">Cairo, Egypt</option>
-                        <option value="Addis Ababa, Ethiopia">Addis Ababa, Ethiopia</option>
-                        <option value="Dar es Salaam, Tanzania">Dar es Salaam, Tanzania</option>
-                        <option value="Kigali, Rwanda">Kigali, Rwanda</option>
-                      </optgroup>
-                      <optgroup label="Europe">
-                        <option value="London, UK">London, UK</option>
-                        <option value="Paris, France">Paris, France</option>
-                        <option value="Berlin, Germany">Berlin, Germany</option>
-                        <option value="Amsterdam, Netherlands">Amsterdam, Netherlands</option>
-                        <option value="Barcelona, Spain">Barcelona, Spain</option>
-                        <option value="Rome, Italy">Rome, Italy</option>
-                        <option value="Lisbon, Portugal">Lisbon, Portugal</option>
-                        <option value="Istanbul, Turkey">Istanbul, Turkey</option>
-                      </optgroup>
-                      <optgroup label="North America">
-                        <option value="New York, USA">New York, USA</option>
-                        <option value="Los Angeles, USA">Los Angeles, USA</option>
-                        <option value="Chicago, USA">Chicago, USA</option>
-                        <option value="Toronto, Canada">Toronto, Canada</option>
-                        <option value="Vancouver, Canada">Vancouver, Canada</option>
-                        <option value="Mexico City, Mexico">Mexico City, Mexico</option>
-                      </optgroup>
-                      <optgroup label="South America">
-                        <option value="São Paulo, Brazil">São Paulo, Brazil</option>
-                        <option value="Buenos Aires, Argentina">Buenos Aires, Argentina</option>
-                        <option value="Bogotá, Colombia">Bogotá, Colombia</option>
-                      </optgroup>
-                      <optgroup label="Asia">
-                        <option value="Tokyo, Japan">Tokyo, Japan</option>
-                        <option value="Seoul, South Korea">Seoul, South Korea</option>
-                        <option value="Bangkok, Thailand">Bangkok, Thailand</option>
-                        <option value="Mumbai, India">Mumbai, India</option>
-                        <option value="Dubai, UAE">Dubai, UAE</option>
-                        <option value="Singapore">Singapore</option>
-                        <option value="Hong Kong">Hong Kong</option>
-                      </optgroup>
-                      <optgroup label="Oceania">
-                        <option value="Sydney, Australia">Sydney, Australia</option>
-                        <option value="Melbourne, Australia">Melbourne, Australia</option>
-                        <option value="Auckland, New Zealand">Auckland, New Zealand</option>
-                      </optgroup>
-                    </select>
+            <div>
+              {/* Settings sub-tabs */}
+              <div className="flex gap-1 border-b border-[#ececec] mb-6">
+                {[
+                  { id: "profile" as const, label: "Profile" },
+                  { id: "verification" as const, label: "Verification" },
+                  { id: "security" as const, label: "Security" },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setSettingsTab(t.id)}
+                    className={`px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px ${
+                      settingsTab === t.id
+                        ? "border-[#1e4a3f] text-[#1e4a3f]"
+                        : "border-transparent text-[#6b716d] hover:text-[#18211f]"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Profile */}
+              {settingsTab === "profile" && (
+                <div className="bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm transition-all duration-300">
+                  <h3 className="font-serif text-xl text-[#18211f] mb-6">Profile details</h3>
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <Field
+                      label="Full name"
+                      value={profileData.name}
+                      onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                    />
+                    <Field
+                      label="Email"
+                      value={profileData.email}
+                      onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                    />
+                    <Field
+                      label="Company"
+                      value={profileData.company}
+                      onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
+                    />
+                    <div className="block">
+                      <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                        Location
+                      </span>
+                      <select
+                        value={profileData.location}
+                        onChange={(e) =>
+                          setProfileData({ ...profileData, location: e.target.value })
+                        }
+                        className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                      >
+                        <option value="">Select location</option>
+                        <optgroup label="Africa">
+                          <option value="Lagos, Nigeria">Lagos, Nigeria</option>
+                          <option value="Abuja, Nigeria">Abuja, Nigeria</option>
+                          <option value="Nairobi, Kenya">Nairobi, Kenya</option>
+                          <option value="Accra, Ghana">Accra, Ghana</option>
+                          <option value="Cape Town, South Africa">Cape Town, South Africa</option>
+                          <option value="Johannesburg, South Africa">
+                            Johannesburg, South Africa
+                          </option>
+                          <option value="Cairo, Egypt">Cairo, Egypt</option>
+                          <option value="Addis Ababa, Ethiopia">Addis Ababa, Ethiopia</option>
+                          <option value="Dar es Salaam, Tanzania">Dar es Salaam, Tanzania</option>
+                          <option value="Kigali, Rwanda">Kigali, Rwanda</option>
+                        </optgroup>
+                        <optgroup label="Europe">
+                          <option value="London, UK">London, UK</option>
+                          <option value="Paris, France">Paris, France</option>
+                          <option value="Berlin, Germany">Berlin, Germany</option>
+                          <option value="Amsterdam, Netherlands">Amsterdam, Netherlands</option>
+                          <option value="Barcelona, Spain">Barcelona, Spain</option>
+                          <option value="Rome, Italy">Rome, Italy</option>
+                          <option value="Lisbon, Portugal">Lisbon, Portugal</option>
+                          <option value="Istanbul, Turkey">Istanbul, Turkey</option>
+                        </optgroup>
+                        <optgroup label="North America">
+                          <option value="New York, USA">New York, USA</option>
+                          <option value="Los Angeles, USA">Los Angeles, USA</option>
+                          <option value="Chicago, USA">Chicago, USA</option>
+                          <option value="Toronto, Canada">Toronto, Canada</option>
+                          <option value="Vancouver, Canada">Vancouver, Canada</option>
+                          <option value="Mexico City, Mexico">Mexico City, Mexico</option>
+                        </optgroup>
+                        <optgroup label="South America">
+                          <option value="São Paulo, Brazil">São Paulo, Brazil</option>
+                          <option value="Buenos Aires, Argentina">Buenos Aires, Argentina</option>
+                          <option value="Bogotá, Colombia">Bogotá, Colombia</option>
+                        </optgroup>
+                        <optgroup label="Asia">
+                          <option value="Tokyo, Japan">Tokyo, Japan</option>
+                          <option value="Seoul, South Korea">Seoul, South Korea</option>
+                          <option value="Bangkok, Thailand">Bangkok, Thailand</option>
+                          <option value="Mumbai, India">Mumbai, India</option>
+                          <option value="Dubai, UAE">Dubai, UAE</option>
+                          <option value="Singapore">Singapore</option>
+                          <option value="Hong Kong">Hong Kong</option>
+                        </optgroup>
+                        <optgroup label="Oceania">
+                          <option value="Sydney, Australia">Sydney, Australia</option>
+                          <option value="Melbourne, Australia">Melbourne, Australia</option>
+                          <option value="Auckland, New Zealand">Auckland, New Zealand</option>
+                        </optgroup>
+                      </select>
+                    </div>
+                    <div className="block">
+                      <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                        Role
+                      </span>
+                      <p className="mt-2 rounded-xl border border-[#ececec] bg-[#f7f7f7] px-4 py-3 text-sm text-[#6b716d]">
+                        {user?.role || "Buyer"}
+                      </p>
+                    </div>
+                    <Field label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                    <Field
+                      label="Occupation"
+                      value={occupation}
+                      onChange={(e) => setOccupation(e.target.value)}
+                    />
+                    <Field
+                      label="Date of Birth"
+                      type="date"
+                      value={dob}
+                      onChange={(e) => setDob(e.target.value)}
+                    />
                   </div>
-                  <div className="block">
-                    <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
-                      Role
-                    </span>
-                    <p className="mt-2 rounded-xl border border-[#ececec] bg-[#f7f7f7] px-4 py-3 text-sm text-[#6b716d]">
-                      {user?.role || "Buyer"}
-                    </p>
-                  </div>
-                  <Field label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                  <Field
-                    label="Occupation"
-                    value={occupation}
-                    onChange={(e) => setOccupation(e.target.value)}
-                  />
-                  <Field
-                    label="Date of Birth"
-                    type="date"
-                    value={dob}
-                    onChange={(e) => setDob(e.target.value)}
-                  />
-                </div>
-                <div className="mt-6">
-                  <h4 className="text-[13px] font-medium text-[#758078] uppercase tracking-wide mb-3">
-                    Social Profiles
-                  </h4>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {["instagram", "twitter", "linkedin", "website"].map((platform) => (
-                      <label key={platform} className="block">
-                        <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
-                          {platform}
-                        </span>
-                        <input
-                          type="text"
-                          placeholder={
-                            platform === "website" ? "https://your-site.com" : `@${platform}`
-                          }
-                          value={socialLinks[platform] || ""}
-                          onChange={(e) =>
-                            setSocialLinks((prev) => ({ ...prev, [platform]: e.target.value }))
-                          }
-                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
-                        />
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="mt-6">
-                  <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
-                    Bio
-                  </span>
-                  <textarea
-                    rows={3}
-                    maxLength={500}
-                    placeholder="Tell visitors about your work and style..."
-                    value={profileData.bio}
-                    onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                    className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm resize-none"
-                  />
-                  <p className="mt-1 text-xs text-[#8a8f89]">{profileData.bio.length}/500</p>
-                </div>
-                <div className="mt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
-                      References
+                  <div className="mt-6">
+                    <h4 className="text-[13px] font-medium text-[#758078] uppercase tracking-wide mb-3">
+                      Social Profiles
                     </h4>
-                    <button
-                      onClick={() =>
-                        setReferences((prev) => [
-                          ...prev,
-                          { name: "", email: "", phone: "", relationship: "" },
-                        ])
-                      }
-                      className="flex items-center gap-1.5 text-[13px] font-semibold text-[#1e4a3f] hover:text-[#123b31] transition-colors"
-                    >
-                      <Plus className="size-4" /> Add
-                    </button>
-                  </div>
-                  {references.length === 0 ? (
-                    <p className="text-sm text-[#6b716d]">No references added yet.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {references.map((ref, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-4 p-4 rounded-xl bg-[#f8f9f7] group"
-                        >
-                          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#e7ebe2] text-[#1e4a3f] font-serif text-sm font-semibold">
-                            {ref.name?.charAt(0)?.toUpperCase() || "?"}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <input
-                              type="text"
-                              placeholder="Full name"
-                              value={ref.name}
-                              onChange={(e) => {
-                                const next = [...references];
-                                next[i] = { ...next[i], name: e.target.value };
-                                setReferences(next);
-                              }}
-                              className="block w-full bg-transparent text-sm font-semibold text-[#18211f] placeholder-[#b0b5b1] outline-none border-b border-transparent focus:border-[#1e4a3f]/20 transition pb-0.5"
-                            />
-                            <div className="flex items-center gap-3 mt-1">
-                              <input
-                                type="email"
-                                placeholder="email@example.com"
-                                value={ref.email}
-                                onChange={(e) => {
-                                  const next = [...references];
-                                  next[i] = { ...next[i], email: e.target.value };
-                                  setReferences(next);
-                                }}
-                                className="block w-full bg-transparent text-xs text-[#6b716d] placeholder-[#b0b5b1] outline-none border-b border-transparent focus:border-[#1e4a3f]/20 transition pb-0.5"
-                              />
-                              <input
-                                type="text"
-                                placeholder="Relationship"
-                                value={ref.relationship}
-                                onChange={(e) => {
-                                  const next = [...references];
-                                  next[i] = { ...next[i], relationship: e.target.value };
-                                  setReferences(next);
-                                }}
-                                className="block w-32 shrink-0 bg-transparent text-xs text-[#6b716d] placeholder-[#b0b5b1] outline-none border-b border-transparent focus:border-[#1e4a3f]/20 transition pb-0.5"
-                              />
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => setReferences((prev) => prev.filter((_, j) => j !== i))}
-                            className="shrink-0 p-1.5 text-[#b91c1c]/40 hover:text-[#b91c1c] hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                            title="Remove reference"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {["instagram", "twitter", "linkedin", "website"].map((platform) => (
+                        <label key={platform} className="block">
+                          <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                            {platform}
+                          </span>
+                          <input
+                            type="text"
+                            placeholder={
+                              platform === "website" ? "https://your-site.com" : `@${platform}`
+                            }
+                            value={socialLinks[platform] || ""}
+                            onChange={(e) =>
+                              setSocialLinks((prev) => ({ ...prev, [platform]: e.target.value }))
+                            }
+                            className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                          />
+                        </label>
                       ))}
                     </div>
-                  )}
-                </div>
-                <div className="mt-8 flex justify-end">
-                  <Button onClick={handleProfileSave}>Save changes</Button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
-                <h3 className="font-serif text-xl text-[#18211f] mb-6">Identity Verification</h3>
-                <div className="max-w-md space-y-4">
-                  <div className="bg-[#f7f7f7] rounded-xl p-4 border border-[#ececec]">
-                    <div className="flex items-start gap-3">
-                      <ShieldCheck
-                        className={`size-6 shrink-0 mt-0.5 ${
-                          user?.verificationStatus === "verified"
-                            ? "text-green-600"
-                            : user?.verificationStatus === "pending"
-                              ? "text-amber-500"
-                              : user?.verificationStatus === "rejected"
-                                ? "text-red-500"
-                                : "text-[#6b716d]"
-                        }`}
-                      />
-                      <div>
-                        <p className="font-semibold text-[#18211f]">Account Status</p>
-                        <p className="text-sm mt-1 mb-3 text-[#6b716d]">
-                          {user?.verificationStatus === "verified"
-                            ? "Your identity is verified. You have full access to photographer features."
-                            : user?.verificationStatus === "pending"
-                              ? "Your verification is currently under review by our team."
-                              : user?.verificationStatus === "rejected"
-                                ? "Your previous verification was rejected. Please submit a clearer document."
-                                : "You must verify your identity before you can withdraw earnings or publish public collections."}
-                        </p>
-                        {user?.verificationStatus !== "verified" &&
-                          user?.verificationStatus !== "pending" && (
-                            <Button
-                              onClick={() => setIsVerificationModalOpen(true)}
-                              className="bg-[#1e4a3f] text-white hover:bg-[#123b31] rounded-full text-xs py-1 h-8"
+                  </div>
+                  <div className="mt-6">
+                    <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                      Bio
+                    </span>
+                    <textarea
+                      rows={3}
+                      maxLength={500}
+                      placeholder="Tell visitors about your work and style..."
+                      value={profileData.bio}
+                      onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                      className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm resize-none"
+                    />
+                    <p className="mt-1 text-xs text-[#8a8f89]">{profileData.bio.length}/500</p>
+                  </div>
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                        References
+                      </h4>
+                      <button
+                        onClick={() =>
+                          setReferences((prev) => [
+                            ...prev,
+                            { name: "", email: "", phone: "", relationship: "" },
+                          ])
+                        }
+                        className="flex items-center gap-1.5 text-[13px] font-semibold text-[#1e4a3f] hover:text-[#123b31] transition-colors"
+                      >
+                        <Plus className="size-4" /> Add
+                      </button>
+                    </div>
+                    {references.length === 0 ? (
+                      <p className="text-sm text-[#6b716d]">No references added yet.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {references.map((ref, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-4 p-4 rounded-xl bg-[#f8f9f7] group"
+                          >
+                            <div className="grid size-9 shrink-0 place-items-center rounded-full bg-[#e7ebe2] text-[#1e4a3f] font-serif text-sm font-semibold">
+                              {ref.name?.charAt(0)?.toUpperCase() || "?"}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <input
+                                type="text"
+                                placeholder="Full name"
+                                value={ref.name}
+                                onChange={(e) => {
+                                  const next = [...references];
+                                  next[i] = { ...next[i], name: e.target.value };
+                                  setReferences(next);
+                                }}
+                                className="block w-full bg-transparent text-sm font-semibold text-[#18211f] placeholder-[#b0b5b1] outline-none border-b border-transparent focus:border-[#1e4a3f]/20 transition pb-0.5"
+                              />
+                              <div className="flex items-center gap-3 mt-1">
+                                <input
+                                  type="email"
+                                  placeholder="email@example.com"
+                                  value={ref.email}
+                                  onChange={(e) => {
+                                    const next = [...references];
+                                    next[i] = { ...next[i], email: e.target.value };
+                                    setReferences(next);
+                                  }}
+                                  className="block w-full bg-transparent text-xs text-[#6b716d] placeholder-[#b0b5b1] outline-none border-b border-transparent focus:border-[#1e4a3f]/20 transition pb-0.5"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Relationship"
+                                  value={ref.relationship}
+                                  onChange={(e) => {
+                                    const next = [...references];
+                                    next[i] = { ...next[i], relationship: e.target.value };
+                                    setReferences(next);
+                                  }}
+                                  className="block w-32 shrink-0 bg-transparent text-xs text-[#6b716d] placeholder-[#b0b5b1] outline-none border-b border-transparent focus:border-[#1e4a3f]/20 transition pb-0.5"
+                                />
+                              </div>
+                            </div>
+                            <button
+                              onClick={() =>
+                                setReferences((prev) => prev.filter((_, j) => j !== i))
+                              }
+                              className="shrink-0 p-1.5 text-[#b91c1c]/40 hover:text-[#b91c1c] hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                              title="Remove reference"
                             >
-                              Verify Identity
-                            </Button>
-                          )}
+                              <Trash2 className="size-4" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    </div>
+                    )}
+                  </div>
+                  <div className="mt-8 flex justify-end">
+                    <Button onClick={handleProfileSave}>Save changes</Button>
                   </div>
                 </div>
-              </div>
+              )}
 
-              <div className="bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
-                <h3 className="font-serif text-xl text-[#18211f] mb-6">Security & Password</h3>
-                <div className="max-w-md space-y-6">
-                  <div className="border border-[#ececec] rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-[#18211f]">Two-Factor Authentication</p>
-                        <p className="text-xs text-[#6b716d]">Add an extra layer of security</p>
+              {/* Verification */}
+              {settingsTab === "verification" && (
+                <div className="bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
+                  <h3 className="font-serif text-xl text-[#18211f] mb-6">Identity Verification</h3>
+                  <div className="max-w-md space-y-4">
+                    <div className="bg-[#f7f7f7] rounded-xl p-4 border border-[#ececec]">
+                      <div className="flex items-start gap-3">
+                        <ShieldCheck
+                          className={`size-6 shrink-0 mt-0.5 ${
+                            user?.verificationStatus === "verified"
+                              ? "text-green-600"
+                              : user?.verificationStatus === "pending"
+                                ? "text-amber-500"
+                                : user?.verificationStatus === "rejected"
+                                  ? "text-red-500"
+                                  : "text-[#6b716d]"
+                          }`}
+                        />
+                        <div>
+                          <p className="font-semibold text-[#18211f]">Account Status</p>
+                          <p className="text-sm mt-1 mb-3 text-[#6b716d]">
+                            {user?.verificationStatus === "verified"
+                              ? "Your identity is verified. You have full access to photographer features."
+                              : user?.verificationStatus === "pending"
+                                ? "Your verification is currently under review by our team."
+                                : user?.verificationStatus === "rejected"
+                                  ? "Your previous verification was rejected. Please submit a clearer document."
+                                  : "You must verify your identity before you can withdraw earnings or publish public collections."}
+                          </p>
+                          {user?.verificationStatus !== "verified" &&
+                            user?.verificationStatus !== "pending" && (
+                              <Button
+                                onClick={() => setIsVerificationModalOpen(true)}
+                                className="bg-[#1e4a3f] text-white hover:bg-[#123b31] rounded-full text-xs py-1 h-8"
+                              >
+                                Verify Identity
+                              </Button>
+                            )}
+                        </div>
                       </div>
-                      <Button variant="outline" size="sm">
-                        Enable
-                      </Button>
                     </div>
                   </div>
-                  <div className="border border-[#ececec] rounded-xl p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-[#18211f]">Passkeys</p>
-                        <p className="text-xs text-[#6b716d]">Sign in with Face ID / Touch ID</p>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        Add passkey
-                      </Button>
-                    </div>
-                  </div>
-                  <hr className="border-[#ececec]" />
-                  <form onSubmit={handlePasswordChange} className="space-y-4">
-                    <h4 className="font-semibold text-[#18211f]">Change Password</h4>
-                    <Field
-                      label="Current password"
-                      type="password"
-                      value={passwordData.current}
-                      onChange={(e) =>
-                        setPasswordData({ ...passwordData, current: e.target.value })
-                      }
-                    />
-                    <Field
-                      label="New password"
-                      type="password"
-                      value={passwordData.next}
-                      onChange={(e) => setPasswordData({ ...passwordData, next: e.target.value })}
-                    />
-                    <Field
-                      label="Confirm new password"
-                      type="password"
-                      value={passwordData.confirm}
-                      onChange={(e) =>
-                        setPasswordData({ ...passwordData, confirm: e.target.value })
-                      }
-                    />
-                    <button
-                      type="submit"
-                      className="w-full rounded-full bg-[#1e4a3f] py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b31]"
-                    >
-                      Update password
-                    </button>
-                  </form>
                 </div>
-              </div>
+              )}
+
+              {/* Security */}
+              {settingsTab === "security" && (
+                <div className="bg-white rounded-2xl p-6 sm:p-8 ns-shadow-sm">
+                  <h3 className="font-serif text-xl text-[#18211f] mb-6">Security & Password</h3>
+                  <div className="max-w-md space-y-6">
+                    <div className="border border-[#ececec] rounded-xl p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-[#18211f]">Two-Factor Authentication</p>
+                          <p className="text-xs text-[#6b716d]">Add an extra layer of security</p>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          Enable
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="border border-[#ececec] rounded-xl p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-[#18211f]">Passkeys</p>
+                          <p className="text-xs text-[#6b716d]">Sign in with Face ID / Touch ID</p>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          Add passkey
+                        </Button>
+                      </div>
+                    </div>
+                    <hr className="border-[#ececec]" />
+                    <form onSubmit={handlePasswordChange} className="space-y-4">
+                      <h4 className="font-semibold text-[#18211f]">Change Password</h4>
+                      <Field
+                        label="Current password"
+                        type="password"
+                        value={passwordData.current}
+                        onChange={(e) =>
+                          setPasswordData({ ...passwordData, current: e.target.value })
+                        }
+                      />
+                      <Field
+                        label="New password"
+                        type="password"
+                        value={passwordData.next}
+                        onChange={(e) => setPasswordData({ ...passwordData, next: e.target.value })}
+                      />
+                      <Field
+                        label="Confirm new password"
+                        type="password"
+                        value={passwordData.confirm}
+                        onChange={(e) =>
+                          setPasswordData({ ...passwordData, confirm: e.target.value })
+                        }
+                      />
+                      <button
+                        type="submit"
+                        className="w-full rounded-full bg-[#1e4a3f] py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b31]"
+                      >
+                        Update password
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
