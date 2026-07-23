@@ -1828,34 +1828,35 @@ export function Admin() {
               {settingsSubTab === "payments" && (
                 <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                   <h3 className="font-serif text-lg text-[#18211f] mb-1">
-                    Verification Payment Methods
+                    Deposit & Payment Wallets
                   </h3>
                   <p className="text-xs text-[#6b716d] mb-6">
-                    Configure how photographers pay their £247 verification fee.
+                    Global Deposit Wallets & Bank Accounts shown to users when they attempt to make
+                    a deposit or pay verification fees.
                   </p>
                   <div className="space-y-4">
                     {[
                       {
                         key: "bank",
-                        label: "Bank Transfer",
-                        sub: "Receive verification fees via bank wire",
+                        label: "Bank Wire Transfer",
+                        sub: "Global bank accounts shown to users for wire deposits",
                         icon: <Wallet className="size-4 text-[#1e4a3f]" />,
                       },
                       {
                         key: "crypto",
-                        label: "Crypto Wallet",
-                        sub: "Receive verification fees in cryptocurrency",
+                        label: "Global Deposit Wallets (Crypto)",
+                        sub: "Global crypto wallet addresses shown to users when attempting a deposit",
                         icon: <span className="text-sm font-bold text-[#1e4a3f]">₿</span>,
                       },
                       {
                         key: "paypal",
-                        label: "PayPal",
-                        sub: "Receive verification fees via PayPal",
+                        label: "PayPal Account",
+                        sub: "Receive deposits and fees via PayPal",
                         icon: <span className="text-sm font-bold text-[#1e4a3f]">P</span>,
                       },
                       {
                         key: "local_bank",
-                        label: "Local Bank",
+                        label: "Local Bank Account",
                         sub: "Simple domestic bank transfer (account number + sort code)",
                         icon: <Landmark className="size-4 text-[#1e4a3f]" />,
                       },
