@@ -23,6 +23,7 @@ import {
   fetchSiteSettings,
   type AdminPaymentMethod,
   type VerificationDocument,
+  type CryptoWalletEntry,
 } from "../data/db";
 
 interface GlobalVerificationModalProps {
@@ -550,86 +551,133 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
 
                             {selectedMethodId === method.id && (
                               <div className="mt-3 pt-3 border-t border-[#1e4a3f]/10 animate-in slide-in-from-top-2 duration-200">
-                                <p className="text-[9px] sm:text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-1">
+                                <p className="text-[9px] sm:text-[10px] font-mono tracking-wider text-[#758078] uppercase mb-2">
                                   Payment Details
                                 </p>
-                                <div className="space-y-1">
-                                  {(method.methodType === "bank" ||
-                                    method.methodType === "local_bank") &&
-                                  method.details &&
-                                  (method.details.bankName ||
-                                    method.details.iban ||
-                                    method.details.swift ||
-                                    method.details.accountNumber) ? (
-                                    <>
-                                      {method.details.bankName && (
-                                        <p className="text-xs text-[#18211f]">
-                                          Bank:{" "}
-                                          <span className="font-medium">
-                                            {String(method.details.bankName)}
-                                          </span>
-                                        </p>
+                                {method.details &&
+                                (method.details.wallets as CryptoWalletEntry[])?.length > 0 ? (
+                                  <div className="space-y-2.5">
+                                    <p className="text-[11px] text-[#758078] font-medium">
+                                      Send payment to any of the following crypto wallet addresses:
+                                    </p>
+                                    {(method.details.wallets as CryptoWalletEntry[]).map(
+                                      (w, idx) => (
+                                        <div
+                                          key={idx}
+                                          className="bg-white border border-[#ececec] p-2.5 rounded-xl space-y-1.5"
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-1.5">
+                                              <span className="font-bold text-[#18211f] text-xs bg-[#f0f4f2] text-[#1e4a3f] px-2 py-0.5 rounded font-mono">
+                                                {w.coin}
+                                              </span>
+                                              <span className="text-[11px] font-medium text-[#758078]">
+                                                {w.network} Network
+                                              </span>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigator.clipboard.writeText(w.address);
+                                                toast.success(
+                                                  `Copied ${w.coin} (${w.network}) address!`,
+                                                );
+                                              }}
+                                              className="p-1 rounded bg-[#f8f9f7] hover:bg-[#ececec] text-[#1e4a3f] transition flex items-center gap-1 text-[11px] font-medium border border-[#ececec]"
+                                            >
+                                              <Copy className="size-3" />
+                                              Copy
+                                            </button>
+                                          </div>
+                                          <code className="text-xs font-mono text-[#18211f] break-all block bg-[#f8f9f7] p-2 rounded border border-[#ececec]">
+                                            {w.address}
+                                          </code>
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="space-y-1">
+                                      {(method.methodType === "bank" ||
+                                        method.methodType === "local_bank") &&
+                                      method.details &&
+                                      (method.details.bankName ||
+                                        method.details.iban ||
+                                        method.details.swift ||
+                                        method.details.accountNumber) ? (
+                                        <>
+                                          {method.details.bankName && (
+                                            <p className="text-xs text-[#18211f]">
+                                              Bank:{" "}
+                                              <span className="font-medium">
+                                                {String(method.details.bankName)}
+                                              </span>
+                                            </p>
+                                          )}
+                                          {method.details.iban && (
+                                            <p className="text-xs text-[#18211f] font-mono">
+                                              IBAN: {String(method.details.iban)}
+                                            </p>
+                                          )}
+                                          {method.details.swift && (
+                                            <p className="text-xs text-[#18211f] font-mono">
+                                              SWIFT: {String(method.details.swift)}
+                                            </p>
+                                          )}
+                                          {method.details.accountNumber && !method.details.iban && (
+                                            <p className="text-xs text-[#18211f] font-mono">
+                                              Acc: {String(method.details.accountNumber)}
+                                            </p>
+                                          )}
+                                          {method.details.sortCode && (
+                                            <p className="text-xs text-[#18211f] font-mono">
+                                              Sort: {String(method.details.sortCode)}
+                                            </p>
+                                          )}
+                                          {method.details.accountHolder &&
+                                            method.methodType === "local_bank" && (
+                                              <p className="text-xs text-[#6b716d]">
+                                                {String(method.details.accountHolder)}
+                                              </p>
+                                            )}
+                                        </>
+                                      ) : (
+                                        <code className="flex-1 bg-white border border-[#ececec] p-2 rounded text-xs text-[#1e4a3f] break-all block">
+                                          {typeof method.details === "object"
+                                            ? method.details?.value ||
+                                              method.details?.email ||
+                                              method.details?.address ||
+                                              JSON.stringify(method.details)
+                                            : String(method.details)}
+                                        </code>
                                       )}
-                                      {method.details.iban && (
-                                        <p className="text-xs text-[#18211f] font-mono">
-                                          IBAN: {String(method.details.iban)}
-                                        </p>
-                                      )}
-                                      {method.details.swift && (
-                                        <p className="text-xs text-[#18211f] font-mono">
-                                          SWIFT: {String(method.details.swift)}
-                                        </p>
-                                      )}
-                                      {method.details.accountNumber && !method.details.iban && (
-                                        <p className="text-xs text-[#18211f] font-mono">
-                                          Acc: {String(method.details.accountNumber)}
-                                        </p>
-                                      )}
-                                      {method.details.sortCode && (
-                                        <p className="text-xs text-[#18211f] font-mono">
-                                          Sort: {String(method.details.sortCode)}
-                                        </p>
-                                      )}
-                                      {method.details.accountHolder &&
-                                        method.methodType === "local_bank" && (
-                                          <p className="text-xs text-[#6b716d]">
-                                            {String(method.details.accountHolder)}
-                                          </p>
-                                        )}
-                                    </>
-                                  ) : (
-                                    <code className="flex-1 bg-white border border-[#ececec] p-2 rounded text-xs text-[#1e4a3f] break-all block">
-                                      {typeof method.details === "object"
-                                        ? method.details?.value ||
-                                          method.details?.email ||
-                                          method.details?.address ||
-                                          JSON.stringify(method.details)
-                                        : String(method.details)}
-                                    </code>
-                                  )}
-                                </div>
-                                <div className="flex items-start gap-2 mt-2">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const text =
-                                        typeof method.details === "object"
-                                          ? method.details?.value ||
-                                            method.details?.email ||
-                                            method.details?.address ||
-                                            JSON.stringify(method.details)
-                                          : String(method.details);
-                                      navigator.clipboard.writeText(text);
-                                      toast.success("Copied to clipboard!");
-                                    }}
-                                    className="p-2 border border-[#ececec] rounded bg-white hover:bg-[#f8f9f7] text-[#6b716d] transition flex-shrink-0"
-                                    title="Copy Details"
-                                    aria-label="Copy details"
-                                  >
-                                    <Copy className="size-4" />
-                                  </button>
-                                </div>
+                                    </div>
+                                    <div className="flex items-start gap-2 mt-2">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const text =
+                                            typeof method.details === "object"
+                                              ? method.details?.value ||
+                                                method.details?.email ||
+                                                method.details?.address ||
+                                                JSON.stringify(method.details)
+                                              : String(method.details);
+                                          navigator.clipboard.writeText(text);
+                                          toast.success("Copied to clipboard!");
+                                        }}
+                                        className="p-2 border border-[#ececec] rounded bg-white hover:bg-[#f8f9f7] text-[#6b716d] transition flex-shrink-0"
+                                        title="Copy Details"
+                                        aria-label="Copy details"
+                                      >
+                                        <Copy className="size-4" />
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             )}
                           </div>

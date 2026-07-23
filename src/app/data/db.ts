@@ -1727,6 +1727,33 @@ export interface CryptoWalletEntry {
   address: string;
 }
 
+export const COINS = [
+  { symbol: "BTC", name: "Bitcoin", networks: ["Bitcoin", "Lightning"] },
+  { symbol: "ETH", name: "Ethereum", networks: ["ERC20", "Arbitrum", "Optimism", "Base"] },
+  {
+    symbol: "USDT",
+    name: "Tether",
+    networks: ["ERC20", "TRC20", "BEP20", "Solana", "Polygon", "Avalanche C"],
+  },
+  {
+    symbol: "USDC",
+    name: "USD Coin",
+    networks: ["ERC20", "TRC20", "BEP20", "Solana", "Polygon", "Avalanche C", "Base"],
+  },
+  { symbol: "SOL", name: "Solana", networks: ["Solana"] },
+  { symbol: "LTC", name: "Litecoin", networks: ["Litecoin"] },
+  { symbol: "XRP", name: "Ripple", networks: ["XRP Ledger"] },
+  { symbol: "BCH", name: "Bitcoin Cash", networks: ["Bitcoin Cash"] },
+  { symbol: "BNB", name: "BNB", networks: ["BEP20", "BEP2"] },
+  { symbol: "MATIC", name: "Polygon", networks: ["Polygon"] },
+  { symbol: "AVAX", name: "Avalanche", networks: ["Avalanche C", "Avalanche X"] },
+  { symbol: "TRX", name: "Tron", networks: ["TRC20"] },
+  { symbol: "ADA", name: "Cardano", networks: ["Cardano"] },
+  { symbol: "DOT", name: "Polkadot", networks: ["Polkadot"] },
+  { symbol: "DOGE", name: "Dogecoin", networks: ["Dogecoin"] },
+  { symbol: "DAI", name: "Dai", networks: ["ERC20", "Polygon", "Optimism"] },
+];
+
 export interface PhotographerPaymentMethod {
   id: string;
   photographerId: string;

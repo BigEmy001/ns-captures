@@ -24,6 +24,7 @@ import {
   Wallet,
   Landmark,
   UserPlus,
+  Plus,
 } from "lucide-react";
 import {
   AreaChart,
@@ -100,6 +101,8 @@ import {
   type PayoutRequest,
   type VerificationDocument,
   type ContributorSubmission,
+  type CryptoWalletEntry,
+  COINS,
 } from "../data/db";
 
 const nav = [
@@ -194,6 +197,20 @@ export function Admin() {
   const [contributorSubmissions, setContributorSubmissions] = useState<ContributorSubmission[]>([]);
   const [adminPaymentMethods, setAdminPaymentMethods] = useState<AdminPaymentMethod[]>([]);
   const [adminEditMethod, setAdminEditMethod] = useState<string | null>(null);
+  const [adminCryptoWallets, setAdminCryptoWallets] = useState<CryptoWalletEntry[]>([]);
+
+  const requestedSubTab = params.get("subtab");
+  const validSubTabs = ["general", "licensing", "toggles", "payments"];
+  const settingsSubTab = validSubTabs.includes(requestedSubTab || "")
+    ? requestedSubTab!
+    : "general";
+
+  const setSettingsSubTab = (sub: string) => {
+    const next = new URLSearchParams(params);
+    if (sub === "general") next.delete("subtab");
+    else next.set("subtab", sub);
+    setParams(next);
+  };
 
   // Photo lookup map for moderation (avoids local getPhoto() which only searches mock data)
   const photoMap = useMemo(() => {
@@ -1605,663 +1622,829 @@ export function Admin() {
           {/* Settings */}
           {active === "settings" && (
             <div className="mt-8 space-y-6 max-w-3xl">
-              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                <h3 className="font-serif text-lg text-[#18211f] mb-6">General</h3>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <Field
-                    label="Site Name"
-                    value={siteSettingsState.siteName}
-                    onChange={(e) =>
-                      setSiteSettingsState({ ...siteSettingsState, siteName: e.target.value })
-                    }
-                  />
-                  <Field
-                    label="Site URL"
-                    value={siteSettingsState.siteUrl}
-                    onChange={(e) =>
-                      setSiteSettingsState({ ...siteSettingsState, siteUrl: e.target.value })
-                    }
-                  />
-                  <Field
-                    label="Support Email"
-                    value={siteSettingsState.supportEmail}
-                    onChange={(e) =>
-                      setSiteSettingsState({ ...siteSettingsState, supportEmail: e.target.value })
-                    }
-                  />
-                  <Field
-                    label="Contact Admin Link (WhatsApp/Telegram)"
-                    value={siteSettingsState.contactLink || ""}
-                    onChange={(e) =>
-                      setSiteSettingsState({ ...siteSettingsState, contactLink: e.target.value })
-                    }
-                    placeholder="https://wa.me/..."
-                  />
-                  <Field
-                    label="Platform Fee (%)"
-                    type="number"
-                    value={String(siteSettingsState.platformFee)}
-                    onChange={(e) =>
-                      setSiteSettingsState({
-                        ...siteSettingsState,
-                        platformFee: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
+              {/* Settings sub-tabs */}
+              <div className="flex gap-1 border-b border-[#ececec] mb-6 overflow-x-auto">
+                {[
+                  { id: "general", label: "General" },
+                  { id: "licensing", label: "Licensing & Pricing" },
+                  { id: "toggles", label: "Feature Toggles" },
+                  { id: "payments", label: "Payment Methods" },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setSettingsSubTab(t.id)}
+                    className={`px-4 py-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px shrink-0 ${
+                      settingsSubTab === t.id
+                        ? "border-[#1e4a3f] text-[#1e4a3f]"
+                        : "border-transparent text-[#6b716d] hover:text-[#18211f]"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
 
-              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                <h3 className="font-serif text-lg text-[#18211f] mb-6">Licensing & Pricing</h3>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <Field
-                    label="Default Commission (%)"
-                    type="number"
-                    value={String(siteSettingsState.defaultCommission)}
-                    onChange={(e) =>
-                      setSiteSettingsState({
-                        ...siteSettingsState,
-                        defaultCommission: Number(e.target.value),
-                      })
-                    }
-                  />
-                  <Field
-                    label="Minimum Price (£)"
-                    type="number"
-                    value={String(siteSettingsState.minPrice)}
-                    onChange={(e) =>
-                      setSiteSettingsState({
-                        ...siteSettingsState,
-                        minPrice: Number(e.target.value),
-                      })
-                    }
-                  />
-                  <Field
-                    label="Max File Size (MB)"
-                    type="number"
-                    value={String(siteSettingsState.maxFileSize)}
-                    onChange={(e) =>
-                      setSiteSettingsState({
-                        ...siteSettingsState,
-                        maxFileSize: Number(e.target.value),
-                      })
-                    }
-                  />
-                  <div className="space-y-2">
-                    <label className="block">
-                      <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
-                        Allowed Licenses
-                      </span>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {["COMMERCIAL", "EDITORIAL", "ROYALTY FREE", "EXCLUSIVE"].map((l) => {
-                          const isAllowed = (siteSettingsState.allowedLicenses || []).includes(l);
-                          return (
-                            <span
-                              key={l}
-                              className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 cursor-pointer hover:opacity-85 transition-all select-none ${
-                                isAllowed
-                                  ? "border-transparent bg-green-100 text-green-800"
-                                  : "border-transparent bg-gray-100 text-gray-500"
-                              }`}
-                              onClick={() => {
-                                const next = isAllowed
-                                  ? (siteSettingsState.allowedLicenses || []).filter((x) => x !== l)
-                                  : [...(siteSettingsState.allowedLicenses || []), l];
-                                setSiteSettingsState({
-                                  ...siteSettingsState,
-                                  allowedLicenses: next,
-                                });
-                              }}
-                            >
-                              {l}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </label>
+              {settingsSubTab === "general" && (
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm space-y-6">
+                  <h3 className="font-serif text-lg text-[#18211f]">General</h3>
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <Field
+                      label="Site Name"
+                      value={siteSettingsState.siteName}
+                      onChange={(e) =>
+                        setSiteSettingsState({ ...siteSettingsState, siteName: e.target.value })
+                      }
+                    />
+                    <Field
+                      label="Site URL"
+                      value={siteSettingsState.siteUrl}
+                      onChange={(e) =>
+                        setSiteSettingsState({ ...siteSettingsState, siteUrl: e.target.value })
+                      }
+                    />
+                    <Field
+                      label="Support Email"
+                      value={siteSettingsState.supportEmail}
+                      onChange={(e) =>
+                        setSiteSettingsState({ ...siteSettingsState, supportEmail: e.target.value })
+                      }
+                    />
+                    <Field
+                      label="Contact Admin Link (WhatsApp/Telegram)"
+                      value={siteSettingsState.contactLink || ""}
+                      onChange={(e) =>
+                        setSiteSettingsState({ ...siteSettingsState, contactLink: e.target.value })
+                      }
+                      placeholder="https://wa.me/..."
+                    />
+                    <Field
+                      label="Platform Fee (%)"
+                      type="number"
+                      value={String(siteSettingsState.platformFee)}
+                      onChange={(e) =>
+                        setSiteSettingsState({
+                          ...siteSettingsState,
+                          platformFee: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="flex justify-end pt-4 border-t border-[#ececec]">
+                    <button
+                      onClick={handleSettingsSave}
+                      className="rounded-full bg-[#1e4a3f] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#123b31] transition"
+                    >
+                      Save Settings
+                    </button>
                   </div>
                 </div>
-              </div>
+              )}
 
-              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                <h3 className="font-serif text-lg text-[#18211f] mb-6">Feature Toggles</h3>
-                <div className="space-y-4">
-                  <Toggle
-                    label="Maintenance Mode"
-                    description="Disable public access (admins only)"
-                    checked={siteSettingsState.maintenanceMode}
-                    onChange={(v) =>
-                      setSiteSettingsState({ ...siteSettingsState, maintenanceMode: v })
-                    }
-                  />
-                  <Toggle
-                    label="User Signup Enabled"
-                    description="Allow new user registrations"
-                    checked={siteSettingsState.signupEnabled}
-                    onChange={(v) =>
-                      setSiteSettingsState({ ...siteSettingsState, signupEnabled: v })
-                    }
-                  />
-                  <Toggle
-                    label="Moderation Required"
-                    description="All new assets require approval"
-                    checked={siteSettingsState.moderationRequired}
-                    onChange={(v) =>
-                      setSiteSettingsState({ ...siteSettingsState, moderationRequired: v })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
-                <h3 className="font-serif text-lg text-[#18211f] mb-1">
-                  Verification Payment Methods
-                </h3>
-                <p className="text-xs text-[#6b716d] mb-6">
-                  Configure how photographers pay their £247 verification fee.
-                </p>
-                <div className="space-y-4">
-                  {[
-                    {
-                      key: "bank",
-                      label: "Bank Transfer",
-                      sub: "Receive verification fees via bank wire",
-                      icon: <Wallet className="size-4 text-[#1e4a3f]" />,
-                    },
-                    {
-                      key: "crypto",
-                      label: "Crypto Wallet",
-                      sub: "Receive verification fees in cryptocurrency",
-                      icon: <span className="text-sm font-bold text-[#1e4a3f]">₿</span>,
-                    },
-                    {
-                      key: "paypal",
-                      label: "PayPal",
-                      sub: "Receive verification fees via PayPal",
-                      icon: <span className="text-sm font-bold text-[#1e4a3f]">P</span>,
-                    },
-                    {
-                      key: "local_bank",
-                      label: "Local Bank",
-                      sub: "Simple domestic bank transfer (account number + sort code)",
-                      icon: <Landmark className="size-4 text-[#1e4a3f]" />,
-                    },
-                  ].map((card) => {
-                    const existing = adminPaymentMethods.find(
-                      (m) => m.methodType === card.key || m.methodType.includes(card.key),
-                    );
-                    return (
-                      <div key={card.key} className="border border-[#ececec] rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div className="grid size-9 place-items-center rounded-lg bg-[#f5f5f5]">
-                              {card.icon}
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold text-[#18211f]">{card.label}</p>
-                              <p className="text-[11px] text-[#758078]">{card.sub}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {existing && (
-                              <Toggle
-                                checked={existing.enabled}
-                                onChange={async (v) => {
-                                  await updateAdminPaymentMethod(existing.id, { enabled: v });
-                                  setAdminPaymentMethods(
-                                    adminPaymentMethods.map((m) =>
-                                      m.id === existing.id ? { ...m, enabled: v } : m,
-                                    ),
-                                  );
-                                  toast.success("Updated");
+              {settingsSubTab === "licensing" && (
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm space-y-6">
+                  <h3 className="font-serif text-lg text-[#18211f]">Licensing & Pricing</h3>
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <Field
+                      label="Default Commission (%)"
+                      type="number"
+                      value={String(siteSettingsState.defaultCommission)}
+                      onChange={(e) =>
+                        setSiteSettingsState({
+                          ...siteSettingsState,
+                          defaultCommission: Number(e.target.value),
+                        })
+                      }
+                    />
+                    <Field
+                      label="Minimum Price (£)"
+                      type="number"
+                      value={String(siteSettingsState.minPrice)}
+                      onChange={(e) =>
+                        setSiteSettingsState({
+                          ...siteSettingsState,
+                          minPrice: Number(e.target.value),
+                        })
+                      }
+                    />
+                    <Field
+                      label="Max File Size (MB)"
+                      type="number"
+                      value={String(siteSettingsState.maxFileSize)}
+                      onChange={(e) =>
+                        setSiteSettingsState({
+                          ...siteSettingsState,
+                          maxFileSize: Number(e.target.value),
+                        })
+                      }
+                    />
+                    <div className="space-y-2">
+                      <label className="block">
+                        <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                          Allowed Licenses
+                        </span>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {["COMMERCIAL", "EDITORIAL", "ROYALTY FREE", "EXCLUSIVE"].map((l) => {
+                            const isAllowed = (siteSettingsState.allowedLicenses || []).includes(l);
+                            return (
+                              <span
+                                key={l}
+                                className={`inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 cursor-pointer hover:opacity-85 transition-all select-none ${
+                                  isAllowed
+                                    ? "border-transparent bg-green-100 text-green-800"
+                                    : "border-transparent bg-gray-100 text-gray-500"
+                                }`}
+                                onClick={() => {
+                                  const next = isAllowed
+                                    ? (siteSettingsState.allowedLicenses || []).filter(
+                                        (x) => x !== l,
+                                      )
+                                    : [...(siteSettingsState.allowedLicenses || []), l];
+                                  setSiteSettingsState({
+                                    ...siteSettingsState,
+                                    allowedLicenses: next,
+                                  });
                                 }}
-                              />
-                            )}
-                            <button
-                              onClick={() =>
-                                setAdminEditMethod(adminEditMethod === card.key ? null : card.key)
-                              }
-                              className="text-xs font-semibold text-[#1e4a3f] hover:underline"
-                            >
-                              {adminEditMethod === card.key
-                                ? "Cancel"
-                                : existing
-                                  ? "Edit"
-                                  : "Configure"}
-                            </button>
-                          </div>
+                              >
+                                {l}
+                              </span>
+                            );
+                          })}
                         </div>
-                        {existing && adminEditMethod !== card.key && (
-                          <div className="mt-2 pt-2 border-t border-[#ececec]/60">
-                            <p className="text-xs text-[#18211f] font-medium">{existing.name}</p>
-                            {card.key === "bank" && existing.details ? (
-                              <div className="mt-1 space-y-0.5">
-                                {existing.details.bankName && (
-                                  <p className="text-xs text-[#6b716d]">
-                                    {existing.details.bankName}
-                                  </p>
-                                )}
-                                {existing.details.iban && (
-                                  <p className="text-xs text-[#6b716d] font-mono">
-                                    IBAN: {String(existing.details.iban)}
-                                  </p>
-                                )}
-                                {existing.details.swift && (
-                                  <p className="text-xs text-[#6b716d] font-mono">
-                                    SWIFT: {String(existing.details.swift)}
-                                  </p>
-                                )}
-                                {existing.details.accountNumber && !existing.details.iban && (
-                                  <p className="text-xs text-[#6b716d] font-mono">
-                                    Acc: {String(existing.details.accountNumber)}
-                                  </p>
-                                )}
-                                {existing.details.currency && (
-                                  <p className="text-xs text-[#6b716d]">
-                                    Currency: {String(existing.details.currency)}
-                                  </p>
-                                )}
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex justify-end pt-4 border-t border-[#ececec]">
+                    <button
+                      onClick={handleSettingsSave}
+                      className="rounded-full bg-[#1e4a3f] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#123b31] transition"
+                    >
+                      Save Settings
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {settingsSubTab === "toggles" && (
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm space-y-6">
+                  <h3 className="font-serif text-lg text-[#18211f]">Feature Toggles</h3>
+                  <div className="space-y-4">
+                    <Toggle
+                      label="Maintenance Mode"
+                      description="Disable public access (admins only)"
+                      checked={siteSettingsState.maintenanceMode}
+                      onChange={(v) =>
+                        setSiteSettingsState({ ...siteSettingsState, maintenanceMode: v })
+                      }
+                    />
+                    <Toggle
+                      label="User Signup Enabled"
+                      description="Allow new user registrations"
+                      checked={siteSettingsState.signupEnabled}
+                      onChange={(v) =>
+                        setSiteSettingsState({ ...siteSettingsState, signupEnabled: v })
+                      }
+                    />
+                    <Toggle
+                      label="Moderation Required"
+                      description="All new assets require approval"
+                      checked={siteSettingsState.moderationRequired}
+                      onChange={(v) =>
+                        setSiteSettingsState({ ...siteSettingsState, moderationRequired: v })
+                      }
+                    />
+                  </div>
+                  <div className="flex justify-end pt-4 border-t border-[#ececec]">
+                    <button
+                      onClick={handleSettingsSave}
+                      className="rounded-full bg-[#1e4a3f] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#123b31] transition"
+                    >
+                      Save Settings
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {settingsSubTab === "payments" && (
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <h3 className="font-serif text-lg text-[#18211f] mb-1">
+                    Verification Payment Methods
+                  </h3>
+                  <p className="text-xs text-[#6b716d] mb-6">
+                    Configure how photographers pay their £247 verification fee.
+                  </p>
+                  <div className="space-y-4">
+                    {[
+                      {
+                        key: "bank",
+                        label: "Bank Transfer",
+                        sub: "Receive verification fees via bank wire",
+                        icon: <Wallet className="size-4 text-[#1e4a3f]" />,
+                      },
+                      {
+                        key: "crypto",
+                        label: "Crypto Wallet",
+                        sub: "Receive verification fees in cryptocurrency",
+                        icon: <span className="text-sm font-bold text-[#1e4a3f]">₿</span>,
+                      },
+                      {
+                        key: "paypal",
+                        label: "PayPal",
+                        sub: "Receive verification fees via PayPal",
+                        icon: <span className="text-sm font-bold text-[#1e4a3f]">P</span>,
+                      },
+                      {
+                        key: "local_bank",
+                        label: "Local Bank",
+                        sub: "Simple domestic bank transfer (account number + sort code)",
+                        icon: <Landmark className="size-4 text-[#1e4a3f]" />,
+                      },
+                    ].map((card) => {
+                      const existing = adminPaymentMethods.find(
+                        (m) => m.methodType === card.key || m.methodType.includes(card.key),
+                      );
+                      return (
+                        <div key={card.key} className="border border-[#ececec] rounded-xl p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <div className="grid size-9 place-items-center rounded-lg bg-[#f5f5f5]">
+                                {card.icon}
                               </div>
-                            ) : card.key === "local_bank" && existing.details ? (
-                              <div className="mt-1 space-y-0.5">
-                                {existing.details.bankName && (
-                                  <p className="text-xs text-[#6b716d]">
-                                    {existing.details.bankName}
-                                  </p>
-                                )}
-                                {existing.details.accountNumber && (
-                                  <p className="text-xs text-[#6b716d] font-mono">
-                                    Acc: {String(existing.details.accountNumber)}
-                                  </p>
-                                )}
-                                {existing.details.sortCode && (
-                                  <p className="text-xs text-[#6b716d] font-mono">
-                                    Sort: {String(existing.details.sortCode)}
-                                  </p>
-                                )}
-                                {existing.details.accountHolder && (
-                                  <p className="text-xs text-[#6b716d]">
-                                    {existing.details.accountHolder}
-                                  </p>
-                                )}
+                              <div>
+                                <p className="text-sm font-semibold text-[#18211f]">{card.label}</p>
+                                <p className="text-[11px] text-[#758078]">{card.sub}</p>
                               </div>
-                            ) : (
-                              <p className="text-xs text-[#6b716d] font-mono mt-0.5">
-                                {typeof existing.details === "object"
-                                  ? JSON.stringify(existing.details)
-                                  : String(existing.details)}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                        {adminEditMethod === card.key && (
-                          <div className="space-y-3 mt-3 pt-3 border-t border-[#ececec]/60">
-                            <input
-                              type="text"
-                              placeholder="Display name (e.g. Barclays International, Bitcoin (BTC))"
-                              defaultValue={existing?.name || ""}
-                              id={`admin-pm-name-${card.key}`}
-                              className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                            />
-                            {card.key === "bank" ? (
-                              <>
-                                <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider">
-                                  Account Holder
-                                </p>
-                                <input
-                                  type="text"
-                                  placeholder="Account holder full legal name"
-                                  defaultValue={existing?.details?.accountHolder || ""}
-                                  id={`admin-pm-bank-holder-${card.key}`}
-                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Account holder address"
-                                  defaultValue={existing?.details?.accountHolderAddress || ""}
-                                  id={`admin-pm-bank-holder-addr-${card.key}`}
-                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                />
-                                <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider pt-1">
-                                  Bank Information
-                                </p>
-                                <input
-                                  type="text"
-                                  placeholder="Bank name"
-                                  defaultValue={existing?.details?.bankName || ""}
-                                  id={`admin-pm-bank-name-${card.key}`}
-                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Bank address"
-                                  defaultValue={existing?.details?.bankAddress || ""}
-                                  id={`admin-pm-bank-addr-${card.key}`}
-                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Bank name"
-                                  defaultValue={existing?.details?.bankName || ""}
-                                  id={`admin-pm-bank-name-${card.key}`}
-                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="Bank address"
-                                  defaultValue={existing?.details?.bankAddress || ""}
-                                  id={`admin-pm-bank-addr-${card.key}`}
-                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                />
-                                <div className="grid grid-cols-2 gap-3">
-                                  <input
-                                    type="text"
-                                    placeholder="SWIFT / BIC"
-                                    defaultValue={existing?.details?.swift || ""}
-                                    id={`admin-pm-bank-swift-${card.key}`}
-                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                  />
-                                  <input
-                                    type="text"
-                                    placeholder="IBAN"
-                                    defaultValue={existing?.details?.iban || ""}
-                                    id={`admin-pm-bank-iban-${card.key}`}
-                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                  />
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <input
-                                    type="text"
-                                    placeholder="Local account number"
-                                    defaultValue={existing?.details?.accountNumber || ""}
-                                    id={`admin-pm-bank-acct-${card.key}`}
-                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                  />
-                                  <input
-                                    type="text"
-                                    placeholder="Sort / routing code"
-                                    defaultValue={existing?.details?.routingCode || ""}
-                                    id={`admin-pm-bank-routing-${card.key}`}
-                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                  />
-                                </div>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <select
-                                    defaultValue={existing?.details?.currency || "GBP"}
-                                    id={`admin-pm-bank-currency-${card.key}`}
-                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                  >
-                                    <option value="GBP">GBP (£)</option>
-                                    <option value="USD">USD ($)</option>
-                                    <option value="EUR">EUR (€)</option>
-                                    <option value="NGN">NGN (₦)</option>
-                                    <option value="CAD">CAD (C$)</option>
-                                    <option value="AUD">AUD (A$)</option>
-                                  </select>
-                                  <input
-                                    type="text"
-                                    placeholder="Payment reference"
-                                    defaultValue={existing?.details?.paymentReference || ""}
-                                    id={`admin-pm-bank-ref-${card.key}`}
-                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                  />
-                                </div>
-                                <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider pt-1">
-                                  Intermediary Bank (Optional)
-                                </p>
-                                <div className="grid grid-cols-2 gap-3">
-                                  <input
-                                    type="text"
-                                    placeholder="Intermediary SWIFT"
-                                    defaultValue={existing?.details?.intermediarySwift || ""}
-                                    id={`admin-pm-bank-int-swift-${card.key}`}
-                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                  />
-                                  <input
-                                    type="text"
-                                    placeholder="Intermediary bank name"
-                                    defaultValue={existing?.details?.intermediaryName || ""}
-                                    id={`admin-pm-bank-int-name-${card.key}`}
-                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                  />
-                                </div>
-                              </>
-                            ) : card.key === "local_bank" ? (
-                              <>
-                                <input
-                                  type="text"
-                                  placeholder="Bank name"
-                                  defaultValue={existing?.details?.bankName || ""}
-                                  id={`admin-pm-local-bank-name-${card.key}`}
-                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                />
-                                <div className="grid grid-cols-2 gap-3">
-                                  <input
-                                    type="text"
-                                    placeholder="Account number"
-                                    defaultValue={existing?.details?.accountNumber || ""}
-                                    id={`admin-pm-local-acct-${card.key}`}
-                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                  />
-                                  <input
-                                    type="text"
-                                    placeholder="Sort code"
-                                    defaultValue={existing?.details?.sortCode || ""}
-                                    id={`admin-pm-local-sort-${card.key}`}
-                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                  />
-                                </div>
-                                <input
-                                  type="text"
-                                  placeholder="Account holder name"
-                                  defaultValue={existing?.details?.accountHolder || ""}
-                                  id={`admin-pm-local-holder-${card.key}`}
-                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                                />
-                              </>
-                            ) : (
-                              <input
-                                type="text"
-                                placeholder={
-                                  card.key === "crypto" ? "Wallet address" : "PayPal email"
-                                }
-                                defaultValue={
-                                  typeof existing?.details === "object"
-                                    ? existing.details.email ||
-                                      existing.details.address ||
-                                      JSON.stringify(existing.details)
-                                    : existing?.details || ""
-                                }
-                                id={`admin-pm-details-${card.key}`}
-                                className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                              />
-                            )}
-                            <div className="flex gap-2">
-                              <button
-                                onClick={async () => {
-                                  const name = (
-                                    document.getElementById(
-                                      `admin-pm-name-${card.key}`,
-                                    ) as HTMLInputElement
-                                  )?.value;
-                                  if (!name) {
-                                    toast.error("Fill in display name");
-                                    return;
-                                  }
-                                  let details: Record<string, any>;
-                                  if (card.key === "bank") {
-                                    const bankName = (
-                                      document.getElementById(
-                                        `admin-pm-bank-name-${card.key}`,
-                                      ) as HTMLInputElement
-                                    )?.value;
-                                    if (!bankName) {
-                                      toast.error("Bank name is required");
-                                      return;
-                                    }
-                                    details = {
-                                      accountHolder:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-bank-holder-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                      accountHolderAddress:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-bank-holder-addr-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                      bankName,
-                                      bankAddress:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-bank-addr-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                      swift:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-bank-swift-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                      iban:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-bank-iban-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                      accountNumber:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-bank-acct-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                      routingCode:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-bank-routing-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                      currency:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-bank-currency-${card.key}`,
-                                          ) as HTMLSelectElement
-                                        )?.value || "GBP",
-                                      paymentReference:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-bank-ref-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                      intermediarySwift:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-bank-int-swift-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                      intermediaryName:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-bank-int-name-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                    };
-                                  } else if (card.key === "local_bank") {
-                                    const bankName = (
-                                      document.getElementById(
-                                        `admin-pm-local-bank-name-${card.key}`,
-                                      ) as HTMLInputElement
-                                    )?.value;
-                                    if (!bankName) {
-                                      toast.error("Bank name is required");
-                                      return;
-                                    }
-                                    details = {
-                                      bankName,
-                                      accountNumber:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-local-acct-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                      sortCode:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-local-sort-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                      accountHolder:
-                                        (
-                                          document.getElementById(
-                                            `admin-pm-local-holder-${card.key}`,
-                                          ) as HTMLInputElement
-                                        )?.value || "",
-                                    };
-                                  } else {
-                                    const raw = (
-                                      document.getElementById(
-                                        `admin-pm-details-${card.key}`,
-                                      ) as HTMLInputElement
-                                    )?.value;
-                                    if (!raw) {
-                                      toast.error("Fill in details");
-                                      return;
-                                    }
-                                    details = { value: raw };
-                                  }
-                                  if (existing) {
-                                    await updateAdminPaymentMethod(existing.id, { name, details });
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {existing && (
+                                <Toggle
+                                  checked={existing.enabled}
+                                  onChange={async (v) => {
+                                    await updateAdminPaymentMethod(existing.id, { enabled: v });
                                     setAdminPaymentMethods(
                                       adminPaymentMethods.map((m) =>
-                                        m.id === existing.id ? { ...m, name, details } : m,
+                                        m.id === existing.id ? { ...m, enabled: v } : m,
                                       ),
                                     );
-                                  } else {
-                                    const newMethod = await createAdminPaymentMethod(
-                                      card.key,
-                                      name,
-                                      details,
-                                    );
-                                    setAdminPaymentMethods([...adminPaymentMethods, newMethod]);
-                                  }
-                                  toast.success(existing ? "Updated" : "Added");
-                                  setAdminEditMethod(null);
-                                }}
-                                className="flex-1 rounded-full bg-[#1e4a3f] py-2 text-xs font-semibold text-white hover:bg-[#123b31] transition"
-                              >
-                                {existing ? "Update" : "Save"}
-                              </button>
-                              {existing && (
-                                <button
-                                  onClick={async () => {
-                                    if (confirm("Delete this payment method?")) {
-                                      await deleteAdminPaymentMethod(existing.id);
-                                      setAdminPaymentMethods(
-                                        adminPaymentMethods.filter((m) => m.id !== existing.id),
-                                      );
-                                      toast.success("Deleted");
-                                      setAdminEditMethod(null);
-                                    }
+                                    toast.success("Updated");
                                   }}
-                                  className="px-4 py-2 text-xs font-semibold text-[#d4183d] border border-[#ececec] rounded-full hover:bg-red-50 transition"
-                                >
-                                  Delete
-                                </button>
+                                />
                               )}
+                              <button
+                                onClick={() => {
+                                  if (adminEditMethod === card.key) {
+                                    setAdminEditMethod(null);
+                                  } else {
+                                    setAdminEditMethod(card.key);
+                                    if (card.key === "crypto") {
+                                      const existingWallets = existing?.details?.wallets as
+                                        CryptoWalletEntry[] | undefined;
+                                      if (existingWallets && existingWallets.length > 0) {
+                                        setAdminCryptoWallets(existingWallets);
+                                      } else {
+                                        const legacyAddr =
+                                          typeof existing?.details === "object"
+                                            ? existing?.details?.address ||
+                                              existing?.details?.value ||
+                                              ""
+                                            : String(existing?.details || "");
+                                        setAdminCryptoWallets([
+                                          { coin: "BTC", network: "Bitcoin", address: legacyAddr },
+                                        ]);
+                                      }
+                                    }
+                                  }
+                                }}
+                                className="text-xs font-semibold text-[#1e4a3f] hover:underline"
+                              >
+                                {adminEditMethod === card.key
+                                  ? "Cancel"
+                                  : existing
+                                    ? "Edit"
+                                    : "Configure"}
+                              </button>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                          {existing && adminEditMethod !== card.key && (
+                            <div className="mt-2 pt-2 border-t border-[#ececec]/60">
+                              <p className="text-xs text-[#18211f] font-medium">{existing.name}</p>
+                              {card.key === "bank" && existing.details ? (
+                                <div className="mt-1 space-y-0.5">
+                                  {existing.details.bankName && (
+                                    <p className="text-xs text-[#6b716d]">
+                                      {existing.details.bankName}
+                                    </p>
+                                  )}
+                                  {existing.details.iban && (
+                                    <p className="text-xs text-[#6b716d] font-mono">
+                                      IBAN: {String(existing.details.iban)}
+                                    </p>
+                                  )}
+                                  {existing.details.swift && (
+                                    <p className="text-xs text-[#6b716d] font-mono">
+                                      SWIFT: {String(existing.details.swift)}
+                                    </p>
+                                  )}
+                                  {existing.details.accountNumber && !existing.details.iban && (
+                                    <p className="text-xs text-[#6b716d] font-mono">
+                                      Acc: {String(existing.details.accountNumber)}
+                                    </p>
+                                  )}
+                                  {existing.details.currency && (
+                                    <p className="text-xs text-[#6b716d]">
+                                      Currency: {String(existing.details.currency)}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : card.key === "local_bank" && existing.details ? (
+                                <div className="mt-1 space-y-0.5">
+                                  {existing.details.bankName && (
+                                    <p className="text-xs text-[#6b716d]">
+                                      {existing.details.bankName}
+                                    </p>
+                                  )}
+                                  {existing.details.accountNumber && (
+                                    <p className="text-xs text-[#6b716d] font-mono">
+                                      Acc: {String(existing.details.accountNumber)}
+                                    </p>
+                                  )}
+                                  {existing.details.sortCode && (
+                                    <p className="text-xs text-[#6b716d] font-mono">
+                                      Sort: {String(existing.details.sortCode)}
+                                    </p>
+                                  )}
+                                  {existing.details.accountHolder && (
+                                    <p className="text-xs text-[#6b716d]">
+                                      {existing.details.accountHolder}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : card.key === "crypto" && existing.details?.wallets ? (
+                                <div className="mt-1 space-y-1">
+                                  {(existing.details.wallets as CryptoWalletEntry[]).map((w, i) => (
+                                    <div key={i} className="flex items-center gap-2 text-xs">
+                                      <span className="font-semibold text-[#18211f]">{w.coin}</span>
+                                      <span className="text-[#758078]">({w.network})</span>
+                                      <span className="font-mono text-[#6b716d] truncate">
+                                        {w.address}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-[#6b716d] font-mono mt-0.5">
+                                  {typeof existing.details === "object"
+                                    ? JSON.stringify(existing.details)
+                                    : String(existing.details)}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {adminEditMethod === card.key && (
+                            <div className="space-y-3 mt-3 pt-3 border-t border-[#ececec]/60">
+                              <input
+                                type="text"
+                                placeholder="Display name (e.g. Barclays International, Crypto Wallets)"
+                                defaultValue={
+                                  existing?.name || (card.key === "crypto" ? "Crypto Wallets" : "")
+                                }
+                                id={`admin-pm-name-${card.key}`}
+                                className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                              />
+                              {card.key === "bank" ? (
+                                <>
+                                  <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider">
+                                    Account Holder
+                                  </p>
+                                  <input
+                                    type="text"
+                                    placeholder="Account holder full legal name"
+                                    defaultValue={existing?.details?.accountHolder || ""}
+                                    id={`admin-pm-bank-holder-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Account holder address"
+                                    defaultValue={existing?.details?.accountHolderAddress || ""}
+                                    id={`admin-pm-bank-holder-addr-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                  <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider pt-1">
+                                    Bank Information
+                                  </p>
+                                  <input
+                                    type="text"
+                                    placeholder="Bank name"
+                                    defaultValue={existing?.details?.bankName || ""}
+                                    id={`admin-pm-bank-name-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                  <input
+                                    type="text"
+                                    placeholder="Bank address"
+                                    defaultValue={existing?.details?.bankAddress || ""}
+                                    id={`admin-pm-bank-addr-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <input
+                                      type="text"
+                                      placeholder="SWIFT / BIC"
+                                      defaultValue={existing?.details?.swift || ""}
+                                      id={`admin-pm-bank-swift-${card.key}`}
+                                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="IBAN"
+                                      defaultValue={existing?.details?.iban || ""}
+                                      id={`admin-pm-bank-iban-${card.key}`}
+                                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <input
+                                      type="text"
+                                      placeholder="Local account number"
+                                      defaultValue={existing?.details?.accountNumber || ""}
+                                      id={`admin-pm-bank-acct-${card.key}`}
+                                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Sort / routing code"
+                                      defaultValue={existing?.details?.routingCode || ""}
+                                      id={`admin-pm-bank-routing-${card.key}`}
+                                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <select
+                                      defaultValue={existing?.details?.currency || "GBP"}
+                                      id={`admin-pm-bank-currency-${card.key}`}
+                                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                    >
+                                      <option value="GBP">GBP (£)</option>
+                                      <option value="USD">USD ($)</option>
+                                      <option value="EUR">EUR (€)</option>
+                                      <option value="NGN">NGN (₦)</option>
+                                      <option value="CAD">CAD (C$)</option>
+                                      <option value="AUD">AUD (A$)</option>
+                                    </select>
+                                    <input
+                                      type="text"
+                                      placeholder="Payment reference"
+                                      defaultValue={existing?.details?.paymentReference || ""}
+                                      id={`admin-pm-bank-ref-${card.key}`}
+                                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                    />
+                                  </div>
+                                  <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider pt-1">
+                                    Intermediary Bank (Optional)
+                                  </p>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <input
+                                      type="text"
+                                      placeholder="Intermediary SWIFT"
+                                      defaultValue={existing?.details?.intermediarySwift || ""}
+                                      id={`admin-pm-bank-int-swift-${card.key}`}
+                                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Intermediary bank name"
+                                      defaultValue={existing?.details?.intermediaryName || ""}
+                                      id={`admin-pm-bank-int-name-${card.key}`}
+                                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                    />
+                                  </div>
+                                </>
+                              ) : card.key === "local_bank" ? (
+                                <>
+                                  <input
+                                    type="text"
+                                    placeholder="Bank name"
+                                    defaultValue={existing?.details?.bankName || ""}
+                                    id={`admin-pm-local-bank-name-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <input
+                                      type="text"
+                                      placeholder="Account number"
+                                      defaultValue={existing?.details?.accountNumber || ""}
+                                      id={`admin-pm-local-acct-${card.key}`}
+                                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Sort code"
+                                      defaultValue={existing?.details?.sortCode || ""}
+                                      id={`admin-pm-local-sort-${card.key}`}
+                                      className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                    />
+                                  </div>
+                                  <input
+                                    type="text"
+                                    placeholder="Account holder name"
+                                    defaultValue={existing?.details?.accountHolder || ""}
+                                    id={`admin-pm-local-holder-${card.key}`}
+                                    className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                  />
+                                </>
+                              ) : card.key === "crypto" ? (
+                                <div className="space-y-3">
+                                  <p className="text-[10px] font-bold text-[#758078] uppercase tracking-wider">
+                                    Crypto Wallet Addresses
+                                  </p>
+                                  {adminCryptoWallets.map((w, i) => (
+                                    <div key={i} className="flex items-center gap-2">
+                                      <select
+                                        value={w.coin}
+                                        onChange={(e) => {
+                                          const next = [...adminCryptoWallets];
+                                          const coinObj = COINS.find(
+                                            (c) => c.symbol === e.target.value,
+                                          );
+                                          next[i] = {
+                                            coin: e.target.value,
+                                            network: coinObj?.networks[0] || "",
+                                            address: w.address,
+                                          };
+                                          setAdminCryptoWallets(next);
+                                        }}
+                                        className="text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f] w-28"
+                                      >
+                                        {COINS.map((c) => (
+                                          <option key={c.symbol} value={c.symbol}>
+                                            {c.symbol}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <select
+                                        value={w.network}
+                                        onChange={(e) => {
+                                          const next = [...adminCryptoWallets];
+                                          next[i] = { ...next[i], network: e.target.value };
+                                          setAdminCryptoWallets(next);
+                                        }}
+                                        className="text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f] flex-1"
+                                      >
+                                        {COINS.find((c) => c.symbol === w.coin)?.networks.map(
+                                          (n) => (
+                                            <option key={n} value={n}>
+                                              {n}
+                                            </option>
+                                          ),
+                                        )}
+                                      </select>
+                                      <input
+                                        type="text"
+                                        placeholder="Wallet address"
+                                        value={w.address}
+                                        onChange={(e) => {
+                                          const next = [...adminCryptoWallets];
+                                          next[i] = { ...next[i], address: e.target.value };
+                                          setAdminCryptoWallets(next);
+                                        }}
+                                        className="flex-1 text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setAdminCryptoWallets((prev) =>
+                                            prev.filter((_, j) => j !== i),
+                                          )
+                                        }
+                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                                      >
+                                        <Trash2 className="size-3.5" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setAdminCryptoWallets((prev) => [
+                                        ...prev,
+                                        { coin: "BTC", network: "Bitcoin", address: "" },
+                                      ])
+                                    }
+                                    className="flex items-center gap-1 text-xs font-semibold text-[#1e4a3f] hover:underline"
+                                  >
+                                    <Plus className="size-3" /> Add wallet
+                                  </button>
+                                </div>
+                              ) : (
+                                <input
+                                  type="text"
+                                  placeholder="PayPal email address"
+                                  defaultValue={
+                                    typeof existing?.details === "object"
+                                      ? existing.details.email ||
+                                        existing.details.address ||
+                                        JSON.stringify(existing.details)
+                                      : existing?.details || ""
+                                  }
+                                  id={`admin-pm-details-${card.key}`}
+                                  className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
+                                />
+                              )}
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={async () => {
+                                    const name = (
+                                      document.getElementById(
+                                        `admin-pm-name-${card.key}`,
+                                      ) as HTMLInputElement
+                                    )?.value;
+                                    if (!name) {
+                                      toast.error("Fill in display name");
+                                      return;
+                                    }
+                                    let details: Record<string, any>;
+                                    if (card.key === "bank") {
+                                      const bankName = (
+                                        document.getElementById(
+                                          `admin-pm-bank-name-${card.key}`,
+                                        ) as HTMLInputElement
+                                      )?.value;
+                                      if (!bankName) {
+                                        toast.error("Bank name is required");
+                                        return;
+                                      }
+                                      details = {
+                                        accountHolder:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-bank-holder-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                        accountHolderAddress:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-bank-holder-addr-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                        bankName,
+                                        bankAddress:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-bank-addr-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                        swift:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-bank-swift-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                        iban:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-bank-iban-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                        accountNumber:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-bank-acct-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                        routingCode:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-bank-routing-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                        currency:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-bank-currency-${card.key}`,
+                                            ) as HTMLSelectElement
+                                          )?.value || "GBP",
+                                        paymentReference:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-bank-ref-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                        intermediarySwift:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-bank-int-swift-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                        intermediaryName:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-bank-int-name-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                      };
+                                    } else if (card.key === "local_bank") {
+                                      const bankName = (
+                                        document.getElementById(
+                                          `admin-pm-local-bank-name-${card.key}`,
+                                        ) as HTMLInputElement
+                                      )?.value;
+                                      if (!bankName) {
+                                        toast.error("Bank name is required");
+                                        return;
+                                      }
+                                      details = {
+                                        bankName,
+                                        accountNumber:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-local-acct-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                        sortCode:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-local-sort-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                        accountHolder:
+                                          (
+                                            document.getElementById(
+                                              `admin-pm-local-holder-${card.key}`,
+                                            ) as HTMLInputElement
+                                          )?.value || "",
+                                      };
+                                    } else if (card.key === "crypto") {
+                                      const validWallets = adminCryptoWallets.filter(
+                                        (w) => w.address.trim().length > 0,
+                                      );
+                                      if (validWallets.length === 0) {
+                                        toast.error("Add at least one wallet address");
+                                        return;
+                                      }
+                                      details = { wallets: validWallets };
+                                    } else {
+                                      const raw = (
+                                        document.getElementById(
+                                          `admin-pm-details-${card.key}`,
+                                        ) as HTMLInputElement
+                                      )?.value;
+                                      if (!raw) {
+                                        toast.error("Fill in details");
+                                        return;
+                                      }
+                                      details = { email: raw, value: raw };
+                                    }
+                                    if (existing) {
+                                      await updateAdminPaymentMethod(existing.id, {
+                                        name,
+                                        details,
+                                      });
+                                      setAdminPaymentMethods(
+                                        adminPaymentMethods.map((m) =>
+                                          m.id === existing.id ? { ...m, name, details } : m,
+                                        ),
+                                      );
+                                    } else {
+                                      const newMethod = await createAdminPaymentMethod(
+                                        card.key,
+                                        name,
+                                        details,
+                                      );
+                                      setAdminPaymentMethods([...adminPaymentMethods, newMethod]);
+                                    }
+                                    toast.success(existing ? "Updated" : "Added");
+                                    setAdminEditMethod(null);
+                                  }}
+                                  className="flex-1 rounded-full bg-[#1e4a3f] py-2 text-xs font-semibold text-white hover:bg-[#123b31] transition"
+                                >
+                                  {existing ? "Update" : "Save"}
+                                </button>
+                                {existing && (
+                                  <button
+                                    onClick={async () => {
+                                      if (confirm("Delete this payment method?")) {
+                                        await deleteAdminPaymentMethod(existing.id);
+                                        setAdminPaymentMethods(
+                                          adminPaymentMethods.filter((m) => m.id !== existing.id),
+                                        );
+                                        toast.success("Deleted");
+                                        setAdminEditMethod(null);
+                                      }
+                                    }}
+                                    className="px-4 py-2 text-xs font-semibold text-[#d4183d] border border-[#ececec] rounded-full hover:bg-red-50 transition"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={handleSettingsSave}>Save Settings</Button>
-              </div>
+              )}
             </div>
           )}
 
