@@ -25,6 +25,7 @@ import {
   Landmark,
   UserPlus,
   Plus,
+  FileText,
 } from "lucide-react";
 import {
   AreaChart,
@@ -2510,6 +2511,16 @@ export function Admin() {
                                 </span>{" "}
                                 {u?.occupation || "N/A"}
                               </p>
+                              {doc.paymentMethodName && (
+                                <p>
+                                  <span className="text-[#9aa09b] uppercase tracking-wider font-mono text-[9px]">
+                                    Payment Method:
+                                  </span>{" "}
+                                  <span className="font-semibold text-[#1e4a3f]">
+                                    {doc.paymentMethodName}
+                                  </span>
+                                </p>
+                              )}
                             </div>
                           </div>
                           <span
@@ -2524,16 +2535,28 @@ export function Admin() {
                             {doc.status}
                           </span>
                         </div>
-                        {doc.fileUrl && (
-                          <a
-                            href={doc.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3 py-1.5 rounded-full transition-colors mb-3"
-                          >
-                            <Eye className="size-3.5" /> View Document
-                          </a>
-                        )}
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {doc.fileUrl && (
+                            <a
+                              href={doc.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#dce8df]/60 hover:bg-[#dce8df] px-3.5 py-1.5 rounded-full transition-colors"
+                            >
+                              <Eye className="size-3.5" /> View ID Document
+                            </a>
+                          )}
+                          {doc.paymentReceiptUrl && (
+                            <a
+                              href={doc.paymentReceiptUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e4a3f] bg-[#1e4a3f]/10 hover:bg-[#1e4a3f]/20 px-3.5 py-1.5 rounded-full transition-colors"
+                            >
+                              <FileText className="size-3.5 text-[#1e4a3f]" /> View Payment Receipt
+                            </a>
+                          )}
+                        </div>
                         {doc.status === "pending" && (
                           <div className="border-t border-[#ececec]/60 pt-3 mt-3 space-y-3">
                             <input

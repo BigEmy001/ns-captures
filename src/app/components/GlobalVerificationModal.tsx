@@ -55,6 +55,7 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
 
   // Payment State
   const [isPaying, setIsPaying] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   useEffect(() => {
     Promise.all([fetchAdminPaymentMethods(), fetchSiteSettings()])
@@ -136,14 +137,41 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
       toast.error("Please select a payment method");
       return;
     }
+    if (!receiptFile) {
+      toast.error("Please upload your payment receipt or proof of transfer");
+      return;
+    }
 
     setIsPaying(true);
     try {
-      await payVerificationFee(user.id);
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+      let receiptUrl = "";
+      if (cloudName && uploadPreset) {
+        const fd = new FormData();
+        fd.append("upload_preset", uploadPreset);
+        fd.append("file", receiptFile);
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: "POST",
+          body: fd,
+        });
+        if (!res.ok) throw new Error("Receipt upload to Cloudinary failed");
+        const json = await res.json();
+        receiptUrl = json.secure_url;
+      } else {
+        throw new Error(
+          "Cloudinary is not configured. Add VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET.",
+        );
+      }
+
+      const selectedMethod = paymentMethods.find((m) => m.id === selectedMethodId);
+      await payVerificationFee(user.id, receiptUrl, selectedMethod?.name || "Payment Method");
       await updateProfile({ verificationStatus: "pending" });
-      toast.success("Payment confirmed! Verification is now pending.");
+      toast.success("Payment receipt submitted! Verification is now pending review.");
+      if (onClose) onClose();
     } catch (err: any) {
-      toast.error(err.message || "Payment failed");
+      toast.error(err.message || "Payment submission failed");
     } finally {
       setIsPaying(false);
     }
@@ -686,10 +714,35 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                   )}
                 </div>
 
+                <div className="mt-4 pt-4 border-t border-[#ececec]">
+                  <label className="text-[10px] sm:text-xs font-semibold text-[#59645f] uppercase tracking-wider mb-2 block">
+                    Upload Payment Receipt / Proof of Transfer{" "}
+                    <span className="text-red-500">*</span>
+                  </label>
+                  <label className="flex items-center justify-center gap-2 p-3 sm:p-4 border-2 border-dashed border-[#ececec] rounded-xl hover:border-[#1e4a3f]/40 transition-colors cursor-pointer bg-[#f8f9f7]">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      className="hidden"
+                      onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                    />
+                    {receiptFile ? (
+                      <span className="text-xs text-[#1e4a3f] font-medium break-all text-center px-2">
+                        {receiptFile.name}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-[#6b716d] flex items-center gap-2 text-center">
+                        <Upload className="size-4 flex-shrink-0" /> Click to attach receipt
+                        screenshot or PDF
+                      </span>
+                    )}
+                  </label>
+                </div>
+
                 <div className="pt-3 sm:pt-4 border-t border-[#ececec]">
                   <p className="text-xs text-[#6b716d] mb-3 sm:mb-4 text-center px-2">
-                    After making your payment to the details above, click "I Have Paid" below to
-                    submit your application for review.
+                    After making your payment and attaching your receipt above, click "I Have Paid"
+                    below to submit your application for review.
                   </p>
 
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
@@ -707,10 +760,10 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
 
                     <button
                       type="submit"
-                      disabled={isPaying || !selectedMethodId}
+                      disabled={isPaying || !selectedMethodId || !receiptFile}
                       className="flex-1 bg-[#1e4a3f] py-3 sm:py-3.5 text-sm font-semibold text-white rounded-full transition hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      {isPaying ? "Processing..." : "I Have Paid"}
+                      {isPaying ? "Uploading & Submitting..." : "I Have Paid"}
                       <CheckCircle className="size-4" />
                     </button>
                   </div>

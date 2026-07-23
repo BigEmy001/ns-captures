@@ -2369,6 +2369,8 @@ export interface VerificationDocument {
   documentType: string;
   documentNumber: string;
   fileUrl: string;
+  paymentReceiptUrl?: string;
+  paymentMethodName?: string;
   status: "pending" | "approved" | "rejected";
   adminNote: string;
   submittedAt: string;
@@ -2391,6 +2393,8 @@ export async function fetchVerificationDocuments(userId: string): Promise<Verifi
     documentType: r.document_type,
     documentNumber: r.document_number || "",
     fileUrl: r.file_url,
+    paymentReceiptUrl: r.payment_receipt_url || undefined,
+    paymentMethodName: r.payment_method_name || undefined,
     status: r.status,
     adminNote: r.admin_note || "",
     submittedAt: r.submitted_at,
@@ -2454,6 +2458,8 @@ export async function uploadVerificationDocument(
     documentType: data.document_type,
     documentNumber: data.document_number || "",
     fileUrl: data.file_url,
+    paymentReceiptUrl: data.payment_receipt_url || undefined,
+    paymentMethodName: data.payment_method_name || undefined,
     status: data.status,
     adminNote: data.admin_note || "",
     submittedAt: data.submitted_at,
@@ -2481,6 +2487,8 @@ export async function fetchMyVerificationDocument(
     documentType: data.document_type,
     documentNumber: data.document_number || "",
     fileUrl: data.file_url,
+    paymentReceiptUrl: data.payment_receipt_url || undefined,
+    paymentMethodName: data.payment_method_name || undefined,
     status: data.status,
     adminNote: data.admin_note || "",
     submittedAt: data.submitted_at,
@@ -2489,10 +2497,11 @@ export async function fetchMyVerificationDocument(
   };
 }
 
-export async function payVerificationFee(userId: string): Promise<boolean> {
-  // Simulate payment processing delay
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-
+export async function payVerificationFee(
+  userId: string,
+  receiptUrl?: string,
+  paymentMethodName?: string,
+): Promise<boolean> {
   // Record the verification fee as a purchase
   const purchaseId = `VF-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
   await supabase.from("purchases").insert({
@@ -2502,7 +2511,8 @@ export async function payVerificationFee(userId: string): Promise<boolean> {
     price: 247,
     license: "Verification Fee",
     status: "APPROVED",
-    payment_method: "card",
+    payment_method: paymentMethodName || "card",
+    receipt_url: receiptUrl || null,
   });
 
   const { error } = await supabase
@@ -2513,6 +2523,25 @@ export async function payVerificationFee(userId: string): Promise<boolean> {
   if (error) {
     console.error("payVerificationFee error", error);
     throw new Error(error.message);
+  }
+
+  // Update latest verification_document for this user with payment receipt & method name
+  const { data: doc } = await supabase
+    .from("verification_documents")
+    .select("id")
+    .eq("user_id", userId)
+    .order("submitted_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (doc) {
+    await supabase
+      .from("verification_documents")
+      .update({
+        payment_receipt_url: receiptUrl || null,
+        payment_method_name: paymentMethodName || null,
+      })
+      .eq("id", doc.id);
   }
 
   return true;
@@ -2532,6 +2561,8 @@ export async function fetchAllVerificationDocuments(): Promise<VerificationDocum
     documentType: r.document_type,
     documentNumber: r.document_number || "",
     fileUrl: r.file_url,
+    paymentReceiptUrl: r.payment_receipt_url || undefined,
+    paymentMethodName: r.payment_method_name || undefined,
     status: r.status,
     adminNote: r.admin_note || "",
     submittedAt: r.submitted_at,
