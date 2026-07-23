@@ -165,7 +165,7 @@ export function SearchPage() {
         </p>
         <input
           type="range"
-          min={100}
+          min={40}
           max={10000}
           step={10}
           value={maxPrice}
