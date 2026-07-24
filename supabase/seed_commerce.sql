@@ -228,12 +228,12 @@ INSERT INTO public.payouts (id, photographer_id, user_id, date, method, amount, 
 SELECT
   'PAY-9043',
   'lexmond-dennis',
-  (SELECT id FROM auth.users WHERE email = 'lexmond@ns.co' LIMIT 1),
+  (SELECT id FROM auth.users WHERE email = 'dennis.rs6.lexmond@gmail.com' LIMIT 1),
   'Jul 16, 2026',
   'Zenith Bank Transfer',
   240,
   'PENDING'
-WHERE EXISTS (SELECT 1 FROM auth.users WHERE email = 'lexmond@ns.co')
+WHERE EXISTS (SELECT 1 FROM auth.users WHERE email = 'dennis.rs6.lexmond@gmail.com')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO public.payouts (id, photographer_id, user_id, date, method, amount, status)
@@ -361,11 +361,11 @@ WHERE EXISTS (SELECT 1 FROM auth.users WHERE email = 'patrick@ns.co');
 
 INSERT INTO public.activity_log (user_id, type, title, "desc")
 SELECT
-  (SELECT id FROM auth.users WHERE email = 'lexmond@ns.co' LIMIT 1),
+  (SELECT id FROM auth.users WHERE email = 'dennis.rs6.lexmond@gmail.com' LIMIT 1),
   'upload',
   'Uploaded: 201 new photos',
   'Portfolio expanded'
-WHERE EXISTS (SELECT 1 FROM auth.users WHERE email = 'lexmond@ns.co');
+WHERE EXISTS (SELECT 1 FROM auth.users WHERE email = 'dennis.rs6.lexmond@gmail.com');
 
 
 -- ============================================================

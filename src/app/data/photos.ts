@@ -10573,6 +10573,7 @@ export interface Photographer {
   cover?: string;
   verified?: boolean;
   gear?: string[];
+  email?: string;
 }
 
 export const photographers: Photographer[] = [
@@ -10778,6 +10779,7 @@ export const photographers: Photographer[] = [
       "https://res.cloudinary.com/odu5iecy/image/upload/v1784205071/ns-captures-lexmond/lexmond_photo_2.jpg",
     gear: ["Sony A7R V", "FE 24-70mm f/2.8 GM II", "FE 70-200mm f/2.8 GM OSS II"],
     bio: "Landscape and architectural photographer capturing the quiet beauty, historic canals, and dramatic skies of the Netherlands and Europe.",
+    email: "dennis.rs6.lexmond@gmail.com",
   },
   {
     id: "haru-tanaka",
@@ -11042,7 +11044,7 @@ export const adminUsers: AdminUser[] = [
   {
     id: "U-1092",
     name: "Lexmond Dennis",
-    email: "lexmond@ns.co",
+    email: "dennis.rs6.lexmond@gmail.com",
     role: "Photographer",
     status: "Active",
     joined: "Jul 2026",
