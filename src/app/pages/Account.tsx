@@ -220,6 +220,18 @@ export function Account() {
 
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
+  useEffect(() => {
+    if (
+      user?.role === "Photographer" &&
+      user?.verificationStatus &&
+      user.verificationStatus !== "verified" &&
+      user.verificationStatus !== "pending"
+    ) {
+      const t = setTimeout(() => setIsVerificationModalOpen(true), 400);
+      return () => clearTimeout(t);
+    }
+  }, [user?.role, user?.verificationStatus]);
+
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -473,6 +485,33 @@ export function Account() {
                 </button>
               ))}
           </div>
+
+          {user?.role === "Photographer" &&
+            user?.verificationStatus &&
+            user.verificationStatus !== "verified" &&
+            user.verificationStatus !== "pending" && (
+              <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-2xl border border-[#1e4a3f]/20 bg-[#f0f4f2] px-4 py-3 sm:px-5 sm:py-4">
+                <ShieldCheck className="size-5 text-[#1e4a3f] flex-shrink-0 mt-0.5 sm:mt-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#18211f]">
+                    {user.verificationStatus === "rejected"
+                      ? "Verification Rejected"
+                      : "Your account is not verified"}
+                  </p>
+                  <p className="text-xs text-[#59645f] mt-0.5">
+                    {user.verificationStatus === "rejected"
+                      ? "Please review the feedback and resubmit your documents."
+                      : "Verify your identity to unlock payouts, portfolio, and full dashboard access."}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsVerificationModalOpen(true)}
+                  className="shrink-0 rounded-full bg-[#1e4a3f] px-5 py-2 text-xs font-semibold text-white hover:bg-[#123b31] transition-all cursor-pointer"
+                >
+                  {user.verificationStatus === "rejected" ? "Resubmit" : "Verify Now"}
+                </button>
+              </div>
+            )}
 
           {active === "collections" && (
             <div className="space-y-4 pt-4">
