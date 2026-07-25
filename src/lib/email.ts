@@ -1,8 +1,6 @@
 import { supabase } from "./supabase";
 import { escapeHtml } from "./validation";
 
-const SENDER = "NS CAPTURES";
-
 async function send(to: string, subject: string, body: string) {
   const fullHtml = `<!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -21,20 +19,17 @@ async function send(to: string, subject: string, body: string) {
 <path d="M534.4 190.718C546.609 187.6 559.052 194.927 562.246 207.12C565.439 219.314 558.189 231.8 546.012 235.07C533.738 238.369 521.117 231.042 517.892 218.74C514.666 206.438 522.077 193.864 534.4 190.718Z" fill="#0B3D2F"/>
 </svg>
 </td></tr>
-<!-- Start dynamic email body content -->
-<tr><td>
+<tr><td style="padding:0 0 15px 0;">
 ${body}
 </td></tr>
-<!-- End dynamic email body content -->
 </table>
 </td></tr>
-<!-- Signature -->
 <tr><td style="padding:0 50px 40px 50px;">
 <table width="100%" cellpadding="0" cellspacing="0">
 <tr><td style="border-top:1px solid #e0e0e0;padding:30px 0 0 0;">
 <p style="margin:0 0 4px 0;font-size:14px;font-weight:700;color:#1e4a3f;font-family:inherit;">NS CAPTURES</p>
 <p style="margin:0 0 2px 0;font-size:12px;color:#555555;font-family:inherit;">Global Photography Acquisition &amp; Licensing</p>
-<p style="margin:0 0 12px 0;font-size:12px;color:#888888;font-family:inherit;">📍 London, United Kingdom</p>
+<p style="margin:0 0 12px 0;font-size:12px;color:#888888;font-family:inherit;">&#x1F4CD; London, United Kingdom</p>
 <p style="margin:0 0 10px 0;font-size:11px;line-height:16px;color:#999999;font-family:inherit;">
 <strong>CONFIDENTIALITY NOTICE:</strong> This email and any attachments are intended only for the use of the individual or entity to whom they are addressed. They may contain confidential or legally privileged information. If you are not the intended recipient, please notify the sender immediately, delete this message, and do not disclose, copy, or distribute its contents.
 </p>
@@ -54,30 +49,24 @@ ${body}
   if (error) console.error("Email send failed:", error);
 }
 
-async function sendEmail(to: string, subject: string, html: string) {
-  return await send(to, subject, html);
-}
-
 export async function sendCreatorSaleNotification(
   creatorEmail: string,
   creatorName: string,
   photoTitle: string,
   price: number,
 ) {
-  const subject = "Great news! Someone just bought your photo 🎉";
+  const subject = "Great news! Someone just bought your photo";
   const html = `
-    <div style="text-align:center; padding:20px;">
-      <h1 style="color:#1e4a3f;">You made a sale!</h1>
-      <p style="font-size:16px; color:#6b716d;">Hi ${escapeHtml(creatorName)},</p>
-      <p style="font-size:16px; color:#6b716d;">We're excited to let you know that a buyer just placed an order for your photo: <strong>${escapeHtml(photoTitle)}</strong>.</p>
-      <div style="background-color:#f8f9f7; padding:20px; border-radius:8px; margin:20px 0; border:1px solid #dce8df;">
-        <p style="margin:0; font-size:14px; color:#1e4a3f; font-weight:bold;">Gross Revenue</p>
-        <p style="margin:5px 0 0 0; font-size:24px; color:#18211f;">£${price.toFixed(2)}</p>
-      </div>
-      <p style="font-size:14px; color:#6b716d;">The funds are currently pending admin verification. Once verified, they will be added to your available payout balance.</p>
-    </div>
-  `;
-  return sendEmail(creatorEmail, subject, html);
+<h1 style="margin:0;font-size:24px;line-height:26px;font-weight:400;color:#333333;font-family:inherit;">You made a sale!</h1>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Hi ${escapeHtml(creatorName)},</p>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">We're excited to let you know that a buyer just placed an order for your photo: <strong>${escapeHtml(photoTitle)}</strong>.</p>
+<div style="background-color:#f8f9f7; padding:20px; border-radius:8px; margin:20px 0; border:1px solid #dce8df;">
+  <p style="margin:0; font-size:14px; color:#1e4a3f; font-weight:bold;">Gross Revenue</p>
+  <p style="margin:5px 0 0 0; font-size:24px; color:#18211f;">£${price.toFixed(2)}</p>
+</div>
+<p style="margin:16px 0 0;font-size:14px;line-height:20px;color:#888888;font-family:inherit;">The funds are currently pending admin verification. Once verified, they will be added to your available payout balance.</p>
+${btn("https://www.nscaptures.com/account", "View My Account")}`;
+  return send(creatorEmail, subject, html);
 }
 
 export async function sendPurchaseApprovedNotification(
@@ -85,17 +74,14 @@ export async function sendPurchaseApprovedNotification(
   buyerName: string,
   photoTitle: string,
 ) {
-  const subject = "Your purchase is approved! 📷";
+  const subject = "Your purchase is approved!";
   const html = `
-    <div style="text-align:center; padding:20px;">
-      <h1 style="color:#1e4a3f;">Payment Confirmed</h1>
-      <p style="font-size:16px; color:#6b716d;">Hi ${escapeHtml(buyerName)},</p>
-      <p style="font-size:16px; color:#6b716d;">Great news! We've successfully verified your payment for <strong>${escapeHtml(photoTitle)}</strong>.</p>
-      <p style="font-size:16px; color:#6b716d;">Your high-resolution license is now active and the photo is ready to download.</p>
-      <a href="https://www.nscaptures.com/account" style="display:inline-block; padding:12px 24px; background-color:#1e4a3f; color:white; text-decoration:none; border-radius:6px; font-weight:bold; margin-top:20px;">View My Collection</a>
-    </div>
-  `;
-  return sendEmail(buyerEmail, subject, html);
+<h1 style="margin:0;font-size:24px;line-height:26px;font-weight:400;color:#333333;font-family:inherit;">Payment Confirmed</h1>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Hi ${escapeHtml(buyerName)},</p>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Great news! We've successfully verified your payment for <strong>${escapeHtml(photoTitle)}</strong>.</p>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Your high-resolution license is now active and the photo is ready to download.</p>
+${btn("https://www.nscaptures.com/account", "View My Collection")}`;
+  return send(buyerEmail, subject, html);
 }
 
 export async function sendPurchaseRejectedNotification(
@@ -105,21 +91,23 @@ export async function sendPurchaseRejectedNotification(
 ) {
   const subject = "Purchase Update: Payment Not Received";
   const html = `
-    <div style="text-align:center; padding:20px;">
-      <h1 style="color:#d4183d;">Payment Verification Failed</h1>
-      <p style="font-size:16px; color:#6b716d;">Hi ${escapeHtml(buyerName)},</p>
-      <p style="font-size:16px; color:#6b716d;">We were unable to verify the payment for your purchase of <strong>${escapeHtml(photoTitle)}</strong>.</p>
-      <p style="font-size:16px; color:#6b716d;">As a result, the transaction has been rejected and the license has not been activated.</p>
-      <p style="font-size:16px; color:#6b716d;">If you believe this is an error, please reply to this email to contact support.</p>
-    </div>
-  `;
-  return sendEmail(buyerEmail, subject, html);
+<h1 style="margin:0;font-size:24px;line-height:26px;font-weight:400;color:#333333;font-family:inherit;">Payment Verification Failed</h1>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Hi ${escapeHtml(buyerName)},</p>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">We were unable to verify the payment for your purchase of <strong>${escapeHtml(photoTitle)}</strong>.</p>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">As a result, the transaction has been rejected and the license has not been activated.</p>
+<p style="margin:16px 0 0;font-size:14px;line-height:20px;color:#888888;font-family:inherit;">If you believe this is an error, please reply to this email to contact support.</p>`;
+  return send(buyerEmail, subject, html);
 }
 
 function btn(url: string, label: string): string {
-  return `<table cellpadding="0" cellspacing="0" style="margin:0;"><tr><td style="background-color:#1e4a3f;border-radius:44px;padding:12px 32px;">
+  return `
+<p style="margin:0 0 40px 0;">
+<table cellpadding="0" cellspacing="0" style="margin:0;"><tr><td style="background-color:#1e4a3f;border-radius:44px;padding:12px 32px;">
 <a href="${url}" style="display:block;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;text-transform:uppercase;letter-spacing:0.5px;font-family:inherit;">${label}</a>
-</td></tr></table>`;
+</td></tr></table>
+</p>
+<p style="margin:0 0 10px 0;font-size:13px;line-height:20px;color:#888888;font-family:inherit;">Or copy this link into your browser:</p>
+<p style="margin:0;font-size:12px;line-height:18px;color:#1e4a3f;word-break:break-all;font-family:monospace;">${url}</p>`;
 }
 
 export async function sendPurchaseReceipt(
