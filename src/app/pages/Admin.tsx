@@ -3094,7 +3094,9 @@ function AdminUserModal({
           <div className="mt-4 flex flex-wrap items-center gap-2.5">
             <button
               onClick={async () => {
-                const { error } = await supabase.auth.resetPasswordForEmail(user.email);
+                const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                  redirectTo: `${window.location.origin}/reset-password`,
+                });
                 if (error) toast.error(error.message);
                 else toast.success(`Password reset email sent to ${user.email}`);
               }}
