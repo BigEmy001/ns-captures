@@ -822,6 +822,22 @@ export async function updatePhotoPrice(photoId: string, price: number): Promise<
 }
 
 // ============================================================
+// PHOTO FIELD UPDATE (photographer can edit title, category, location, etc.)
+// ============================================================
+
+export async function updatePhotoField(
+  photoId: string,
+  fields: Record<string, unknown>,
+): Promise<boolean> {
+  const { error } = await supabase.from("photos").update(fields).eq("id", photoId);
+  if (error) {
+    console.error("updatePhotoField", error);
+    return false;
+  }
+  return true;
+}
+
+// ============================================================
 // CREATE PHOTO (upload from dashboard)
 // ============================================================
 

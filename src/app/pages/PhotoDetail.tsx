@@ -86,11 +86,10 @@ export function PhotoDetail() {
 
   if (!photo) return <NotFound />;
 
-  const MIN_PRICE = 1000;
   const options: LicenseOption[] = [
     {
       id: "COMMERCIAL",
-      price: Math.max(photo.price, MIN_PRICE),
+      price: Math.max(photo.price, 0),
       usage: "Ads, packaging, web & social for a business.",
       restrictions: "No resale as stock.",
       duration: "Perpetual",
@@ -98,7 +97,7 @@ export function PhotoDetail() {
     },
     {
       id: "EDITORIAL",
-      price: Math.max(Math.round(photo.price * 0.7), MIN_PRICE),
+      price: Math.max(Math.round(photo.price * 0.7), 0),
       usage: "News, blogs, education & non-commercial.",
       restrictions: "No commercial promotion.",
       duration: "Perpetual",
@@ -106,7 +105,7 @@ export function PhotoDetail() {
     },
     {
       id: "EXTENDED",
-      price: Math.max(Math.round(photo.price * 2.4), MIN_PRICE),
+      price: Math.max(Math.round(photo.price * 2.4), 0),
       usage: "Merchandise for resale, unlimited prints.",
       restrictions: "None.",
       duration: "Perpetual",
@@ -114,7 +113,7 @@ export function PhotoDetail() {
     },
     {
       id: "EXCLUSIVE",
-      price: Math.max(Math.round(photo.price * 6), MIN_PRICE),
+      price: Math.max(Math.round(photo.price * 6), 0),
       usage: "Sole rights — removed from the library.",
       restrictions: "Buyer owns exclusive use.",
       duration: "Perpetual",

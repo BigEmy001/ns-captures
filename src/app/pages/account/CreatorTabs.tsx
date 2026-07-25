@@ -40,6 +40,7 @@ import {
   createPayoutRequest,
   deletePhoto,
   updatePhotoPrice,
+  updatePhotoField,
   createPhoto,
   COINS,
   type Payout,
@@ -136,6 +137,11 @@ export function CreatorTabs({
   });
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editingPriceValue, setEditingPriceValue] = useState<string>("");
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+  const [editingTitleValue, setEditingTitleValue] = useState<string>("");
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  const [editingFieldKey, setEditingFieldKey] = useState<string>("");
+  const [editingFieldValue, setEditingFieldValue] = useState<string>("");
 
   // Dynamically resolve the photographerId and photographerProfile
   const photographerProfile = photographers.find((p) => p.id === user?.slug);
@@ -274,8 +280,8 @@ export function CreatorTabs({
 
   const handlePriceUpdate = async (photoId: string) => {
     const newPrice = parseInt(editingPriceValue, 10);
-    if (isNaN(newPrice) || newPrice < 1000) {
-      toast.error("Minimum price is £1,000");
+    if (isNaN(newPrice) || newPrice < 0) {
+      toast.error("Please enter a valid price");
       return;
     }
     const ok = await updatePhotoPrice(photoId, newPrice);
@@ -288,6 +294,48 @@ export function CreatorTabs({
       toast.error("Failed to update price");
     }
     setEditingPriceId(null);
+  };
+
+  const handleTitleUpdate = async (photoId: string) => {
+    const newTitle = editingTitleValue.trim();
+    if (!newTitle) {
+      toast.error("Title cannot be empty");
+      return;
+    }
+    const ok = await updatePhotoField(photoId, { title: newTitle });
+    if (ok) {
+      setPortfolioPhotos((prev) =>
+        prev.map((p) => (p.id === photoId ? { ...p, title: newTitle } : p)),
+      );
+      toast.success("Title updated");
+    } else {
+      toast.error("Failed to update title");
+    }
+    setEditingTitleId(null);
+  };
+
+  const handleFieldUpdate = async (photoId: string) => {
+    const val = editingFieldValue.trim();
+    if (!val) {
+      toast.error("Field cannot be empty");
+      return;
+    }
+    const dbField =
+      editingFieldKey === "category"
+        ? "category"
+        : editingFieldKey === "location"
+          ? "location"
+          : editingFieldKey;
+    const ok = await updatePhotoField(photoId, { [dbField]: val });
+    if (ok) {
+      setPortfolioPhotos((prev) =>
+        prev.map((p) => (p.id === photoId ? { ...p, [editingFieldKey]: val } : p)),
+      );
+      toast.success("Updated");
+    } else {
+      toast.error("Failed to update");
+    }
+    setEditingFieldId(null);
   };
 
   const handleFileDrop = (e: React.DragEvent) => {
@@ -508,7 +556,7 @@ export function CreatorTabs({
         color: uploadColor,
         orientation: uploadOrientation,
         ratio: uploadRatio,
-        price: Math.max(Number(uploadPrice) || 1000, 1000),
+        price: Number(uploadPrice) || 1000,
         downloads: 0,
         views: 0,
         likes: 0,
@@ -1192,12 +1240,83 @@ export function CreatorTabs({
                       </button>
                     </div>
                     <div className="p-4">
-                      <h3 className="font-serif text-sm font-semibold text-[#18211f] truncate">
-                        {photo.title}
-                      </h3>
-                      <p className="text-[11px] text-[#758078] mt-0.5 capitalize">
-                        {photo.category} · {photo.orientation}
-                      </p>
+                      {editingTitleId === photo.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={editingTitleValue}
+                            onChange={(e) => setEditingTitleValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleTitleUpdate(photo.id);
+                              if (e.key === "Escape") setEditingTitleId(null);
+                            }}
+                            autoFocus
+                            className="flex-1 font-serif text-sm font-semibold text-[#18211f] border border-[#1e4a3f]/30 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-[#1e4a3f]/20"
+                          />
+                          <button
+                            onClick={() => handleTitleUpdate(photo.id)}
+                            className="p-1 text-[#1e4a3f] hover:bg-[#1e4a3f]/10 rounded cursor-pointer"
+                          >
+                            <Check className="size-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setEditingTitleId(null)}
+                            className="p-1 text-[#758078] hover:bg-[#ececec] rounded cursor-pointer"
+                          >
+                            <X className="size-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <h3
+                          onClick={() => {
+                            setEditingTitleId(photo.id);
+                            setEditingTitleValue(photo.title);
+                          }}
+                          className="font-serif text-sm font-semibold text-[#18211f] truncate cursor-pointer hover:text-[#1e4a3f] transition-colors"
+                          title="Click to edit title"
+                        >
+                          {photo.title}
+                        </h3>
+                      )}
+                      {editingFieldId === photo.id ? (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <input
+                            type="text"
+                            value={editingFieldValue}
+                            onChange={(e) => setEditingFieldValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleFieldUpdate(photo.id);
+                              if (e.key === "Escape") setEditingFieldId(null);
+                            }}
+                            autoFocus
+                            className="flex-1 text-[11px] text-[#758078] border border-[#1e4a3f]/30 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-[#1e4a3f]/20 capitalize"
+                          />
+                          <button
+                            onClick={() => handleFieldUpdate(photo.id)}
+                            className="p-1 text-[#1e4a3f] hover:bg-[#1e4a3f]/10 rounded cursor-pointer"
+                          >
+                            <Check className="size-3" />
+                          </button>
+                          <button
+                            onClick={() => setEditingFieldId(null)}
+                            className="p-1 text-[#758078] hover:bg-[#ececec] rounded cursor-pointer"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <p
+                          onClick={() => {
+                            setEditingFieldId(photo.id);
+                            setEditingFieldKey("category");
+                            setEditingFieldValue(photo.category);
+                          }}
+                          className="text-[11px] text-[#758078] mt-0.5 capitalize cursor-pointer hover:text-[#1e4a3f] transition-colors"
+                          title="Click to edit category"
+                        >
+                          {photo.category} · {photo.orientation}
+                        </p>
+                      )}
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#ececec]/60">
                         {editingPriceId === photo.id ? (
                           <div className="flex items-center gap-1.5">
