@@ -1499,9 +1499,19 @@ export async function updatePhotoHypeOverrides(
     }
   }
 
-  const { error } = await supabase.from("photos").update(updates).eq("id", photoId);
+  // Select back the row so an RLS-blocked write (0 rows, no error) is reported
+  // as a failure instead of a silent success.
+  const { data: updated, error } = await supabase
+    .from("photos")
+    .update(updates)
+    .eq("id", photoId)
+    .select("id");
   if (error) {
     console.error("updatePhotoHypeOverrides error", error);
+    return false;
+  }
+  if (!updated || updated.length === 0) {
+    console.error("updatePhotoHypeOverrides: no row updated for", photoId);
     return false;
   }
   return true;

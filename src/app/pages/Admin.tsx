@@ -2840,6 +2840,7 @@ export function Admin() {
       </div>
       {selectedUser && (
         <AdminUserModal
+          key={selectedUser.id}
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
           onRoleChange={handleRoleChange}
@@ -2854,6 +2855,9 @@ export function Admin() {
           }}
           assets={assetsList}
           onDeleteAsset={handleDeleteUserAsset}
+          onAssetUpdate={(photoId, updates) =>
+            setAssetsList((list) => list.map((p) => (p.id === photoId ? { ...p, ...updates } : p)))
+          }
           verificationDocs={verificationDocs}
           setVerificationDocs={setVerificationDocs}
           adminEmail={user?.email || "admin@nscaptures.com"}
@@ -2942,6 +2946,7 @@ interface AdminUserModalProps {
   onUserUpdate: (userId: string, updates: Partial<AdminUser>) => void;
   assets: Photo[];
   onDeleteAsset: (photoId: string) => void;
+  onAssetUpdate: (photoId: string, updates: Partial<Photo>) => void;
   verificationDocs: VerificationDocument[];
   setVerificationDocs: React.Dispatch<React.SetStateAction<VerificationDocument[]>>;
   adminEmail: string;
@@ -2957,6 +2962,7 @@ function AdminUserModal({
   onUserUpdate,
   assets,
   onDeleteAsset,
+  onAssetUpdate,
   verificationDocs,
   setVerificationDocs,
   adminEmail,
@@ -2986,14 +2992,51 @@ function AdminUserModal({
     }
   }, [user.id, isPhotographer, user.slug]);
 
-  // Robustly query photographer photos using ID, name, or slug match
-  const userPhotos = assets.filter(
-    (p) =>
-      p.photographerId === user.id ||
-      p.photographer.toLowerCase() === user.name.toLowerCase() ||
-      p.photographerId === user.name.toLowerCase().replace(/\s+/g, "-") ||
-      p.photographerId === user.name.toLowerCase().split(" ")[0],
+  // Match photos on the profile slug only. The slug is the immutable identity
+  // key that photos.photographer_id stores; matching on display name instead
+  // cross-attributes photos whenever two photographer records share a name
+  // (which happens in production), so an override saved against one account
+  // could write to another account's assets.
+  const userPhotos = useMemo(
+    () => (user.slug ? assets.filter((p) => p.photographerId === user.slug) : []),
+    [assets, user.slug],
   );
+
+  // Hype Engine override drafts, keyed by photo id. Held in React state rather
+  // than read off the DOM at save time so the inputs stay correct when the
+  // photo list changes underneath them.
+  type HypeDraft = { views: string; likes: string; downloads: string };
+  const hypeDraftFromPhotos = useCallback(
+    (photos: Photo[]): Record<string, HypeDraft> =>
+      Object.fromEntries(
+        photos.map((p) => [
+          p.id,
+          {
+            views: p.customViews ? String(p.customViews) : "",
+            likes: p.customLikes ? String(p.customLikes) : "",
+            downloads: p.customDownloads ? String(p.customDownloads) : "",
+          },
+        ]),
+      ),
+    [],
+  );
+  const [hypeDrafts, setHypeDrafts] = useState<Record<string, HypeDraft>>(() =>
+    hypeDraftFromPhotos(userPhotos),
+  );
+  const [savingHype, setSavingHype] = useState(false);
+
+  // Keep drafts aligned with the photo list: seed entries for photos that are
+  // new to the list, keep any in-progress edit for photos already shown, and
+  // drop entries for photos that disappeared.
+  useEffect(() => {
+    setHypeDrafts((prev) => {
+      const seeded = hypeDraftFromPhotos(userPhotos);
+      for (const id of Object.keys(seeded)) {
+        if (prev[id]) seeded[id] = prev[id];
+      }
+      return seeded;
+    });
+  }, [userPhotos, hypeDraftFromPhotos]);
 
   const totalDownloads = userPhotos.reduce(
     (sum, p) => sum + Math.max(p.downloads || 0, p.customDownloads || 0),
@@ -3988,33 +4031,68 @@ function AdminUserModal({
                     </p>
                   </div>
                   <button
+                    disabled={savingHype}
                     onClick={async () => {
-                      // Save all photo overrides
-                      let photosOk = true;
-                      for (const photo of userPhotos.slice(0, 5)) {
-                        const v = (document.getElementById(`views-${photo.id}`) as HTMLInputElement)
-                          ?.value;
-                        const l = (document.getElementById(`likes-${photo.id}`) as HTMLInputElement)
-                          ?.value;
-                        const d = (document.getElementById(`dls-${photo.id}`) as HTMLInputElement)
-                          ?.value;
-                        const hasChanges = v !== undefined || l !== undefined || d !== undefined;
-                        if (hasChanges) {
+                      // A blank field clears the override back to 0. Returns
+                      // undefined when the value is unusable or unchanged, so
+                      // untouched columns are left alone.
+                      const readField = (raw: string | undefined, current: number) => {
+                        if (raw === undefined) return undefined;
+                        const next = raw.trim() === "" ? 0 : Number(raw);
+                        if (!Number.isInteger(next) || next < 0) return undefined;
+                        return next === current ? undefined : next;
+                      };
+
+                      setSavingHype(true);
+                      // Save every photo in the list, not just the first few.
+                      let saved = 0;
+                      let failed = 0;
+                      try {
+                        for (const photo of userPhotos) {
+                          const draft = hypeDrafts[photo.id];
+                          const customViews = readField(draft?.views, photo.customViews || 0);
+                          const customLikes = readField(draft?.likes, photo.customLikes || 0);
+                          const customDownloads = readField(
+                            draft?.downloads,
+                            photo.customDownloads || 0,
+                          );
+                          if (
+                            customViews === undefined &&
+                            customLikes === undefined &&
+                            customDownloads === undefined
+                          ) {
+                            continue; // nothing changed on this row
+                          }
                           const ok = await updatePhotoHypeOverrides(photo.id, {
-                            customViews: v ? parseInt(v, 10) : undefined,
-                            customLikes: l ? parseInt(l, 10) : undefined,
-                            customDownloads: d ? parseInt(d, 10) : undefined,
+                            customViews,
+                            customLikes,
+                            customDownloads,
                           });
-                          if (!ok) photosOk = false;
+                          if (ok) {
+                            saved++;
+                            // Push the saved values back into the shared asset
+                            // list so the portfolio counts and the next save's
+                            // change detection both see current data.
+                            onAssetUpdate(photo.id, {
+                              ...(customViews !== undefined ? { customViews } : {}),
+                              ...(customLikes !== undefined ? { customLikes } : {}),
+                              ...(customDownloads !== undefined ? { customDownloads } : {}),
+                            });
+                          } else {
+                            failed++;
+                          }
                         }
+                      } finally {
+                        setSavingHype(false);
                       }
 
-                      if (photosOk) toast.success("All overrides saved!");
-                      else toast.error("Some overrides failed to save");
+                      if (failed > 0) toast.error(`${failed} override(s) failed to save`);
+                      else if (saved === 0) toast.info("No changes to save");
+                      else toast.success(`Saved overrides on ${saved} photo(s)`);
                     }}
-                    className="rounded-full bg-[#1e4a3f] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#123b31] cursor-pointer"
+                    className="rounded-full bg-[#1e4a3f] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#123b31] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Save All
+                    {savingHype ? "Saving…" : "Save All"}
                   </button>
                 </div>
 
@@ -4042,30 +4120,35 @@ function AdminUserModal({
                               </p>
                             </div>
                             <div className="flex gap-2">
-                              <input
-                                id={`views-${photo.id}`}
-                                type="number"
-                                placeholder="Views"
-                                defaultValue={photo.customViews || ""}
-                                className="w-20 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none"
-                                title="Custom Views"
-                              />
-                              <input
-                                id={`likes-${photo.id}`}
-                                type="number"
-                                placeholder="Likes"
-                                defaultValue={photo.customLikes || ""}
-                                className="w-20 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none"
-                                title="Custom Likes"
-                              />
-                              <input
-                                id={`dls-${photo.id}`}
-                                type="number"
-                                placeholder="Dls"
-                                defaultValue={photo.customDownloads || ""}
-                                className="w-16 text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none"
-                                title="Custom Downloads"
-                              />
+                              {(
+                                [
+                                  { field: "views", label: "Views", width: "w-20" },
+                                  { field: "likes", label: "Likes", width: "w-20" },
+                                  { field: "downloads", label: "Dls", width: "w-16" },
+                                ] as const
+                              ).map(({ field, label, width }) => (
+                                <input
+                                  key={field}
+                                  type="number"
+                                  min={0}
+                                  step={1}
+                                  placeholder={label}
+                                  value={hypeDrafts[photo.id]?.[field] ?? ""}
+                                  onChange={(e) =>
+                                    setHypeDrafts((prev) => ({
+                                      ...prev,
+                                      [photo.id]: {
+                                        views: prev[photo.id]?.views ?? "",
+                                        likes: prev[photo.id]?.likes ?? "",
+                                        downloads: prev[photo.id]?.downloads ?? "",
+                                        [field]: e.target.value,
+                                      },
+                                    }))
+                                  }
+                                  className={`${width} text-xs border border-[#ececec] rounded px-2 py-1.5 outline-none`}
+                                  title={`Custom ${label}`}
+                                />
+                              ))}
                             </div>
                           </div>
                         ))}
