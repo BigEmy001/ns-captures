@@ -26,6 +26,7 @@ import {
   UserPlus,
   Plus,
   FileText,
+  Copy,
 } from "lucide-react";
 import {
   AreaChart,
@@ -3713,79 +3714,161 @@ function AdminUserModal({
 
               {isPhotographer && (
                 <div className="bg-white border border-[#ececec] rounded-2xl p-6 shadow-sm">
-                  <h3 className="font-serif text-lg text-[#18211f] mb-4">Payout Methods</h3>
-                  {userPaymentMethods.length === 0 ? (
-                    <div className="border border-dashed border-[#ececec] bg-[#f8f9f7] p-6 rounded-xl text-center">
-                      <p className="text-xs text-[#6b716d]">
-                        No payout methods configured by this user.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {userPaymentMethods.map((pm) => {
-                        const icon =
-                          pm.method === "card"
-                            ? "🏦"
-                            : pm.method === "local_bank"
-                              ? "🏠"
-                              : pm.method === "crypto"
-                                ? "₿"
-                                : "P";
+                  <h3 className="font-serif text-lg text-[#18211f] mb-1">Payout Methods</h3>
+                  <p className="text-xs text-[#6b716d] mb-4">
+                    Full details as entered by the creator. Use these to send their payout.
+                  </p>
+                  {(() => {
+                    // Flatten each stored method into labelled rows so every field the
+                    // creator entered is visible and copyable. Previously only a short
+                    // truncated summary was shown, and crypto addresses — the one value
+                    // an admin actually needs to pay — were omitted entirely.
+                    const configured = userPaymentMethods
+                      .map((pm) => {
+                        const d = (pm.details || {}) as Record<string, any>;
                         const label =
                           pm.method === "card"
-                            ? "Bank Transfer"
+                            ? "Bank Transfer (International)"
                             : pm.method === "local_bank"
                               ? "Local Bank"
                               : pm.method === "crypto"
                                 ? "Crypto Wallet"
                                 : "PayPal";
-                        const d = pm.details as Record<string, any>;
-                        const details: string =
-                          pm.method === "card"
-                            ? [
-                                d.bankName,
-                                d.iban && `IBAN: ${d.iban}`,
-                                d.swift && `SWIFT: ${d.swift}`,
-                                d.accountNumber && !d.iban && `Acc: ${d.accountNumber}`,
-                              ]
-                                .filter(Boolean)
-                                .join(" · ")
-                            : pm.method === "local_bank"
+                        const icon =
+                          pm.method === "crypto" ? "₿" : pm.method === "paypal" ? "P" : "🏦";
+
+                        let rows: { label: string; value: string }[];
+                        if (pm.method === "crypto") {
+                          // Support both the current { wallets: [...] } shape and the
+                          // legacy single { wallet: "..." } records still in the table.
+                          const wallets = Array.isArray(d.wallets)
+                            ? d.wallets
+                            : d.wallet
                               ? [
-                                  d.bankName,
-                                  d.accountHolder,
-                                  d.accountNumber && `Acc: ${d.accountNumber}`,
-                                  d.sortCode && `Sort: ${d.sortCode}`,
+                                  {
+                                    coin: d.coin || "Wallet",
+                                    network: d.network || "",
+                                    address: d.wallet,
+                                  },
                                 ]
-                                  .filter(Boolean)
-                                  .join(" · ")
-                              : pm.method === "crypto"
-                                ? (d.wallets as any[])
-                                    ?.map((w: any) => `${w.coin} (${w.network})`)
-                                    .join(", ") || "No wallets configured"
-                                : d.email || "No email configured";
-                        return (
+                              : [];
+                          rows = wallets
+                            .filter((w: any) => w?.address)
+                            .map((w: any) => ({
+                              label: [w.coin, w.network && `(${w.network})`]
+                                .filter(Boolean)
+                                .join(" "),
+                              value: String(w.address),
+                            }));
+                        } else {
+                          const fieldMap: Record<string, [string, string][]> = {
+                            card: [
+                              ["recipientName", "Recipient name"],
+                              ["recipientAddress", "Recipient address"],
+                              ["bankName", "Bank name"],
+                              ["bankAddress", "Bank address"],
+                              ["accountNumber", "Account number"],
+                              ["iban", "IBAN"],
+                              ["swift", "SWIFT / BIC"],
+                              ["routingType", "Routing type"],
+                              ["routingCode", "Routing code"],
+                              ["intermediaryName", "Intermediary bank"],
+                              ["intermediarySwift", "Intermediary SWIFT"],
+                              ["currency", "Currency"],
+                              ["paymentReference", "Payment reference"],
+                            ],
+                            local_bank: [
+                              ["accountHolder", "Account holder"],
+                              ["bankName", "Bank name"],
+                              ["accountNumber", "Account number"],
+                              ["sortCode", "Sort code"],
+                            ],
+                            paypal: [["email", "PayPal email"]],
+                          };
+                          rows = (fieldMap[pm.method] || [])
+                            .filter(
+                              ([k]) =>
+                                d[k] !== undefined && d[k] !== null && String(d[k]).trim() !== "",
+                            )
+                            .map(([k, lbl]) => ({ label: lbl, value: String(d[k]) }));
+                        }
+                        return { pm, label, icon, rows };
+                      })
+                      // A method row with nothing filled in is not a configured payout
+                      // method — it is usually a seeded placeholder. Don't imply it is usable.
+                      .filter((m) => m.rows.length > 0);
+
+                    if (configured.length === 0) {
+                      return (
+                        <div className="border border-dashed border-[#ececec] bg-[#f8f9f7] p-6 rounded-xl text-center">
+                          <p className="text-xs text-[#6b716d]">
+                            No payout methods configured by this user.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-3">
+                        {configured.map(({ pm, label, icon, rows }) => (
                           <div
                             key={pm.id}
-                            className={`flex items-center gap-4 p-4 rounded-xl border ${pm.enabled ? "border-[#ececec] bg-[#f8f9f7]" : "border-dashed border-[#ececec] bg-white opacity-50"}`}
+                            className={`rounded-xl border p-4 ${pm.enabled ? "border-[#ececec] bg-[#f8f9f7]" : "border-dashed border-[#ececec] bg-white opacity-60"}`}
                           >
-                            <div className="grid size-10 place-items-center rounded-full bg-[#1e4a3f] text-white text-sm font-bold shrink-0">
-                              {icon}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="grid size-9 place-items-center rounded-full bg-[#1e4a3f] text-white text-sm font-bold shrink-0">
+                                {icon}
+                              </div>
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-[#18211f]">{label}</p>
                                 <Badge tone={pm.enabled ? "green" : "muted"}>
                                   {pm.enabled ? "Active" : "Inactive"}
                                 </Badge>
                               </div>
-                              <p className="text-xs text-[#6b716d] mt-0.5 truncate">{details}</p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    rows.map((r) => `${r.label}: ${r.value}`).join("\n"),
+                                  );
+                                  toast.success(`Copied all ${label} details`);
+                                }}
+                                className="flex items-center gap-1 rounded border border-[#ececec] bg-white px-2 py-1 text-[11px] font-medium text-[#1e4a3f] transition hover:bg-[#ececec] cursor-pointer shrink-0"
+                              >
+                                <Copy className="size-3" /> Copy all
+                              </button>
+                            </div>
+                            <div className="space-y-1.5">
+                              {rows.map((r) => (
+                                <div
+                                  key={r.label}
+                                  className="flex items-start gap-3 rounded-lg bg-white border border-[#ececec] px-3 py-2"
+                                >
+                                  <span className="text-[11px] uppercase tracking-wider text-[#6b716d] w-40 shrink-0 pt-0.5">
+                                    {r.label}
+                                  </span>
+                                  <span className="flex-1 text-xs font-medium text-[#18211f] break-all select-all">
+                                    {r.value}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(r.value);
+                                      toast.success(`Copied ${r.label}`);
+                                    }}
+                                    className="p-1 rounded text-[#1e4a3f] transition hover:bg-[#ececec] cursor-pointer shrink-0"
+                                    title={`Copy ${r.label}`}
+                                  >
+                                    <Copy className="size-3" />
+                                  </button>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>

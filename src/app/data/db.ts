@@ -1796,17 +1796,10 @@ export async function fetchPaymentMethods(
     .select("*")
     .eq("photographer_id", photographerId);
 
-  if (!data || data.length === 0) {
-    return [
-      {
-        id: `pm-${photographerId}-card`,
-        photographerId,
-        method: "card",
-        enabled: true,
-        details: {},
-      },
-    ];
-  }
+  // Return exactly what is stored. Previously this fabricated an empty "card"
+  // method when the creator had none, which made the admin payout panel show a
+  // Bank Transfer that was never set up and had no details to pay against.
+  if (!data) return [];
 
   return data.map((r) => ({
     id: r.id,
