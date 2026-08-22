@@ -46,6 +46,7 @@ import { SideNav } from "../components/SideNav";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabase";
 import { CURRENCY_GROUPS, currencyLabel } from "../../lib/currencies";
+import { SITE_SETTINGS_UPDATED_EVENT } from "../components/MaintenanceGate";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
 import {
   sendContributorSubmissionStatus,
@@ -589,6 +590,7 @@ export function Admin() {
   const handleSettingsSave = async () => {
     const ok = await updateSiteSettings(siteSettingsState);
     if (ok) {
+      window.dispatchEvent(new Event(SITE_SETTINGS_UPDATED_EVENT));
       toast.success("Settings saved to database");
     } else {
       toast.error("Failed to save settings");
@@ -1794,7 +1796,7 @@ export function Admin() {
                   <div className="space-y-4">
                     <Toggle
                       label="Maintenance Mode"
-                      description="Disable public access (admins only)"
+                      description="Show a holding page to everyone except admins"
                       checked={siteSettingsState.maintenanceMode}
                       onChange={(v) =>
                         setSiteSettingsState({ ...siteSettingsState, maintenanceMode: v })

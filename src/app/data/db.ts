@@ -807,6 +807,43 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
   return true;
 }
 
+export type MaintenanceStatus = {
+  maintenanceMode: boolean;
+  siteName: string;
+  supportEmail: string;
+};
+
+/**
+ * Lightweight public read of the maintenance flag, used by the gate that wraps
+ * every route. Fails open: if the settings row can't be reached the site stays
+ * available rather than locking everyone out on a transient network error.
+ */
+export async function fetchMaintenanceStatus(): Promise<MaintenanceStatus> {
+  const fallback: MaintenanceStatus = {
+    maintenanceMode: false,
+    siteName: "NS CAPTURES",
+    supportEmail: "support@nscaptures.com",
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from("site_settings")
+      .select("maintenance_mode, site_name, support_email")
+      .eq("id", 1)
+      .maybeSingle();
+
+    if (error || !data) return fallback;
+
+    return {
+      maintenanceMode: data.maintenance_mode === true,
+      siteName: data.site_name || fallback.siteName,
+      supportEmail: data.support_email || fallback.supportEmail,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 // ============================================================
 // PHOTO PRICE UPDATE (photographer can change anytime)
 // ============================================================
