@@ -45,6 +45,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { SideNav } from "../components/SideNav";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../../lib/supabase";
+import { CURRENCY_GROUPS, currencyLabel } from "../../lib/currencies";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
 import {
   sendContributorSubmissionStatus,
@@ -2088,12 +2089,15 @@ export function Admin() {
                                       id={`admin-pm-bank-currency-${card.key}`}
                                       className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
                                     >
-                                      <option value="GBP">GBP (£)</option>
-                                      <option value="USD">USD ($)</option>
-                                      <option value="EUR">EUR (€)</option>
-                                      <option value="NGN">NGN (₦)</option>
-                                      <option value="CAD">CAD (C$)</option>
-                                      <option value="AUD">AUD (A$)</option>
+                                      {CURRENCY_GROUPS.map((group) => (
+                                        <optgroup key={group.label} label={group.label}>
+                                          {group.currencies.map((c) => (
+                                            <option key={c.code} value={c.code}>
+                                              {currencyLabel(c)}
+                                            </option>
+                                          ))}
+                                        </optgroup>
+                                      ))}
                                     </select>
                                     <input
                                       type="text"
