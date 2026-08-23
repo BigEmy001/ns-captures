@@ -28,6 +28,7 @@ import { Monogram } from "./ui";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Dropdown, DropdownItem } from "./Dropdown";
 import { getCart, removeFromCart, clearCart, CartItem } from "../data/cart";
+import { NotificationBell } from "./NotificationBell";
 import {
   createPurchaseWithMethod,
   createLicense,
@@ -463,6 +464,8 @@ export function Navbar() {
               }
               onItemClick={handleMoreClick}
             />
+
+            <NotificationBell />
 
             {/* Shopping Cart Icon */}
             {user?.role !== "Admin" && (

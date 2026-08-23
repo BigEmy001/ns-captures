@@ -46,6 +46,13 @@ import { SupportTab } from "./account/contributor/SupportTab";
 import { SPECIALTIES } from "../data/contributor";
 import { COUNTRIES, currencyForCountry, resolvePayoutCurrency } from "../../lib/countries";
 import { hasCreatorAccess, hasProgrammeAccess, isProgrammeRole } from "../data/roles";
+import {
+  CATEGORY_LABELS,
+  CATEGORY_ORDER,
+  preferenceFor,
+  type NotificationPreferences,
+} from "../data/notifications";
+import { fetchNotificationPreferences, saveNotificationPreferences } from "../data/db";
 import { CURRENCY_GROUPS, currencyLabel } from "../../lib/currencies";
 import { SideNav } from "../components/SideNav";
 import {
@@ -206,6 +213,29 @@ export function Account() {
     payoutCurrency: user?.payoutCurrency || "",
   });
   const [specialties, setSpecialties] = useState<string[]>(user?.specialties || []);
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>({});
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchNotificationPreferences(user.id).then(setNotificationPrefs);
+  }, [user?.id]);
+
+  const setChannel = async (
+    category: (typeof CATEGORY_ORDER)[number],
+    channel: "inApp" | "email",
+    value: boolean,
+  ) => {
+    const next: NotificationPreferences = {
+      ...notificationPrefs,
+      [category]: { ...preferenceFor(notificationPrefs, category), [channel]: value },
+    };
+    setNotificationPrefs(next);
+
+    if (user?.id) {
+      const ok = await saveNotificationPreferences(user.id, next);
+      if (!ok) toast.error("Could not save your notification settings");
+    }
+  };
   const [passwordData, setPasswordData] = useState({ current: "", next: "", confirm: "" });
   const [settingsTab, setSettingsTab] = useState<"profile" | "verification" | "security">(
     "profile",
@@ -1147,6 +1177,70 @@ export function Account() {
                       </div>
                     </div>
                   )}
+                  <div className="mt-6">
+                    <h4 className="text-[13px] font-medium text-[#758078] uppercase tracking-wide mb-3">
+                      Notifications
+                    </h4>
+                    <p className="mb-3 text-xs text-[#8a8f89]">
+                      Anything needing your attention — an acquisition offer, an agreement to sign,
+                      a payment problem — always reaches you.
+                    </p>
+                    <div className="overflow-x-auto rounded-xl border border-[#ececec]">
+                      <table className="w-full min-w-[420px] text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-[#ececec] bg-[#FAF9F5]">
+                            <th className="px-4 py-2.5 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Category
+                            </th>
+                            <th className="px-4 py-2.5 text-center font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              In app
+                            </th>
+                            <th className="px-4 py-2.5 text-center font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                              Email
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {CATEGORY_ORDER.map((category) => {
+                            const pref = preferenceFor(notificationPrefs, category);
+                            return (
+                              <tr
+                                key={category}
+                                className="border-b border-[#f4f4f2] last:border-0"
+                              >
+                                <td className="px-4 py-3 text-[#18211f]">
+                                  {CATEGORY_LABELS[category]}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={pref.inApp}
+                                    aria-label={`${CATEGORY_LABELS[category]} in app`}
+                                    onChange={(e) =>
+                                      setChannel(category, "inApp", e.target.checked)
+                                    }
+                                    className="size-4 accent-[#1e4a3f]"
+                                  />
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={pref.email}
+                                    aria-label={`${CATEGORY_LABELS[category]} by email`}
+                                    onChange={(e) =>
+                                      setChannel(category, "email", e.target.checked)
+                                    }
+                                    className="size-4 accent-[#1e4a3f]"
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
                   <div className="mt-6">
                     <h4 className="text-[13px] font-medium text-[#758078] uppercase tracking-wide mb-3">
                       Social Profiles

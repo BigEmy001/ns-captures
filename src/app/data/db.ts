@@ -9,6 +9,13 @@ export type {
 import { supabase } from "../../lib/supabase";
 import { statusForStage, type PayoutStage } from "./payout-stages";
 import { isCreatorRole } from "./roles";
+import {
+  shouldShowInApp,
+  type AppNotification,
+  type NotificationCategory,
+  type NotificationPreferences,
+  type NotificationPriority,
+} from "./notifications";
 import { withRetry } from "../../lib/retry";
 import {
   Photo,
@@ -2371,6 +2378,39 @@ export async function advancePayoutStage(
     }
   }
 
+  // Tell the contributor where their payout has got to. The intermediate
+  // banking steps stay on the timeline rather than becoming notifications.
+  const NOTIFIED_STAGES: Record<string, { title: string; priority?: "high" }> = {
+    approved: { title: "Payout approved" },
+    delivered: { title: "Payment delivered" },
+    completed: { title: "Payout completed" },
+    rejected: { title: "Payout rejected", priority: "high" },
+    cancelled: { title: "Payout cancelled", priority: "high" },
+  };
+
+  const announcement = NOTIFIED_STAGES[stage];
+  if (announcement) {
+    await notify({
+      userId: profileId,
+      category: "earnings",
+      priority: announcement.priority,
+      title: announcement.title,
+      body: `£${(request.amount || 0).toLocaleString()}${options.note ? ` — ${options.note}` : ""}`,
+      link: "/account?tab=payouts",
+    });
+  }
+
+  if (options.conversion?.bearer === "contributor") {
+    await notify({
+      userId: profileId,
+      category: "earnings",
+      priority: "high",
+      title: "Conversion charge outstanding",
+      body: `£${options.conversion.feeGbp.toFixed(2)} is payable separately. Your payout is not reduced.`,
+      link: "/account?tab=payouts",
+    });
+  }
+
   // Settle the ledger when the money has actually gone.
   if (stage === "completed") {
     await supabase.rpc("settle_earnings_for_payout", {
@@ -2773,6 +2813,37 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
     return false;
   }
 
+  // Admission to the programme puts a contributor agreement in front of them,
+  // so there is something to sign before they start submitting work. The text
+  // is supplied by NS CAPTURES; this only creates the record awaiting it.
+  if (newRole === "Contributor") {
+    const { data: existing } = await supabase
+      .from("agreements")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("kind", "contributor")
+      .maybeSingle();
+
+    if (!existing) {
+      await createAgreement({
+        userId,
+        kind: "contributor",
+        title: "International Contributor Agreement",
+        body: "",
+        effectiveDate: new Date().toISOString().slice(0, 10),
+      });
+
+      await notify({
+        userId,
+        category: "account",
+        priority: "high",
+        title: "Welcome to the contributor programme",
+        body: "Your International Contributor Agreement is ready to review and sign.",
+        link: "/account?tab=agreements",
+      });
+    }
+  }
+
   if (becomesCreator) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -2861,6 +2932,21 @@ export async function resolveModeration(
         console.error("resolveModeration (photo status)", statusError);
         return false;
       }
+    }
+  }
+
+  if (targetId) {
+    const contributor = await resolvePhotoContributor(targetId);
+    if (contributor) {
+      await notify({
+        userId: contributor.userId,
+        category: "photography",
+        title: approve ? "Photograph approved" : "Submission update",
+        body: approve
+          ? `"${contributor.title}" has been approved for marketplace licensing.`
+          : note || `"${contributor.title}" was not selected for marketplace publication.`,
+        link: "/account?tab=submissions",
+      });
     }
   }
 
@@ -3157,6 +3243,129 @@ export async function fetchPublicationEntries(userId: string): Promise<Publicati
 }
 
 // ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+export async function fetchNotifications(userId: string, limit = 50): Promise<AppNotification[]> {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => ({
+    id: row.id,
+    category: row.category,
+    priority: row.priority,
+    title: row.title,
+    body: row.body,
+    link: row.link,
+    readAt: row.read_at,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function markNotificationRead(id: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) {
+    console.error("markNotificationRead", error);
+    return false;
+  }
+  return true;
+}
+
+export async function markAllNotificationsRead(userId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .is("read_at", null);
+
+  if (error) {
+    console.error("markAllNotificationsRead", error);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Raises a notification, honouring the recipient's preferences. High priority
+ * always goes through: an acquisition offer or an agreement awaiting signature
+ * is not something to have opted out of.
+ *
+ * Never throws and never blocks the thing that triggered it — a notification
+ * failing must not fail a payout or an approval.
+ */
+export async function notify(input: {
+  userId: string;
+  category: NotificationCategory;
+  priority?: NotificationPriority;
+  title: string;
+  body?: string;
+  link?: string;
+}): Promise<void> {
+  const priority = input.priority || "normal";
+
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("notification_preferences")
+      .eq("id", input.userId)
+      .maybeSingle();
+
+    const preferences = (profile?.notification_preferences || {}) as NotificationPreferences;
+
+    if (!shouldShowInApp(preferences, input.category, priority)) return;
+
+    await supabase.from("notifications").insert({
+      user_id: input.userId,
+      category: input.category,
+      priority,
+      title: input.title,
+      body: input.body || null,
+      link: input.link || null,
+    });
+  } catch (err) {
+    console.warn("notify skipped:", (err as Error).message);
+  }
+}
+
+export async function fetchNotificationPreferences(
+  userId: string,
+): Promise<NotificationPreferences> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("notification_preferences")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return (data?.notification_preferences || {}) as NotificationPreferences;
+}
+
+export async function saveNotificationPreferences(
+  userId: string,
+  preferences: NotificationPreferences,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ notification_preferences: preferences })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("saveNotificationPreferences", error);
+    return false;
+  }
+  return true;
+}
+
+// ============================================================
 // PROGRAMME ADMINISTRATION — writes behind the contributor portal
 // ============================================================
 
@@ -3249,6 +3458,15 @@ export async function createAcquisition(input: AcquisitionInput): Promise<Acquis
   // Keep the photograph's own state in step with the offer.
   await setPhotoAcquisitionState(input.photoId, photoStateForAcquisition(status));
 
+  await notify({
+    userId: input.userId,
+    category: "acquisitions",
+    priority: "high",
+    title: "New acquisition offer",
+    body: `NS CAPTURES has made a direct acquisition offer of £${input.amount.toLocaleString()}.`,
+    link: "/account?tab=acquisitions",
+  });
+
   return {
     id: data.id,
     reference: data.reference,
@@ -3298,6 +3516,17 @@ export async function updateAcquisitionStatus(
     await setPhotoAcquisitionState(acquisition.photoId, photoStateForAcquisition(status));
   }
 
+  if (status === "agreement_pending") {
+    await notify({
+      userId: acquisition.userId,
+      category: "acquisitions",
+      priority: "high",
+      title: "Agreement requires your signature",
+      body: `Your acquisition agreement for ${acquisition.photoTitle || acquisition.reference} is ready to review and sign.`,
+      link: "/account?tab=agreements",
+    });
+  }
+
   if (status === "paid" && acquisition.amount > 0) {
     await creditContributor({
       userId: acquisition.userId,
@@ -3306,6 +3535,14 @@ export async function updateAcquisitionStatus(
       photoId: acquisition.photoId,
       reference: acquisition.reference,
       description: `Direct acquisition: ${acquisition.photoTitle || acquisition.reference}`,
+    });
+
+    await notify({
+      userId: acquisition.userId,
+      category: "earnings",
+      title: "Acquisition paid",
+      body: `£${acquisition.amount.toLocaleString()} has been credited to your balance.`,
+      link: "/account?tab=earnings",
     });
   }
 
@@ -3385,6 +3622,14 @@ export async function awardBonus(input: {
   photoId?: string;
   adminId?: string;
 }): Promise<boolean> {
+  await notify({
+    userId: input.userId,
+    category: "earnings",
+    title: input.type === "award" ? "Discovery award" : "Bonus awarded",
+    body: `${input.description} — £${input.amount.toLocaleString()} credited to your balance.`,
+    link: "/account?tab=bonuses",
+  });
+
   return creditContributor({
     userId: input.userId,
     type: input.type,
@@ -3423,6 +3668,12 @@ export async function updatePublicationStatus(
   id: string,
   status: PublicationStatus,
 ): Promise<boolean> {
+  const { data: entry } = await supabase
+    .from("publication_entries")
+    .select("user_id, collection_name")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("publication_entries")
     .update({ status, updated_at: new Date().toISOString() })
@@ -3432,6 +3683,24 @@ export async function updatePublicationStatus(
     console.error("updatePublicationStatus", error);
     return false;
   }
+
+  if (entry?.user_id && status !== "under_consideration") {
+    const headline: Record<string, string> = {
+      shortlisted: "Publication shortlist",
+      selected: "Selected for publication",
+      published: "Published",
+      not_selected: "Publication update",
+    };
+
+    await notify({
+      userId: entry.user_id,
+      category: "publications",
+      title: headline[status] || "Publication update",
+      body: `Your photograph in ${entry.collection_name}.`,
+      link: "/account?tab=publications",
+    });
+  }
+
   return true;
 }
 

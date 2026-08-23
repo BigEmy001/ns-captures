@@ -57,6 +57,10 @@ interface AuthContextType {
     email: string;
     password: string;
     role?: string;
+    country?: string;
+    city?: string;
+    occupation?: string;
+    specialties?: string[];
   }) => Promise<{ needsEmailConfirmation: boolean }>;
   logout: () => void;
   updateProfile: (data: Partial<AuthUser>) => Promise<void>;
@@ -248,6 +252,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: string;
       password: string;
       role?: string;
+      country?: string;
+      city?: string;
+      occupation?: string;
+      specialties?: string[];
     }) => {
       if (!isSupabaseReady()) {
         toast.error("Database connection unavailable", {
@@ -289,6 +297,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
       if (error) throw new Error(error.message);
+
+      // What the programme asks for at registration. Written after the trigger
+      // has made the profile, and dropped rather than failing signup if those
+      // columns are not present yet.
+      if (authData.user && (data.country || data.city || data.occupation || data.specialties)) {
+        const { error: detailsError } = await supabase
+          .from("profiles")
+          .update({
+            country: data.country || null,
+            city: data.city || null,
+            occupation: data.occupation || null,
+            specialties: data.specialties || [],
+          })
+          .eq("id", authData.user.id);
+
+        if (detailsError) {
+          console.warn("Registration details skipped:", detailsError.message);
+        }
+      }
 
       if (authData.user) {
         if (authData.session) {

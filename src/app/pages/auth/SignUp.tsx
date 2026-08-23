@@ -1,4 +1,6 @@
 import { Link } from "react-router";
+import { COUNTRIES } from "../../../lib/countries";
+import { SPECIALTIES } from "../../data/contributor";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AuthLayout, AuthField } from "./AuthLayout";
@@ -15,6 +17,10 @@ export function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"Buyer" | "Photographer" | "Enterprise">("Buyer");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  const [occupation, setOccupation] = useState("");
+  const [specialties, setSpecialties] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{
     firstName?: string;
@@ -48,7 +54,17 @@ export function SignUp() {
     if (!validate()) return;
     setIsLoading(true);
     try {
-      const res = await signup({ firstName, lastName, email, password, role });
+      const res = await signup({
+        firstName,
+        lastName,
+        email,
+        password,
+        role,
+        country: country || undefined,
+        city: city || undefined,
+        occupation: occupation || undefined,
+        specialties: specialties.length > 0 ? specialties : undefined,
+      });
       if (res.needsEmailConfirmation) {
         setIsSuccess(true);
       }
@@ -218,6 +234,77 @@ export function SignUp() {
           />
           {errors.password && <p className="mt-1 text-xs text-[#d4183d]">{errors.password}</p>}
         </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block">
+              <span className="text-xs font-medium tracking-wide text-[#758078] uppercase">
+                Country
+              </span>
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                className="mt-1.5 w-full rounded-xl border border-[#ececec] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#1e4a3f]"
+              >
+                <option value="">Select country</option>
+                {COUNTRIES.map((c) => (
+                  <option key={c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <AuthField
+            label="City"
+            placeholder="Seoul"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+          />
+        </div>
+
+        {role === "Photographer" && (
+          <>
+            <AuthField
+              label="Occupation"
+              placeholder="Freelance photographer"
+              value={occupation}
+              onChange={(e) => setOccupation(e.target.value)}
+            />
+
+            <div>
+              <span className="text-xs font-medium tracking-wide text-[#758078] uppercase">
+                Photography specialties
+              </span>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {SPECIALTIES.map((specialty) => {
+                  const selected = specialties.includes(specialty);
+                  return (
+                    <button
+                      key={specialty}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() =>
+                        setSpecialties((prev) =>
+                          prev.includes(specialty)
+                            ? prev.filter((s) => s !== specialty)
+                            : [...prev, specialty],
+                        )
+                      }
+                      className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                        selected
+                          ? "border-[#1e4a3f] bg-[#1e4a3f] text-white"
+                          : "border-[#ececec] bg-white text-[#6b716d] hover:border-[#1e4a3f]/40"
+                      }`}
+                    >
+                      {specialty}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
         <div>
           <label className="flex items-start gap-2 text-xs leading-5 text-[#4a534e]">
             <input
