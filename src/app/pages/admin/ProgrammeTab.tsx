@@ -22,8 +22,10 @@ import {
   type AdminUser,
   type Photo,
 } from "../../data/db";
+import { ProposalsPanel } from "./ProposalsPanel";
 
 const SUB_TABS = [
+  { id: "proposals", label: "Proposals" },
   { id: "acquisitions", label: "Acquisitions" },
   { id: "agreements", label: "Agreements" },
   { id: "bonuses", label: "Bonuses & Awards" },
@@ -104,7 +106,7 @@ export function ProgrammeTab({
   assets: Photo[];
 }) {
   const { user } = useAuth();
-  const [sub, setSub] = useState<SubTab>("acquisitions");
+  const [sub, setSub] = useState<SubTab>("proposals");
 
   const [acquisitions, setAcquisitions] = useState<(Acquisition & { userName?: string })[]>([]);
   const [agreements, setAgreements] = useState<(Agreement & { userName?: string })[]>([]);
@@ -150,6 +152,8 @@ export function ProgrammeTab({
           </button>
         ))}
       </div>
+
+      {sub === "proposals" && <ProposalsPanel />}
 
       {sub === "acquisitions" && (
         <AcquisitionsPanel

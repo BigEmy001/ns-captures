@@ -3256,6 +3256,171 @@ export async function fetchPublicationEntries(userId: string): Promise<Publicati
 }
 
 // ============================================================
+// CONTRIBUTOR PROPOSALS
+// ============================================================
+//
+// The invitation that precedes everything: sent to a photographer who has no
+// account yet, and accepted from a public page. The recipient's side runs
+// through the "proposal" edge function, because a token is the only credential
+// they hold and it has to be checked server-side.
+
+export type ProposalStatus = "issued" | "viewed" | "accepted" | "declined" | "expired";
+
+export interface ContributorProposal {
+  id: string;
+  reference: string;
+  token: string;
+  email: string;
+  name: string;
+  location: string | null;
+  occupation: string | null;
+  body: string | null;
+  status: ProposalStatus;
+  issuedAt: string;
+  viewedAt: string | null;
+  respondedAt: string | null;
+  expiresAt: string;
+  createdUserId: string | null;
+}
+
+/** What the recipient sees. Never carries the token or anyone else's proposal. */
+export interface PublicProposal {
+  reference: string;
+  name: string;
+  email: string;
+  location: string | null;
+  occupation: string | null;
+  body: string | null;
+  status: ProposalStatus;
+  issuedAt: string;
+  expiresAt: string;
+}
+
+function rowToProposal(row: any): ContributorProposal {
+  return {
+    id: row.id,
+    reference: row.reference,
+    token: row.token,
+    email: row.email,
+    name: row.name,
+    location: row.location,
+    occupation: row.occupation,
+    body: row.body,
+    status: row.status,
+    issuedAt: row.issued_at,
+    viewedAt: row.viewed_at,
+    respondedAt: row.responded_at,
+    expiresAt: row.expires_at,
+    createdUserId: row.created_user_id,
+  };
+}
+
+export async function fetchProposals(): Promise<ContributorProposal[]> {
+  const { data, error } = await supabase
+    .from("contributor_proposals")
+    .select("*")
+    .order("issued_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data.map(rowToProposal);
+}
+
+export async function createProposal(input: {
+  email: string;
+  name: string;
+  location?: string;
+  occupation?: string;
+  body: string;
+  adminId?: string;
+}): Promise<ContributorProposal | null> {
+  const { data, error } = await supabase
+    .from("contributor_proposals")
+    .insert({
+      email: input.email.toLowerCase().trim(),
+      name: input.name.trim(),
+      location: input.location || null,
+      occupation: input.occupation || null,
+      body: input.body,
+      created_by: input.adminId || null,
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    console.error("createProposal", error);
+    return null;
+  }
+  return rowToProposal(data);
+}
+
+/** Withdraw a proposal that has not been answered. */
+export async function cancelProposal(id: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("contributor_proposals")
+    .update({ status: "expired", responded_at: new Date().toISOString() })
+    .eq("id", id)
+    .in("status", ["issued", "viewed"]);
+
+  if (error) {
+    console.error("cancelProposal", error);
+    return false;
+  }
+  return true;
+}
+
+/** The link the recipient opens. The token is the credential, so treat it as one. */
+export function proposalLink(token: string): string {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://www.nscaptures.com";
+  return `${origin}/proposal/${token}`;
+}
+
+// ---- the recipient's side, through the edge function ----------------------
+
+async function callProposalFunction(
+  token: string,
+  action: "view" | "accept" | "decline",
+): Promise<any> {
+  const { data, error } = await supabase.functions.invoke("proposal", {
+    body: { token, action },
+  });
+
+  if (error) throw new Error(error.message || "Could not reach the proposal");
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
+export async function viewProposal(token: string): Promise<PublicProposal | null> {
+  try {
+    const data = await callProposalFunction(token, "view");
+    return (data?.proposal as PublicProposal) || null;
+  } catch (err) {
+    console.error("viewProposal", err);
+    return null;
+  }
+}
+
+export async function acceptProposal(
+  token: string,
+): Promise<{ ok: boolean; password?: string; email?: string; message?: string }> {
+  try {
+    const data = await callProposalFunction(token, "accept");
+    return { ok: true, password: data?.password, email: data?.email };
+  } catch (err) {
+    return { ok: false, message: (err as Error).message };
+  }
+}
+
+export async function declineProposal(token: string): Promise<boolean> {
+  try {
+    await callProposalFunction(token, "decline");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================
 // CURATION, FEATURING AND ADMISSION
 // ============================================================
 

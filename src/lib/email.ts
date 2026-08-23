@@ -422,3 +422,36 @@ ${
 <p style="margin:16px 0 0;">${btn("https://www.nscaptures.com/account?tab=payouts", "View payout timeline")}</p>`,
   );
 }
+
+/**
+ * The invitation itself. Deliberately short: the proposal is a document, and it
+ * lives at the link rather than being pasted into an email body, where it could
+ * be neither tracked nor answered.
+ */
+export async function sendContributorProposal(
+  email: string,
+  name: string,
+  reference: string,
+  link: string,
+) {
+  const safeName = escapeHtml(name);
+  const safeRef = escapeHtml(reference);
+  const safeLink = escapeHtml(link);
+
+  await send(
+    email,
+    "An invitation from NS CAPTURES",
+    `
+<h1 style="margin:0;font-size:24px;line-height:26px;font-weight:400;color:#333333;font-family:inherit;">You are invited to join the NS CAPTURES contributor programme</h1>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Dear ${safeName},</p>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Your photographic work has been identified as potentially suitable for the NS CAPTURES International Contributor &amp; Photographic Acquisition Programme.</p>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">The full invitation sets out how photographs may be acquired, the indicative acquisition categories, bonuses and publication opportunities, and how rights are handled. Accepting it creates your contributor account &mdash; it transfers no rights in your photographs.</p>
+<div style="background-color:#f8f9f7; padding:20px; border-radius:8px; margin:20px 0; border:1px solid #dce8df;">
+  <p style="margin:0; font-size:14px; color:#1e4a3f;"><strong>Invitation reference:</strong> ${safeRef}</p>
+  <p style="margin:8px 0 0 0; font-size:14px; color:#1e4a3f;"><strong>Status:</strong> Awaiting your response</p>
+</div>
+<p style="margin:16px 0 0;">${btn(link, "Read your invitation")}</p>
+<p style="margin:20px 0 0;font-size:13px;line-height:19px;color:#888888;font-family:inherit;">This link is personal to you. If the button does not work, copy this address into your browser:<br/><span style="word-break:break-all;color:#1e4a3f;">${safeLink}</span></p>
+<p style="margin:16px 0 0;font-size:13px;line-height:19px;color:#888888;font-family:inherit;">The invitation expires in 30 days. If it lapses, reply to this email and we will reissue it.</p>`,
+  );
+}
