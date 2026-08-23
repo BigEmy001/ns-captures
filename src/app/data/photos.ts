@@ -31,6 +31,8 @@ export interface Photo {
   customViews?: number;
   customLikes?: number;
   customDownloads?: number;
+  status?: string;
+  acquisitionState?: string | null;
 }
 
 const u = (id: string, w = 1080) =>
@@ -10987,6 +10989,11 @@ export interface AdminUser {
   avatar?: string;
   bio?: string;
   location?: string;
+  contributorId?: string;
+  contributorLevel?: string;
+  country?: string;
+  city?: string;
+  specialties?: string[];
   socialLinks?: Record<string, string>;
   references?: { name: string; relation: string; contact: string }[];
 }

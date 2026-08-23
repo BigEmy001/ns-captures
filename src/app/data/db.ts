@@ -7,6 +7,7 @@ export type {
   License,
 } from "../data/photos";
 import { supabase } from "../../lib/supabase";
+import { statusForStage, type PayoutStage } from "./payout-stages";
 import { withRetry } from "../../lib/retry";
 import {
   Photo,
@@ -78,6 +79,80 @@ export interface SiteSettingsRow {
   moderationRequired: boolean;
   contactLink?: string;
   allowedLicenses?: string[];
+}
+
+/**
+ * Credits a contributor, preferring the itemised ledger and falling back to a
+ * plain balance adjustment if the ledger functions are not installed yet.
+ * Money must not depend on a migration having been run.
+ */
+async function creditContributor(args: {
+  userId: string;
+  type: EarningType;
+  netAmount: number;
+  grossAmount?: number;
+  platformFee?: number;
+  photoId?: string | null;
+  reference?: string | null;
+  description: string;
+  adminId?: string | null;
+}): Promise<boolean> {
+  const { error } = await supabase.rpc("record_contributor_earning", {
+    p_user_id: args.userId,
+    p_type: args.type,
+    p_net_amount: args.netAmount,
+    p_gross_amount: args.grossAmount ?? args.netAmount,
+    p_platform_fee: args.platformFee ?? 0,
+    p_photo_id: args.photoId ?? null,
+    p_reference: args.reference ?? null,
+    p_description: args.description,
+    p_status: "available",
+    p_admin_id: args.adminId ?? null,
+  });
+
+  if (!error) return true;
+
+  console.error("creditContributor (ledger), falling back to balance", error);
+
+  const { error: fallbackError } = await supabase.rpc("adjust_payout_balance", {
+    p_user_id: args.userId,
+    p_adjustment: args.netAmount,
+    p_reason: args.description,
+    p_admin_id: args.adminId ?? null,
+  });
+
+  if (fallbackError) {
+    console.error("creditContributor (balance)", fallbackError);
+    return false;
+  }
+  return true;
+}
+
+export type EarningType = "licensing" | "acquisition" | "bonus" | "award" | "adjustment";
+export type EarningStatus = "pending" | "available" | "paid" | "cancelled";
+
+export interface ContributorEarning {
+  id: string;
+  type: EarningType;
+  status: EarningStatus;
+  photoId: string | null;
+  photoTitle?: string;
+  reference: string | null;
+  description: string | null;
+  grossAmount: number;
+  platformFee: number;
+  netAmount: number;
+  currency: string;
+  createdAt: string;
+  availableAt: string | null;
+  paidAt: string | null;
+}
+
+export interface EarningsSummary {
+  available: number;
+  pending: number;
+  lifetime: number;
+  byType: Record<EarningType, number>;
 }
 
 // ============================================================
@@ -193,6 +268,8 @@ function rowToPhoto(row: any): Photo {
     customViews: row.custom_views || undefined,
     customLikes: row.custom_likes || undefined,
     customDownloads: row.custom_downloads || undefined,
+    status: row.status || "published",
+    acquisitionState: row.acquisition_state ?? null,
   };
 }
 
@@ -310,6 +387,58 @@ export async function fetchPhotosByIds(ids: string[]): Promise<Photo[]> {
   return [...dbPhotos, ...fallbackPhotos];
 }
 
+/**
+ * Every photograph regardless of review status. Public reads must keep using
+ * fetchPhotos(), which is published-only; RLS backs that up.
+ */
+export async function fetchAllPhotos(): Promise<Photo[]> {
+  const { data, error } = await supabase
+    .from("photos")
+    .select("*")
+    .order("uploaded_at", { ascending: false });
+
+  if (error) {
+    console.error("fetchAllPhotos", error);
+    return [];
+  }
+  return (data || []).map((r) => rowToPhoto(r));
+}
+
+/** Places a submitted photograph in front of the review team. */
+export async function submitPhotoForReview(
+  photoId: string,
+  photographerName: string,
+  reason = "New submission",
+): Promise<boolean> {
+  const { error } = await supabase.from("moderation_queue").upsert({
+    id: `MOD-${photoId}`,
+    photo_id: photoId,
+    photographer: photographerName,
+    reason,
+    submitted: new Date().toISOString(),
+    status: "pending",
+  });
+
+  if (error) {
+    console.error("submitPhotoForReview", error);
+    return false;
+  }
+  return true;
+}
+
+/** Whether new submissions must be reviewed before they reach the marketplace. */
+export async function isModerationRequired(): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("moderation_required")
+    .eq("id", 1)
+    .maybeSingle();
+
+  // Fail safe: if the setting can't be read, review rather than auto-publish.
+  if (error || !data) return true;
+  return data.moderation_required !== false;
+}
+
 export async function fetchPhotosByPhotographer(photographerId: string): Promise<Photo[]> {
   const { data } = await supabase
     .from("photos")
@@ -351,15 +480,31 @@ export async function fetchCollections(): Promise<Collection[]> {
 // ADMIN
 // ============================================================
 
+const ADMIN_USER_COLUMNS =
+  "id, name, email, role, status, created_at, phone, dob, occupation, verification_status, payout_balance, avatar, bio, location, social_links, profile_references, slug";
+
+/** Contributor programme columns, absent until the programme migrations run. */
+const ADMIN_USER_PROGRAMME_COLUMNS =
+  ", contributor_id, contributor_level, country, city, specialties";
+
 export async function fetchAdminUsers(): Promise<AdminUser[]> {
-  const { data, error } = await supabase
+  const withProgramme = await supabase
     .from("profiles")
-    .select(
-      "id, name, email, role, status, created_at, phone, dob, occupation, verification_status, payout_balance, avatar, bio, location, social_links, profile_references, slug",
-    )
+    .select(ADMIN_USER_COLUMNS + ADMIN_USER_PROGRAMME_COLUMNS)
     .order("created_at", { ascending: false });
 
-  if (error || !data || data.length === 0) return [];
+  // The programme columns do not exist until those migrations run. Fall back
+  // to the core columns rather than showing an empty user list.
+  const result = withProgramme.error
+    ? await supabase
+        .from("profiles")
+        .select(ADMIN_USER_COLUMNS)
+        .order("created_at", { ascending: false })
+    : withProgramme;
+
+  const data = result.data as any[] | null;
+
+  if (result.error || !data || data.length === 0) return [];
 
   return data.map((p: any, i: number) => ({
     id: p.id,
@@ -373,6 +518,11 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
     status: (p.status || "Active") as AdminUser["status"],
     verificationStatus: p.verification_status || "unverified",
     payoutBalance: p.payout_balance ?? 0,
+    contributorId: p.contributor_id || undefined,
+    contributorLevel: p.contributor_level || "international",
+    country: p.country || undefined,
+    city: p.city || undefined,
+    specialties: p.specialties || [],
     avatar: p.avatar || "",
     bio: p.bio || "",
     location: p.location || "",
@@ -385,7 +535,11 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
 }
 
 export async function fetchModerationQueue(): Promise<ModerationItem[]> {
-  const { data, error } = await supabase.from("moderation_queue").select("*");
+  const { data, error } = await supabase
+    .from("moderation_queue")
+    .select("*")
+    .eq("status", "pending")
+    .order("submitted", { ascending: true });
 
   if (error || !data || data.length === 0) return [];
 
@@ -848,6 +1002,26 @@ export async function fetchMaintenanceStatus(): Promise<MaintenanceStatus> {
 // PHOTO PRICE UPDATE (photographer can change anytime)
 // ============================================================
 
+/**
+ * Moves a photograph in or out of direct acquisition consideration. Passing
+ * null returns it to the ordinary marketplace lifecycle.
+ */
+export async function setPhotoAcquisitionState(
+  photoId: string,
+  state: "review" | "acquired" | null,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("photos")
+    .update({ acquisition_state: state })
+    .eq("id", photoId);
+
+  if (error) {
+    console.error("setPhotoAcquisitionState", error);
+    return false;
+  }
+  return true;
+}
+
 export async function updatePhotoPrice(photoId: string, price: number): Promise<boolean> {
   const { error } = await supabase.from("photos").update({ price }).eq("id", photoId);
 
@@ -903,6 +1077,7 @@ export async function createPhoto(
       iso: photo.iso,
       keywords: photo.keywords,
       image: photo.image,
+      status: photo.status || "published",
       uploaded_at: new Date().toISOString(),
       aperture: photo.aperture,
       shutter_speed: photo.shutterSpeed,
@@ -1526,10 +1701,14 @@ export async function updatePhotoHypeOverrides(
 
         if (profile) {
           const creditAmount = Math.round(extraDownloads * photo.price * (commissionPct / 100));
-          await supabase.rpc("adjust_payout_balance", {
-            p_user_id: profile.id,
-            p_adjustment: creditAmount,
-            p_reason: `Hype Engine: +${extraDownloads} custom downloads on photo ${photoId}`,
+          await creditContributor({
+            userId: profile.id,
+            type: "adjustment",
+            netAmount: creditAmount,
+            grossAmount: extraDownloads * photo.price,
+            platformFee: extraDownloads * photo.price - creditAmount,
+            photoId,
+            description: `Hype Engine: +${extraDownloads} custom downloads on photo ${photoId}`,
           });
         }
       }
@@ -1893,9 +2072,35 @@ export interface PayoutRequest {
   method: "card" | "local_bank" | "crypto" | "paypal";
   details: Record<string, unknown>;
   status: "PENDING" | "APPROVED" | "REJECTED" | "PAID";
+  stage: PayoutStage;
   adminNote: string;
   requestedAt: string;
   processedAt: string | null;
+}
+
+export interface PayoutEvent {
+  id: string;
+  stage: PayoutStage;
+  note: string | null;
+  createdAt: string;
+}
+
+/** The dated trail behind one payout, oldest first. */
+export async function fetchPayoutEvents(payoutRequestId: string): Promise<PayoutEvent[]> {
+  const { data, error } = await supabase
+    .from("payout_events")
+    .select("id, stage, note, created_at")
+    .eq("payout_request_id", payoutRequestId)
+    .order("created_at", { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => ({
+    id: row.id,
+    stage: row.stage,
+    note: row.note,
+    createdAt: row.created_at,
+  }));
 }
 
 export async function createPayoutRequest(
@@ -1920,6 +2125,13 @@ export async function createPayoutRequest(
     return null;
   }
 
+  // Open the timeline straight away, so the contributor sees the first step.
+  await supabase.from("payout_events").insert({
+    payout_request_id: data.id,
+    stage: "requested",
+    note: "Withdrawal request submitted.",
+  });
+
   return {
     id: data.id,
     photographerId: data.photographer_id,
@@ -1927,6 +2139,7 @@ export async function createPayoutRequest(
     method: data.method,
     details: data.details || {},
     status: data.status,
+    stage: (data.stage as PayoutStage) || "requested",
     adminNote: data.admin_note || "",
     requestedAt: data.requested_at,
     processedAt: data.processed_at,
@@ -1950,10 +2163,91 @@ export async function fetchPayoutRequests(photographerId?: string): Promise<Payo
     method: r.method,
     details: r.details || {},
     status: r.status,
+    stage: (r.stage as PayoutStage) || stageFromLegacyStatus(r.status),
     adminNote: r.admin_note || "",
     requestedAt: r.requested_at,
     processedAt: r.processed_at,
   }));
+}
+
+/** For rows written before the timeline existed. */
+function stageFromLegacyStatus(status: string): PayoutStage {
+  if (status === "PAID") return "completed";
+  if (status === "APPROVED") return "approved";
+  if (status === "REJECTED") return "rejected";
+  return "requested";
+}
+
+/**
+ * Moves a payout to a new stage: records the dated event, keeps the coarse
+ * status in step, and does the money at the two points that matter — the
+ * balance is debited once when the payout is approved, and the earnings ledger
+ * is settled when it completes.
+ */
+export async function advancePayoutStage(
+  request: PayoutRequest,
+  stage: PayoutStage,
+  options: { note?: string; adminId?: string } = {},
+): Promise<boolean> {
+  const status = statusForStage(stage);
+  const alreadyCommitted =
+    request.status === "APPROVED" || request.status === "PAID" || request.stage === "approved";
+
+  const { error } = await supabase
+    .from("payout_requests")
+    .update({
+      stage,
+      status,
+      admin_note: options.note ?? request.adminNote,
+      processed_at: new Date().toISOString(),
+    })
+    .eq("id", request.id);
+
+  if (error) {
+    console.error("advancePayoutStage", error);
+    return false;
+  }
+
+  await supabase.from("payout_events").insert({
+    payout_request_id: request.id,
+    stage,
+    note: options.note || null,
+    created_by: options.adminId || null,
+  });
+
+  const profileId = await profileIdForSlug(request.photographerId);
+  if (!profileId) return true;
+
+  // Debit once, when the payout is approved.
+  if (stage === "approved" && !alreadyCommitted) {
+    const { error: debitError } = await supabase.rpc("adjust_payout_balance", {
+      p_user_id: profileId,
+      p_adjustment: -(request.amount || 0),
+      p_reason: `Payout approved: request ${request.id}`,
+    });
+
+    if (debitError) {
+      console.error("advancePayoutStage debit", debitError);
+      return false;
+    }
+  }
+
+  // Settle the ledger when the money has actually gone.
+  if (stage === "completed") {
+    await supabase.rpc("settle_earnings_for_payout", {
+      p_user_id: profileId,
+      p_amount: request.amount || 0,
+      p_payout_request_id: request.id,
+    });
+  }
+
+  return true;
+}
+
+/** payout_requests keys the photographer by profile slug, not by user id. */
+async function profileIdForSlug(slug: string): Promise<string | null> {
+  const { data } = await supabase.from("profiles").select("id").eq("slug", slug).maybeSingle();
+  return data?.id || null;
 }
 
 export async function updatePayoutRequestStatus(
@@ -1961,10 +2255,11 @@ export async function updatePayoutRequestStatus(
   status: "APPROVED" | "REJECTED" | "PAID",
   adminNote: string = "",
 ): Promise<boolean> {
-  // Fetch the request first to get user + amount for balance debit
+  // Fetch the request first to get the photographer + amount for the debit.
+  // payout_requests.photographer_id holds the profile slug, not the user id.
   const { data: request } = await supabase
     .from("payout_requests")
-    .select("user_id, amount")
+    .select("photographer_id, amount, status")
     .eq("id", id)
     .single();
 
@@ -1974,14 +2269,54 @@ export async function updatePayoutRequestStatus(
     .eq("id", id);
 
   if (error) return false;
+  if (!request) return true;
 
-  // Debit balance when payout is approved or paid
-  if (request && (status === "APPROVED" || status === "PAID")) {
-    await supabase.rpc("adjust_payout_balance", {
-      p_user_id: request.user_id,
-      p_adjustment: -(request.amount || 0),
-      p_reason: `Payout ${status.toLowerCase()}: request ${id}`,
-    });
+  const alreadyCommitted = request.status === "APPROVED" || request.status === "PAID";
+  const commits = status === "APPROVED" || status === "PAID";
+
+  if (commits && !alreadyCommitted) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("slug", request.photographer_id)
+      .single();
+
+    if (profile) {
+      // The RPC refuses to take a balance below zero, so a debit can fail.
+      const { error: debitError } = await supabase.rpc("adjust_payout_balance", {
+        p_user_id: profile.id,
+        p_adjustment: -(request.amount || 0),
+        p_reason: `Payout ${status.toLowerCase()}: request ${id}`,
+      });
+
+      if (debitError) {
+        console.error("updatePayoutRequestStatus debit", debitError);
+        return false;
+      }
+
+      // Mark the oldest cleared earnings as paid, up to the payout amount.
+      if (status === "PAID") {
+        await supabase.rpc("settle_earnings_for_payout", {
+          p_user_id: profile.id,
+          p_amount: request.amount || 0,
+          p_payout_request_id: id,
+        });
+      }
+    }
+  } else if (status === "PAID" && request.status !== "PAID") {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("slug", request.photographer_id)
+      .single();
+
+    if (profile) {
+      await supabase.rpc("settle_earnings_for_payout", {
+        p_user_id: profile.id,
+        p_amount: request.amount || 0,
+        p_payout_request_id: id,
+      });
+    }
   }
 
   return true;
@@ -2025,7 +2360,74 @@ export async function createPurchaseWithMethod(
     status: "PENDING",
   });
 
-  return !error;
+  if (error) return false;
+
+  // Book the photographer's share as pending. It clears — and reaches their
+  // balance — only when an admin approves the sale.
+  await recordPendingSaleEarning(id, photoId, price);
+
+  return true;
+}
+
+/**
+ * Writes the photographer's share of a sale to the ledger as `pending`.
+ * Safe to call more than once for the same purchase: the reference is unique,
+ * so a repeat is recorded as a no-op rather than duplicate money.
+ */
+async function recordPendingSaleEarning(
+  purchaseId: string,
+  photoId: string,
+  price: number,
+): Promise<void> {
+  const contributor = await resolvePhotoContributor(photoId);
+  if (!contributor) return;
+
+  const { data: settings } = await supabase
+    .from("site_settings")
+    .select("platform_fee")
+    .eq("id", 1)
+    .single();
+
+  const platformFeePct = settings?.platform_fee ?? 20;
+  const gross = price || contributor.price || 0;
+  const net = Math.round(gross * ((100 - platformFeePct) / 100));
+
+  if (net <= 0) return;
+
+  await supabase.rpc("record_contributor_earning", {
+    p_user_id: contributor.userId,
+    p_type: "licensing",
+    p_net_amount: net,
+    p_gross_amount: gross,
+    p_platform_fee: gross - net,
+    p_photo_id: photoId,
+    p_reference: purchaseId,
+    p_description: `Marketplace licence: ${contributor.title || photoId}`,
+    p_status: "pending",
+  });
+}
+
+/** Maps a photo to the profile that earns from it. */
+async function resolvePhotoContributor(
+  photoId: string,
+): Promise<{ userId: string; price: number; title: string } | null> {
+  const { data: photo } = await supabase
+    .from("photos")
+    .select("photographer_id, price, title")
+    .eq("id", photoId)
+    .single();
+
+  if (!photo?.photographer_id) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("slug", photo.photographer_id)
+    .single();
+
+  if (!profile) return null;
+
+  return { userId: profile.id, price: photo.price || 0, title: photo.title || "" };
 }
 
 // ============================================================
@@ -2051,38 +2453,40 @@ export async function approvePurchase(
 
   if (pErr) return false;
 
-  // Credit photographer's unified payout_balance (only on first approval)
+  // Clear the photographer's share into their balance (only on first approval)
   if (purchase && purchase.status !== "APPROVED" && photoId) {
-    const { data: photo } = await supabase
-      .from("photos")
-      .select("photographer_id, price")
-      .eq("id", photoId)
-      .single();
+    const { data: cleared, error: clearError } = await supabase.rpc("mark_earning_available", {
+      p_reference: purchaseId,
+    });
 
-    const { data: settings } = await supabase
-      .from("site_settings")
-      .select("platform_fee")
-      .eq("id", 1)
-      .single();
+    if (!clearError && !cleared) {
+      // No pending row — a purchase made before the ledger existed. Book and
+      // clear the earning in one step.
+      await recordPendingSaleEarning(purchaseId, photoId, purchase.price || 0);
+      await supabase.rpc("mark_earning_available", { p_reference: purchaseId });
+    }
 
-    if (photo && settings) {
-      const commissionPct = 100 - (settings.platform_fee ?? 20);
-      const photographerShare = Math.round(
-        (purchase.price || photo.price || 0) * (commissionPct / 100),
-      );
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("slug", photo.photographer_id)
+    if (clearError) {
+      // The ledger is not installed. Credit the photographer directly so a
+      // missing migration never costs them a sale.
+      const contributor = await resolvePhotoContributor(photoId);
+      const { data: settings } = await supabase
+        .from("site_settings")
+        .select("platform_fee")
+        .eq("id", 1)
         .single();
 
-      if (profile && photographerShare > 0) {
-        await supabase.rpc("adjust_payout_balance", {
-          p_user_id: profile.id,
-          p_adjustment: photographerShare,
-          p_reason: `Sale approved: photo ${photoId}`,
-        });
+      if (contributor) {
+        const gross = purchase.price || contributor.price || 0;
+        const net = Math.round(gross * ((100 - (settings?.platform_fee ?? 20)) / 100));
+
+        if (net > 0) {
+          await supabase.rpc("adjust_payout_balance", {
+            p_user_id: contributor.userId,
+            p_adjustment: net,
+            p_reason: `Sale approved: photo ${photoId}`,
+          });
+        }
       }
     }
   }
@@ -2108,7 +2512,13 @@ export async function rejectPurchase(purchaseId: string): Promise<boolean> {
     .from("purchases")
     .update({ status: "REJECTED" })
     .eq("id", purchaseId);
-  return !error;
+
+  if (error) return false;
+
+  // The sale never completed, so the photographer's pending share falls away.
+  await supabase.rpc("cancel_earning", { p_reference: purchaseId });
+
+  return true;
 }
 
 // ============================================================
@@ -2205,7 +2615,39 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
 // RESOLVE MODERATION ITEM
 // ============================================================
 
-export async function resolveModeration(moderationId: string, approve: boolean): Promise<boolean> {
+/**
+ * Resolve a review. The photograph's own status is what the contributor and the
+ * public gallery read, so it moves with the queue row rather than after it:
+ * approving publishes, declining marks the submission declined.
+ */
+export async function resolveModeration(
+  moderationId: string,
+  approve: boolean,
+  photoId?: string,
+  note?: string,
+): Promise<boolean> {
+  const targetId =
+    photoId ||
+    (
+      await supabase
+        .from("moderation_queue")
+        .select("photo_id")
+        .eq("id", moderationId)
+        .maybeSingle()
+    ).data?.photo_id;
+
+  if (targetId) {
+    const { error: photoError } = await supabase
+      .from("photos")
+      .update({ status: approve ? "published" : "rejected" })
+      .eq("id", targetId);
+
+    if (photoError) {
+      console.error("resolveModeration (photo status)", photoError);
+      return false;
+    }
+  }
+
   if (approve) {
     const { error } = await supabase.from("moderation_queue").delete().eq("id", moderationId);
     if (error) {
@@ -2215,7 +2657,7 @@ export async function resolveModeration(moderationId: string, approve: boolean):
   } else {
     const { error } = await supabase
       .from("moderation_queue")
-      .update({ status: "rejected" })
+      .update({ status: "rejected", reason: note || "Not selected for publication" })
       .eq("id", moderationId);
     if (error) {
       console.error("resolveModeration (reject)", error);
@@ -2313,18 +2755,683 @@ export async function updateAdminBalance(
   reason?: string,
   adminId?: string,
 ): Promise<boolean> {
-  const { data, error } = await supabase.rpc("adjust_payout_balance", {
-    p_user_id: userId,
-    p_adjustment: adjustment,
-    p_reason: reason || null,
-    p_admin_id: adminId || null,
+  // Routed through the ledger rather than adjust_payout_balance directly, so a
+  // manual admin edit shows up as a line the contributor can see rather than
+  // an unexplained jump in their balance.
+  return creditContributor({
+    userId,
+    type: "adjustment",
+    netAmount: adjustment,
+    description: reason || "Balance adjustment by NS CAPTURES",
+    adminId,
+  });
+}
+
+// ============================================================
+// CONTRIBUTOR PORTAL — ACQUISITIONS, AGREEMENTS, PUBLICATIONS
+// ============================================================
+//
+// Every reader here resolves to an empty list if the table is missing, so the
+// portal renders its empty states rather than erroring while migration 035 is
+// still unapplied.
+
+export type AcquisitionCategory = "standard" | "premium" | "signature" | "exceptional";
+export type AcquisitionRights = "non_exclusive" | "exclusive" | "assignment";
+export type AcquisitionStatus =
+  | "under_consideration"
+  | "offer_made"
+  | "awaiting_contributor"
+  | "agreement_pending"
+  | "agreement_signed"
+  | "payment_pending"
+  | "paid"
+  | "declined"
+  | "cancelled";
+
+export interface Acquisition {
+  id: string;
+  reference: string;
+  userId: string;
+  photoId: string | null;
+  photoTitle?: string;
+  photoImage?: string;
+  category: AcquisitionCategory;
+  amount: number;
+  currency: string;
+  rights: AcquisitionRights;
+  territory: string | null;
+  term: string | null;
+  permittedUses: string | null;
+  attribution: string | null;
+  status: AcquisitionStatus;
+  selectionNote: string | null;
+  offeredAt: string | null;
+  respondedAt: string | null;
+  paidAt: string | null;
+  createdAt: string;
+}
+
+export async function fetchAcquisitions(userId: string): Promise<Acquisition[]> {
+  const { data, error } = await supabase
+    .from("acquisitions")
+    .select("*, photos(title, image)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => ({
+    id: row.id,
+    reference: row.reference,
+    userId: row.user_id,
+    photoId: row.photo_id,
+    photoTitle: row.photos?.title || undefined,
+    photoImage: row.photos?.image || undefined,
+    category: row.category,
+    amount: Number(row.amount || 0),
+    currency: row.currency || "GBP",
+    rights: row.rights,
+    territory: row.territory,
+    term: row.term,
+    permittedUses: row.permitted_uses,
+    attribution: row.attribution,
+    status: row.status,
+    selectionNote: row.selection_note,
+    offeredAt: row.offered_at,
+    respondedAt: row.responded_at,
+    paidAt: row.paid_at,
+    createdAt: row.created_at,
+  }));
+}
+
+export type AgreementKind =
+  "contributor" | "acquisition" | "publication" | "marketplace_licence" | "bonus";
+export type AgreementStatus =
+  "awaiting_signature" | "signed" | "active" | "declined" | "terminated";
+
+export interface Agreement {
+  id: string;
+  reference: string;
+  kind: AgreementKind;
+  title: string;
+  version: string;
+  body: string | null;
+  status: AgreementStatus;
+  acquisitionId: string | null;
+  signedName: string | null;
+  signedAt: string | null;
+  effectiveDate: string | null;
+  createdAt: string;
+}
+
+export async function fetchAgreements(userId: string): Promise<Agreement[]> {
+  const { data, error } = await supabase
+    .from("agreements")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => ({
+    id: row.id,
+    reference: row.reference,
+    kind: row.kind,
+    title: row.title,
+    version: row.version,
+    body: row.body,
+    status: row.status,
+    acquisitionId: row.acquisition_id,
+    signedName: row.signed_name,
+    signedAt: row.signed_at,
+    effectiveDate: row.effective_date,
+    createdAt: row.created_at,
+  }));
+}
+
+/** Records the contributor's acceptance. Returns false if it is not theirs to sign. */
+export async function signAgreement(agreementId: string, signedName: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("sign_agreement", {
+    p_agreement_id: agreementId,
+    p_signed_name: signedName,
   });
 
   if (error) {
-    console.error("updateAdminBalance", error);
+    console.error("signAgreement", error);
+    return false;
+  }
+  return data === true;
+}
+
+export type PublicationStatus =
+  "under_consideration" | "shortlisted" | "selected" | "published" | "not_selected";
+
+export interface PublicationEntry {
+  id: string;
+  photoId: string | null;
+  photoTitle?: string;
+  photoImage?: string;
+  collectionName: string;
+  edition: string | null;
+  status: PublicationStatus;
+  note: string | null;
+  createdAt: string;
+}
+
+export async function fetchPublicationEntries(userId: string): Promise<PublicationEntry[]> {
+  const { data, error } = await supabase
+    .from("publication_entries")
+    .select("*, photos(title, image)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => ({
+    id: row.id,
+    photoId: row.photo_id,
+    photoTitle: row.photos?.title || undefined,
+    photoImage: row.photos?.image || undefined,
+    collectionName: row.collection_name,
+    edition: row.edition,
+    status: row.status,
+    note: row.note,
+    createdAt: row.created_at,
+  }));
+}
+
+// ============================================================
+// PROGRAMME ADMINISTRATION — writes behind the contributor portal
+// ============================================================
+
+/**
+ * How an acquisition's status maps onto the photograph itself. A photograph is
+ * only "acquired" once the acquisition has actually been paid; everything
+ * before that is consideration, and a withdrawn offer leaves no mark.
+ */
+export function photoStateForAcquisition(status: AcquisitionStatus): "review" | "acquired" | null {
+  if (status === "paid") return "acquired";
+  if (status === "declined" || status === "cancelled") return null;
+  return "review";
+}
+
+export interface AcquisitionInput {
+  photoId: string;
+  userId: string;
+  category: AcquisitionCategory;
+  amount: number;
+  rights: AcquisitionRights;
+  territory?: string;
+  term?: string;
+  permittedUses?: string;
+  attribution?: string;
+  selectionNote?: string;
+  status?: AcquisitionStatus;
+}
+
+/** Every acquisition across the platform, for the admin console. */
+export async function fetchAllAcquisitions(): Promise<(Acquisition & { userName?: string })[]> {
+  const { data, error } = await supabase
+    .from("acquisitions")
+    .select("*, photos(title, image), profiles(name)")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => ({
+    id: row.id,
+    reference: row.reference,
+    userId: row.user_id,
+    photoId: row.photo_id,
+    photoTitle: row.photos?.title || undefined,
+    photoImage: row.photos?.image || undefined,
+    userName: row.profiles?.name || undefined,
+    category: row.category,
+    amount: Number(row.amount || 0),
+    currency: row.currency || "GBP",
+    rights: row.rights,
+    territory: row.territory,
+    term: row.term,
+    permittedUses: row.permitted_uses,
+    attribution: row.attribution,
+    status: row.status,
+    selectionNote: row.selection_note,
+    offeredAt: row.offered_at,
+    respondedAt: row.responded_at,
+    paidAt: row.paid_at,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function createAcquisition(input: AcquisitionInput): Promise<Acquisition | null> {
+  const status = input.status || "offer_made";
+
+  const { data, error } = await supabase
+    .from("acquisitions")
+    .insert({
+      photo_id: input.photoId,
+      user_id: input.userId,
+      category: input.category,
+      amount: input.amount,
+      rights: input.rights,
+      territory: input.territory || "Worldwide",
+      term: input.term || null,
+      permitted_uses: input.permittedUses || null,
+      attribution: input.attribution || null,
+      selection_note: input.selectionNote || null,
+      status,
+      offered_at: new Date().toISOString(),
+    })
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    console.error("createAcquisition", error);
+    return null;
+  }
+
+  // Keep the photograph's own state in step with the offer.
+  await setPhotoAcquisitionState(input.photoId, photoStateForAcquisition(status));
+
+  return {
+    id: data.id,
+    reference: data.reference,
+    userId: data.user_id,
+    photoId: data.photo_id,
+    category: data.category,
+    amount: Number(data.amount || 0),
+    currency: data.currency || "GBP",
+    rights: data.rights,
+    territory: data.territory,
+    term: data.term,
+    permittedUses: data.permitted_uses,
+    attribution: data.attribution,
+    status: data.status,
+    selectionNote: data.selection_note,
+    offeredAt: data.offered_at,
+    respondedAt: data.responded_at,
+    paidAt: data.paid_at,
+    createdAt: data.created_at,
+  };
+}
+
+/**
+ * Moves an acquisition to a new status. Marking it paid is the point at which
+ * the money reaches the contributor: it books an acquisition earning against
+ * their balance, keyed on the acquisition reference so it cannot double-pay.
+ */
+export async function updateAcquisitionStatus(
+  acquisition: Acquisition,
+  status: AcquisitionStatus,
+): Promise<boolean> {
+  const patch: Record<string, unknown> = { status };
+
+  if (status === "paid") patch.paid_at = new Date().toISOString();
+  if (status === "declined" || status === "cancelled") {
+    patch.responded_at = new Date().toISOString();
+  }
+
+  const { error } = await supabase.from("acquisitions").update(patch).eq("id", acquisition.id);
+
+  if (error) {
+    console.error("updateAcquisitionStatus", error);
+    return false;
+  }
+
+  if (acquisition.photoId) {
+    await setPhotoAcquisitionState(acquisition.photoId, photoStateForAcquisition(status));
+  }
+
+  if (status === "paid" && acquisition.amount > 0) {
+    await creditContributor({
+      userId: acquisition.userId,
+      type: "acquisition",
+      netAmount: acquisition.amount,
+      photoId: acquisition.photoId,
+      reference: acquisition.reference,
+      description: `Direct acquisition: ${acquisition.photoTitle || acquisition.reference}`,
+    });
+  }
+
+  return true;
+}
+
+/** Issues an agreement for a contributor to review and sign. */
+export async function createAgreement(input: {
+  userId: string;
+  kind: AgreementKind;
+  title: string;
+  body: string;
+  version?: string;
+  acquisitionId?: string;
+  effectiveDate?: string;
+}): Promise<boolean> {
+  const prefix =
+    input.kind === "acquisition" ? "ACQ" : input.kind === "publication" ? "PUB" : "NSC-CA";
+  const reference = `${prefix}-${new Date().getFullYear()}-${Math.random()
+    .toString(36)
+    .slice(2, 7)
+    .toUpperCase()}`;
+
+  const { error } = await supabase.from("agreements").insert({
+    reference,
+    user_id: input.userId,
+    kind: input.kind,
+    title: input.title,
+    body: input.body,
+    version: input.version || "1.0",
+    acquisition_id: input.acquisitionId || null,
+    effective_date: input.effectiveDate || null,
+    status: "awaiting_signature",
+  });
+
+  if (error) {
+    console.error("createAgreement", error);
     return false;
   }
   return true;
+}
+
+export async function fetchAllAgreements(): Promise<(Agreement & { userName?: string })[]> {
+  const { data, error } = await supabase
+    .from("agreements")
+    .select("*, profiles(name)")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => ({
+    id: row.id,
+    reference: row.reference,
+    kind: row.kind,
+    title: row.title,
+    version: row.version,
+    body: row.body,
+    status: row.status,
+    acquisitionId: row.acquisition_id,
+    signedName: row.signed_name,
+    signedAt: row.signed_at,
+    effectiveDate: row.effective_date,
+    createdAt: row.created_at,
+    userName: row.profiles?.name || undefined,
+  }));
+}
+
+/**
+ * Awards a bonus. This writes straight to the earnings ledger, so it credits
+ * the contributor's balance and shows up as a line they can see.
+ */
+export async function awardBonus(input: {
+  userId: string;
+  type: "bonus" | "award";
+  amount: number;
+  description: string;
+  photoId?: string;
+  adminId?: string;
+}): Promise<boolean> {
+  return creditContributor({
+    userId: input.userId,
+    type: input.type,
+    netAmount: input.amount,
+    photoId: input.photoId,
+    description: input.description,
+    adminId: input.adminId,
+  });
+}
+
+export async function createPublicationEntry(input: {
+  userId: string;
+  photoId: string;
+  collectionName: string;
+  edition?: string;
+  status?: PublicationStatus;
+  note?: string;
+}): Promise<boolean> {
+  const { error } = await supabase.from("publication_entries").insert({
+    user_id: input.userId,
+    photo_id: input.photoId,
+    collection_name: input.collectionName,
+    edition: input.edition || null,
+    status: input.status || "under_consideration",
+    note: input.note || null,
+  });
+
+  if (error) {
+    console.error("createPublicationEntry", error);
+    return false;
+  }
+  return true;
+}
+
+export async function updatePublicationStatus(
+  id: string,
+  status: PublicationStatus,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("publication_entries")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) {
+    console.error("updatePublicationStatus", error);
+    return false;
+  }
+  return true;
+}
+
+export async function fetchAllPublicationEntries(): Promise<
+  (PublicationEntry & { userName?: string })[]
+> {
+  const { data, error } = await supabase
+    .from("publication_entries")
+    .select("*, photos(title, image), profiles(name)")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => ({
+    id: row.id,
+    photoId: row.photo_id,
+    photoTitle: row.photos?.title || undefined,
+    photoImage: row.photos?.image || undefined,
+    collectionName: row.collection_name,
+    edition: row.edition,
+    status: row.status,
+    note: row.note,
+    createdAt: row.created_at,
+    userName: row.profiles?.name || undefined,
+  }));
+}
+
+/** Recognition status. Displayed on the contributor's dashboard. */
+export async function setContributorLevel(
+  userId: string,
+  level: "international" | "featured" | "collection",
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ contributor_level: level })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("setContributorLevel", error);
+    return false;
+  }
+  return true;
+}
+
+// ============================================================
+// LICENSED WORK — the contributor's own photographs, as licensed by customers
+// ============================================================
+
+export interface LicensedWork {
+  photoId: string;
+  title: string;
+  image: string;
+  licenceCount: number;
+  grossValue: number;
+  lastLicensedAt: string | null;
+}
+
+/**
+ * Licences taken out on this contributor's photographs, grouped per
+ * photograph. Built from the existing licences table rather than a new one.
+ */
+export async function fetchLicensedWork(photographerSlug: string): Promise<LicensedWork[]> {
+  const { data: photos } = await supabase
+    .from("photos")
+    .select("id, title, image")
+    .eq("photographer_id", photographerSlug);
+
+  if (!photos || photos.length === 0) return [];
+
+  const byId = new Map(photos.map((p: any) => [p.id, p]));
+
+  const { data: licences } = await supabase
+    .from("licenses")
+    .select("photo_id, price, purchased_at")
+    .in(
+      "photo_id",
+      photos.map((p: any) => p.id),
+    );
+
+  if (!licences || licences.length === 0) return [];
+
+  const grouped = new Map<string, LicensedWork>();
+
+  for (const licence of licences as any[]) {
+    const photo = byId.get(licence.photo_id);
+    if (!photo) continue;
+
+    const existing = grouped.get(licence.photo_id);
+    const purchasedAt = licence.purchased_at || null;
+
+    if (existing) {
+      existing.licenceCount += 1;
+      existing.grossValue += Number(licence.price || 0);
+      if (purchasedAt && (!existing.lastLicensedAt || purchasedAt > existing.lastLicensedAt)) {
+        existing.lastLicensedAt = purchasedAt;
+      }
+    } else {
+      grouped.set(licence.photo_id, {
+        photoId: licence.photo_id,
+        title: photo.title || "Untitled",
+        image: photo.image || "",
+        licenceCount: 1,
+        grossValue: Number(licence.price || 0),
+        lastLicensedAt: purchasedAt,
+      });
+    }
+  }
+
+  return [...grouped.values()].sort((a, b) => b.licenceCount - a.licenceCount);
+}
+
+/** Curated collections that include at least one of this contributor's photographs. */
+export async function fetchCollectionsFeaturing(
+  photographerSlug: string,
+): Promise<{ id: string; title: string; count: number }[]> {
+  const { data: photos } = await supabase
+    .from("photos")
+    .select("id")
+    .eq("photographer_id", photographerSlug);
+
+  if (!photos || photos.length === 0) return [];
+
+  const { data: links } = await supabase
+    .from("collection_photos")
+    .select("collection_id, photo_id")
+    .in(
+      "photo_id",
+      photos.map((p: any) => p.id),
+    );
+
+  if (!links || links.length === 0) return [];
+
+  const counts = new Map<string, number>();
+  for (const link of links as any[]) {
+    counts.set(link.collection_id, (counts.get(link.collection_id) || 0) + 1);
+  }
+
+  const { data: collections } = await supabase
+    .from("collections")
+    .select("id, title")
+    .in("id", [...counts.keys()]);
+
+  return (collections || []).map((c: any) => ({
+    id: c.id,
+    title: c.title || "Untitled collection",
+    count: counts.get(c.id) || 0,
+  }));
+}
+
+// ============================================================
+// CONTRIBUTOR EARNINGS LEDGER
+// ============================================================
+
+/** Every ledger line for one contributor, newest first. */
+export async function fetchContributorEarnings(userId: string): Promise<ContributorEarning[]> {
+  const { data, error } = await supabase
+    .from("contributor_earnings")
+    .select("*, photos(title)")
+    .eq("user_id", userId)
+    .neq("status", "cancelled")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("fetchContributorEarnings", error);
+    return [];
+  }
+
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    type: row.type,
+    status: row.status,
+    photoId: row.photo_id,
+    photoTitle: row.photos?.title || undefined,
+    reference: row.reference,
+    description: row.description,
+    grossAmount: Number(row.gross_amount || 0),
+    platformFee: Number(row.platform_fee || 0),
+    netAmount: Number(row.net_amount || 0),
+    currency: row.currency || "GBP",
+    createdAt: row.created_at,
+    availableAt: row.available_at,
+    paidAt: row.paid_at,
+  }));
+}
+
+const EMPTY_BY_TYPE: Record<EarningType, number> = {
+  licensing: 0,
+  acquisition: 0,
+  bonus: 0,
+  award: 0,
+  adjustment: 0,
+};
+
+/**
+ * Available / Pending / Lifetime, plus the breakdown by earning type.
+ * Available counts money cleared but not yet paid out; pending counts money
+ * booked against a sale that hasn't been approved yet.
+ */
+export function summariseEarnings(entries: ContributorEarning[]): EarningsSummary {
+  const summary: EarningsSummary = {
+    available: 0,
+    pending: 0,
+    lifetime: 0,
+    byType: { ...EMPTY_BY_TYPE },
+  };
+
+  for (const entry of entries) {
+    if (entry.status === "available") summary.available += entry.netAmount;
+    if (entry.status === "pending") summary.pending += entry.netAmount;
+    if (entry.status !== "pending") {
+      summary.lifetime += entry.netAmount;
+      summary.byType[entry.type] += entry.netAmount;
+    }
+  }
+
+  return summary;
 }
 
 export async function fetchBalanceAdjustments(

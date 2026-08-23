@@ -27,6 +27,11 @@ export interface AuthUser {
   verificationStatus?: string;
   status?: string;
   payoutBalance?: number;
+  contributorId?: string;
+  contributorLevel?: string;
+  country?: string;
+  city?: string;
+  specialties?: string[];
 }
 
 interface AuthContextType {
@@ -74,6 +79,11 @@ function supabaseUserToAuthUser(supabaseUser: any, profile: any): AuthUser {
     verificationStatus: profile?.verification_status || "unverified",
     status: profile?.status || "Active",
     payoutBalance: profile?.payout_balance ?? 0,
+    contributorId: profile?.contributor_id || undefined,
+    contributorLevel: profile?.contributor_level || "international",
+    country: profile?.country || "",
+    city: profile?.city || "",
+    specialties: profile?.specialties || [],
   };
 }
 
@@ -303,24 +313,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error: emailError } = await supabase.auth.updateUser({ email: editableData.email });
         if (emailError) throw new Error(emailError.message);
       }
+      const core = {
+        name: editableData.name,
+        company: editableData.company,
+        avatar: editableData.avatar,
+        phone: editableData.phone,
+        occupation: editableData.occupation,
+        dob: editableData.dob,
+        location: editableData.location,
+        bio: editableData.bio,
+        social_links: editableData.socialLinks,
+        profile_references: editableData.references,
+        verification_status: editableData.verificationStatus,
+      };
+
+      // Contributor programme fields, which only exist once those migrations
+      // have run. Saving a profile must not depend on that.
+      const programme = {
+        country: editableData.country,
+        city: editableData.city,
+        specialties: editableData.specialties,
+      };
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          name: editableData.name,
-          company: editableData.company,
-          avatar: editableData.avatar,
-          phone: editableData.phone,
-          occupation: editableData.occupation,
-          dob: editableData.dob,
-          location: editableData.location,
-          bio: editableData.bio,
-          social_links: editableData.socialLinks,
-          profile_references: editableData.references,
-          verification_status: editableData.verificationStatus,
-        })
+        .update({ ...core, ...programme })
         .eq("id", user.id);
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        const { error: coreError } = await supabase.from("profiles").update(core).eq("id", user.id);
+
+        if (coreError) throw new Error(coreError.message);
+        console.warn("Profile saved without contributor fields:", error.message);
+      }
 
       if (user.role === "Photographer" && user.slug) {
         const photographerUpdate: Record<string, unknown> = {};

@@ -21,13 +21,29 @@ import {
   Camera,
   Image as ImageIcon,
   Wallet,
+  Coins,
   Clock,
+  Upload,
+  Handshake,
+  Award,
+  BookOpen,
+  Layers,
+  KeyRound,
+  LifeBuoy,
+  ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { GlobalVerificationModal } from "../components/GlobalVerificationModal";
 import { CreatorTabs } from "./account/CreatorTabs";
+import { EarningsTab } from "./account/EarningsTab";
+import { AcquisitionsTab } from "./account/contributor/AcquisitionsTab";
+import { AgreementsTab } from "./account/contributor/AgreementsTab";
+import { LicensedWorkTab } from "./account/contributor/LicensedWorkTab";
+import { BonusesTab, PublicationsTab, FeaturedInTab } from "./account/contributor/OpportunityTabs";
+import { SupportTab } from "./account/contributor/SupportTab";
+import { SPECIALTIES } from "../data/contributor";
 import { SideNav } from "../components/SideNav";
 import {
   fetchPurchases,
@@ -47,15 +63,56 @@ import { Link, useSearchParams } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
 
-const nav = [
-  { id: "dashboard", label: "Home", icon: Activity, isCreator: true },
+type NavEntry = {
+  id: string;
+  label: string;
+  icon?: typeof Activity;
+  heading?: string;
+};
+
+/** What someone who only buys photographs needs. */
+const buyerNav: NavEntry[] = [
   { id: "collections", label: "Collections", icon: FolderHeart },
   { id: "downloads", label: "Downloads", icon: Download },
   { id: "licenses", label: "Licenses", icon: FileText },
-  { id: "portfolio", label: "Portfolio", icon: ImageIcon, isCreator: true },
-  { id: "payouts", label: "Payouts", icon: Wallet, isCreator: true },
   { id: "security", label: "Settings", icon: Settings },
   { id: "billing", label: "Billing", icon: CreditCard },
+];
+
+/** The contributor portal, grouped as the programme brief lays it out. */
+const contributorNav: NavEntry[] = [
+  { id: "h-home", label: "", heading: "Home" },
+  { id: "dashboard", label: "Dashboard", icon: Activity },
+
+  { id: "h-photography", label: "", heading: "My Photography" },
+  { id: "portfolio", label: "My Portfolio", icon: ImageIcon },
+  { id: "upload", label: "Upload Photos", icon: Upload },
+  { id: "submissions", label: "My Submissions", icon: ClipboardList },
+
+  { id: "h-earnings", label: "", heading: "Earnings" },
+  { id: "licensed", label: "Licensed Photos", icon: KeyRound },
+  { id: "acquisitions", label: "Direct Acquisitions", icon: Handshake },
+  { id: "earnings", label: "Earnings", icon: Coins },
+  { id: "payouts", label: "Payouts", icon: Wallet },
+
+  { id: "h-opportunities", label: "", heading: "Opportunities" },
+  { id: "bonuses", label: "Bonuses & Awards", icon: Award },
+  { id: "featured", label: "Collections", icon: Layers },
+  { id: "publications", label: "Publications", icon: BookOpen },
+
+  { id: "h-account", label: "", heading: "Account" },
+  { id: "security", label: "My Profile", icon: Settings },
+  { id: "agreements", label: "Agreements", icon: FileText },
+  { id: "collections", label: "Saved", icon: FolderHeart },
+  { id: "downloads", label: "Downloads", icon: Download },
+  { id: "licenses", label: "My Licenses", icon: FileText },
+  { id: "billing", label: "Billing", icon: CreditCard },
+  { id: "support", label: "Help & Support", icon: LifeBuoy },
+];
+
+/** Every id that is a real destination rather than a group heading. */
+const NAV_IDS = [
+  ...new Set([...buyerNav, ...contributorNav].filter((n) => !n.heading).map((n) => n.id)),
 ];
 
 export function Account() {
@@ -73,17 +130,29 @@ export function Account() {
         ? "security"
         : "dashboard"
       : "security";
+  // A verified photographer (or an admin) gets the contributor portal;
+  // everyone else keeps the simpler buyer account.
+  const isContributor =
+    user?.role === "Admin" ||
+    (user?.role === "Photographer" && user?.verificationStatus === "verified");
+  const navItems = isContributor ? contributorNav : buyerNav;
+
+  // An unverified photographer's default is the dashboard, which their
+  // navigation does not contain — fall back to something they can actually see.
+  const safeDefault = navItems.some((n) => !n.heading && n.id === defaultTab)
+    ? defaultTab
+    : navItems.find((n) => !n.heading)?.id || "security";
+
   const active = (() => {
-    if (!requestedTab) return defaultTab;
-    const navItem = nav.find((item) => item.id === requestedTab);
-    if (!navItem) return defaultTab;
-    if (navItem.isCreator && user?.role !== "Photographer" && user?.role !== "Admin")
-      return defaultTab;
+    if (!requestedTab) return safeDefault;
+    if (!NAV_IDS.includes(requestedTab)) return safeDefault;
+    // Contributor destinations are not reachable from a buyer account.
+    if (!isContributor && !buyerNav.some((n) => n.id === requestedTab)) return safeDefault;
     return requestedTab;
   })();
   const setActive = (id: string) => {
     const next = new URLSearchParams(params);
-    if (id === defaultTab) next.delete("tab");
+    if (id === safeDefault) next.delete("tab");
     else next.set("tab", id);
     setParams(next);
   };
@@ -97,7 +166,10 @@ export function Account() {
     company: user?.company || "",
     location: user?.location || "",
     bio: user?.bio || "",
+    country: user?.country || "",
+    city: user?.city || "",
   });
+  const [specialties, setSpecialties] = useState<string[]>(user?.specialties || []);
   const [passwordData, setPasswordData] = useState({ current: "", next: "", confirm: "" });
   const [settingsTab, setSettingsTab] = useState<"profile" | "verification" | "security">(
     "profile",
@@ -205,6 +277,9 @@ export function Account() {
           company: profileData.company,
           location: profileData.location,
           bio: profileData.bio,
+          country: profileData.country,
+          city: profileData.city,
+          specialties,
           phone,
           occupation,
           dob,
@@ -299,12 +374,7 @@ export function Account() {
     <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
       <div className="mx-auto flex max-w-[1440px] gap-8 px-5 sm:px-8 lg:px-12">
         <SideNav
-          items={nav.filter(
-            (n) =>
-              !n.isCreator ||
-              user?.role === "Admin" ||
-              (user?.role === "Photographer" && user?.verificationStatus === "verified"),
-          )}
+          items={navItems}
           active={active}
           onSelect={setActive}
           header={() => (
@@ -464,13 +534,8 @@ export function Account() {
 
           {/* Mobile nav */}
           <div className="mt-6 flex gap-2 overflow-x-auto pb-2 md:hidden">
-            {nav
-              .filter(
-                (n) =>
-                  !n.isCreator ||
-                  user?.role === "Admin" ||
-                  (user?.role === "Photographer" && user?.verificationStatus === "verified"),
-              )
+            {navItems
+              .filter((n) => !n.heading)
               .map((n) => (
                 <button
                   key={n.id}
@@ -929,6 +994,26 @@ export function Account() {
                         {user?.role || "Buyer"}
                       </p>
                     </div>
+                    <Field
+                      label="Country"
+                      value={profileData.country}
+                      onChange={(e) => setProfileData({ ...profileData, country: e.target.value })}
+                    />
+                    <Field
+                      label="City"
+                      value={profileData.city}
+                      onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
+                    />
+                    {user?.contributorId && (
+                      <div className="block">
+                        <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                          Contributor ID
+                        </span>
+                        <p className="mt-2 rounded-xl border border-[#ececec] bg-[#f7f7f7] px-4 py-3 font-mono text-sm text-[#6b716d]">
+                          {user.contributorId}
+                        </p>
+                      </div>
+                    )}
                     <Field label="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
                     <Field
                       label="Occupation"
@@ -942,6 +1027,39 @@ export function Account() {
                       onChange={(e) => setDob(e.target.value)}
                     />
                   </div>
+                  {user?.role === "Photographer" && (
+                    <div className="mt-6">
+                      <h4 className="text-[13px] font-medium text-[#758078] uppercase tracking-wide mb-3">
+                        Photography Specialties
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {SPECIALTIES.map((specialty) => {
+                          const isSelected = specialties.includes(specialty);
+                          return (
+                            <button
+                              key={specialty}
+                              type="button"
+                              aria-pressed={isSelected}
+                              onClick={() =>
+                                setSpecialties((prev) =>
+                                  prev.includes(specialty)
+                                    ? prev.filter((s) => s !== specialty)
+                                    : [...prev, specialty],
+                                )
+                              }
+                              className={`rounded-full border px-4 py-2 text-sm transition ${
+                                isSelected
+                                  ? "border-[#1e4a3f] bg-[#1e4a3f] text-white"
+                                  : "border-[#ececec] bg-white text-[#59645f] hover:border-[#1e4a3f]/40"
+                              }`}
+                            >
+                              {specialty}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div className="mt-6">
                     <h4 className="text-[13px] font-medium text-[#758078] uppercase tracking-wide mb-3">
                       Social Profiles
@@ -1234,9 +1352,18 @@ export function Account() {
             </div>
           )}
 
-          {["dashboard", "portfolio", "payouts"].includes(active) && (
-            <CreatorTabs active={active} />
+          {["dashboard", "portfolio", "submissions", "upload", "payouts"].includes(active) && (
+            <CreatorTabs active={active} onTabChange={setActive} />
           )}
+
+          {active === "earnings" && <EarningsTab />}
+          {active === "licensed" && <LicensedWorkTab />}
+          {active === "acquisitions" && <AcquisitionsTab />}
+          {active === "agreements" && <AgreementsTab />}
+          {active === "bonuses" && <BonusesTab />}
+          {active === "featured" && <FeaturedInTab />}
+          {active === "publications" && <PublicationsTab />}
+          {active === "support" && <SupportTab />}
         </div>
       </div>
 

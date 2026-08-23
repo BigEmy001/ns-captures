@@ -383,3 +383,42 @@ export async function sendAdminDirectEmail(
 <p style="margin:20px 0 0;">${btn("https://www.nscaptures.com/account", "Go to Your Account")}</p>`;
   await send(to, `NS CAPTURES - ${subject}`, body);
 }
+
+/**
+ * Progress on a payout. Only the stages a contributor would actually want to
+ * hear about are sent by default — the intermediate banking steps show on the
+ * timeline instead, so a single payout doesn't generate ten emails.
+ */
+export async function sendPayoutStageUpdate(
+  photographerEmail: string,
+  photographerName: string,
+  amount: number,
+  stageLabel: string,
+  stageBody: string,
+  note?: string,
+) {
+  const safeName = escapeHtml(photographerName);
+  const safeLabel = escapeHtml(stageLabel);
+  const safeBody = escapeHtml(stageBody);
+  const safeNote = note ? escapeHtml(note) : "";
+
+  await send(
+    photographerEmail,
+    `${stageLabel} — NS CAPTURES Payout`,
+    `
+<h1 style="margin:0;font-size:24px;line-height:26px;font-weight:400;color:#333333;font-family:inherit;">${safeLabel}</h1>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Hi ${safeName},</p>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">${safeBody}</p>
+<div style="background-color:#f8f9f7; padding:20px; border-radius:8px; margin:20px 0; border:1px solid #dce8df;">
+  <p style="margin:0; font-size:14px; color:#1e4a3f;"><strong>Amount:</strong> £${amount.toFixed(2)}</p>
+  <p style="margin:8px 0 0 0; font-size:14px; color:#1e4a3f;"><strong>Status:</strong> ${safeLabel}</p>
+</div>
+${
+  safeNote
+    ? `<p style="margin:16px 0 0;font-size:14px;line-height:20px;color:#555555;font-family:inherit;"><strong>Note from NS CAPTURES:</strong> ${safeNote}</p>`
+    : ""
+}
+<p style="margin:16px 0 0;font-size:14px;line-height:20px;color:#888888;font-family:inherit;">You can follow every step of this payout on your payouts page.</p>
+<p style="margin:16px 0 0;">${btn("https://www.nscaptures.com/account?tab=payouts", "View payout timeline")}</p>`,
+  );
+}

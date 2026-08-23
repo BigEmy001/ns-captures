@@ -28,8 +28,8 @@ import { Eyebrow, Badge } from "../../components/ui";
 import { type Orientation, type Photographer } from "../../data/photos";
 import {
   fetchPhotos,
+  fetchPhotosByPhotographer,
   fetchPhotographers,
-  fetchPhotographerStats,
   fetchPhotographerMonthlyRevenue,
   fetchPhotographerWeeklyDownloads,
   fetchBalanceAdjustments,
@@ -42,6 +42,12 @@ import {
   updatePhotoPrice,
   updatePhotoField,
   createPhoto,
+  fetchContributorEarnings,
+  summariseEarnings,
+  fetchAcquisitions,
+  fetchLicensedWork,
+  submitPhotoForReview,
+  isModerationRequired,
   COINS,
   type Payout,
   type PayoutRequest,
@@ -50,6 +56,16 @@ import {
   type Photo,
   getOptimizedImageUrl,
 } from "../../data/db";
+import {
+  submissionStatus,
+  resolveUploadStatus,
+  contributorLevelLabel,
+  SUBMISSION_FILTERS,
+  type SubmissionFilterId,
+} from "../../data/contributor";
+import { maskAccount } from "../../../lib/mask";
+import { PayoutTimeline } from "./PayoutTimeline";
+import { stageMeta, isTerminal } from "../../data/payout-stages";
 import { getStagedPhotos, type StagedPhoto } from "../../../lib/staging";
 import { CURRENCY_GROUPS, currencyLabel } from "../../../lib/currencies";
 import { sendPayoutRequestSubmitted, sendAdminNotification } from "../../../lib/email";
@@ -117,25 +133,11 @@ export function CreatorTabs({
     "card",
   );
   const [payoutDetails, setPayoutDetails] = useState<Record<string, string>>({});
+  const [openTimelineId, setOpenTimelineId] = useState<string | null>(null);
 
   // Photographer dashboard data
   const [revenueData, setRevenueData] = useState<{ m: string; v: number }[]>([]);
   const [downloadsData, setDownloadsData] = useState<{ m: string; v: number }[]>([]);
-  const [photographerStats, setPhotographerStats] = useState<{
-    totalRevenue: number;
-    totalDownloads: number;
-    totalViews: number;
-    totalLikes: number;
-    photoCount: number;
-    avgPrice: number;
-  }>({
-    totalRevenue: 0,
-    totalDownloads: 0,
-    totalViews: 0,
-    totalLikes: 0,
-    photoCount: 0,
-    avgPrice: 0,
-  });
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editingPriceValue, setEditingPriceValue] = useState<string>("");
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
@@ -148,12 +150,65 @@ export function CreatorTabs({
   const photographerProfile = photographers.find((p) => p.id === user?.slug);
   const photographerId = user?.slug || photographerProfile?.id || "";
 
-  // Dynamic Portfolio state (starts with this photographer's photos)
+  // Dynamic Portfolio state (every submission by this photographer)
   const [portfolioPhotos, setPortfolioPhotos] = useState<Photo[]>([]);
+  const [submissionFilter, setSubmissionFilter] = useState<SubmissionFilterId>("all");
+  const [moderationRequired, setModerationRequired] = useState(true);
+  const [lastSubmission, setLastSubmission] = useState<{
+    reference: string;
+    title: string;
+    submittedAt: string;
+    outcome: "draft" | "review" | "published";
+  } | null>(null);
+
+  useEffect(() => {
+    isModerationRequired().then(setModerationRequired);
+  }, []);
+
+  const [earningsSummary, setEarningsSummary] = useState({
+    available: 0,
+    pending: 0,
+    lifetime: 0,
+  });
+  const [acquisitionCount, setAcquisitionCount] = useState(0);
+  // Licences actually taken out, which is not the same as downloads.
+  const [licensedCount, setLicensedCount] = useState(0);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchContributorEarnings(user.id).then((rows) => setEarningsSummary(summariseEarnings(rows)));
+    fetchAcquisitions(user.id).then((rows) => setAcquisitionCount(rows.length));
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.slug) return;
+    fetchLicensedWork(user.slug).then((rows) =>
+      setLicensedCount(rows.reduce((sum, r) => sum + r.licenceCount, 0)),
+    );
+  }, [user?.slug]);
+
+  const isSubmissionsView = active === "submissions";
+
+  const visibleSubmissions = isSubmissionsView
+    ? submissionFilter === "all"
+      ? portfolioPhotos
+      : portfolioPhotos.filter((p) => submissionStatus(p).key === submissionFilter)
+    : // The portfolio shows work that is live on the marketplace. Anything
+      // still in review, declined or held as a draft belongs under Submissions.
+      portfolioPhotos.filter((p) => submissionStatus(p).key === "approved");
+
+  const submissionCounts = {
+    approved: portfolioPhotos.filter((p) => submissionStatus(p).key === "approved").length,
+    underReview: portfolioPhotos.filter((p) => submissionStatus(p).key === "under_review").length,
+  };
 
   useEffect(() => {
     if (photographerId) {
-      setPortfolioPhotos(photos.filter((p) => p.photographerId === photographerId));
+      // Every submission, not just the published ones, so drafts and photos
+      // under review are visible to the contributor who uploaded them.
+      fetchPhotosByPhotographer(photographerId)
+        .then(setPortfolioPhotos)
+        .catch(() => setPortfolioPhotos(photos.filter((p) => p.photographerId === photographerId)));
       fetchPayouts(photographerId)
         .then(setPayouts)
         .catch(() => {
@@ -207,12 +262,6 @@ export function CreatorTabs({
           toast.error("An error occurred");
           return null;
         });
-      fetchPhotographerStats(photographerId)
-        .then(setPhotographerStats)
-        .catch(() => {
-          toast.error("An error occurred");
-          return null;
-        });
     }
   }, [photographerId, photos]);
 
@@ -220,6 +269,15 @@ export function CreatorTabs({
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadStep, setUploadStep] = useState<1 | 2 | 3>(1);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // "Upload Photos" is a nav destination in the contributor portal, but the
+  // wizard is a dialog — open it and put the page back on the portfolio.
+  useEffect(() => {
+    if (active !== "upload") return;
+    setUploadStep(1);
+    setUploadOpen(true);
+    onTabChange?.("portfolio");
+  }, [active, onTabChange]);
 
   // Staged photos (browser IndexedDB)
   const [stagedPhotos, setStagedPhotos] = useState<StagedPhoto[]>([]);
@@ -534,7 +592,7 @@ export function CreatorTabs({
   };
 
   // Publish: upload to Cloudinary + create DB record
-  const handlePublishPhoto = async (status: "published" | "draft" = "published") => {
+  const handlePublishPhoto = async (intent: "published" | "draft" = "published") => {
     if (!uploadFile) {
       toast.error("No file selected");
       return;
@@ -546,8 +604,11 @@ export function CreatorTabs({
     try {
       const imageUrl = await uploadToCloudinary(uploadFile);
 
+      const photoStatus = resolveUploadStatus(intent, moderationRequired);
+
       const newPhotoItem: Photo = {
         id: "upload-" + Date.now(),
+        status: photoStatus,
         title: uploadTitle || "Untitled Frame",
         photographerId: photographerId,
         photographer: user?.name || "Unknown Photographer",
@@ -574,8 +635,21 @@ export function CreatorTabs({
       const saved = await createPhoto(newPhotoItem);
       if (saved) {
         setPortfolioPhotos((prev) => [saved, ...prev]);
-        toast.success(status === "draft" ? "Draft saved!" : "Photo published!", {
-          description: `"${uploadTitle || "Untitled Frame"}" is now ${status === "draft" ? "saved as draft" : "visible under your portfolio"}.`,
+
+        if (photoStatus === "pending_review") {
+          await submitPhotoForReview(saved.id, user?.name || "Unknown Photographer");
+        }
+
+        setLastSubmission({
+          reference: saved.id,
+          title: saved.title,
+          submittedAt: new Date().toLocaleString("en-GB"),
+          outcome:
+            photoStatus === "draft"
+              ? "draft"
+              : photoStatus === "pending_review"
+                ? "review"
+                : "published",
         });
       } else {
         toast.error("Failed to save photo", {
@@ -633,12 +707,15 @@ export function CreatorTabs({
   ];
 
   const stats = [
+    { label: "TOTAL PHOTOS", value: portfolioPhotos.length.toLocaleString() },
+    { label: "PUBLISHED", value: submissionCounts.approved.toLocaleString() },
+    { label: "UNDER REVIEW", value: submissionCounts.underReview.toLocaleString() },
+    { label: "LICENSED", value: licensedCount.toLocaleString() },
+    { label: "DIRECT ACQUISITIONS", value: acquisitionCount.toLocaleString() },
     {
-      label: "BALANCE",
-      value: `£${(user?.payoutBalance ?? 0).toLocaleString("en-GB", { minimumFractionDigits: 2 })}`,
+      label: "TOTAL EARNINGS",
+      value: `£${Math.round(earningsSummary.lifetime).toLocaleString()}`,
     },
-    { label: "DOWNLOADS", value: photographerStats.totalDownloads.toLocaleString() },
-    { label: "LIKES", value: photographerStats.totalLikes.toLocaleString() },
   ];
 
   const pendingPayoutRequest = payoutRequests.find((r) => r.status === "PENDING");
@@ -671,6 +748,16 @@ export function CreatorTabs({
                       return `${h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"}, ${user?.name?.split(" ")[0] || "Photographer"}.`;
                     })()}
                   </h1>
+                  <p className="mt-2 text-sm text-[#59645f]">
+                    {contributorLevelLabel(user?.contributorLevel)}
+                    {(user?.city || user?.country) &&
+                      ` · ${[user?.city, user?.country].filter(Boolean).join(", ")}`}
+                  </p>
+                  {user?.contributorId && (
+                    <p className="mt-1 font-mono text-[11px] tracking-[0.12em] text-[#758078]">
+                      CONTRIBUTOR ID · {user.contributorId}
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={() => {
@@ -686,7 +773,7 @@ export function CreatorTabs({
               {/* 1. OVERVIEW VIEW */}
               <div className="space-y-6 mt-8">
                 {/* Stat cards */}
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {stats.map((s) => (
                     <div
                       key={s.label}
@@ -700,6 +787,42 @@ export function CreatorTabs({
                       </p>
                     </div>
                   ))}
+                </div>
+
+                {/* Earnings summary */}
+                <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-6">
+                    <div className="flex flex-wrap gap-10">
+                      {[
+                        { label: "AVAILABLE BALANCE", value: earningsSummary.available },
+                        { label: "PENDING", value: earningsSummary.pending },
+                        { label: "LIFETIME EARNINGS", value: earningsSummary.lifetime },
+                      ].map((item) => (
+                        <div key={item.label}>
+                          <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                            {item.label}
+                          </p>
+                          <p className="mt-1.5 font-serif text-2xl text-[#18211f]">
+                            £{Math.round(item.value).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => onTabChange?.("earnings")}
+                        className="rounded-full bg-[#1e4a3f] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#123b31]"
+                      >
+                        View earnings
+                      </button>
+                      <button
+                        onClick={() => onTabChange?.("payouts")}
+                        className="rounded-full border border-[#ececec] bg-white px-5 py-2.5 text-xs font-semibold text-[#4a534e] transition hover:border-[#1e4a3f] hover:text-[#1e4a3f]"
+                      >
+                        View payouts
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Charts */}
@@ -872,7 +995,7 @@ export function CreatorTabs({
                   </span>
                   <span>/</span>
                   <span className={uploadStep === 3 ? "text-[#1e4a3f] font-bold" : "opacity-60"}>
-                    3. COMPLETE
+                    3. SUBMIT
                   </span>
                 </div>
                 <span>Step {uploadStep} of 3</span>
@@ -1124,7 +1247,7 @@ export function CreatorTabs({
                           onClick={() => handlePublishPhoto("published")}
                           className="bg-[#1e4a3f] hover:bg-[#123b31] px-6 py-2.5 text-sm font-semibold text-white rounded-full transition-all duration-200 cursor-pointer shadow-md"
                         >
-                          Publish to Archive
+                          {moderationRequired ? "Submit for Review" : "Publish to Archive"}
                         </button>
                       </div>
                     </div>
@@ -1144,13 +1267,53 @@ export function CreatorTabs({
                       <p className="font-serif text-2xl text-[#18211f]">
                         {uploadProgress > 0 && uploadProgress < 100
                           ? "Uploading..."
-                          : "Photograph Published"}
+                          : lastSubmission?.outcome === "draft"
+                            ? "Draft Saved"
+                            : lastSubmission?.outcome === "review"
+                              ? "Submission Received"
+                              : "Photograph Published"}
                       </p>
                       <p className="text-xs text-[#6d746e] mt-1.5 max-w-xs mx-auto">
                         {uploadProgress > 0 && uploadProgress < 100
                           ? "Your image is being uploaded to the archive..."
-                          : "Your image has been published successfully. Our editors will review it for quality standards shortly."}
+                          : lastSubmission?.outcome === "draft"
+                            ? "Saved privately to your portfolio. It stays off the marketplace until you submit it for review."
+                            : lastSubmission?.outcome === "review"
+                              ? "Your photograph has been successfully submitted to NS CAPTURES for review."
+                              : "Your photograph is live on the marketplace."}
                       </p>
+                      {uploadProgress >= 100 && lastSubmission && (
+                        <dl className="mt-5 grid gap-3 rounded-xl border border-[#ececec] bg-[#FAF9F5] p-4 text-left sm:grid-cols-3">
+                          <div>
+                            <dt className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                              Submission Reference
+                            </dt>
+                            <dd className="mt-1 font-mono text-xs text-[#18211f] break-all">
+                              {lastSubmission.reference}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                              Date Submitted
+                            </dt>
+                            <dd className="mt-1 text-xs text-[#18211f]">
+                              {lastSubmission.submittedAt}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                              Current Status
+                            </dt>
+                            <dd className="mt-1 text-xs font-semibold text-[#1e4a3f]">
+                              {lastSubmission.outcome === "draft"
+                                ? "Draft"
+                                : lastSubmission.outcome === "review"
+                                  ? "Under Review"
+                                  : "Approved"}
+                            </dd>
+                          </div>
+                        </dl>
+                      )}
                       {uploadProgress > 0 && uploadProgress < 100 && (
                         <div className="w-48 bg-gray-200 rounded-full h-1.5 mt-3 mx-auto overflow-hidden">
                           <div
@@ -1194,17 +1357,19 @@ export function CreatorTabs({
         </>
       )}
 
-      {active === "portfolio" && (
+      {(active === "portfolio" || active === "submissions" || active === "upload") && (
         <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
           <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
             <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
               <div>
-                <Eyebrow>PORTFOLIO</Eyebrow>
+                <Eyebrow>{isSubmissionsView ? "MY SUBMISSIONS" : "PORTFOLIO"}</Eyebrow>
                 <h1 className="mt-2 font-serif text-3xl sm:text-4xl tracking-tight text-[#18211f]">
-                  Your Archive
+                  {isSubmissionsView ? "My Submissions" : "Your Archive"}
                 </h1>
                 <p className="text-sm text-[#6b716d] mt-1">
-                  {portfolioPhotos.length} photograph{portfolioPhotos.length !== 1 && "s"} published
+                  {isSubmissionsView
+                    ? `${submissionCounts.underReview} under review · ${submissionCounts.approved} approved · ${portfolioPhotos.length} submitted in total`
+                    : `${submissionCounts.approved} photograph${submissionCounts.approved === 1 ? "" : "s"} live on the marketplace`}
                 </p>
               </div>
               <button
@@ -1218,9 +1383,27 @@ export function CreatorTabs({
               </button>
             </div>
 
-            {portfolioPhotos.length > 0 ? (
+            <div className={`mb-6 flex-wrap gap-2 ${isSubmissionsView ? "flex" : "hidden"}`}>
+              {SUBMISSION_FILTERS.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  aria-pressed={submissionFilter === filter.id}
+                  onClick={() => setSubmissionFilter(filter.id)}
+                  className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
+                    submissionFilter === filter.id
+                      ? "border-[#1e4a3f] bg-[#1e4a3f] text-white"
+                      : "border-[#ececec] bg-white text-[#59645f] hover:border-[#1e4a3f]/40"
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+
+            {visibleSubmissions.length > 0 ? (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {portfolioPhotos.map((photo) => (
+                {visibleSubmissions.map((photo) => (
                   <div
                     key={photo.id}
                     className="group bg-white border border-[#ececec] rounded-2xl overflow-hidden ns-shadow-sm hover:border-[#1e4a3f]/20 hover:shadow-md transition-all duration-300"
@@ -1233,6 +1416,12 @@ export function CreatorTabs({
                         className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <span
+                        title={submissionStatus(photo).description}
+                        className="absolute top-3 left-3 rounded-full bg-white/95 px-2.5 py-1 font-mono text-[9px] tracking-[0.08em] text-[#18211f] backdrop-blur-sm"
+                      >
+                        {submissionStatus(photo).label.toUpperCase()}
+                      </span>
                       <button
                         onClick={() => handleDeletePhoto(photo.id)}
                         className="absolute top-3 right-3 p-1.5 bg-white/90 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-50 cursor-pointer"
@@ -1371,19 +1560,45 @@ export function CreatorTabs({
             ) : (
               <div className="bg-white border border-dashed border-[#ececec] rounded-2xl p-16 text-center">
                 <Camera className="size-10 mx-auto text-[#c4cdc5]" />
-                <p className="mt-3 font-serif text-lg text-[#4a534e]">No photos yet</p>
-                <p className="text-xs text-[#758078] mt-1 max-w-xs mx-auto">
-                  Upload your first photograph to start building your portfolio.
+                <p className="mt-3 font-serif text-lg text-[#4a534e]">
+                  {portfolioPhotos.length === 0
+                    ? "No photos yet"
+                    : isSubmissionsView
+                      ? "Nothing in this status"
+                      : "Nothing published yet"}
                 </p>
-                <button
-                  onClick={() => {
-                    setUploadStep(1);
-                    setUploadOpen(true);
-                  }}
-                  className="mt-4 bg-[#1e4a3f] hover:bg-[#123b31] text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow transition-colors cursor-pointer"
-                >
-                  Upload work
-                </button>
+                <p className="text-xs text-[#758078] mt-1 max-w-xs mx-auto">
+                  {portfolioPhotos.length === 0
+                    ? "Upload your first photograph to start building your portfolio."
+                    : isSubmissionsView
+                      ? "None of your submissions are at this stage right now."
+                      : "Your work is submitted but not yet approved. Track it under My Submissions."}
+                </p>
+                {portfolioPhotos.length === 0 ? (
+                  <button
+                    onClick={() => {
+                      setUploadStep(1);
+                      setUploadOpen(true);
+                    }}
+                    className="mt-4 bg-[#1e4a3f] hover:bg-[#123b31] text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow transition-colors cursor-pointer"
+                  >
+                    Upload work
+                  </button>
+                ) : isSubmissionsView ? (
+                  <button
+                    onClick={() => setSubmissionFilter("all")}
+                    className="mt-4 bg-[#1e4a3f] hover:bg-[#123b31] text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow transition-colors cursor-pointer"
+                  >
+                    Show all submissions
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onTabChange?.("submissions")}
+                    className="mt-4 bg-[#1e4a3f] hover:bg-[#123b31] text-white px-5 py-2.5 rounded-full text-xs font-semibold shadow transition-colors cursor-pointer"
+                  >
+                    View my submissions
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1451,6 +1666,59 @@ export function CreatorTabs({
                     </p>
                   </div>
                 </div>
+
+                {payoutRequests.length > 0 && (
+                  <div className="mb-6 space-y-3">
+                    <h2 className="font-serif text-lg text-[#18211f]">Payout tracking</h2>
+                    {payoutRequests.map((request) => {
+                      const meta = stageMeta(request.stage);
+                      const isOpen = openTimelineId === request.id;
+                      const ended = isTerminal(request.stage);
+
+                      return (
+                        <div
+                          key={request.id}
+                          className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden"
+                        >
+                          <div className="flex flex-wrap items-center gap-4 px-6 py-4">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-serif text-lg text-[#18211f]">
+                                £{request.amount.toLocaleString()}
+                              </p>
+                              <p className="mt-0.5 text-xs text-[#59645f]">
+                                {meta.label} · requested{" "}
+                                {new Date(request.requestedAt).toLocaleDateString("en-GB", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            </div>
+                            <Badge
+                              tone={
+                                ended ? "muted" : request.stage === "completed" ? "green" : "green"
+                              }
+                            >
+                              {meta.label}
+                            </Badge>
+                            <button
+                              onClick={() => setOpenTimelineId(isOpen ? null : request.id)}
+                              aria-expanded={isOpen}
+                              className="rounded-full border border-[#ececec] px-4 py-1.5 text-xs font-semibold text-[#1e4a3f] transition hover:border-[#1e4a3f]"
+                            >
+                              {isOpen ? "Hide timeline" : "Track payout"}
+                            </button>
+                          </div>
+                          {isOpen && (
+                            <div className="border-t border-[#ececec] px-6 py-5">
+                              <PayoutTimeline request={request} />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {payoutsToRender.length > 0 ? (
                   <div className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden">
@@ -1634,17 +1902,15 @@ export function CreatorTabs({
                           </p>
                           <p className="text-xs text-[#6b716d] font-mono">
                             IBAN:{" "}
-                            {
-                              paymentMethods.find((m) => m.method === "card")?.details
-                                ?.iban as string
-                            }
+                            {maskAccount(
+                              paymentMethods.find((m) => m.method === "card")?.details?.iban,
+                            )}
                           </p>
                           <p className="text-xs text-[#6b716d] font-mono">
                             SWIFT:{" "}
-                            {
-                              paymentMethods.find((m) => m.method === "card")?.details
-                                ?.swift as string
-                            }
+                            {maskAccount(
+                              paymentMethods.find((m) => m.method === "card")?.details?.swift,
+                            )}
                           </p>
                         </div>
                       )}
@@ -1944,17 +2210,17 @@ export function CreatorTabs({
                           </p>
                           <p className="text-xs text-[#6b716d] font-mono">
                             Acc:{" "}
-                            {
+                            {maskAccount(
                               paymentMethods.find((m) => m.method === "local_bank")?.details
-                                ?.accountNumber as string
-                            }
+                                ?.accountNumber,
+                            )}
                           </p>
                           <p className="text-xs text-[#6b716d] font-mono">
                             Sort:{" "}
-                            {
+                            {maskAccount(
                               paymentMethods.find((m) => m.method === "local_bank")?.details
-                                ?.sortCode as string
-                            }
+                                ?.sortCode,
+                            )}
                           </p>
                         </div>
                       )}
