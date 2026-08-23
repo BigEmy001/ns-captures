@@ -78,12 +78,14 @@ describe("a payout's journey", () => {
     expect(stageMeta("completed").body).toContain("complete");
   });
 
-  it("converts into the contributor's currency with the charge applied", () => {
+  it("converts into the contributor's currency, charge billed separately", () => {
     const currency = resolvePayoutCurrency(null, "South Korea");
     expect(currency).toBe("KRW");
 
     const quote = quoteConversion(10000, 1750, 3.7);
-    expect(formatConverted(quote.netConverted, currency)).toBe("16,852,500 KRW");
+    // The payout is not reduced; the charge is owed on its own.
+    expect(formatConverted(quote.netConverted, currency)).toBe("17,500,000 KRW");
+    expect(quote.outstandingGbp).toBeCloseTo(370, 2);
   });
 });
 

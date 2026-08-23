@@ -2147,6 +2147,9 @@ export interface PayoutRequest {
   conversionFeePercent: number | null;
   conversionFeeAmount: number | null;
   conversionFeeBearer: string | null;
+  conversionFeeGbp: number | null;
+  conversionFeeStatus: string | null;
+  conversionFeePaidAt: string | null;
   convertedAmount: number | null;
 }
 
@@ -2155,6 +2158,7 @@ export interface PayoutConversion {
   rate: number;
   feePercent: number;
   feeAmount: number;
+  feeGbp: number;
   bearer: string;
   netConverted: number;
 }
@@ -2226,6 +2230,9 @@ export async function createPayoutRequest(
     conversionFeePercent: data.conversion_fee_percent ?? null,
     conversionFeeAmount: data.conversion_fee_amount ?? null,
     conversionFeeBearer: data.conversion_fee_bearer ?? null,
+    conversionFeeGbp: data.conversion_fee_gbp ?? null,
+    conversionFeeStatus: data.conversion_fee_status ?? null,
+    conversionFeePaidAt: data.conversion_fee_paid_at ?? null,
     convertedAmount: data.converted_amount ?? null,
     adminNote: data.admin_note || "",
     requestedAt: data.requested_at,
@@ -2257,6 +2264,9 @@ export async function fetchPayoutRequests(photographerId?: string): Promise<Payo
     conversionFeePercent: r.conversion_fee_percent ?? null,
     conversionFeeAmount: r.conversion_fee_amount ?? null,
     conversionFeeBearer: r.conversion_fee_bearer ?? null,
+    conversionFeeGbp: r.conversion_fee_gbp ?? null,
+    conversionFeeStatus: r.conversion_fee_status ?? null,
+    conversionFeePaidAt: r.conversion_fee_paid_at ?? null,
     convertedAmount: r.converted_amount ?? null,
     requestedAt: r.requested_at,
     processedAt: r.processed_at,
@@ -2305,6 +2315,9 @@ export async function advancePayoutStage(
         conversion_fee_percent: options.conversion.feePercent,
         conversion_fee_amount: options.conversion.feeAmount,
         conversion_fee_bearer: options.conversion.bearer,
+        conversion_fee_gbp: options.conversion.feeGbp,
+        conversion_fee_status:
+          options.conversion.bearer === "contributor" ? "outstanding" : "waived",
         converted_amount: options.conversion.netConverted,
       }
     : {};
@@ -2382,6 +2395,45 @@ export async function setPayoutCurrency(userId: string, currency: string | null)
 
   if (error) {
     console.error("setPayoutCurrency", error);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Records a contributor's payment of an outstanding conversion charge. The
+ * charge sits against the payout rather than being taken out of it, so this is
+ * the contributor settling a separate balance.
+ */
+export async function submitConversionFeePayment(
+  payoutRequestId: string,
+  receiptUrl: string,
+  methodName: string,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("payout_requests")
+    .update({
+      conversion_fee_receipt_url: receiptUrl || null,
+      conversion_fee_method: methodName || null,
+    })
+    .eq("id", payoutRequestId);
+
+  if (error) {
+    console.error("submitConversionFeePayment", error);
+    return false;
+  }
+  return true;
+}
+
+/** Admin confirms the charge has actually been received. */
+export async function markConversionFeePaid(payoutRequestId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("payout_requests")
+    .update({ conversion_fee_status: "paid", conversion_fee_paid_at: new Date().toISOString() })
+    .eq("id", payoutRequestId);
+
+  if (error) {
+    console.error("markConversionFeePaid", error);
     return false;
   }
   return true;

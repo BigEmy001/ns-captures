@@ -95,6 +95,7 @@ import {
   fetchAllPaymentMethods,
   fetchPayoutRequests,
   advancePayoutStage,
+  markConversionFeePaid,
   deletePhoto,
   setPhotoAcquisitionState,
   setContributorLevel,
@@ -520,6 +521,7 @@ export function Admin() {
             rate: conversion.rate,
             feePercent: conversion.feePercent,
             feeAmount: conversion.feeAmount,
+            feeGbp: conversion.feeAmountGbp,
             bearer: conversion.bearer,
             netConverted: conversion.netConverted,
           }
@@ -546,6 +548,9 @@ export function Admin() {
                     conversionFeePercent: conversion.feePercent,
                     conversionFeeAmount: conversion.feeAmount,
                     conversionFeeBearer: conversion.bearer,
+                    conversionFeeGbp: conversion.feeAmountGbp,
+                    conversionFeeStatus:
+                      conversion.bearer === "contributor" ? "outstanding" : "waived",
                     convertedAmount: conversion.netConverted,
                   }
                 : {}),
@@ -1651,6 +1656,34 @@ export function Admin() {
                               >
                                 {stageMeta(pr.stage).label}
                               </span>
+                              {pr.conversionFeeStatus === "outstanding" && (
+                                <button
+                                  onClick={async () => {
+                                    const ok = await markConversionFeePaid(pr.id);
+                                    if (!ok) {
+                                      toast.error("Could not mark the charge settled");
+                                      return;
+                                    }
+                                    setPayoutRequestList((prev) =>
+                                      prev.map((r) =>
+                                        r.id === pr.id
+                                          ? {
+                                              ...r,
+                                              conversionFeeStatus: "paid",
+                                              conversionFeePaidAt: new Date().toISOString(),
+                                            }
+                                          : r,
+                                      ),
+                                    );
+                                    toast.success("Conversion charge marked settled");
+                                  }}
+                                  className="mt-1 block rounded-full bg-[#f6ecd8] px-2 py-0.5 text-[10px] font-semibold text-[#7a5a17] transition hover:bg-[#eddfc0]"
+                                  title="Mark the outstanding conversion charge as received"
+                                >
+                                  Charge £{(pr.conversionFeeGbp || 0).toFixed(2)} outstanding — mark
+                                  paid
+                                </button>
+                              )}
                             </td>
                             <td className="px-4 py-3 text-[#6b716d] text-xs">
                               {new Date(pr.requestedAt).toLocaleDateString()}

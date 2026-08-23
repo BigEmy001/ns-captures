@@ -8,33 +8,35 @@ import {
 import { currencyForCountry, resolvePayoutCurrency } from "../../lib/countries";
 
 describe("quoteConversion", () => {
-  it("converts, then takes the charge off the converted amount", () => {
+  it("never takes the charge out of the payout", () => {
     const q = quoteConversion(10000, 1750, 3.7);
     expect(q.grossConverted).toBe(17_500_000);
     expect(q.feeAmount).toBeCloseTo(647_500, 2);
-    expect(q.netConverted).toBeCloseTo(16_852_500, 2);
+    // The contributor receives the whole converted amount either way.
+    expect(q.netConverted).toBe(17_500_000);
   });
 
   it("defaults to a 3.7% charge", () => {
     expect(DEFAULT_CONVERSION_FEE_PERCENT).toBe(3.7);
   });
 
-  it("pays out the full converted amount when the charge is waived", () => {
+  it("owes nothing when the charge is waived", () => {
     const q = quoteConversion(500, 1.27, 0);
     expect(q.feeAmount).toBe(0);
+    expect(q.outstandingGbp).toBe(0);
     expect(q.netConverted).toBeCloseTo(635, 6);
   });
 
-  it("refuses a negative charge, which would pay out more than was converted", () => {
+  it("refuses a negative charge, which would be a credit rather than a fee", () => {
     const q = quoteConversion(1000, 2, -10);
     expect(q.feePercent).toBe(0);
-    expect(q.netConverted).toBe(2000);
+    expect(q.outstandingGbp).toBe(0);
   });
 
   it("caps the charge at the whole amount", () => {
     const q = quoteConversion(1000, 2, 250);
     expect(q.feePercent).toBe(100);
-    expect(q.netConverted).toBe(0);
+    expect(q.outstandingGbp).toBe(1000);
   });
 
   it("treats a missing rate as nothing converted rather than NaN", () => {
@@ -60,8 +62,8 @@ describe("conversionSummary", () => {
     const summary = conversionSummary(quoteConversion(10000, 1750, 3.7), "KRW");
     expect(summary).toContain("£10,000");
     expect(summary).toContain("1,750 KRW/£");
-    expect(summary).toContain("3.7% conversion charge");
-    expect(summary).toContain("16,852,500 KRW to be delivered");
+    expect(summary).toContain("payable by the contributor separately");
+    expect(summary).toContain("17,500,000 KRW to be delivered");
   });
 });
 
@@ -97,28 +99,28 @@ describe("who pays the conversion charge", () => {
   const rate = 1750;
   const fee = 3.7;
 
-  it("takes it out of the payout when the contributor pays", () => {
+  it("bills the contributor separately rather than reducing their payout", () => {
     const q = quoteConversion(amount, rate, fee, "contributor");
-    expect(q.netConverted).toBeCloseTo(16_852_500, 2);
+    expect(q.netConverted).toBe(17_500_000);
+    expect(q.outstandingGbp).toBeCloseTo(370, 2);
     expect(q.companyCostGbp).toBe(10_000);
   });
 
-  it("adds it on top when NS CAPTURES pays", () => {
+  it("leaves nothing owing when NS CAPTURES pays", () => {
     const q = quoteConversion(amount, rate, fee, "company");
-    // The contributor gets the whole converted amount, not a reduced one.
     expect(q.netConverted).toBe(17_500_000);
+    expect(q.outstandingGbp).toBe(0);
     expect(q.companyCostGbp).toBeCloseTo(10_370, 2);
   });
 
-  it("charges the same amount either way — only who absorbs it changes", () => {
+  it("delivers the same payout either way — only who owes the charge changes", () => {
     const byContributor = quoteConversion(amount, rate, fee, "contributor");
     const byCompany = quoteConversion(amount, rate, fee, "company");
 
+    expect(byContributor.netConverted).toBe(byCompany.netConverted);
     expect(byContributor.feeAmount).toBeCloseTo(byCompany.feeAmount, 6);
-    expect(byCompany.netConverted - byContributor.netConverted).toBeCloseTo(
-      byContributor.feeAmount,
-      2,
-    );
+    expect(byContributor.outstandingGbp).toBeGreaterThan(0);
+    expect(byCompany.outstandingGbp).toBe(0);
   });
 
   it("defaults to the contributor paying", () => {
@@ -127,7 +129,7 @@ describe("who pays the conversion charge", () => {
 
   it("says who paid in the summary", () => {
     expect(conversionSummary(quoteConversion(amount, rate, fee, "contributor"), "KRW")).toContain(
-      "less a 3.7% conversion charge",
+      "payable by the contributor separately",
     );
     expect(conversionSummary(quoteConversion(amount, rate, fee, "company"), "KRW")).toContain(
       "is paid by NS CAPTURES",
@@ -138,5 +140,6 @@ describe("who pays the conversion charge", () => {
     const q = quoteConversion(amount, rate, 0, "company");
     expect(q.companyCostGbp).toBe(10_000);
     expect(q.netConverted).toBe(17_500_000);
+    expect(q.outstandingGbp).toBe(0);
   });
 });

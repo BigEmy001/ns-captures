@@ -27,6 +27,11 @@ ALTER TABLE public.payout_requests
   ADD COLUMN IF NOT EXISTS conversion_fee_percent numeric,
   ADD COLUMN IF NOT EXISTS conversion_fee_amount numeric,
   ADD COLUMN IF NOT EXISTS conversion_fee_bearer text,
+  ADD COLUMN IF NOT EXISTS conversion_fee_gbp numeric,
+  ADD COLUMN IF NOT EXISTS conversion_fee_status text,
+  ADD COLUMN IF NOT EXISTS conversion_fee_paid_at timestamptz,
+  ADD COLUMN IF NOT EXISTS conversion_fee_receipt_url text,
+  ADD COLUMN IF NOT EXISTS conversion_fee_method text,
   ADD COLUMN IF NOT EXISTS converted_amount numeric;
 
 DO $$
@@ -46,14 +51,24 @@ ALTER TABLE public.payout_requests
   ADD CONSTRAINT payout_requests_fee_bearer_check
   CHECK (conversion_fee_bearer IS NULL OR conversion_fee_bearer IN ('contributor', 'company'));
 
+ALTER TABLE public.payout_requests
+  DROP CONSTRAINT IF EXISTS payout_requests_fee_status_check;
+
+ALTER TABLE public.payout_requests
+  ADD CONSTRAINT payout_requests_fee_status_check
+  CHECK (conversion_fee_status IS NULL
+      OR conversion_fee_status IN ('outstanding', 'paid', 'waived'));
+
 COMMENT ON COLUMN public.payout_requests.conversion_rate IS
   'Units of payout_currency per 1 GBP, as applied at conversion time.';
 COMMENT ON COLUMN public.payout_requests.conversion_fee_percent IS
   'Conversion charge applied to the converted amount. Platform default is 3.7%.';
 COMMENT ON COLUMN public.payout_requests.conversion_fee_bearer IS
   'contributor = the charge comes out of their payout; company = NS CAPTURES absorbs it and the contributor receives the full converted amount.';
+COMMENT ON COLUMN public.payout_requests.conversion_fee_status IS
+  'outstanding = the contributor owes the charge separately; paid = settled; waived = NS CAPTURES absorbed it.';
 COMMENT ON COLUMN public.payout_requests.converted_amount IS
-  'What the contributor receives in payout_currency, after the conversion charge.';
+  'What the contributor receives in payout_currency. The conversion charge is never taken out of this.';
 
 -- ------------------------------------------------------------
 -- 3. THE DEFAULT CHARGE

@@ -15,7 +15,13 @@ import { formatConverted } from "../../data/conversion";
  * dated from the event trail; a conditional step that was skipped is marked as
  * such rather than left looking stuck.
  */
-export function PayoutTimeline({ request }: { request: PayoutRequest }) {
+export function PayoutTimeline({
+  request,
+  onSettleCharge,
+}: {
+  request: PayoutRequest;
+  onSettleCharge?: (request: PayoutRequest) => void;
+}) {
   const [events, setEvents] = useState<PayoutEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -114,37 +120,74 @@ export function PayoutTimeline({ request }: { request: PayoutRequest }) {
                 )}
 
                 {step.id === "currency_conversion" && converted && (
-                  <dl className="mt-2 space-y-1 rounded-lg bg-[#FAF9F5] p-3 text-xs">
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-[#59645f]">Converted at</dt>
-                      <dd className="tabular-nums text-[#18211f]">
-                        {request.conversionRate?.toLocaleString("en-GB", {
-                          maximumFractionDigits: 6,
-                        })}{" "}
-                        {request.payoutCurrency}/£
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt className="text-[#59645f]">
-                        Conversion charge ({request.conversionFeePercent}%)
-                        {request.conversionFeeBearer === "company" && (
-                          <span className="block text-[10px] text-[#8a8f89]">
-                            Paid by NS CAPTURES — nothing for you to pay
-                          </span>
+                  <>
+                    <dl className="mt-2 space-y-1 rounded-lg bg-[#FAF9F5] p-3 text-xs">
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-[#59645f]">Converted at</dt>
+                        <dd className="tabular-nums text-[#18211f]">
+                          {request.conversionRate?.toLocaleString("en-GB", {
+                            maximumFractionDigits: 6,
+                          })}{" "}
+                          {request.payoutCurrency}/£
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4 border-t border-[#e4e2da] pt-1">
+                        <dt className="font-semibold text-[#18211f]">You receive</dt>
+                        <dd className="font-semibold tabular-nums text-[#18211f]">
+                          {formatConverted(request.convertedAmount || 0, currency)}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-[#59645f]">
+                          Conversion charge ({request.conversionFeePercent}%)
+                        </dt>
+                        <dd className="tabular-nums text-[#59645f]">
+                          {formatConverted(request.conversionFeeAmount || 0, currency)}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    {request.conversionFeeStatus === "waived" && (
+                      <p className="mt-2 text-xs text-[#59645f]">
+                        The conversion charge is covered by NS CAPTURES. There is nothing for you to
+                        pay.
+                      </p>
+                    )}
+
+                    {request.conversionFeeStatus === "paid" && (
+                      <p className="mt-2 text-xs text-[#285746]">
+                        Conversion charge settled
+                        {request.conversionFeePaidAt
+                          ? ` on ${format(new Date(request.conversionFeePaidAt), "d MMM yyyy")}`
+                          : ""}
+                        . Thank you.
+                      </p>
+                    )}
+
+                    {request.conversionFeeStatus === "outstanding" && (
+                      <div className="mt-2 rounded-lg border border-[#e0b04a]/40 bg-[#f6ecd8] p-3">
+                        <p className="text-xs font-semibold text-[#7a5a17]">
+                          Conversion charge outstanding — £
+                          {(request.conversionFeeGbp || 0).toLocaleString("en-GB", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                        <p className="mt-1 text-xs text-[#7a5a17]">
+                          This charge is payable separately and is not taken out of your payout —
+                          you still receive the full amount above.
+                        </p>
+                        {onSettleCharge && (
+                          <button
+                            onClick={() => onSettleCharge(request)}
+                            className="mt-2.5 rounded-full bg-[#1e4a3f] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[#123b31]"
+                          >
+                            Settle charge
+                          </button>
                         )}
-                      </dt>
-                      <dd className="tabular-nums text-[#18211f]">
-                        {request.conversionFeeBearer === "company" ? "" : "− "}
-                        {formatConverted(request.conversionFeeAmount || 0, currency)}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-4 border-t border-[#e4e2da] pt-1">
-                      <dt className="font-semibold text-[#18211f]">You receive</dt>
-                      <dd className="font-semibold tabular-nums text-[#18211f]">
-                        {formatConverted(request.convertedAmount || 0, currency)}
-                      </dd>
-                    </div>
-                  </dl>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {event?.note && step.id !== "currency_conversion" && (

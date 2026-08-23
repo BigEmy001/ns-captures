@@ -22,8 +22,12 @@ export interface ConversionQuote {
   feeAmount: number;
   /** The same charge expressed in GBP. */
   feeAmountGbp: number;
-  /** What actually reaches the contributor. */
+  /** What reaches the contributor. The charge is never taken out of this. */
   netConverted: number;
+  /** What the contributor owes separately, in GBP. Zero if NS CAPTURES pays. */
+  outstandingGbp: number;
+  /** The same debt in the payout currency. */
+  outstandingConverted: number;
   /** What leaves NS CAPTURES, in GBP — the payout plus any charge it absorbs. */
   companyCostGbp: number;
 }
@@ -43,9 +47,10 @@ export function quoteConversion(
   const feeAmount = grossConverted * (safeFee / 100);
   const feeAmountGbp = safeAmount * (safeFee / 100);
 
-  // When the contributor bears the charge it comes out of what they receive.
-  // When NS CAPTURES bears it, the charge is added on top: the contributor
-  // receives the full converted amount and the company sends more.
+  // The charge never comes out of the withdrawal. The contributor always
+  // receives the full converted amount; when they bear the charge it becomes a
+  // separate outstanding balance for them to settle, and when NS CAPTURES
+  // bears it there is nothing to settle at all.
   const contributorPays = bearer === "contributor";
 
   return {
@@ -56,7 +61,9 @@ export function quoteConversion(
     grossConverted,
     feeAmount,
     feeAmountGbp,
-    netConverted: contributorPays ? grossConverted - feeAmount : grossConverted,
+    netConverted: grossConverted,
+    outstandingGbp: contributorPays ? feeAmountGbp : 0,
+    outstandingConverted: contributorPays ? feeAmount : 0,
     companyCostGbp: contributorPays ? safeAmount : safeAmount + feeAmountGbp,
   };
 }
@@ -102,7 +109,9 @@ export function conversionSummary(quote: ConversionQuote, currency: string): str
 
   const charge =
     quote.bearer === "contributor"
-      ? `, less a ${quote.feePercent}% conversion charge of ${formatConverted(quote.feeAmount, currency)}`
+      ? `. A ${quote.feePercent}% conversion charge of £${quote.outstandingGbp.toFixed(
+          2,
+        )} is payable by the contributor separately`
       : `. The ${quote.feePercent}% conversion charge of ${formatConverted(
           quote.feeAmount,
           currency,
