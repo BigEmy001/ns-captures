@@ -3604,7 +3604,7 @@ function AdminUserModal({
                 <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-4">
                   Profile Details
                 </p>
-                {isCreatorRole(user.role) && (
+                {user.role !== "Admin" && (
                   <button
                     onClick={() => onViewAs?.(user)}
                     className="mb-5 flex items-center gap-2 rounded-full border border-[#1e4a3f]/25 bg-[#f2f7f4] px-4 py-2 text-xs font-semibold text-[#1e4a3f] transition hover:border-[#1e4a3f]"

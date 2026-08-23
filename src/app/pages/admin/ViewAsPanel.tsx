@@ -8,22 +8,43 @@ import { AgreementsTab } from "../account/contributor/AgreementsTab";
 import { LicensedWorkTab } from "../account/contributor/LicensedWorkTab";
 import { BonusesTab, PublicationsTab, FeaturedInTab } from "../account/contributor/OpportunityTabs";
 import type { AdminUser } from "../../data/db";
+import { isCreatorRole, isProgrammeRole } from "../../data/roles";
 
-const TABS = [
+type TabId =
+  | "dashboard"
+  | "portfolio"
+  | "submissions"
+  | "licensed"
+  | "earnings"
+  | "payouts"
+  | "acquisitions"
+  | "bonuses"
+  | "publications"
+  | "featured"
+  | "agreements"
+  | "profile";
+
+/** What someone who only buys photographs actually has. */
+const BUYER_TABS: { id: TabId; label: string }[] = [{ id: "profile", label: "Profile" }];
+
+/** A photographer's own screens. */
+const CREATOR_TABS: { id: TabId; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "portfolio", label: "Portfolio" },
   { id: "submissions", label: "Submissions" },
   { id: "licensed", label: "Licensed" },
-  { id: "acquisitions", label: "Acquisitions" },
   { id: "earnings", label: "Earnings" },
   { id: "payouts", label: "Payouts" },
+];
+
+/** Everything a contributor has on top of that. */
+const PROGRAMME_TABS: { id: TabId; label: string }[] = [
+  { id: "acquisitions", label: "Acquisitions" },
   { id: "bonuses", label: "Bonuses" },
   { id: "publications", label: "Publications" },
   { id: "featured", label: "Collections" },
   { id: "agreements", label: "Agreements" },
-] as const;
-
-type TabId = (typeof TABS)[number]["id"];
+];
 
 /** An admin record carries most of what the portal reads from the session. */
 function toAuthUser(admin: AdminUser): AuthUser {
@@ -59,8 +80,16 @@ function toAuthUser(admin: AdminUser): AuthUser {
  * behalf.
  */
 export function ViewAsPanel({ admin, onClose }: { admin: AdminUser; onClose: () => void }) {
-  const [tab, setTab] = useState<TabId>("dashboard");
   const viewed = toAuthUser(admin);
+
+  // Show the screens this person actually has, so the view matches what they
+  // would see rather than a contributor's shape imposed on everyone.
+  const canCreate = isCreatorRole(admin.role);
+  const inProgramme = isProgrammeRole(admin.role);
+
+  const tabs = canCreate ? [...CREATOR_TABS, ...(inProgramme ? PROGRAMME_TABS : [])] : BUYER_TABS;
+
+  const [tab, setTab] = useState<TabId>(tabs[0].id);
 
   return (
     <div className="fixed inset-0 z-[80] flex flex-col bg-[#FAF9F5]">
@@ -73,6 +102,7 @@ export function ViewAsPanel({ admin, onClose }: { admin: AdminUser; onClose: () 
             </p>
             <p className="truncate text-sm">
               Viewing <span className="font-semibold">{admin.name}</span>&rsquo;s account
+              <span className="ml-2 text-xs text-white/60">{admin.role}</span>
               {admin.contributorId && (
                 <span className="ml-2 font-mono text-xs text-white/60">{admin.contributorId}</span>
               )}
@@ -92,7 +122,7 @@ export function ViewAsPanel({ admin, onClose }: { admin: AdminUser; onClose: () 
 
       <nav className="shrink-0 overflow-x-auto border-b border-[#e0ddd2] bg-white">
         <div className="mx-auto flex max-w-[1440px] gap-1 px-5 sm:px-8">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
@@ -120,6 +150,36 @@ export function ViewAsPanel({ admin, onClose }: { admin: AdminUser; onClose: () 
           {tab === "bonuses" && <BonusesTab />}
           {tab === "publications" && <PublicationsTab />}
           {tab === "featured" && <FeaturedInTab />}
+          {tab === "profile" && (
+            <div className="mx-auto max-w-2xl px-5 py-12 sm:px-8">
+              <p className="font-mono text-[10px] tracking-[0.18em] text-[#49685d] uppercase">
+                Buyer account
+              </p>
+              <h1 className="mt-2 font-serif text-3xl text-[#18211f]">{admin.name}</h1>
+              <p className="mt-1 text-sm text-[#59645f]">{admin.email}</p>
+              <dl className="mt-8 grid gap-5 sm:grid-cols-2">
+                {[
+                  { label: "Role", value: admin.role },
+                  { label: "Status", value: admin.status },
+                  { label: "Joined", value: admin.joined },
+                  { label: "Location", value: admin.location || "—" },
+                  { label: "Phone", value: admin.phone || "—" },
+                  { label: "Verification", value: admin.verificationStatus || "—" },
+                ].map((f) => (
+                  <div key={f.label}>
+                    <dt className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                      {f.label}
+                    </dt>
+                    <dd className="mt-1 text-sm text-[#18211f]">{f.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="mt-8 text-sm text-[#758078]">
+                A buyer has no creator dashboard. Their collections, downloads and licences are on
+                their own account page.
+              </p>
+            </div>
+          )}
         </ViewAsProvider>
       </div>
     </div>

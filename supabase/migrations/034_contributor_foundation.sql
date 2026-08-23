@@ -11,7 +11,6 @@
 -- Design note on money: profiles.payout_balance stays the single source of
 -- truth for what a contributor can withdraw. contributor_earnings itemises
 -- how that number was reached. Every write goes through the SECURITY DEFINER
-SET search_path = public, pg_temp
 -- functions below so the two can never drift.
 -- ============================================================
 
@@ -57,7 +56,7 @@ CREATE TRIGGER trg_assign_contributor_id
 
 -- Backfill anyone already in the programme, oldest-first, so the earliest
 -- contributors hold the lowest reference numbers.
-DO $
+DO $$
 DECLARE r record;
 BEGIN
   FOR r IN
