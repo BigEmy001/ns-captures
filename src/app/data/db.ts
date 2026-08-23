@@ -8,6 +8,7 @@ export type {
 } from "../data/photos";
 import { supabase } from "../../lib/supabase";
 import { statusForStage, type PayoutStage } from "./payout-stages";
+import { isCreatorRole } from "./roles";
 import { withRetry } from "../../lib/retry";
 import {
   Photo,
@@ -599,7 +600,7 @@ export async function fetchPlatformStats() {
     supabase
       .from("profiles")
       .select("id", { count: "exact", head: true })
-      .eq("role", "Photographer"),
+      .in("role", ["Photographer", "Contributor"]),
     supabase.from("purchases").select("price"),
   ]);
 
@@ -2708,8 +2709,10 @@ export async function deletePhoto(photoId: string): Promise<boolean> {
  * be wrong to then send that person through the verification fee to get in.
  */
 export async function updateUserRole(userId: string, newRole: string): Promise<boolean> {
+  const becomesCreator = isCreatorRole(newRole) && newRole !== "Admin";
+
   const patch: Record<string, unknown> = { role: newRole };
-  if (newRole === "Photographer") patch.verification_status = "verified";
+  if (becomesCreator) patch.verification_status = "verified";
 
   const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
 
@@ -2718,7 +2721,7 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
     return false;
   }
 
-  if (newRole === "Photographer") {
+  if (becomesCreator) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("slug, name")
@@ -2851,7 +2854,7 @@ export interface AdminCreateUserInput {
   email: string;
   password?: string;
   name: string;
-  role: "Buyer" | "Photographer" | "Enterprise" | "Admin";
+  role: "Buyer" | "Photographer" | "Contributor" | "Enterprise" | "Admin";
   status?: "Active" | "Pending" | "Suspended" | "Blocked";
   verificationStatus?: "unverified" | "pending" | "verified" | "rejected";
   phone?: string;

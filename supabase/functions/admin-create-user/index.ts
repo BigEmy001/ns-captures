@@ -11,7 +11,7 @@ interface CreateUserBody {
   email: string;
   password?: string;
   name: string;
-  role: "Buyer" | "Photographer" | "Enterprise" | "Admin";
+  role: "Buyer" | "Photographer" | "Contributor" | "Enterprise" | "Admin";
   status?: "Active" | "Pending" | "Suspended" | "Blocked";
   verificationStatus?: "unverified" | "pending" | "verified" | "rejected";
   phone?: string;
@@ -100,7 +100,7 @@ serve(async (req) => {
     });
   }
 
-  if (!["Buyer", "Photographer", "Enterprise", "Admin"].includes(role)) {
+  if (!["Buyer", "Photographer", "Contributor", "Enterprise", "Admin"].includes(role)) {
     return new Response(JSON.stringify({ error: "Invalid role" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -156,8 +156,9 @@ serve(async (req) => {
       console.error("profile update failed", profileError);
     }
 
-    // If Photographer role, ensure photographers table row exists
-    if (role === "Photographer") {
+    // Photographers and contributors both need a photographers row: the
+    // marketplace, portfolios and payouts are all keyed by slug.
+    if (role === "Photographer" || role === "Contributor") {
       const base =
         name
           .toLowerCase()

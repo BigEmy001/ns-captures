@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { isCreatorRole } from "../data/roles";
 import {
   Upload,
   CheckCircle,
@@ -66,7 +67,11 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
       })
       .catch(console.error);
 
-    if (user?.role === "Photographer" && user?.verificationStatus !== "verified") {
+    if (
+      isCreatorRole(user?.role) &&
+      user?.role !== "Admin" &&
+      user?.verificationStatus !== "verified"
+    ) {
       fetchMyVerificationDocument(user.id)
         .then((doc) => {
           if (doc) {
@@ -89,7 +94,7 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
   if (
     !user ||
     user.role === "Admin" ||
-    user.role !== "Photographer" ||
+    !isCreatorRole(user.role) ||
     user.verificationStatus === "verified"
   ) {
     return null;

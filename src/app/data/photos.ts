@@ -10990,7 +10990,7 @@ export interface AdminUser {
   phone?: string;
   dob?: string;
   occupation?: string;
-  role: "Buyer" | "Photographer" | "Enterprise" | "Admin";
+  role: "Buyer" | "Photographer" | "Contributor" | "Enterprise" | "Admin";
   status: "Active" | "Pending" | "Suspended" | "Blocked";
   joined: string;
   payoutBalance?: number;

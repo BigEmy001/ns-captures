@@ -45,6 +45,7 @@ import { BonusesTab, PublicationsTab, FeaturedInTab } from "./account/contributo
 import { SupportTab } from "./account/contributor/SupportTab";
 import { SPECIALTIES } from "../data/contributor";
 import { COUNTRIES, currencyForCountry, resolvePayoutCurrency } from "../../lib/countries";
+import { hasCreatorAccess, hasProgrammeAccess, isProgrammeRole } from "../data/roles";
 import { CURRENCY_GROUPS, currencyLabel } from "../../lib/currencies";
 import { SideNav } from "../components/SideNav";
 import {
@@ -81,7 +82,37 @@ const buyerNav: NavEntry[] = [
   { id: "billing", label: "Billing", icon: CreditCard },
 ];
 
-/** The contributor portal, grouped as the programme brief lays it out. */
+/**
+ * A photographer sells through the marketplace: they upload, get reviewed, are
+ * licensed and are paid. The programme screens are not theirs.
+ */
+const photographerNav: NavEntry[] = [
+  { id: "h-home", label: "", heading: "Home" },
+  { id: "dashboard", label: "Dashboard", icon: Activity },
+
+  { id: "h-photography", label: "", heading: "My Photography" },
+  { id: "portfolio", label: "My Portfolio", icon: ImageIcon },
+  { id: "upload", label: "Upload Photos", icon: Upload },
+  { id: "submissions", label: "My Submissions", icon: ClipboardList },
+
+  { id: "h-earnings", label: "", heading: "Earnings" },
+  { id: "licensed", label: "Licensed Photos", icon: KeyRound },
+  { id: "earnings", label: "Earnings", icon: Coins },
+  { id: "payouts", label: "Payouts", icon: Wallet },
+
+  { id: "h-account", label: "", heading: "Account" },
+  { id: "security", label: "My Profile", icon: Settings },
+  { id: "collections", label: "Saved", icon: FolderHeart },
+  { id: "downloads", label: "Downloads", icon: Download },
+  { id: "licenses", label: "My Licenses", icon: FileText },
+  { id: "billing", label: "Billing", icon: CreditCard },
+  { id: "support", label: "Help & Support", icon: LifeBuoy },
+];
+
+/**
+ * The contributor portal: everything a photographer has, plus the programme —
+ * direct acquisitions, agreements, bonuses and publications.
+ */
 const contributorNav: NavEntry[] = [
   { id: "h-home", label: "", heading: "Home" },
   { id: "dashboard", label: "Dashboard", icon: Activity },
@@ -114,7 +145,9 @@ const contributorNav: NavEntry[] = [
 
 /** Every id that is a real destination rather than a group heading. */
 const NAV_IDS = [
-  ...new Set([...buyerNav, ...contributorNav].filter((n) => !n.heading).map((n) => n.id)),
+  ...new Set(
+    [...buyerNav, ...photographerNav, ...contributorNav].filter((n) => !n.heading).map((n) => n.id),
+  ),
 ];
 
 export function Account() {
@@ -132,12 +165,12 @@ export function Account() {
         ? "security"
         : "dashboard"
       : "security";
-  // A verified photographer (or an admin) gets the contributor portal;
-  // everyone else keeps the simpler buyer account.
-  const isContributor =
-    user?.role === "Admin" ||
-    (user?.role === "Photographer" && user?.verificationStatus === "verified");
-  const navItems = isContributor ? contributorNav : buyerNav;
+  // Three shapes of account: a buyer, a photographer selling through the
+  // marketplace, and a contributor who is also in the programme.
+  const canCreate = hasCreatorAccess(user?.role, user?.verificationStatus);
+  const inProgramme = hasProgrammeAccess(user?.role, user?.verificationStatus);
+
+  const navItems = inProgramme ? contributorNav : canCreate ? photographerNav : buyerNav;
 
   // An unverified photographer's default is the dashboard, which their
   // navigation does not contain — fall back to something they can actually see.
@@ -148,8 +181,8 @@ export function Account() {
   const active = (() => {
     if (!requestedTab) return safeDefault;
     if (!NAV_IDS.includes(requestedTab)) return safeDefault;
-    // Contributor destinations are not reachable from a buyer account.
-    if (!isContributor && !buyerNav.some((n) => n.id === requestedTab)) return safeDefault;
+    // A destination that is not in this person's own navigation is not theirs.
+    if (!navItems.some((n) => !n.heading && n.id === requestedTab)) return safeDefault;
     return requestedTab;
   })();
   const setActive = (id: string) => {
@@ -1027,7 +1060,7 @@ export function Account() {
                       value={profileData.city}
                       onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
                     />
-                    {user?.role === "Photographer" && (
+                    {hasCreatorAccess(user?.role, user?.verificationStatus) && (
                       <div className="block">
                         <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
                           Payout currency
@@ -1081,7 +1114,7 @@ export function Account() {
                       onChange={(e) => setDob(e.target.value)}
                     />
                   </div>
-                  {user?.role === "Photographer" && (
+                  {hasCreatorAccess(user?.role, user?.verificationStatus) && (
                     <div className="mt-6">
                       <h4 className="text-[13px] font-medium text-[#758078] uppercase tracking-wide mb-3">
                         Photography Specialties
@@ -1412,11 +1445,11 @@ export function Account() {
 
           {active === "earnings" && <EarningsTab />}
           {active === "licensed" && <LicensedWorkTab />}
-          {active === "acquisitions" && <AcquisitionsTab />}
-          {active === "agreements" && <AgreementsTab />}
-          {active === "bonuses" && <BonusesTab />}
-          {active === "featured" && <FeaturedInTab />}
-          {active === "publications" && <PublicationsTab />}
+          {inProgramme && active === "acquisitions" && <AcquisitionsTab />}
+          {inProgramme && active === "agreements" && <AgreementsTab />}
+          {inProgramme && active === "bonuses" && <BonusesTab />}
+          {inProgramme && active === "featured" && <FeaturedInTab />}
+          {inProgramme && active === "publications" && <PublicationsTab />}
           {active === "support" && <SupportTab />}
         </div>
       </div>

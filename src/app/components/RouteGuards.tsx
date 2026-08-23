@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuth } from "../context/AuthContext";
+import { isCreatorRole } from "../data/roles";
 import { GlobalVerificationModal } from "./GlobalVerificationModal";
 
 export function AuthRoute() {
@@ -21,6 +22,7 @@ export function AuthRoute() {
 const roleHome: Record<string, string> = {
   Admin: "/admin",
   Photographer: "/dashboard",
+  Contributor: "/dashboard",
   Enterprise: "/enterprise",
   Buyer: "/account",
 };
@@ -67,7 +69,7 @@ export function PhotographerRoute() {
   const [showVerification, setShowVerification] = useState(true);
 
   if (isLoading) return null;
-  if (!user || (user.role !== "Photographer" && user.role !== "Admin")) {
+  if (!user || !isCreatorRole(user.role)) {
     return (
       <Navigate to="/signin" state={{ from: `${location.pathname}${location.search}` }} replace />
     );
@@ -77,9 +79,7 @@ export function PhotographerRoute() {
     return (
       <>
         <Outlet />
-        {showVerification && (
-          <GlobalVerificationModal onClose={() => setShowVerification(false)} />
-        )}
+        {showVerification && <GlobalVerificationModal onClose={() => setShowVerification(false)} />}
       </>
     );
   }

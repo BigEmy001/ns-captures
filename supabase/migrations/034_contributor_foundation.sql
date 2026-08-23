@@ -32,9 +32,10 @@ AS $$
   SELECT 'NSC-' || lpad(nextval('public.contributor_id_seq')::text, 6, '0');
 $$;
 
--- Assign on promotion to Photographer, and keep the ID for life: a contributor
--- who is later suspended or changes role keeps the same reference, because it
--- appears on their agreements and payment statements.
+-- Assign on admission to the programme, and keep the ID for life: a
+-- contributor who is later suspended or changes role keeps the same reference,
+-- because it appears on their agreements and payment statements. Photographers
+-- who sell on the marketplace without being in the programme have no NSC ID.
 CREATE OR REPLACE FUNCTION public.assign_contributor_id()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -42,7 +43,7 @@ SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
 BEGIN
-  IF NEW.role = 'Photographer' AND NEW.contributor_id IS NULL THEN
+  IF NEW.role = 'Contributor' AND NEW.contributor_id IS NULL THEN
     NEW.contributor_id := public.next_contributor_id();
   END IF;
   RETURN NEW;
@@ -54,14 +55,14 @@ CREATE TRIGGER trg_assign_contributor_id
   BEFORE INSERT OR UPDATE OF role ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.assign_contributor_id();
 
--- Backfill existing photographers oldest-first, so the earliest contributors
--- hold the lowest reference numbers.
-DO $$
+-- Backfill anyone already in the programme, oldest-first, so the earliest
+-- contributors hold the lowest reference numbers.
+DO $
 DECLARE r record;
 BEGIN
   FOR r IN
     SELECT id FROM public.profiles
-    WHERE role = 'Photographer' AND contributor_id IS NULL
+    WHERE role = 'Contributor' AND contributor_id IS NULL
     ORDER BY created_at NULLS LAST, id
   LOOP
     UPDATE public.profiles

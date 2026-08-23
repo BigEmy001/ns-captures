@@ -50,6 +50,7 @@ import { CURRENCY_GROUPS, currencyLabel } from "../../lib/currencies";
 import { SITE_SETTINGS_UPDATED_EVENT } from "../components/MaintenanceGate";
 import { format } from "date-fns";
 import { submissionStatus, CONTRIBUTOR_LEVELS } from "../data/contributor";
+import { isCreatorRole, isProgrammeRole } from "../data/roles";
 import {
   PAYOUT_STAGES,
   TERMINAL_STAGES,
@@ -1024,6 +1025,7 @@ export function Admin() {
                     <option value="all">All Roles</option>
                     <option value="Buyer">Buyer</option>
                     <option value="Photographer">Photographer</option>
+                    <option value="Contributor">Contributor</option>
                     <option value="Enterprise">Enterprise</option>
                     <option value="Admin">Admin</option>
                   </select>
@@ -1083,6 +1085,7 @@ export function Admin() {
                           >
                             <option value="Buyer">Buyer</option>
                             <option value="Photographer">Photographer</option>
+                            <option value="Contributor">Contributor</option>
                             <option value="Enterprise">Enterprise</option>
                             <option value="Admin">Admin</option>
                           </select>
@@ -3174,7 +3177,7 @@ function AdminUserModal({
   setAdminUsersList,
   onViewAs,
 }: AdminUserModalProps & { onViewAs?: (user: AdminUser) => void }) {
-  const isPhotographer = user.role === "Photographer";
+  const isPhotographer = isCreatorRole(user.role);
   const [userPurchasesList, setUserPurchasesList] = useState<Purchase[]>([]);
   const [modalTab, setModalTab] = useState<"overview" | "ledger" | "kyc" | "hype">("overview");
   const [userPaymentMethods, setUserPaymentMethods] = useState<PhotographerPaymentMethod[]>([]);
@@ -3326,6 +3329,7 @@ function AdminUserModal({
               >
                 <option value="Buyer">Buyer</option>
                 <option value="Photographer">Photographer</option>
+                <option value="Contributor">Contributor</option>
                 <option value="Enterprise">Enterprise</option>
                 <option value="Admin">Admin</option>
               </select>
@@ -3481,7 +3485,7 @@ function AdminUserModal({
                 <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-4">
                   Profile Details
                 </p>
-                {user.role === "Photographer" && (
+                {isCreatorRole(user.role) && (
                   <button
                     onClick={() => onViewAs?.(user)}
                     className="mb-5 flex items-center gap-2 rounded-full border border-[#1e4a3f]/25 bg-[#f2f7f4] px-4 py-2 text-xs font-semibold text-[#1e4a3f] transition hover:border-[#1e4a3f]"
@@ -3509,65 +3513,63 @@ function AdminUserModal({
                     { label: "Contributor ID", value: user.contributorId || "—" },
                     {
                       label: "Payout currency",
-                      value:
-                        user.role === "Photographer" ? (
-                          <select
-                            defaultValue={user.payoutCurrency || ""}
-                            aria-label={`Payout currency for ${user.name}`}
-                            onChange={async (e) => {
-                              const ok = await setPayoutCurrency(user.id, e.target.value || null);
-                              toast[ok ? "success" : "error"](
-                                ok
-                                  ? `Payouts will convert to ${
-                                      e.target.value || resolvePayoutCurrency(null, user.country)
-                                    }`
-                                  : "Could not change the payout currency",
-                              );
-                            }}
-                            className="mt-1 rounded-lg border border-[#ececec] bg-white px-2 py-1.5 text-sm outline-none focus:border-[#1e4a3f]"
-                          >
-                            <option value="">
-                              From country ({resolvePayoutCurrency(null, user.country)})
+                      value: isCreatorRole(user.role) ? (
+                        <select
+                          defaultValue={user.payoutCurrency || ""}
+                          aria-label={`Payout currency for ${user.name}`}
+                          onChange={async (e) => {
+                            const ok = await setPayoutCurrency(user.id, e.target.value || null);
+                            toast[ok ? "success" : "error"](
+                              ok
+                                ? `Payouts will convert to ${
+                                    e.target.value || resolvePayoutCurrency(null, user.country)
+                                  }`
+                                : "Could not change the payout currency",
+                            );
+                          }}
+                          className="mt-1 rounded-lg border border-[#ececec] bg-white px-2 py-1.5 text-sm outline-none focus:border-[#1e4a3f]"
+                        >
+                          <option value="">
+                            From country ({resolvePayoutCurrency(null, user.country)})
+                          </option>
+                          {CURRENCIES.map((c) => (
+                            <option key={c.code} value={c.code}>
+                              {c.code}
                             </option>
-                            {CURRENCIES.map((c) => (
-                              <option key={c.code} value={c.code}>
-                                {c.code}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          "—"
-                        ),
+                          ))}
+                        </select>
+                      ) : (
+                        "—"
+                      ),
                     },
                     {
                       label: "Recognition level",
-                      value:
-                        user.role === "Photographer" ? (
-                          <select
-                            defaultValue={user.contributorLevel || "international"}
-                            aria-label={`Recognition level for ${user.name}`}
-                            onChange={async (e) => {
-                              const ok = await setContributorLevel(
-                                user.id,
-                                e.target.value as "international" | "featured" | "collection",
-                              );
-                              toast[ok ? "success" : "error"](
-                                ok
-                                  ? `${user.name} is now ${CONTRIBUTOR_LEVELS[e.target.value]}`
-                                  : "Could not change the recognition level",
-                              );
-                            }}
-                            className="mt-1 rounded-lg border border-[#ececec] bg-white px-2 py-1.5 text-sm outline-none focus:border-[#1e4a3f]"
-                          >
-                            {Object.entries(CONTRIBUTOR_LEVELS).map(([value, text]) => (
-                              <option key={value} value={value}>
-                                {text}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          "—"
-                        ),
+                      value: isProgrammeRole(user.role) ? (
+                        <select
+                          defaultValue={user.contributorLevel || "international"}
+                          aria-label={`Recognition level for ${user.name}`}
+                          onChange={async (e) => {
+                            const ok = await setContributorLevel(
+                              user.id,
+                              e.target.value as "international" | "featured" | "collection",
+                            );
+                            toast[ok ? "success" : "error"](
+                              ok
+                                ? `${user.name} is now ${CONTRIBUTOR_LEVELS[e.target.value]}`
+                                : "Could not change the recognition level",
+                            );
+                          }}
+                          className="mt-1 rounded-lg border border-[#ececec] bg-white px-2 py-1.5 text-sm outline-none focus:border-[#1e4a3f]"
+                        >
+                          {Object.entries(CONTRIBUTOR_LEVELS).map(([value, text]) => (
+                            <option key={value} value={value}>
+                              {text}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        "—"
+                      ),
                     },
                     { label: "User ID", value: user.id },
                   ].map((f) => (
@@ -4544,7 +4546,9 @@ function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"Buyer" | "Photographer" | "Enterprise" | "Admin">("Buyer");
+  const [role, setRole] = useState<
+    "Buyer" | "Photographer" | "Contributor" | "Enterprise" | "Admin"
+  >("Buyer");
   const [status, setStatus] = useState<"Active" | "Pending" | "Suspended" | "Blocked">("Active");
   const [verificationStatus, setVerificationStatus] = useState<
     "unverified" | "pending" | "verified" | "rejected"
@@ -4697,12 +4701,15 @@ function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
                   // Creating a contributor is itself the vetting decision, so
                   // open their portal rather than sending them to pay the
                   // verification fee to get in.
-                  setVerificationStatus(next === "Photographer" ? "verified" : "unverified");
+                  setVerificationStatus(
+                    next === "Photographer" || next === "Contributor" ? "verified" : "unverified",
+                  );
                 }}
                 className="w-full border border-[#ececec] rounded-xl bg-white px-3 py-2.5 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
               >
                 <option value="Buyer">Buyer</option>
                 <option value="Photographer">Photographer</option>
+                <option value="Contributor">Contributor</option>
                 <option value="Enterprise">Enterprise</option>
                 <option value="Admin">Admin</option>
               </select>

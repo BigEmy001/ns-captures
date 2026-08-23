@@ -112,8 +112,10 @@ export function ProgrammeTab({
     [],
   );
 
+  // Acquisitions, agreements, bonuses and publications are programme
+  // business, so only contributors appear here.
   const photographers = useMemo(
-    () => contributors.filter((c) => c.role === "Photographer"),
+    () => contributors.filter((c) => c.role === "Contributor"),
     [contributors],
   );
 

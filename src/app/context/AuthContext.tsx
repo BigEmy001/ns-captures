@@ -11,8 +11,9 @@ import { useNavigate, useLocation } from "react-router";
 import { toast } from "sonner";
 import { isSupabaseReady, supabase } from "../../lib/supabase";
 import { isStrongPassword, isValidEmail, normalizeEmail } from "../../lib/validation";
+import { isCreatorRole } from "../data/roles";
 
-export type UserRole = "Buyer" | "Photographer" | "Enterprise" | "Admin" | "Guest";
+export type UserRole = "Buyer" | "Photographer" | "Contributor" | "Enterprise" | "Admin" | "Guest";
 
 export interface AuthUser {
   id: string;
@@ -360,7 +361,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn("Profile saved without contributor fields:", error.message);
       }
 
-      if (user.role === "Photographer" && user.slug) {
+      if (isCreatorRole(user.role) && user.slug) {
         const photographerUpdate: Record<string, unknown> = {};
         if (editableData.name) photographerUpdate.name = editableData.name;
         if (editableData.avatar !== undefined) photographerUpdate.avatar = editableData.avatar;
@@ -385,7 +386,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const upgradeToCreator = useCallback(async () => {
     if (!user) return;
-    if (user.role === "Photographer") return;
+    if (isCreatorRole(user.role)) return;
 
     try {
       const slug =
