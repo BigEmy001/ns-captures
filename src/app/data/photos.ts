@@ -10991,6 +10991,7 @@ export interface AdminUser {
   location?: string;
   contributorId?: string;
   contributorLevel?: string;
+  payoutCurrency?: string;
   country?: string;
   city?: string;
   specialties?: string[];

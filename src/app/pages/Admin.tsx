@@ -59,6 +59,10 @@ import {
   type PayoutStage,
 } from "../data/payout-stages";
 import { ProgrammeTab } from "./admin/ProgrammeTab";
+import { ConversionModal, type ConversionResult } from "./admin/ConversionModal";
+import { resolvePayoutCurrency } from "../../lib/countries";
+import { CURRENCIES } from "../../lib/currencies";
+import { conversionSummary, DEFAULT_CONVERSION_FEE_PERCENT } from "../data/conversion";
 import type { AdminUser, ModerationItem, Photo } from "../data/photos";
 import {
   sendContributorSubmissionStatus,
@@ -92,6 +96,7 @@ import {
   deletePhoto,
   setPhotoAcquisitionState,
   setContributorLevel,
+  setPayoutCurrency,
   updateUserRole,
   updateUserStatus,
   updateUserVerificationStatus,
@@ -173,6 +178,7 @@ const defaultSiteSettings: SiteSettingsRow = {
   minPrice: 1000,
   maxFileSize: 100,
   maintenanceMode: false,
+  conversionFeePercent: 3.7,
   signupEnabled: true,
   moderationRequired: true,
 };
@@ -467,7 +473,25 @@ export function Admin() {
    * timeline; only the stages worth hearing about send an email, and the admin
    * can override that per update.
    */
-  const movePayout = async (request: PayoutRequest, stage: PayoutStage) => {
+  const [pendingConversion, setPendingConversion] = useState<PayoutRequest | null>(null);
+
+  /** The currency this contributor should be paid in. */
+  const payoutCurrencyFor = (request: PayoutRequest) => {
+    const profile = adminUsersList.find((u) => u.slug === request.photographerId);
+    return resolvePayoutCurrency(request.payoutCurrency, profile?.country);
+  };
+
+  const movePayout = async (
+    request: PayoutRequest,
+    stage: PayoutStage,
+    conversion?: ConversionResult,
+  ) => {
+    // Currency conversion needs its figures before it can be recorded.
+    if (stage === "currency_conversion" && !conversion) {
+      setPendingConversion(request);
+      return;
+    }
+
     const meta = stageMeta(stage);
     const wantsNote = stage === "rejected" || stage === "cancelled";
 
@@ -480,9 +504,22 @@ export function Admin() {
 
     if (note === null) return;
 
+    const conversionNote = conversion
+      ? conversionSummary(conversion, conversion.currency)
+      : undefined;
+
     const { ok, stageStored } = await advancePayoutStage(request, stage, {
-      note: note || undefined,
+      note: conversionNote || note || undefined,
       adminId: user?.id,
+      conversion: conversion
+        ? {
+            currency: conversion.currency,
+            rate: conversion.rate,
+            feePercent: conversion.feePercent,
+            feeAmount: conversion.feeAmount,
+            netConverted: conversion.netConverted,
+          }
+        : undefined,
     });
 
     if (!ok) {
@@ -493,7 +530,21 @@ export function Admin() {
     setPayoutRequestList((prev) =>
       prev.map((r) =>
         r.id === request.id
-          ? { ...r, stage, status: statusForStage(stage), adminNote: note || r.adminNote }
+          ? {
+              ...r,
+              stage,
+              status: statusForStage(stage),
+              adminNote: conversionNote || note || r.adminNote,
+              ...(conversion
+                ? {
+                    payoutCurrency: conversion.currency,
+                    conversionRate: conversion.rate,
+                    conversionFeePercent: conversion.feePercent,
+                    conversionFeeAmount: conversion.feeAmount,
+                    convertedAmount: conversion.netConverted,
+                  }
+                : {}),
+            }
           : r,
       ),
     );
@@ -1828,6 +1879,17 @@ export function Admin() {
                       }
                     />
                     <Field
+                      label="Currency Conversion Charge (%)"
+                      type="number"
+                      value={String(siteSettingsState.conversionFeePercent)}
+                      onChange={(e) =>
+                        setSiteSettingsState({
+                          ...siteSettingsState,
+                          conversionFeePercent: Number(e.target.value) || 0,
+                        })
+                      }
+                    />
+                    <Field
                       label="Max File Size (MB)"
                       type="number"
                       value={String(siteSettingsState.maxFileSize)}
@@ -2967,6 +3029,26 @@ export function Admin() {
           setAdminUsersList={setAdminUsersList}
         />
       )}
+      {pendingConversion && (
+        <ConversionModal
+          amount={pendingConversion.amount}
+          contributorName={
+            adminUsersList.find((u) => u.slug === pendingConversion.photographerId)?.name ||
+            pendingConversion.photographerId
+          }
+          defaultCurrency={payoutCurrencyFor(pendingConversion)}
+          defaultFeePercent={
+            siteSettingsState.conversionFeePercent ?? DEFAULT_CONVERSION_FEE_PERCENT
+          }
+          onCancel={() => setPendingConversion(null)}
+          onConfirm={(result) => {
+            const request = pendingConversion;
+            setPendingConversion(null);
+            movePayout(request, "currency_conversion", result);
+          }}
+        />
+      )}
+
       {showCreateUserModal && (
         <CreateUserModal
           onClose={() => setShowCreateUserModal(false)}
@@ -3396,6 +3478,38 @@ function AdminUserModal({
                     { label: "Status", value: user.status },
                     { label: "Joined", value: user.joined },
                     { label: "Contributor ID", value: user.contributorId || "—" },
+                    {
+                      label: "Payout currency",
+                      value:
+                        user.role === "Photographer" ? (
+                          <select
+                            defaultValue={user.payoutCurrency || ""}
+                            aria-label={`Payout currency for ${user.name}`}
+                            onChange={async (e) => {
+                              const ok = await setPayoutCurrency(user.id, e.target.value || null);
+                              toast[ok ? "success" : "error"](
+                                ok
+                                  ? `Payouts will convert to ${
+                                      e.target.value || resolvePayoutCurrency(null, user.country)
+                                    }`
+                                  : "Could not change the payout currency",
+                              );
+                            }}
+                            className="mt-1 rounded-lg border border-[#ececec] bg-white px-2 py-1.5 text-sm outline-none focus:border-[#1e4a3f]"
+                          >
+                            <option value="">
+                              From country ({resolvePayoutCurrency(null, user.country)})
+                            </option>
+                            {CURRENCIES.map((c) => (
+                              <option key={c.code} value={c.code}>
+                                {c.code}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          "—"
+                        ),
+                    },
                     {
                       label: "Recognition level",
                       value:

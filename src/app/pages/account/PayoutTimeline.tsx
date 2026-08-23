@@ -8,6 +8,7 @@ import {
   stageMeta,
   type PayoutStage,
 } from "../../data/payout-stages";
+import { formatConverted } from "../../data/conversion";
 
 /**
  * Where a payout has got to. Steps the payout has actually passed through are
@@ -37,6 +38,8 @@ export function PayoutTimeline({ request }: { request: PayoutRequest }) {
     if (!reachedAt.has(event.stage)) reachedAt.set(event.stage, event);
   }
 
+  const converted = request.convertedAmount !== null && request.conversionRate !== null;
+  const currency = request.payoutCurrency || "GBP";
   const current = request.stage;
   const currentIndex = stageIndex(current);
   const ended = isTerminal(current);
@@ -107,8 +110,39 @@ export function PayoutTimeline({ request }: { request: PayoutRequest }) {
                 {event && (
                   <p className="mt-1 font-mono text-[10px] text-[#8a8f89]">
                     {format(new Date(event.createdAt), "d MMM yyyy, HH:mm")}
-                    {event.note ? ` · ${event.note}` : ""}
                   </p>
+                )}
+
+                {step.id === "currency_conversion" && converted && (
+                  <dl className="mt-2 space-y-1 rounded-lg bg-[#FAF9F5] p-3 text-xs">
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-[#59645f]">Converted at</dt>
+                      <dd className="tabular-nums text-[#18211f]">
+                        {request.conversionRate?.toLocaleString("en-GB", {
+                          maximumFractionDigits: 6,
+                        })}{" "}
+                        {request.payoutCurrency}/£
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-[#59645f]">
+                        Conversion charge ({request.conversionFeePercent}%)
+                      </dt>
+                      <dd className="tabular-nums text-[#18211f]">
+                        − {formatConverted(request.conversionFeeAmount || 0, currency)}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4 border-t border-[#e4e2da] pt-1">
+                      <dt className="font-semibold text-[#18211f]">You receive</dt>
+                      <dd className="font-semibold tabular-nums text-[#18211f]">
+                        {formatConverted(request.convertedAmount || 0, currency)}
+                      </dd>
+                    </div>
+                  </dl>
+                )}
+
+                {event?.note && step.id !== "currency_conversion" && (
+                  <p className="mt-1 text-xs text-[#59645f]">{event.note}</p>
                 )}
               </div>
             </li>

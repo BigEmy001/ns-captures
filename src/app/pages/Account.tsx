@@ -44,6 +44,8 @@ import { LicensedWorkTab } from "./account/contributor/LicensedWorkTab";
 import { BonusesTab, PublicationsTab, FeaturedInTab } from "./account/contributor/OpportunityTabs";
 import { SupportTab } from "./account/contributor/SupportTab";
 import { SPECIALTIES } from "../data/contributor";
+import { COUNTRIES, currencyForCountry, resolvePayoutCurrency } from "../../lib/countries";
+import { CURRENCY_GROUPS, currencyLabel } from "../../lib/currencies";
 import { SideNav } from "../components/SideNav";
 import {
   fetchPurchases,
@@ -168,6 +170,7 @@ export function Account() {
     bio: user?.bio || "",
     country: user?.country || "",
     city: user?.city || "",
+    payoutCurrency: user?.payoutCurrency || "",
   });
   const [specialties, setSpecialties] = useState<string[]>(user?.specialties || []);
   const [passwordData, setPasswordData] = useState({ current: "", next: "", confirm: "" });
@@ -279,6 +282,7 @@ export function Account() {
           bio: profileData.bio,
           country: profileData.country,
           city: profileData.city,
+          payoutCurrency: profileData.payoutCurrency,
           specialties,
           phone,
           occupation,
@@ -994,16 +998,66 @@ export function Account() {
                         {user?.role || "Buyer"}
                       </p>
                     </div>
-                    <Field
-                      label="Country"
-                      value={profileData.country}
-                      onChange={(e) => setProfileData({ ...profileData, country: e.target.value })}
-                    />
+                    <div className="block">
+                      <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                        Country
+                      </span>
+                      <select
+                        value={profileData.country}
+                        onChange={(e) =>
+                          setProfileData({ ...profileData, country: e.target.value })
+                        }
+                        className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                      >
+                        <option value="">Select country</option>
+                        {COUNTRIES.map((c) => (
+                          <option key={c.name} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      {profileData.country && !profileData.payoutCurrency && (
+                        <span className="mt-1 block text-xs text-[#8a8f89]">
+                          Payouts default to {currencyForCountry(profileData.country) || "GBP"}.
+                        </span>
+                      )}
+                    </div>
                     <Field
                       label="City"
                       value={profileData.city}
                       onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
                     />
+                    {user?.role === "Photographer" && (
+                      <div className="block">
+                        <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">
+                          Payout currency
+                        </span>
+                        <select
+                          value={profileData.payoutCurrency}
+                          onChange={(e) =>
+                            setProfileData({ ...profileData, payoutCurrency: e.target.value })
+                          }
+                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-3 text-sm outline-none transition duration-200 focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                        >
+                          <option value="">
+                            Use my country's currency (
+                            {resolvePayoutCurrency(null, profileData.country)})
+                          </option>
+                          {CURRENCY_GROUPS.map((group) => (
+                            <optgroup key={group.label} label={group.label}>
+                              {group.currencies.map((c) => (
+                                <option key={c.code} value={c.code}>
+                                  {currencyLabel(c)}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                        <span className="mt-1 block text-xs text-[#8a8f89]">
+                          Payouts are converted from GBP into this currency.
+                        </span>
+                      </div>
+                    )}
                     {user?.contributorId && (
                       <div className="block">
                         <span className="text-[13px] font-medium text-[#758078] uppercase tracking-wide">

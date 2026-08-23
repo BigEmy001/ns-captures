@@ -32,6 +32,7 @@ export interface AuthUser {
   country?: string;
   city?: string;
   specialties?: string[];
+  payoutCurrency?: string;
 }
 
 interface AuthContextType {
@@ -82,6 +83,7 @@ function supabaseUserToAuthUser(supabaseUser: any, profile: any): AuthUser {
     contributorId: profile?.contributor_id || undefined,
     contributorLevel: profile?.contributor_level || "international",
     country: profile?.country || "",
+    payoutCurrency: profile?.payout_currency || "",
     city: profile?.city || "",
     specialties: profile?.specialties || [],
   };
@@ -333,6 +335,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         country: editableData.country,
         city: editableData.city,
         specialties: editableData.specialties,
+        payout_currency: editableData.payoutCurrency || null,
       };
 
       const { error } = await supabase

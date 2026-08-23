@@ -77,6 +77,8 @@ export interface SiteSettingsRow {
   maintenanceMode: boolean;
   signupEnabled: boolean;
   moderationRequired: boolean;
+  /** Default charge applied when a payout is converted to another currency. */
+  conversionFeePercent: number;
   contactLink?: string;
   allowedLicenses?: string[];
 }
@@ -485,7 +487,7 @@ const ADMIN_USER_COLUMNS =
 
 /** Contributor programme columns, absent until the programme migrations run. */
 const ADMIN_USER_PROGRAMME_COLUMNS =
-  ", contributor_id, contributor_level, country, city, specialties";
+  ", contributor_id, contributor_level, country, city, specialties, payout_currency";
 
 export async function fetchAdminUsers(): Promise<AdminUser[]> {
   const withProgramme = await supabase
@@ -520,6 +522,7 @@ export async function fetchAdminUsers(): Promise<AdminUser[]> {
     payoutBalance: p.payout_balance ?? 0,
     contributorId: p.contributor_id || undefined,
     contributorLevel: p.contributor_level || "international",
+    payoutCurrency: p.payout_currency || undefined,
     country: p.country || undefined,
     city: p.city || undefined,
     specialties: p.specialties || [],
@@ -913,6 +916,7 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     maintenanceMode: false,
     signupEnabled: true,
     moderationRequired: true,
+    conversionFeePercent: 3.7,
     allowedLicenses: ["COMMERCIAL", "EDITORIAL", "ROYALTY FREE", "EXCLUSIVE"],
   };
 
@@ -932,6 +936,7 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     maintenanceMode: data.maintenance_mode ?? defaults.maintenanceMode,
     signupEnabled: data.signup_enabled ?? defaults.signupEnabled,
     moderationRequired: data.moderation_required ?? defaults.moderationRequired,
+    conversionFeePercent: data.conversion_fee_percent ?? defaults.conversionFeePercent,
     contactLink: data.contact_link,
     allowedLicenses: data.allowed_licenses || defaults.allowedLicenses,
   };
@@ -950,6 +955,7 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
     maintenance_mode: settings.maintenanceMode,
     signup_enabled: settings.signupEnabled,
     moderation_required: settings.moderationRequired,
+    conversion_fee_percent: settings.conversionFeePercent,
     contact_link: settings.contactLink,
     allowed_licenses: settings.allowedLicenses,
   });
@@ -2076,6 +2082,19 @@ export interface PayoutRequest {
   adminNote: string;
   requestedAt: string;
   processedAt: string | null;
+  payoutCurrency: string | null;
+  conversionRate: number | null;
+  conversionFeePercent: number | null;
+  conversionFeeAmount: number | null;
+  convertedAmount: number | null;
+}
+
+export interface PayoutConversion {
+  currency: string;
+  rate: number;
+  feePercent: number;
+  feeAmount: number;
+  netConverted: number;
 }
 
 export interface PayoutEvent {
@@ -2140,6 +2159,11 @@ export async function createPayoutRequest(
     details: data.details || {},
     status: data.status,
     stage: (data.stage as PayoutStage) || "requested",
+    payoutCurrency: data.payout_currency ?? null,
+    conversionRate: data.conversion_rate ?? null,
+    conversionFeePercent: data.conversion_fee_percent ?? null,
+    conversionFeeAmount: data.conversion_fee_amount ?? null,
+    convertedAmount: data.converted_amount ?? null,
     adminNote: data.admin_note || "",
     requestedAt: data.requested_at,
     processedAt: data.processed_at,
@@ -2165,6 +2189,11 @@ export async function fetchPayoutRequests(photographerId?: string): Promise<Payo
     status: r.status,
     stage: (r.stage as PayoutStage) || stageFromLegacyStatus(r.status),
     adminNote: r.admin_note || "",
+    payoutCurrency: r.payout_currency ?? null,
+    conversionRate: r.conversion_rate ?? null,
+    conversionFeePercent: r.conversion_fee_percent ?? null,
+    conversionFeeAmount: r.conversion_fee_amount ?? null,
+    convertedAmount: r.converted_amount ?? null,
     requestedAt: r.requested_at,
     processedAt: r.processed_at,
   }));
@@ -2193,7 +2222,7 @@ export interface PayoutStageResult {
 export async function advancePayoutStage(
   request: PayoutRequest,
   stage: PayoutStage,
-  options: { note?: string; adminId?: string } = {},
+  options: { note?: string; adminId?: string; conversion?: PayoutConversion } = {},
 ): Promise<PayoutStageResult> {
   const status = statusForStage(stage);
   const alreadyCommitted =
@@ -2205,11 +2234,21 @@ export async function advancePayoutStage(
     processed_at: new Date().toISOString(),
   };
 
+  const conversionPatch = options.conversion
+    ? {
+        payout_currency: options.conversion.currency,
+        conversion_rate: options.conversion.rate,
+        conversion_fee_percent: options.conversion.feePercent,
+        conversion_fee_amount: options.conversion.feeAmount,
+        converted_amount: options.conversion.netConverted,
+      }
+    : {};
+
   let stageStored = true;
 
   const { error } = await supabase
     .from("payout_requests")
-    .update({ ...core, stage })
+    .update({ ...core, ...conversionPatch, stage })
     .eq("id", request.id);
 
   if (error) {
@@ -2264,6 +2303,23 @@ export async function advancePayoutStage(
   }
 
   return { ok: true, stageStored };
+}
+
+/**
+ * The contributor's own payout currency. Null means they have not chosen one
+ * and the currency of their country should be used instead.
+ */
+export async function setPayoutCurrency(userId: string, currency: string | null): Promise<boolean> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ payout_currency: currency })
+    .eq("id", userId);
+
+  if (error) {
+    console.error("setPayoutCurrency", error);
+    return false;
+  }
+  return true;
 }
 
 /** payout_requests keys the photographer by profile slug, not by user id. */
