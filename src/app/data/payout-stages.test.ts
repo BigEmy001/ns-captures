@@ -7,6 +7,7 @@ import {
   stageMeta,
   stageNotifiesByDefault,
   statusForStage,
+  availableForPayout,
   type PayoutStage,
 } from "./payout-stages";
 
@@ -90,5 +91,31 @@ describe("stageMeta", () => {
       expect(meta.body.length).toBeGreaterThan(0);
       expect(meta.adminBody.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("availableForPayout", () => {
+  const pending = (amount: number) => ({ amount, status: "PENDING" });
+
+  it("holds back money already awaiting a decision", () => {
+    expect(availableForPayout(23870, [pending(10000), pending(2970)])).toBe(10900);
+  });
+
+  it("ignores requests that have been decided", () => {
+    expect(
+      availableForPayout(1000, [
+        { amount: 500, status: "REJECTED" },
+        { amount: 200, status: "PAID" },
+        { amount: 300, status: "APPROVED" },
+      ]),
+    ).toBe(1000);
+  });
+
+  it("never reports a negative amount available", () => {
+    expect(availableForPayout(100, [pending(500)])).toBe(0);
+  });
+
+  it("is the full balance when nothing is pending", () => {
+    expect(availableForPayout(23870, [])).toBe(23870);
   });
 });

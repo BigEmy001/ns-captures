@@ -943,7 +943,7 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
 }
 
 export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boolean> {
-  const { error } = await supabase.from("site_settings").upsert({
+  const core = {
     id: 1,
     site_name: settings.siteName,
     site_url: settings.siteUrl,
@@ -955,15 +955,27 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
     maintenance_mode: settings.maintenanceMode,
     signup_enabled: settings.signupEnabled,
     moderation_required: settings.moderationRequired,
-    conversion_fee_percent: settings.conversionFeePercent,
     contact_link: settings.contactLink,
     allowed_licenses: settings.allowedLicenses,
+  };
+
+  const { error } = await supabase.from("site_settings").upsert({
+    ...core,
+    conversion_fee_percent: settings.conversionFeePercent,
   });
 
-  if (error) {
-    console.error("updateSiteSettings", error);
+  if (!error) return true;
+
+  // The conversion charge column does not exist yet. Saving settings — the
+  // maintenance toggle among them — must not depend on that migration.
+  const { error: coreError } = await supabase.from("site_settings").upsert(core);
+
+  if (coreError) {
+    console.error("updateSiteSettings", coreError);
     return false;
   }
+
+  console.warn("Settings saved without the conversion charge:", error.message);
   return true;
 }
 
@@ -2638,8 +2650,16 @@ export async function deletePhoto(photoId: string): Promise<boolean> {
 // UPDATE USER ROLE (admin only) — syncs slug/profile for Photographer
 // ============================================================
 
+/**
+ * Changes someone's role. Promoting to Photographer also opens the contributor
+ * portal: an admin setting the role is itself the vetting decision, so it would
+ * be wrong to then send that person through the verification fee to get in.
+ */
 export async function updateUserRole(userId: string, newRole: string): Promise<boolean> {
-  const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
+  const patch: Record<string, unknown> = { role: newRole };
+  if (newRole === "Photographer") patch.verification_status = "verified";
+
+  const { error } = await supabase.from("profiles").update(patch).eq("id", userId);
 
   if (error) {
     console.error("updateUserRole", error);
@@ -2658,7 +2678,7 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
         profile.name
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-£/g, "") +
+          .replace(/^-+|-+$/g, "") +
         "-" +
         userId.slice(0, 8);
 

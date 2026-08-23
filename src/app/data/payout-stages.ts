@@ -134,3 +134,19 @@ export function stageNotifiesByDefault(stage: PayoutStage): boolean {
     stage === "cancelled"
   );
 }
+
+/**
+ * What a contributor can actually request. Their balance is not debited until
+ * a payout is approved, so anything already awaiting a decision has to be held
+ * back — otherwise the same money can be requested twice.
+ */
+export function availableForPayout(
+  balance: number,
+  requests: { amount: number; status: string; stage?: PayoutStage }[],
+): number {
+  const reserved = requests
+    .filter((r) => r.status === "PENDING")
+    .reduce((sum, r) => sum + (r.amount || 0), 0);
+
+  return Math.max(0, (balance || 0) - reserved);
+}

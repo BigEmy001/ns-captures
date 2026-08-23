@@ -65,7 +65,7 @@ import {
 } from "../../data/contributor";
 import { maskAccount } from "../../../lib/mask";
 import { PayoutTimeline } from "./PayoutTimeline";
-import { stageMeta, isTerminal } from "../../data/payout-stages";
+import { stageMeta, isTerminal, availableForPayout } from "../../data/payout-stages";
 import { getStagedPhotos, type StagedPhoto } from "../../../lib/staging";
 import { CURRENCY_GROUPS, currencyLabel } from "../../../lib/currencies";
 import { sendPayoutRequestSubmitted, sendAdminNotification } from "../../../lib/email";
@@ -134,6 +134,11 @@ export function CreatorTabs({
   );
   const [payoutDetails, setPayoutDetails] = useState<Record<string, string>>({});
   const [openTimelineId, setOpenTimelineId] = useState<string | null>(null);
+
+  // A pending request is money already spoken for, so it cannot be requested
+  // again while it waits for a decision.
+  const availableBalance = availableForPayout(user?.payoutBalance ?? 0, payoutRequests);
+  const reservedBalance = (user?.payoutBalance ?? 0) - availableBalance;
 
   // Photographer dashboard data
   const [revenueData, setRevenueData] = useState<{ m: string; v: number }[]>([]);
@@ -1644,10 +1649,16 @@ export function CreatorTabs({
                     </p>
                     <p className="mt-2 font-serif text-3xl text-[#1e4a3f] font-semibold">
                       £
-                      {(user?.payoutBalance ?? 0).toLocaleString("en-GB", {
+                      {availableBalance.toLocaleString("en-GB", {
                         minimumFractionDigits: 2,
                       })}
                     </p>
+                    {reservedBalance > 0 && (
+                      <p className="mt-1 text-xs text-[#758078]">
+                        £{reservedBalance.toLocaleString()} held against requests awaiting a
+                        decision
+                      </p>
+                    )}
                   </div>
                   <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
@@ -2564,7 +2575,7 @@ export function CreatorTabs({
                     </p>
                     <p className="mt-1 font-serif text-2xl text-[#1e4a3f] font-semibold">
                       £
-                      {(user?.payoutBalance ?? 0).toLocaleString("en-GB", {
+                      {availableBalance.toLocaleString("en-GB", {
                         minimumFractionDigits: 2,
                       })}
                     </p>
@@ -2863,8 +2874,12 @@ export function CreatorTabs({
                         toast.error("Enter a valid amount");
                         return;
                       }
-                      if (amount > (user?.payoutBalance ?? 0)) {
-                        toast.error("Amount exceeds available balance");
+                      if (amount > availableBalance) {
+                        toast.error(
+                          reservedBalance > 0
+                            ? `Only £${availableBalance.toLocaleString()} is available — £${reservedBalance.toLocaleString()} is held against requests awaiting a decision.`
+                            : "Amount exceeds available balance",
+                        );
                         return;
                       }
                       if (

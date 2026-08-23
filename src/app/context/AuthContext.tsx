@@ -382,7 +382,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user.name
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-£/g, "") +
+          .replace(/^-+|-+$/g, "") +
         "-" +
         user.id.slice(0, 8);
 
