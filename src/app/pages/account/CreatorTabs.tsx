@@ -68,7 +68,7 @@ import {
 } from "../../data/contributor";
 import { maskAccount } from "../../../lib/mask";
 import { PayoutTimeline } from "./PayoutTimeline";
-import { stageMeta, isTerminal, availableForPayout } from "../../data/payout-stages";
+import { stageMetaFor, isTerminal, availableForPayout } from "../../data/payout-stages";
 import { isProgrammeRole } from "../../data/roles";
 import { getStagedPhotos, type StagedPhoto } from "../../../lib/staging";
 import { CURRENCY_GROUPS, currencyLabel } from "../../../lib/currencies";
@@ -1891,7 +1891,7 @@ export function CreatorTabs({
                   <div className="mb-6 space-y-3">
                     <h2 className="font-serif text-lg text-[#18211f]">Payout tracking</h2>
                     {payoutRequests.map((request) => {
-                      const meta = stageMeta(request.stage);
+                      const meta = stageMetaFor(request.method, request.stage);
                       const isOpen = openTimelineId === request.id;
                       const ended = isTerminal(request.stage);
 
