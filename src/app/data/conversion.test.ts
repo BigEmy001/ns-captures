@@ -91,3 +91,52 @@ describe("country to payout currency", () => {
     expect(resolvePayoutCurrency(null, null)).toBe("GBP");
   });
 });
+
+describe("who pays the conversion charge", () => {
+  const amount = 10000;
+  const rate = 1750;
+  const fee = 3.7;
+
+  it("takes it out of the payout when the contributor pays", () => {
+    const q = quoteConversion(amount, rate, fee, "contributor");
+    expect(q.netConverted).toBeCloseTo(16_852_500, 2);
+    expect(q.companyCostGbp).toBe(10_000);
+  });
+
+  it("adds it on top when NS CAPTURES pays", () => {
+    const q = quoteConversion(amount, rate, fee, "company");
+    // The contributor gets the whole converted amount, not a reduced one.
+    expect(q.netConverted).toBe(17_500_000);
+    expect(q.companyCostGbp).toBeCloseTo(10_370, 2);
+  });
+
+  it("charges the same amount either way — only who absorbs it changes", () => {
+    const byContributor = quoteConversion(amount, rate, fee, "contributor");
+    const byCompany = quoteConversion(amount, rate, fee, "company");
+
+    expect(byContributor.feeAmount).toBeCloseTo(byCompany.feeAmount, 6);
+    expect(byCompany.netConverted - byContributor.netConverted).toBeCloseTo(
+      byContributor.feeAmount,
+      2,
+    );
+  });
+
+  it("defaults to the contributor paying", () => {
+    expect(quoteConversion(amount, rate, fee).bearer).toBe("contributor");
+  });
+
+  it("says who paid in the summary", () => {
+    expect(conversionSummary(quoteConversion(amount, rate, fee, "contributor"), "KRW")).toContain(
+      "less a 3.7% conversion charge",
+    );
+    expect(conversionSummary(quoteConversion(amount, rate, fee, "company"), "KRW")).toContain(
+      "is paid by NS CAPTURES",
+    );
+  });
+
+  it("costs the company nothing extra when the charge is waived", () => {
+    const q = quoteConversion(amount, rate, 0, "company");
+    expect(q.companyCostGbp).toBe(10_000);
+    expect(q.netConverted).toBe(17_500_000);
+  });
+});

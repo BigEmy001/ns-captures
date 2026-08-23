@@ -6,6 +6,7 @@ import {
   quoteConversion,
   formatConverted,
   type ConversionQuote,
+  type FeeBearer,
 } from "../../data/conversion";
 
 export interface ConversionResult extends ConversionQuote {
@@ -35,8 +36,9 @@ export function ConversionModal({
   const [currency, setCurrency] = useState(defaultCurrency);
   const [rate, setRate] = useState("");
   const [feePercent, setFeePercent] = useState(String(defaultFeePercent));
+  const [bearer, setBearer] = useState<FeeBearer>("contributor");
 
-  const quote = quoteConversion(amount, Number(rate), Number(feePercent));
+  const quote = quoteConversion(amount, Number(rate), Number(feePercent), bearer);
   const canConfirm = Number(rate) > 0;
 
   return (
@@ -124,6 +126,50 @@ export function ConversionModal({
             </label>
           </div>
 
+          <fieldset className="rounded-xl border border-[#ececec] p-4">
+            <legend className="px-1 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+              Who pays the conversion charge
+            </legend>
+            <div className="mt-1 space-y-2">
+              {[
+                {
+                  id: "contributor" as const,
+                  title: "The contributor",
+                  body: "Deducted from their payout. They receive less; nothing to pay separately.",
+                },
+                {
+                  id: "company" as const,
+                  title: "NS CAPTURES",
+                  body: "Added on top. They receive the full converted amount and the company sends more.",
+                },
+              ].map((option) => (
+                <label
+                  key={option.id}
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
+                    bearer === option.id
+                      ? "border-[#1e4a3f] bg-[#f2f7f4]"
+                      : "border-[#ececec] hover:border-[#1e4a3f]/40"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="fee-bearer"
+                    value={option.id}
+                    checked={bearer === option.id}
+                    onChange={() => setBearer(option.id)}
+                    className="mt-0.5 size-4 shrink-0 accent-[#1e4a3f]"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-[#18211f]">
+                      {option.title}
+                    </span>
+                    <span className="block text-xs text-[#59645f]">{option.body}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
           <div className="rounded-xl border border-[#ececec] bg-[#FAF9F5] p-5">
             <dl className="space-y-2.5 text-sm">
               <div className="flex items-baseline justify-between gap-4">
@@ -140,15 +186,35 @@ export function ConversionModal({
                 </dd>
               </div>
               <div className="flex items-baseline justify-between gap-4">
-                <dt className="text-[#59645f]">Conversion charge ({quote.feePercent}%)</dt>
-                <dd className="tabular-nums text-[#9c3320]">
-                  {canConfirm ? `− ${formatConverted(quote.feeAmount, currency)}` : "—"}
+                <dt className="text-[#59645f]">
+                  Conversion charge ({quote.feePercent}%)
+                  <span className="block text-xs text-[#8a8f89]">
+                    {bearer === "contributor" ? "Deducted from the payout" : "Paid by NS CAPTURES"}
+                  </span>
+                </dt>
+                <dd
+                  className={`tabular-nums ${bearer === "contributor" ? "text-[#9c3320]" : "text-[#59645f]"}`}
+                >
+                  {canConfirm
+                    ? `${bearer === "contributor" ? "− " : ""}${formatConverted(quote.feeAmount, currency)}`
+                    : "—"}
                 </dd>
               </div>
               <div className="flex items-baseline justify-between gap-4 border-t border-[#e4e2da] pt-2.5">
                 <dt className="font-semibold text-[#18211f]">Contributor receives</dt>
                 <dd className="font-serif text-lg tabular-nums text-[#18211f]">
                   {canConfirm ? formatConverted(quote.netConverted, currency) : "—"}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="text-[#59645f]">Cost to NS CAPTURES</dt>
+                <dd className="tabular-nums text-[#18211f]">
+                  {canConfirm
+                    ? `£${quote.companyCostGbp.toLocaleString("en-GB", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}`
+                    : "—"}
                 </dd>
               </div>
             </dl>

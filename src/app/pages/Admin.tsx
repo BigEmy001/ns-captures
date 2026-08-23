@@ -519,6 +519,7 @@ export function Admin() {
             rate: conversion.rate,
             feePercent: conversion.feePercent,
             feeAmount: conversion.feeAmount,
+            bearer: conversion.bearer,
             netConverted: conversion.netConverted,
           }
         : undefined,
@@ -543,6 +544,7 @@ export function Admin() {
                     conversionRate: conversion.rate,
                     conversionFeePercent: conversion.feePercent,
                     conversionFeeAmount: conversion.feeAmount,
+                    conversionFeeBearer: conversion.bearer,
                     convertedAmount: conversion.netConverted,
                   }
                 : {}),

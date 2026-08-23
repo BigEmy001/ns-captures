@@ -26,12 +26,32 @@ ALTER TABLE public.payout_requests
   ADD COLUMN IF NOT EXISTS conversion_rate numeric,
   ADD COLUMN IF NOT EXISTS conversion_fee_percent numeric,
   ADD COLUMN IF NOT EXISTS conversion_fee_amount numeric,
+  ADD COLUMN IF NOT EXISTS conversion_fee_bearer text,
   ADD COLUMN IF NOT EXISTS converted_amount numeric;
+
+DO $$
+DECLARE c record;
+BEGIN
+  FOR c IN
+    SELECT conname FROM pg_constraint
+    WHERE conrelid = 'public.payout_requests'::regclass
+      AND contype = 'c'
+      AND pg_get_constraintdef(oid) ILIKE '%conversion_fee_bearer%'
+  LOOP
+    EXECUTE format('ALTER TABLE public.payout_requests DROP CONSTRAINT %I', c.conname);
+  END LOOP;
+END $$;
+
+ALTER TABLE public.payout_requests
+  ADD CONSTRAINT payout_requests_fee_bearer_check
+  CHECK (conversion_fee_bearer IS NULL OR conversion_fee_bearer IN ('contributor', 'company'));
 
 COMMENT ON COLUMN public.payout_requests.conversion_rate IS
   'Units of payout_currency per 1 GBP, as applied at conversion time.';
 COMMENT ON COLUMN public.payout_requests.conversion_fee_percent IS
   'Conversion charge applied to the converted amount. Platform default is 3.7%.';
+COMMENT ON COLUMN public.payout_requests.conversion_fee_bearer IS
+  'contributor = the charge comes out of their payout; company = NS CAPTURES absorbs it and the contributor receives the full converted amount.';
 COMMENT ON COLUMN public.payout_requests.converted_amount IS
   'What the contributor receives in payout_currency, after the conversion charge.';
 

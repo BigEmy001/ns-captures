@@ -127,9 +127,15 @@ export function PayoutTimeline({ request }: { request: PayoutRequest }) {
                     <div className="flex justify-between gap-4">
                       <dt className="text-[#59645f]">
                         Conversion charge ({request.conversionFeePercent}%)
+                        {request.conversionFeeBearer === "company" && (
+                          <span className="block text-[10px] text-[#8a8f89]">
+                            Paid by NS CAPTURES — nothing for you to pay
+                          </span>
+                        )}
                       </dt>
                       <dd className="tabular-nums text-[#18211f]">
-                        − {formatConverted(request.conversionFeeAmount || 0, currency)}
+                        {request.conversionFeeBearer === "company" ? "" : "− "}
+                        {formatConverted(request.conversionFeeAmount || 0, currency)}
                       </dd>
                     </div>
                     <div className="flex justify-between gap-4 border-t border-[#e4e2da] pt-1">

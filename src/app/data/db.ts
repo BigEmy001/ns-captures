@@ -2145,6 +2145,7 @@ export interface PayoutRequest {
   conversionRate: number | null;
   conversionFeePercent: number | null;
   conversionFeeAmount: number | null;
+  conversionFeeBearer: string | null;
   convertedAmount: number | null;
 }
 
@@ -2153,6 +2154,7 @@ export interface PayoutConversion {
   rate: number;
   feePercent: number;
   feeAmount: number;
+  bearer: string;
   netConverted: number;
 }
 
@@ -2222,6 +2224,7 @@ export async function createPayoutRequest(
     conversionRate: data.conversion_rate ?? null,
     conversionFeePercent: data.conversion_fee_percent ?? null,
     conversionFeeAmount: data.conversion_fee_amount ?? null,
+    conversionFeeBearer: data.conversion_fee_bearer ?? null,
     convertedAmount: data.converted_amount ?? null,
     adminNote: data.admin_note || "",
     requestedAt: data.requested_at,
@@ -2252,6 +2255,7 @@ export async function fetchPayoutRequests(photographerId?: string): Promise<Payo
     conversionRate: r.conversion_rate ?? null,
     conversionFeePercent: r.conversion_fee_percent ?? null,
     conversionFeeAmount: r.conversion_fee_amount ?? null,
+    conversionFeeBearer: r.conversion_fee_bearer ?? null,
     convertedAmount: r.converted_amount ?? null,
     requestedAt: r.requested_at,
     processedAt: r.processed_at,
@@ -2299,6 +2303,7 @@ export async function advancePayoutStage(
         conversion_rate: options.conversion.rate,
         conversion_fee_percent: options.conversion.feePercent,
         conversion_fee_amount: options.conversion.feeAmount,
+        conversion_fee_bearer: options.conversion.bearer,
         converted_amount: options.conversion.netConverted,
       }
     : {};
