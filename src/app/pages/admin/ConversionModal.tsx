@@ -21,6 +21,7 @@ export interface ConversionResult extends ConversionQuote {
 export function ConversionModal({
   amount,
   contributorName,
+  recipientRole = "Contributor",
   defaultCurrency,
   defaultFeePercent = DEFAULT_CONVERSION_FEE_PERCENT,
   onConfirm,
@@ -28,6 +29,8 @@ export function ConversionModal({
 }: {
   amount: number;
   contributorName: string;
+  /** Photographers are paid out too, so the modal names whoever this is. */
+  recipientRole?: string;
   defaultCurrency: string;
   defaultFeePercent?: number;
   onConfirm: (result: ConversionResult) => void;
@@ -40,6 +43,7 @@ export function ConversionModal({
 
   const quote = quoteConversion(amount, Number(rate), Number(feePercent), bearer);
   const canConfirm = Number(rate) > 0;
+  const recipientLabel = recipientRole === "Photographer" ? "Photographer" : "Contributor";
 
   return (
     <div
@@ -134,13 +138,13 @@ export function ConversionModal({
               {[
                 {
                   id: "contributor" as const,
-                  title: "The contributor",
-                  body: "Deducted from their payout. They receive less; nothing to pay separately.",
+                  title: `The ${recipientLabel.toLowerCase()}`,
+                  body: "Billed to them as a separate charge. Their payout is not reduced, and they settle it from their payouts page.",
                 },
                 {
                   id: "company" as const,
                   title: "NS CAPTURES",
-                  body: "Added on top. They receive the full converted amount and the company sends more.",
+                  body: "Absorbed by the company. Nothing is owed and there is nothing for them to settle.",
                 },
               ].map((option) => (
                 <label
@@ -189,23 +193,48 @@ export function ConversionModal({
                 <dt className="text-[#59645f]">
                   Conversion charge ({quote.feePercent}%)
                   <span className="block text-xs text-[#8a8f89]">
-                    {bearer === "contributor" ? "Deducted from the payout" : "Paid by NS CAPTURES"}
+                    {bearer === "contributor"
+                      ? "Billed separately — not taken out of the payout"
+                      : "Paid by NS CAPTURES"}
                   </span>
                 </dt>
-                <dd
-                  className={`tabular-nums ${bearer === "contributor" ? "text-[#9c3320]" : "text-[#59645f]"}`}
-                >
-                  {canConfirm
-                    ? `${bearer === "contributor" ? "− " : ""}${formatConverted(quote.feeAmount, currency)}`
-                    : "—"}
+                <dd className="tabular-nums text-[#59645f]">
+                  {canConfirm ? formatConverted(quote.feeAmount, currency) : "—"}
                 </dd>
               </div>
+
+              {/* The payout is the same figure whoever bears the charge. */}
               <div className="flex items-baseline justify-between gap-4 border-t border-[#e4e2da] pt-2.5">
-                <dt className="font-semibold text-[#18211f]">Contributor receives</dt>
+                <dt className="font-semibold text-[#18211f]">
+                  {recipientLabel} receives
+                  <span className="block text-xs font-normal text-[#8a8f89]">
+                    The full converted amount
+                  </span>
+                </dt>
                 <dd className="font-serif text-lg tabular-nums text-[#18211f]">
                   {canConfirm ? formatConverted(quote.netConverted, currency) : "—"}
                 </dd>
               </div>
+
+              {bearer === "contributor" && (
+                <div className="flex items-baseline justify-between gap-4 rounded-lg bg-[#f6ecd8] px-3 py-2.5">
+                  <dt className="font-semibold text-[#7a5a17]">
+                    {recipientLabel} owes
+                    <span className="block text-xs font-normal text-[#7a5a17]/80">
+                      Outstanding until they settle it
+                    </span>
+                  </dt>
+                  <dd className="font-serif text-lg tabular-nums text-[#7a5a17]">
+                    {canConfirm
+                      ? `£${quote.outstandingGbp.toLocaleString("en-GB", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`
+                      : "—"}
+                  </dd>
+                </div>
+              )}
+
               <div className="flex items-baseline justify-between gap-4">
                 <dt className="text-[#59645f]">Cost to NS CAPTURES</dt>
                 <dd className="tabular-nums text-[#18211f]">

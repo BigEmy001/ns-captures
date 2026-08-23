@@ -3203,6 +3203,9 @@ export function Admin() {
             adminUsersList.find((u) => u.slug === pendingConversion.photographerId)?.name ||
             pendingConversion.photographerId
           }
+          recipientRole={
+            adminUsersList.find((u) => u.slug === pendingConversion.photographerId)?.role
+          }
           defaultCurrency={payoutCurrencyFor(pendingConversion)}
           defaultFeePercent={
             siteSettingsState.conversionFeePercent ?? DEFAULT_CONVERSION_FEE_PERCENT

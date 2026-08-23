@@ -143,3 +143,31 @@ describe("who pays the conversion charge", () => {
     expect(q.outstandingGbp).toBe(0);
   });
 });
+
+describe("what the admin is shown before confirming", () => {
+  // The figures the modal renders, so a change to the arithmetic cannot
+  // silently contradict the wording next to it.
+  const q = (bearer) => quoteConversion(10000, 1750, 3.7, bearer);
+
+  it("shows the same payout figure whoever bears the charge", () => {
+    expect(q("contributor").netConverted).toBe(17_500_000);
+    expect(q("company").netConverted).toBe(17_500_000);
+  });
+
+  it("shows an amount owed only when the recipient bears it", () => {
+    expect(q("contributor").outstandingGbp).toBeCloseTo(370, 2);
+    expect(q("company").outstandingGbp).toBe(0);
+  });
+
+  it("shows the company paying more only when it absorbs the charge", () => {
+    expect(q("contributor").companyCostGbp).toBe(10_000);
+    expect(q("company").companyCostGbp).toBeCloseTo(10_370, 2);
+  });
+
+  it("never shows a payout reduced by the charge", () => {
+    for (const bearer of ["contributor", "company"]) {
+      const quote = q(bearer);
+      expect(quote.netConverted).toBe(quote.grossConverted);
+    }
+  });
+});
