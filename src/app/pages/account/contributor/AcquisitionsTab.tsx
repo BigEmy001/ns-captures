@@ -149,6 +149,7 @@ export function AcquisitionsTab() {
                     <p className="mt-1 text-sm text-[#59645f]">{copy.note}</p>
                     <p className="mt-2 font-mono text-[10px] tracking-[0.1em] text-[#758078] uppercase">
                       {CATEGORY_LABELS[row.category]} · {row.reference}
+                      {user?.contributorId && ` · ${user.contributorId}`}
                     </p>
                   </div>
                   <div className="text-right">
@@ -186,6 +187,7 @@ export function AcquisitionsTab() {
                           value: row.paidAt ? format(new Date(row.paidAt), "d MMMM yyyy") : "—",
                         },
                         { label: "Reference", value: row.reference },
+                        { label: "Contributor ID", value: user?.contributorId || "—" },
                       ]}
                     />
 

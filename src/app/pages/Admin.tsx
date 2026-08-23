@@ -22,6 +22,7 @@ import {
   LogOut,
   ShieldCheck,
   Handshake,
+  Star,
   Wallet,
   Landmark,
   UserPlus,
@@ -62,6 +63,7 @@ import {
 import { ProgrammeTab } from "./admin/ProgrammeTab";
 import { ConversionModal, type ConversionResult } from "./admin/ConversionModal";
 import { ViewAsPanel } from "./admin/ViewAsPanel";
+import { CollectionsPanel } from "./admin/CollectionsPanel";
 import { resolvePayoutCurrency } from "../../lib/countries";
 import { CURRENCIES } from "../../lib/currencies";
 import { conversionSummary, DEFAULT_CONVERSION_FEE_PERCENT } from "../data/conversion";
@@ -100,6 +102,9 @@ import {
   setPhotoAcquisitionState,
   setContributorLevel,
   setPayoutCurrency,
+  setPhotoFeatured,
+  requestSubmissionInformation,
+  admitContributorFromSubmission,
   updateUserRole,
   updateUserStatus,
   updateUserVerificationStatus,
@@ -140,6 +145,7 @@ const nav = [
   { id: "payments", label: "Payments", icon: DollarSign },
   { id: "verification", label: "Verification", icon: ShieldCheck },
   { id: "programme", label: "Programme", icon: Handshake },
+  { id: "collections", label: "Collections", icon: FolderHeart },
   { id: "submissions", label: "Submissions", icon: Mail },
   { id: "reports", label: "Reports", icon: FileBarChart },
   { id: "logs", label: "System Logs", icon: Logs },
@@ -1215,6 +1221,22 @@ export function Admin() {
                           <Check className="size-4" /> Approve
                         </button>
                         <button
+                          onClick={async () => {
+                            const question = window.prompt(
+                              "What do you need from the contributor?\n\nThe photograph stays in review.",
+                              "",
+                            );
+                            if (!question) return;
+                            const ok = await requestSubmissionInformation(m.photoId, question);
+                            toast[ok ? "success" : "error"](
+                              ok ? "Information requested" : "Could not send the request",
+                            );
+                          }}
+                          className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-[#ececec] bg-white hover:border-[#1e4a3f] hover:text-[#1e4a3f] px-5 py-2.5 text-sm font-semibold text-[#4a534e] rounded-full transition-all duration-200 hover:-translate-y-0.5"
+                        >
+                          Request info
+                        </button>
+                        <button
                           onClick={() => resolve(m.id, false, m.photoId)}
                           className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-[#ececec] bg-white hover:border-[#1e4a3f] hover:text-[#1e4a3f] px-5 py-2.5 text-sm font-semibold text-[#4a534e] rounded-full transition-all duration-200 hover:-translate-y-0.5"
                         >
@@ -1273,6 +1295,28 @@ export function Admin() {
                         title="View"
                       >
                         <Eye className="size-4" />
+                      </button>
+                      <button
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const next = !p.featured;
+                          const ok = await setPhotoFeatured(p.id, next);
+                          if (!ok) {
+                            toast.error("Could not change the featured state");
+                            return;
+                          }
+                          setAssetsList((prev) =>
+                            prev.map((a) => (a.id === p.id ? { ...a, featured: next } : a)),
+                          );
+                          toast.success(next ? "Photograph featured" : "No longer featured");
+                        }}
+                        className={`p-2 backdrop-blur-sm rounded-full hover:bg-white transition shadow ${
+                          p.featured ? "bg-[#1e4a3f] text-white" : "bg-white/90 text-[#18211f]"
+                        }`}
+                        title={p.featured ? "Remove from featured" : "Feature this photograph"}
+                      >
+                        <Star className="size-4" />
                       </button>
                       <button
                         onClick={(e) => {
@@ -1336,6 +1380,12 @@ export function Admin() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {active === "collections" && (
+            <div className="mt-8">
+              <CollectionsPanel assets={assetsList} />
             </div>
           )}
 
@@ -3030,6 +3080,42 @@ export function Admin() {
                                         : x,
                                     ),
                                   );
+
+                                  // Approving used to change a status string and
+                                  // nothing else. It now admits them: an account
+                                  // is created and their credentials are sent.
+                                  if (nextStatus === "approved") {
+                                    const admitted = await admitContributorFromSubmission({
+                                      id: sub.id,
+                                      fullName: sub.fullName,
+                                      email: sub.email,
+                                      phone: sub.phone,
+                                      country: sub.country,
+                                    });
+
+                                    if (!admitted.ok) {
+                                      toast.error("Approved, but no account was created", {
+                                        description: admitted.message,
+                                      });
+                                      return;
+                                    }
+
+                                    if (admitted.password) {
+                                      await sendAutoGeneratedAccountEmail(
+                                        sub.email,
+                                        sub.fullName,
+                                        admitted.password,
+                                      ).catch((err) =>
+                                        console.error("Credentials email failed:", err),
+                                      );
+                                    }
+
+                                    toast.success("Contributor admitted", {
+                                      description: `${sub.fullName} has an account and their agreement is waiting to be signed.`,
+                                    });
+                                    return;
+                                  }
+
                                   toast.success(`Submission marked as ${nextStatus}`);
                                 }}
                                 className="border border-[#ececec] rounded-lg bg-white px-2.5 py-1.5 text-xs outline-none"

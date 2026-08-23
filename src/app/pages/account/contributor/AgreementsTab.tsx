@@ -9,6 +9,7 @@ import {
   type AgreementStatus,
 } from "../../../data/db";
 import { Card, EmptyState, PortalPage, StatusPill } from "./shared";
+import { printAgreement } from "./printAgreement";
 import type { PillTone } from "./shared";
 
 const STATUS_COPY: Record<AgreementStatus, { label: string; tone: PillTone }> = {
@@ -134,6 +135,7 @@ export function AgreementsTab() {
                     </div>
                     <p className="mt-1.5 font-mono text-[10px] tracking-[0.1em] text-[#758078] uppercase">
                       {row.reference} · Version {row.version}
+                      {user?.contributorId && ` · ${user.contributorId}`}
                       {row.effectiveDate &&
                         ` · Effective ${format(new Date(row.effectiveDate), "d MMM yyyy")}`}
                     </p>
@@ -144,13 +146,23 @@ export function AgreementsTab() {
                       </p>
                     )}
                   </div>
-                  <button
-                    onClick={() => (isOpen ? setOpenId(null) : openAgreement(row.id))}
-                    aria-expanded={isOpen}
-                    className="shrink-0 rounded-full border border-[#ececec] px-4 py-1.5 text-xs font-semibold text-[#1e4a3f] transition hover:border-[#1e4a3f]"
-                  >
-                    {isOpen ? "Close" : canSign ? "Review agreement" : "View agreement"}
-                  </button>
+                  <div className="flex shrink-0 gap-2">
+                    {row.status !== "awaiting_signature" && (
+                      <button
+                        onClick={() => printAgreement(row, user?.contributorId, user?.name)}
+                        className="rounded-full border border-[#ececec] px-4 py-1.5 text-xs font-semibold text-[#4a534e] transition hover:border-[#1e4a3f] hover:text-[#1e4a3f]"
+                      >
+                        Download
+                      </button>
+                    )}
+                    <button
+                      onClick={() => (isOpen ? setOpenId(null) : openAgreement(row.id))}
+                      aria-expanded={isOpen}
+                      className="rounded-full border border-[#ececec] px-4 py-1.5 text-xs font-semibold text-[#1e4a3f] transition hover:border-[#1e4a3f]"
+                    >
+                      {isOpen ? "Close" : canSign ? "Review agreement" : "View agreement"}
+                    </button>
+                  </div>
                 </div>
 
                 {isOpen && (

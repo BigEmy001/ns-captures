@@ -313,6 +313,7 @@ function rowToPhoto(row: any): Photo {
     propertyRelease: row.property_release ?? null,
     copyrightDeclaredAt: row.copyright_declared_at ?? null,
     reviewNote: row.review_note ?? null,
+    featured: row.featured === true,
   };
 }
 
@@ -3240,6 +3241,149 @@ export async function fetchPublicationEntries(userId: string): Promise<Publicati
     note: row.note,
     createdAt: row.created_at,
   }));
+}
+
+// ============================================================
+// CURATION, FEATURING AND ADMISSION
+// ============================================================
+
+/** Feature or unfeature a photograph on the marketplace. */
+export async function setPhotoFeatured(photoId: string, featured: boolean): Promise<boolean> {
+  const { error } = await supabase
+    .from("photos")
+    .update({ featured, featured_at: featured ? new Date().toISOString() : null })
+    .eq("id", photoId);
+
+  if (error) {
+    console.error("setPhotoFeatured", error);
+    return false;
+  }
+
+  if (featured) {
+    const contributor = await resolvePhotoContributor(photoId);
+    if (contributor) {
+      await notify({
+        userId: contributor.userId,
+        category: "photography",
+        title: "Your photograph is featured",
+        body: `"${contributor.title}" has been featured on NS CAPTURES.`,
+        link: `/photo/${photoId}`,
+      });
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Ask a contributor for more information on a submission. The photograph stays
+ * in review rather than being decided either way.
+ */
+export async function requestSubmissionInformation(
+  photoId: string,
+  question: string,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("photos")
+    .update({ review_note: question })
+    .eq("id", photoId);
+
+  if (error) {
+    console.error("requestSubmissionInformation", error);
+    return false;
+  }
+
+  const contributor = await resolvePhotoContributor(photoId);
+  if (contributor) {
+    await notify({
+      userId: contributor.userId,
+      category: "photography",
+      priority: "high",
+      title: "More information needed",
+      body: `NS CAPTURES has a question about "${contributor.title}": ${question}`,
+      link: "/account?tab=submissions",
+    });
+  }
+
+  return true;
+}
+
+export async function createCollection(input: {
+  id: string;
+  title: string;
+  description?: string;
+  curator?: string;
+}): Promise<boolean> {
+  const { error } = await supabase.from("collections").insert({
+    id: input.id,
+    title: input.title,
+    description: input.description || null,
+    curator: input.curator || "NS CAPTURES",
+    count: 0,
+  });
+
+  if (error) {
+    console.error("createCollection", error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteCollection(collectionId: string): Promise<boolean> {
+  const { error } = await supabase.from("collections").delete().eq("id", collectionId);
+
+  if (error) {
+    console.error("deleteCollection", error);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Turns an approved application into a contributor account: creates the user,
+ * emails their credentials, and links the two so a second approval cannot
+ * create a duplicate.
+ */
+export async function admitContributorFromSubmission(submission: {
+  id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  country?: string;
+}): Promise<{ ok: boolean; password?: string; message?: string }> {
+  const { data: existing } = await supabase
+    .from("contributor_submissions")
+    .select("created_user_id")
+    .eq("id", submission.id)
+    .maybeSingle();
+
+  if (existing?.created_user_id) {
+    return { ok: false, message: "An account has already been created for this application." };
+  }
+
+  try {
+    const result = await adminCreateUser({
+      email: submission.email,
+      name: submission.fullName,
+      role: "Contributor",
+      status: "Active",
+      verificationStatus: "verified",
+      phone: submission.phone,
+    });
+
+    await supabase
+      .from("contributor_submissions")
+      .update({
+        created_user_id: result.user?.id || null,
+        account_created_at: new Date().toISOString(),
+        status: "approved",
+      })
+      .eq("id", submission.id);
+
+    return { ok: true, password: result.password };
+  } catch (err) {
+    return { ok: false, message: (err as Error).message };
+  }
 }
 
 // ============================================================

@@ -38,6 +38,7 @@ export interface Photo {
   propertyRelease?: string | null;
   copyrightDeclaredAt?: string | null;
   reviewNote?: string | null;
+  featured?: boolean;
 }
 
 const u = (id: string, w = 1080) =>
