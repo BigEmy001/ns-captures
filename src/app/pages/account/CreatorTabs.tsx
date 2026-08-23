@@ -96,7 +96,7 @@ export function CreatorTabs({
   active: string;
   onTabChange?: (tab: string) => void;
 }) {
-  const { user } = useAuth();
+  const { user, isViewingAs } = useAuth();
 
   // Supabase data
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -764,15 +764,17 @@ export function CreatorTabs({
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={() => {
-                    setUploadStep(1);
-                    setUploadOpen(true);
-                  }}
-                  className="flex items-center gap-2 bg-[#1e4a3f] hover:bg-[#123b31] px-5 py-2.5 text-sm font-semibold text-white rounded-full ns-shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
-                >
-                  <Upload className="size-4" /> Upload work
-                </button>
+                {!isViewingAs && (
+                  <button
+                    onClick={() => {
+                      setUploadStep(1);
+                      setUploadOpen(true);
+                    }}
+                    className="flex items-center gap-2 bg-[#1e4a3f] hover:bg-[#123b31] px-5 py-2.5 text-sm font-semibold text-white rounded-full ns-shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+                  >
+                    <Upload className="size-4" /> Upload work
+                  </button>
+                )}
               </div>
 
               {/* 1. OVERVIEW VIEW */}
@@ -1377,15 +1379,17 @@ export function CreatorTabs({
                     : `${submissionCounts.approved} photograph${submissionCounts.approved === 1 ? "" : "s"} live on the marketplace`}
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  setUploadStep(1);
-                  setUploadOpen(true);
-                }}
-                className="flex items-center gap-2 bg-[#1e4a3f] hover:bg-[#123b31] px-5 py-2.5 text-sm font-semibold text-white rounded-full ns-shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
-              >
-                <Upload className="size-4" /> Upload work
-              </button>
+              {!isViewingAs && (
+                <button
+                  onClick={() => {
+                    setUploadStep(1);
+                    setUploadOpen(true);
+                  }}
+                  className="flex items-center gap-2 bg-[#1e4a3f] hover:bg-[#123b31] px-5 py-2.5 text-sm font-semibold text-white rounded-full ns-shadow-sm transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
+                >
+                  <Upload className="size-4" /> Upload work
+                </button>
+              )}
             </div>
 
             <div className={`mb-6 flex-wrap gap-2 ${isSubmissionsView ? "flex" : "hidden"}`}>
@@ -1623,7 +1627,7 @@ export function CreatorTabs({
                 [
                   { id: "overview" as const, label: "Overview" },
                   { id: "methods" as const, label: "Methods" },
-                  { id: "request" as const, label: "Request Payout" },
+                  ...(isViewingAs ? [] : [{ id: "request" as const, label: "Request Payout" }]),
                 ] as const
               ).map((t) => (
                 <button

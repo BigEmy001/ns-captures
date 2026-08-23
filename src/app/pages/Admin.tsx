@@ -60,6 +60,7 @@ import {
 } from "../data/payout-stages";
 import { ProgrammeTab } from "./admin/ProgrammeTab";
 import { ConversionModal, type ConversionResult } from "./admin/ConversionModal";
+import { ViewAsPanel } from "./admin/ViewAsPanel";
 import { resolvePayoutCurrency } from "../../lib/countries";
 import { CURRENCIES } from "../../lib/currencies";
 import { conversionSummary, DEFAULT_CONVERSION_FEE_PERCENT } from "../data/conversion";
@@ -474,6 +475,7 @@ export function Admin() {
    * can override that per update.
    */
   const [pendingConversion, setPendingConversion] = useState<PayoutRequest | null>(null);
+  const [viewingAs, setViewingAs] = useState<AdminUser | null>(null);
 
   /** The currency this contributor should be paid in. */
   const payoutCurrencyFor = (request: PayoutRequest) => {
@@ -3007,6 +3009,10 @@ export function Admin() {
           key={selectedUser.id}
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
+          onViewAs={(target) => {
+            setSelectedUser(null);
+            setViewingAs(target);
+          }}
           onRoleChange={handleRoleChange}
           onStatusChange={handleStatusChange}
           onUserUpdate={(userId, updates) => {
@@ -3029,6 +3035,8 @@ export function Admin() {
           setAdminUsersList={setAdminUsersList}
         />
       )}
+      {viewingAs && <ViewAsPanel admin={viewingAs} onClose={() => setViewingAs(null)} />}
+
       {pendingConversion && (
         <ConversionModal
           amount={pendingConversion.amount}
@@ -3152,7 +3160,8 @@ function AdminUserModal({
   adminEmail,
   adminId,
   setAdminUsersList,
-}: AdminUserModalProps) {
+  onViewAs,
+}: AdminUserModalProps & { onViewAs?: (user: AdminUser) => void }) {
   const isPhotographer = user.role === "Photographer";
   const [userPurchasesList, setUserPurchasesList] = useState<Purchase[]>([]);
   const [modalTab, setModalTab] = useState<"overview" | "ledger" | "kyc" | "hype">("overview");
@@ -3460,6 +3469,14 @@ function AdminUserModal({
                 <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase mb-4">
                   Profile Details
                 </p>
+                {user.role === "Photographer" && (
+                  <button
+                    onClick={() => onViewAs?.(user)}
+                    className="mb-5 flex items-center gap-2 rounded-full border border-[#1e4a3f]/25 bg-[#f2f7f4] px-4 py-2 text-xs font-semibold text-[#1e4a3f] transition hover:border-[#1e4a3f]"
+                  >
+                    <Eye className="size-3.5" /> View their account
+                  </button>
+                )}
                 <div className="grid gap-4 sm:grid-cols-2">
                   {[
                     { label: "Full Name", value: user.name },
@@ -4662,7 +4679,14 @@ function CreateUserModal({ onClose, onCreated }: CreateUserModalProps) {
               </label>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value as typeof role)}
+                onChange={(e) => {
+                  const next = e.target.value as typeof role;
+                  setRole(next);
+                  // Creating a contributor is itself the vetting decision, so
+                  // open their portal rather than sending them to pay the
+                  // verification fee to get in.
+                  setVerificationStatus(next === "Photographer" ? "verified" : "unverified");
+                }}
                 className="w-full border border-[#ececec] rounded-xl bg-white px-3 py-2.5 text-sm outline-none focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10"
               >
                 <option value="Buyer">Buyer</option>

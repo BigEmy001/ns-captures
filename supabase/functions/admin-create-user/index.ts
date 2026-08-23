@@ -158,11 +158,15 @@ serve(async (req) => {
 
     // If Photographer role, ensure photographers table row exists
     if (role === "Photographer") {
-      const slug =
+      const base =
         name
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "") || `user-${userId.slice(0, 8)}`;
+          .replace(/^-+|-+$/g, "") || "photographer";
+      // Suffixed with the user id, as handle_new_user does: without it two
+      // contributors with the same name collide on one slug and end up
+      // sharing a portfolio.
+      const slug = `${base}-${userId.slice(0, 8)}`;
       const { error: pgError } = await adminClient.from("photographers").upsert({
         id: slug,
         name,

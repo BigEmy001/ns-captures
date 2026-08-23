@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  ReactNode,
+  useCallback,
+} from "react";
 import { useNavigate, useLocation } from "react-router";
 import { toast } from "sonner";
 import { isSupabaseReady, supabase } from "../../lib/supabase";
@@ -39,6 +47,8 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  /** True while an admin is looking at someone else's account, read-only. */
+  isViewingAs: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<void>;
   signup: (data: {
     firstName: string;
@@ -447,6 +457,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         isAuthenticated: !!user,
+        isViewingAs: false,
         login,
         signup,
         logout,
@@ -459,6 +470,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+/**
+ * Presents another person's account to the components inside it, without
+ * touching the admin's own session. Everything that would change data is
+ * replaced with a refusal, so the view is read-only by construction rather
+ * than by remembering to disable each control.
+ */
+export function ViewAsProvider({ user, children }: { user: AuthUser; children: ReactNode }) {
+  const real = useContext(AuthContext);
+  if (!real) throw new Error("ViewAsProvider must be used within AuthProvider");
+
+  const value = useMemo<AuthContextType>(() => {
+    const refuse = async () => {
+      toast.error("Read-only view", {
+        description: "You are looking at this account, not acting as them.",
+      });
+    };
+
+    return {
+      ...real,
+      user,
+      isViewingAs: true,
+      isAuthenticated: true,
+      isLoading: false,
+      login: refuse,
+      signup: async () => {
+        await refuse();
+        return { needsEmailConfirmation: false };
+      },
+      logout: () => {},
+      updateProfile: refuse,
+      upgradeToCreator: refuse,
+      changePassword: refuse,
+      refreshProfile: async () => {},
+    };
+  }, [real, user]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
