@@ -33,6 +33,11 @@ export interface Photo {
   customDownloads?: number;
   status?: string;
   acquisitionState?: string | null;
+  description?: string;
+  modelRelease?: string | null;
+  propertyRelease?: string | null;
+  copyrightDeclaredAt?: string | null;
+  reviewNote?: string | null;
 }
 
 const u = (id: string, w = 1080) =>
@@ -10576,6 +10581,9 @@ export interface Photographer {
   verified?: boolean;
   gear?: string[];
   email?: string;
+  /** Recognition status and specialties, read from the contributor's profile. */
+  contributorLevel?: string;
+  specialties?: string[];
 }
 
 export const photographers: Photographer[] = [

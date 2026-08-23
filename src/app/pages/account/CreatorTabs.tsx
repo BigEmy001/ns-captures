@@ -178,6 +178,9 @@ export function CreatorTabs({
   const [acquisitionCount, setAcquisitionCount] = useState(0);
   // Licences actually taken out, which is not the same as downloads.
   const [licensedCount, setLicensedCount] = useState(0);
+  const [perPhoto, setPerPhoto] = useState<Record<string, { licences: number; earned: number }>>(
+    {},
+  );
 
   useEffect(() => {
     if (!user?.id) return;
@@ -187,10 +190,35 @@ export function CreatorTabs({
 
   useEffect(() => {
     if (!user?.slug) return;
-    fetchLicensedWork(user.slug).then((rows) =>
-      setLicensedCount(rows.reduce((sum, r) => sum + r.licenceCount, 0)),
-    );
+    fetchLicensedWork(user.slug).then((rows) => {
+      setLicensedCount(rows.reduce((sum, r) => sum + r.licenceCount, 0));
+      setPerPhoto((prev) => {
+        const next = { ...prev };
+        for (const row of rows) {
+          next[row.photoId] = {
+            licences: row.licenceCount,
+            earned: next[row.photoId]?.earned || 0,
+          };
+        }
+        return next;
+      });
+    });
   }, [user?.slug]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    fetchContributorEarnings(user.id).then((rows) => {
+      setPerPhoto((prev) => {
+        const next = { ...prev };
+        for (const row of rows) {
+          if (!row.photoId || row.status === "pending") continue;
+          const existing = next[row.photoId] || { licences: 0, earned: 0 };
+          next[row.photoId] = { ...existing, earned: existing.earned + row.netAmount };
+        }
+        return next;
+      });
+    });
+  }, [user?.id]);
 
   const isSubmissionsView = active === "submissions";
 
@@ -315,6 +343,12 @@ export function CreatorTabs({
   const [uploadCategory, setUploadCategory] = useState("Portrait");
   const [uploadLocation, setUploadLocation] = useState("");
   const [uploadPrice, setUploadPrice] = useState("1000");
+  const [uploadDescription, setUploadDescription] = useState("");
+  const [uploadKeywords, setUploadKeywords] = useState("");
+  const [uploadLicense, setUploadLicense] = useState("COMMERCIAL");
+  const [modelRelease, setModelRelease] = useState("not_required");
+  const [propertyRelease, setPropertyRelease] = useState("not_required");
+  const [copyrightDeclared, setCopyrightDeclared] = useState(false);
   const [uploadFileName, setUploadFileName] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string>("");
@@ -598,6 +632,15 @@ export function CreatorTabs({
 
   // Publish: upload to Cloudinary + create DB record
   const handlePublishPhoto = async (intent: "published" | "draft" = "published") => {
+    // A draft is not a submission, so the declaration is only required when the
+    // photograph is actually being submitted.
+    if (intent !== "draft" && !copyrightDeclared) {
+      toast.error("Copyright declaration required", {
+        description: "Confirm you are the creator or authorised rights holder to submit.",
+      });
+      return;
+    }
+
     if (!uploadFile) {
       toast.error("No file selected");
       return;
@@ -617,8 +660,12 @@ export function CreatorTabs({
         title: uploadTitle || "Untitled Frame",
         photographerId: photographerId,
         photographer: user?.name || "Unknown Photographer",
-        license: "COMMERCIAL",
+        license: uploadLicense as Photo["license"],
         category: uploadCategory,
+        description: uploadDescription || undefined,
+        modelRelease,
+        propertyRelease,
+        copyrightDeclaredAt: new Date().toISOString(),
         location: uploadLocation || "",
         color: uploadColor,
         orientation: uploadOrientation,
@@ -630,7 +677,11 @@ export function CreatorTabs({
         camera: uploadCamera || "",
         lens: uploadLens || "",
         iso: uploadIso || 0,
-        keywords: [uploadCategory.toLowerCase(), "new-release"],
+        keywords: uploadKeywords
+          .split(",")
+          .map((k) => k.trim().toLowerCase())
+          .filter(Boolean)
+          .slice(0, 30),
         image: imageUrl,
         aperture: exifAperture || undefined,
         shutterSpeed: exifShutterSpeed || undefined,
@@ -673,6 +724,12 @@ export function CreatorTabs({
     setUploadCategory("Portrait");
     setUploadLocation("");
     setUploadPrice("1000");
+    setUploadDescription("");
+    setUploadKeywords("");
+    setUploadLicense("COMMERCIAL");
+    setModelRelease("not_required");
+    setPropertyRelease("not_required");
+    setCopyrightDeclared(false);
     setUploadFileName("");
     setUploadProgress(0);
     setUploadFile(null);
@@ -1156,6 +1213,110 @@ export function CreatorTabs({
                         />
                       </label>
 
+                      <label className="block">
+                        <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                          Description
+                        </span>
+                        <textarea
+                          rows={3}
+                          maxLength={600}
+                          value={uploadDescription}
+                          onChange={(e) => setUploadDescription(e.target.value)}
+                          placeholder="What is happening in this photograph, and where?"
+                          className="mt-2 w-full resize-none border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                        />
+                      </label>
+
+                      <label className="block">
+                        <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                          Keywords
+                        </span>
+                        <input
+                          value={uploadKeywords}
+                          onChange={(e) => setUploadKeywords(e.target.value)}
+                          placeholder="seoul, street, night, architecture"
+                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
+                        />
+                        <span className="mt-1 block text-[10px] text-[#8a8f89]">
+                          Comma separated. These are how customers find your work.
+                        </span>
+                      </label>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <label className="block">
+                          <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                            Commercial availability
+                          </span>
+                          <select
+                            value={uploadLicense}
+                            onChange={(e) => setUploadLicense(e.target.value)}
+                            className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]"
+                          >
+                            <option value="COMMERCIAL">Commercial</option>
+                            <option value="EDITORIAL">Editorial only</option>
+                            <option value="ROYALTY FREE">Royalty free</option>
+                            <option value="EXCLUSIVE">Exclusive</option>
+                          </select>
+                        </label>
+
+                        <label className="block">
+                          <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                            Model release
+                          </span>
+                          <select
+                            value={modelRelease}
+                            onChange={(e) => setModelRelease(e.target.value)}
+                            className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]"
+                          >
+                            <option value="not_required">No recognisable people</option>
+                            <option value="held">I hold a signed release</option>
+                            <option value="none">People shown, no release</option>
+                          </select>
+                        </label>
+
+                        <label className="block">
+                          <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
+                            Property release
+                          </span>
+                          <select
+                            value={propertyRelease}
+                            onChange={(e) => setPropertyRelease(e.target.value)}
+                            className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]"
+                          >
+                            <option value="not_required">No private property</option>
+                            <option value="held">I hold a signed release</option>
+                            <option value="none">Property shown, no release</option>
+                          </select>
+                        </label>
+                      </div>
+
+                      {(modelRelease === "none" || propertyRelease === "none") &&
+                        uploadLicense === "COMMERCIAL" && (
+                          <p className="rounded-xl bg-[#f6ecd8] p-3 text-xs text-[#7a5a17]">
+                            Without a release, commercial licensing may not be possible. NS CAPTURES
+                            may restrict this photograph to editorial use.
+                          </p>
+                        )}
+
+                      <div className="rounded-xl border border-[#1e4a3f]/20 bg-[#f2f7f4] p-4">
+                        <p className="font-mono text-[9px] tracking-wider text-[#1e4a3f] uppercase">
+                          Copyright declaration
+                        </p>
+                        <label className="mt-2 flex items-start gap-3 text-xs text-[#18211f]">
+                          <input
+                            type="checkbox"
+                            checked={copyrightDeclared}
+                            onChange={(e) => setCopyrightDeclared(e.target.checked)}
+                            className="mt-0.5 size-4 shrink-0 accent-[#1e4a3f]"
+                          />
+                          <span>
+                            I confirm that I am the creator or authorised rights holder of this
+                            photograph and that I have the necessary rights and permissions to
+                            submit it to NS CAPTURES.
+                          </span>
+                        </label>
+                      </div>
+
                       {/* EXIF Metadata Inputs */}
                       <div className="border border-[#ececec] bg-[#FAF9F5] rounded-xl p-4 space-y-4">
                         <p className="font-mono text-[9px] text-[#758078] uppercase tracking-wider">
@@ -1252,7 +1413,13 @@ export function CreatorTabs({
                         <button
                           type="button"
                           onClick={() => handlePublishPhoto("published")}
-                          className="bg-[#1e4a3f] hover:bg-[#123b31] px-6 py-2.5 text-sm font-semibold text-white rounded-full transition-all duration-200 cursor-pointer shadow-md"
+                          disabled={!copyrightDeclared}
+                          title={
+                            copyrightDeclared
+                              ? undefined
+                              : "Accept the copyright declaration to submit"
+                          }
+                          className="bg-[#1e4a3f] hover:bg-[#123b31] px-6 py-2.5 text-sm font-semibold text-white rounded-full transition-all duration-200 cursor-pointer shadow-md disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           {moderationRequired ? "Submit for Review" : "Publish to Archive"}
                         </button>
@@ -1516,6 +1683,20 @@ export function CreatorTabs({
                           {photo.category} · {photo.orientation}
                         </p>
                       )}
+                      {(perPhoto[photo.id]?.licences || perPhoto[photo.id]?.earned) && (
+                        <p className="mt-1.5 font-mono text-[10px] text-[#758078]">
+                          {perPhoto[photo.id]?.licences || 0} licence
+                          {perPhoto[photo.id]?.licences === 1 ? "" : "s"} · £
+                          {Math.round(perPhoto[photo.id]?.earned || 0).toLocaleString()} earned
+                        </p>
+                      )}
+
+                      {photo.reviewNote && submissionStatus(photo).key === "declined" && (
+                        <p className="mt-2 rounded-lg bg-[#fcf1f3] p-2 text-[11px] text-[#8c2f3f]">
+                          {photo.reviewNote}
+                        </p>
+                      )}
+
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#ececec]/60">
                         {editingPriceId === photo.id ? (
                           <div className="flex items-center gap-1.5">

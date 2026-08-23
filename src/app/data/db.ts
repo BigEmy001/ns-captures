@@ -161,6 +161,34 @@ export interface EarningsSummary {
 // PHOTOGRAPHERS
 // ============================================================
 
+/**
+ * Recognition level and specialties for a set of contributor slugs. Kept apart
+ * from the photographers table because they live on the profile, and absent
+ * until the programme migrations run — in which case nothing is added.
+ */
+export async function fetchContributorPublicFields(
+  slugs: string[],
+): Promise<Record<string, { contributorLevel?: string; specialties?: string[] }>> {
+  if (slugs.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("slug, contributor_level, specialties")
+    .in("slug", slugs);
+
+  if (error || !data) return {};
+
+  const map: Record<string, { contributorLevel?: string; specialties?: string[] }> = {};
+  for (const row of data as any[]) {
+    if (!row.slug) continue;
+    map[row.slug] = {
+      contributorLevel: row.contributor_level || undefined,
+      specialties: row.specialties || undefined,
+    };
+  }
+  return map;
+}
+
 export async function fetchPhotographers(): Promise<Photographer[]> {
   return withRetry(
     async () => {
@@ -272,6 +300,11 @@ function rowToPhoto(row: any): Photo {
     customDownloads: row.custom_downloads || undefined,
     status: row.status || "published",
     acquisitionState: row.acquisition_state ?? null,
+    description: row.description || undefined,
+    modelRelease: row.model_release ?? null,
+    propertyRelease: row.property_release ?? null,
+    copyrightDeclaredAt: row.copyright_declared_at ?? null,
+    reviewNote: row.review_note ?? null,
   };
 }
 
@@ -1108,6 +1141,20 @@ export async function createPhoto(
     console.error("createPhoto", error);
     return null;
   }
+
+  // Submission metadata lives in a later migration; a photograph must still
+  // upload without it.
+  const metadata: Record<string, unknown> = {};
+  if (photo.description) metadata.description = photo.description;
+  if (photo.modelRelease) metadata.model_release = photo.modelRelease;
+  if (photo.propertyRelease) metadata.property_release = photo.propertyRelease;
+  if (photo.copyrightDeclaredAt) metadata.copyright_declared_at = photo.copyrightDeclaredAt;
+
+  if (Object.keys(metadata).length > 0) {
+    const { error: metaError } = await supabase.from("photos").update(metadata).eq("id", photo.id);
+    if (metaError) console.warn("createPhoto metadata skipped:", metaError.message);
+  }
+
   return rowToPhoto(data);
 }
 
@@ -2735,14 +2782,25 @@ export async function resolveModeration(
     ).data?.photo_id;
 
   if (targetId) {
+    const status = approve ? "published" : "rejected";
+
     const { error: photoError } = await supabase
       .from("photos")
-      .update({ status: approve ? "published" : "rejected" })
+      .update({ status, review_note: note || null })
       .eq("id", targetId);
 
     if (photoError) {
-      console.error("resolveModeration (photo status)", photoError);
-      return false;
+      // review_note arrives with a later migration; the decision itself must
+      // still land.
+      const { error: statusError } = await supabase
+        .from("photos")
+        .update({ status })
+        .eq("id", targetId);
+
+      if (statusError) {
+        console.error("resolveModeration (photo status)", statusError);
+        return false;
+      }
     }
   }
 

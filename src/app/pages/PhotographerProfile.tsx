@@ -17,10 +17,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import {
   fetchPhotographer,
   fetchPhotosByPhotographer,
+  fetchContributorPublicFields,
   type Photographer,
   type Photo,
   getOptimizedImageUrl,
 } from "../data/db";
+import { contributorLevelLabel } from "../data/contributor";
 import { NotFound } from "./NotFound";
 
 type Tab = "highlights" | "gallery" | "collections" | "statistics";
@@ -33,10 +35,14 @@ export function PhotographerProfile() {
   useEffect(() => {
     const load = async () => {
       const p = await fetchPhotographer(id ?? "");
-      setPhotographer(p);
       if (p) {
+        // Recognition and specialties live on the contributor's profile.
+        const extra = await fetchContributorPublicFields([id ?? ""]);
+        setPhotographer({ ...p, ...(extra[id ?? ""] || {}) });
         const photos = await fetchPhotosByPhotographer(id ?? "");
         setShots(photos);
+      } else {
+        setPhotographer(p);
       }
     };
     load();
@@ -102,10 +108,25 @@ export function PhotographerProfile() {
               <h1 className="font-serif text-3xl leading-none sm:text-4xl">{photographer.name}</h1>
               {photographer.verified && <BadgeCheck className="size-6 text-[#1e4a3f]" />}
             </div>
+            <p className="mt-1.5 font-mono text-[10px] tracking-[0.14em] text-[#49685d] uppercase">
+              {contributorLevelLabel(photographer.contributorLevel)}
+            </p>
             <p className="mt-3 max-w-md text-sm leading-6 text-[#59645f]">{photographer.bio}</p>
             <p className="mt-3 flex items-center gap-1.5 text-sm text-[#6b716d]">
               <MapPin className="size-4" /> {photographer.location}
             </p>
+            {photographer.specialties && photographer.specialties.length > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-1.5">
+                {photographer.specialties.map((s) => (
+                  <li
+                    key={s}
+                    className="rounded-full border border-[#ececec] bg-white px-3 py-1 text-xs text-[#59645f]"
+                  >
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 

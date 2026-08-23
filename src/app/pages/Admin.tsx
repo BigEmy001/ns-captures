@@ -577,7 +577,17 @@ export function Admin() {
   };
 
   const resolve = async (id: string, approve: boolean, photoId?: string) => {
-    const ok = await resolveModeration(id, approve, photoId);
+    // A decline the contributor cannot understand is not a review.
+    const note = approve
+      ? ""
+      : (window.prompt(
+          "Decline this submission?\n\nReason shown to the contributor:",
+          "Not selected for marketplace publication.",
+        ) ?? null);
+
+    if (note === null) return;
+
+    const ok = await resolveModeration(id, approve, photoId, note || undefined);
     if (ok) {
       setQueue((q) => q.filter((m) => m.id !== id));
       if (photoId) {
