@@ -69,6 +69,7 @@ import {
 import { maskAccount } from "../../../lib/mask";
 import { PayoutTimeline } from "./PayoutTimeline";
 import { stageMeta, isTerminal, availableForPayout } from "../../data/payout-stages";
+import { isProgrammeRole } from "../../data/roles";
 import { getStagedPhotos, type StagedPhoto } from "../../../lib/staging";
 import { CURRENCY_GROUPS, currencyLabel } from "../../../lib/currencies";
 import { sendPayoutRequestSubmitted, sendAdminNotification } from "../../../lib/email";
@@ -195,11 +196,15 @@ export function CreatorTabs({
     {},
   );
 
+  const inProgramme = isProgrammeRole(user?.role);
+
   useEffect(() => {
     if (!user?.id) return;
     fetchContributorEarnings(user.id).then((rows) => setEarningsSummary(summariseEarnings(rows)));
-    fetchAcquisitions(user.id).then((rows) => setAcquisitionCount(rows.length));
-  }, [user?.id]);
+    if (inProgramme) {
+      fetchAcquisitions(user.id).then((rows) => setAcquisitionCount(rows.length));
+    }
+  }, [user?.id, inProgramme]);
 
   useEffect(() => {
     if (!user?.slug) return;
@@ -781,12 +786,16 @@ export function CreatorTabs({
     })),
   ];
 
+  // A photographer sells through the marketplace; direct acquisitions belong
+  // to the programme and would only ever read zero on their dashboard.
   const stats = [
     { label: "TOTAL PHOTOS", value: portfolioPhotos.length.toLocaleString() },
     { label: "PUBLISHED", value: submissionCounts.approved.toLocaleString() },
     { label: "UNDER REVIEW", value: submissionCounts.underReview.toLocaleString() },
     { label: "LICENSED", value: licensedCount.toLocaleString() },
-    { label: "DIRECT ACQUISITIONS", value: acquisitionCount.toLocaleString() },
+    ...(inProgramme
+      ? [{ label: "DIRECT ACQUISITIONS", value: acquisitionCount.toLocaleString() }]
+      : []),
     {
       label: "TOTAL EARNINGS",
       value: `£${Math.round(earningsSummary.lifetime).toLocaleString()}`,
@@ -816,7 +825,9 @@ export function CreatorTabs({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <Eyebrow>PHOTOGRAPHER DASHBOARD</Eyebrow>
+                  <Eyebrow>
+                    {inProgramme ? "CONTRIBUTOR DASHBOARD" : "PHOTOGRAPHER DASHBOARD"}
+                  </Eyebrow>
                   <h1 className="mt-2 font-serif text-3xl sm:text-4xl tracking-tight text-[#18211f]">
                     {(() => {
                       const h = new Date().getHours();
@@ -824,7 +835,7 @@ export function CreatorTabs({
                     })()}
                   </h1>
                   <p className="mt-2 text-sm text-[#59645f]">
-                    {contributorLevelLabel(user?.contributorLevel)}
+                    {inProgramme ? contributorLevelLabel(user?.contributorLevel) : "Photographer"}
                     {(user?.city || user?.country) &&
                       ` · ${[user?.city, user?.country].filter(Boolean).join(", ")}`}
                   </p>

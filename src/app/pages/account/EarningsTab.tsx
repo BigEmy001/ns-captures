@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { format, isAfter, subMonths, startOfMonth, startOfYear } from "date-fns";
 import { Badge, Eyebrow } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
+import { isProgrammeRole } from "../../data/roles";
 import {
   fetchContributorEarnings,
   summariseEarnings,
@@ -91,7 +92,12 @@ export function EarningsTab() {
     });
   }, [entries, typeFilter, statusFilter, period, search]);
 
+  // Acquisitions, bonuses and awards are programme earnings. Showing them at
+  // zero to a marketplace photographer implies they are owed something.
+  const inProgramme = isProgrammeRole(user?.role);
+
   const breakdown = (["licensing", "acquisition", "bonus", "award", "adjustment"] as EarningType[])
+    .filter((type) => inProgramme || type === "licensing" || type === "adjustment")
     .map((type) => ({ type, amount: summary.byType[type] }))
     .filter((row) => row.type !== "adjustment" || row.amount !== 0);
 
@@ -172,11 +178,13 @@ export function EarningsTab() {
                 className="rounded-lg border border-[#ececec] px-3 py-2 text-sm outline-none focus:border-[#1e4a3f]"
               >
                 <option value="all">All types</option>
-                {(Object.keys(TYPE_LABELS) as EarningType[]).map((type) => (
-                  <option key={type} value={type}>
-                    {TYPE_LABELS[type]}
-                  </option>
-                ))}
+                {(Object.keys(TYPE_LABELS) as EarningType[])
+                  .filter((type) => inProgramme || type === "licensing" || type === "adjustment")
+                  .map((type) => (
+                    <option key={type} value={type}>
+                      {TYPE_LABELS[type]}
+                    </option>
+                  ))}
               </select>
               <select
                 value={statusFilter}
