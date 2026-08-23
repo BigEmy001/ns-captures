@@ -480,7 +480,7 @@ export function Admin() {
 
     if (note === null) return;
 
-    const ok = await advancePayoutStage(request, stage, {
+    const { ok, stageStored } = await advancePayoutStage(request, stage, {
       note: note || undefined,
       adminId: user?.id,
     });
@@ -499,10 +499,13 @@ export function Admin() {
     );
 
     const notifies = stageNotifiesByDefault(stage);
+
     toast.success(meta.label, {
-      description: notifies
-        ? "The contributor has been emailed."
-        : "Visible on the contributor's timeline.",
+      description: !stageStored
+        ? `Saved as ${statusForStage(stage)}. The detailed timeline needs migration 036.`
+        : notifies
+          ? "The contributor has been emailed."
+          : "Visible on the contributor's timeline.",
     });
 
     if (!notifies) return;

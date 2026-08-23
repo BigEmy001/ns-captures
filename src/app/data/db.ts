@@ -2184,39 +2184,61 @@ function stageFromLegacyStatus(status: string): PayoutStage {
  * balance is debited once when the payout is approved, and the earnings ledger
  * is settled when it completes.
  */
+export interface PayoutStageResult {
+  ok: boolean;
+  /** False when the timeline schema is not installed and only the coarse status moved. */
+  stageStored: boolean;
+}
+
 export async function advancePayoutStage(
   request: PayoutRequest,
   stage: PayoutStage,
   options: { note?: string; adminId?: string } = {},
-): Promise<boolean> {
+): Promise<PayoutStageResult> {
   const status = statusForStage(stage);
   const alreadyCommitted =
     request.status === "APPROVED" || request.status === "PAID" || request.stage === "approved";
 
+  const core = {
+    status,
+    admin_note: options.note ?? request.adminNote,
+    processed_at: new Date().toISOString(),
+  };
+
+  let stageStored = true;
+
   const { error } = await supabase
     .from("payout_requests")
-    .update({
-      stage,
-      status,
-      admin_note: options.note ?? request.adminNote,
-      processed_at: new Date().toISOString(),
-    })
+    .update({ ...core, stage })
     .eq("id", request.id);
 
   if (error) {
-    console.error("advancePayoutStage", error);
-    return false;
+    // The timeline columns are not installed. Actioning a payout must still
+    // work, so fall back to the coarse status the platform already reads.
+    stageStored = false;
+
+    const { error: coreError } = await supabase
+      .from("payout_requests")
+      .update(core)
+      .eq("id", request.id);
+
+    if (coreError) {
+      console.error("advancePayoutStage", coreError);
+      return { ok: false, stageStored: false };
+    }
   }
 
-  await supabase.from("payout_events").insert({
-    payout_request_id: request.id,
-    stage,
-    note: options.note || null,
-    created_by: options.adminId || null,
-  });
+  if (stageStored) {
+    await supabase.from("payout_events").insert({
+      payout_request_id: request.id,
+      stage,
+      note: options.note || null,
+      created_by: options.adminId || null,
+    });
+  }
 
   const profileId = await profileIdForSlug(request.photographerId);
-  if (!profileId) return true;
+  if (!profileId) return { ok: true, stageStored };
 
   // Debit once, when the payout is approved.
   if (stage === "approved" && !alreadyCommitted) {
@@ -2228,7 +2250,7 @@ export async function advancePayoutStage(
 
     if (debitError) {
       console.error("advancePayoutStage debit", debitError);
-      return false;
+      return { ok: false, stageStored };
     }
   }
 
@@ -2241,7 +2263,7 @@ export async function advancePayoutStage(
     });
   }
 
-  return true;
+  return { ok: true, stageStored };
 }
 
 /** payout_requests keys the photographer by profile slug, not by user id. */
