@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { fetchPayoutEvents, type PayoutEvent, type PayoutRequest } from "../../data/db";
-import {
-  PAYOUT_STAGES,
-  isTerminal,
-  stageIndex,
-  stageMeta,
-  type PayoutStage,
-} from "../../data/payout-stages";
+import { isTerminal, stageMetaFor, stagesForMethod } from "../../data/payout-stages";
 import { formatConverted } from "../../data/conversion";
 
 /**
@@ -44,10 +38,14 @@ export function PayoutTimeline({
     if (!reachedAt.has(event.stage)) reachedAt.set(event.stage, event);
   }
 
+  // A wallet payout does not cross correspondent banks, so it does not show
+  // steps it can never reach.
+  const steps = stagesForMethod(request.method);
+  const currentIdx = steps.findIndex((s) => s.id === current);
+
   const converted = request.convertedAmount !== null && request.conversionRate !== null;
   const currency = request.payoutCurrency || "GBP";
   const current = request.stage;
-  const currentIndex = stageIndex(current);
   const ended = isTerminal(current);
 
   if (isLoading) {
@@ -58,8 +56,12 @@ export function PayoutTimeline({
     <div>
       {ended && (
         <div className="mb-4 rounded-xl border border-[#ececec] bg-[#f7f7f5] p-4">
-          <p className="text-sm font-semibold text-[#18211f]">{stageMeta(current).label}</p>
-          <p className="mt-0.5 text-xs text-[#59645f]">{stageMeta(current).body}</p>
+          <p className="text-sm font-semibold text-[#18211f]">
+            {stageMetaFor(request.method, current).label}
+          </p>
+          <p className="mt-0.5 text-xs text-[#59645f]">
+            {stageMetaFor(request.method, current).body}
+          </p>
           {request.adminNote && (
             <p className="mt-2 text-xs text-[#59645f]">
               <span className="font-semibold">Reason:</span> {request.adminNote}
@@ -69,13 +71,13 @@ export function PayoutTimeline({
       )}
 
       <ol className="relative space-y-0">
-        {PAYOUT_STAGES.map((step, i) => {
+        {steps.map((step, i) => {
           const event = reachedAt.get(step.id);
           const reached = Boolean(event);
           const isCurrent = !ended && step.id === current;
           // A conditional step the payout has already moved past was simply
           // not applicable to this transfer.
-          const skipped = !reached && !ended && currentIndex > i && step.conditional;
+          const skipped = !reached && !ended && currentIdx > i && step.conditional;
           const pending = !reached && !isCurrent && !skipped;
 
           return (
@@ -93,7 +95,7 @@ export function PayoutTimeline({
                 >
                   {isCurrent && <span className="size-1.5 rounded-full bg-[#1e4a3f]" />}
                 </span>
-                {i < PAYOUT_STAGES.length - 1 && (
+                {i < steps.length - 1 && (
                   <span
                     aria-hidden="true"
                     className={`w-0.5 flex-1 ${reached ? "bg-[#1e4a3f]" : "bg-[#e8e8e2]"}`}
@@ -190,6 +192,12 @@ export function PayoutTimeline({
                   </>
                 )}
 
+                {step.id === "network_processing" && request.transactionReference && (
+                  <p className="mt-1.5 rounded-lg bg-[#FAF9F5] p-2 font-mono text-[10px] break-all text-[#18211f]">
+                    {request.transactionReference}
+                  </p>
+                )}
+
                 {event?.note && step.id !== "currency_conversion" && (
                   <p className="mt-1 text-xs text-[#59645f]">{event.note}</p>
                 )}
@@ -200,8 +208,4 @@ export function PayoutTimeline({
       </ol>
     </div>
   );
-}
-
-export function stageLabel(stage: PayoutStage): string {
-  return stageMeta(stage).label;
 }

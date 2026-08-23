@@ -77,6 +77,88 @@ export const PAYOUT_STAGES: readonly PayoutStageMeta[] = [
   },
 ] as const;
 
+export type PayoutMethod = "card" | "local_bank" | "crypto" | "paypal";
+
+/**
+ * Which stages a payout actually passes through, by method.
+ *
+ * A bank transfer really does cross correspondent banks and a recipient bank,
+ * and can sit in each for a day. A crypto payout does not: it is reviewed,
+ * approved, broadcast, and confirmed. Showing a wallet payout ten steps — seven
+ * of which can never happen — would be theatre, and would make the timeline
+ * look stuck rather than informative.
+ */
+const METHOD_STAGE_IDS: Record<PayoutMethod, PayoutStage[]> = {
+  card: [
+    "requested",
+    "under_review",
+    "approved",
+    "processing",
+    "currency_conversion",
+    "network_processing",
+    "intermediary_processing",
+    "recipient_bank_processing",
+    "delivered",
+    "completed",
+  ],
+  local_bank: [
+    "requested",
+    "under_review",
+    "approved",
+    "processing",
+    "currency_conversion",
+    "network_processing",
+    "recipient_bank_processing",
+    "delivered",
+    "completed",
+  ],
+  crypto: ["requested", "under_review", "approved", "network_processing", "completed"],
+  paypal: ["requested", "under_review", "approved", "network_processing", "completed"],
+};
+
+/** Wording that differs by method, where the generic label would mislead. */
+const METHOD_OVERRIDES: Partial<
+  Record<PayoutMethod, Partial<Record<PayoutStage, PayoutStageMeta>>>
+> = {
+  crypto: {
+    network_processing: {
+      id: "network_processing",
+      label: "Transaction Sent",
+      body: "Your payout has been broadcast to the network. The transaction reference is below.",
+      adminBody: "Broadcast to the network. Record the transaction hash.",
+    },
+    completed: {
+      id: "completed",
+      label: "Confirmed",
+      body: "The transaction has confirmed and the funds are in your wallet.",
+      adminBody: "Confirmed on chain. Closes the payout and settles the ledger.",
+    },
+  },
+  paypal: {
+    network_processing: {
+      id: "network_processing",
+      label: "Payment Sent",
+      body: "Your payout has been sent to your PayPal account.",
+      adminBody: "Sent through PayPal. Record the transaction reference.",
+    },
+  },
+};
+
+export function stagesForMethod(method: string | undefined): PayoutStageMeta[] {
+  const ids = METHOD_STAGE_IDS[(method as PayoutMethod) || "card"] || METHOD_STAGE_IDS.card;
+  const overrides = METHOD_OVERRIDES[(method as PayoutMethod) || "card"] || {};
+
+  return ids.map(
+    (id) => overrides[id] || PAYOUT_STAGES.find((s) => s.id === id) || PAYOUT_STAGES[0],
+  );
+}
+
+/** The label for one stage, in the wording that method uses. */
+export function stageMetaFor(method: string | undefined, stage: PayoutStage): PayoutStageMeta {
+  const overrides = METHOD_OVERRIDES[(method as PayoutMethod) || "card"] || {};
+  return overrides[stage] || stageMeta(stage);
+}
+
 export const TERMINAL_STAGES: readonly PayoutStageMeta[] = [
   {
     id: "rejected",

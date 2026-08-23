@@ -2159,6 +2159,7 @@ export interface PayoutRequest {
   conversionFeeStatus: string | null;
   conversionFeePaidAt: string | null;
   convertedAmount: number | null;
+  transactionReference: string | null;
 }
 
 export interface PayoutConversion {
@@ -2242,6 +2243,7 @@ export async function createPayoutRequest(
     conversionFeeStatus: data.conversion_fee_status ?? null,
     conversionFeePaidAt: data.conversion_fee_paid_at ?? null,
     convertedAmount: data.converted_amount ?? null,
+    transactionReference: data.transaction_reference ?? null,
     adminNote: data.admin_note || "",
     requestedAt: data.requested_at,
     processedAt: data.processed_at,
@@ -2276,6 +2278,7 @@ export async function fetchPayoutRequests(photographerId?: string): Promise<Payo
     conversionFeeStatus: r.conversion_fee_status ?? null,
     conversionFeePaidAt: r.conversion_fee_paid_at ?? null,
     convertedAmount: r.converted_amount ?? null,
+    transactionReference: r.transaction_reference ?? null,
     requestedAt: r.requested_at,
     processedAt: r.processed_at,
   }));
@@ -2304,7 +2307,12 @@ export interface PayoutStageResult {
 export async function advancePayoutStage(
   request: PayoutRequest,
   stage: PayoutStage,
-  options: { note?: string; adminId?: string; conversion?: PayoutConversion } = {},
+  options: {
+    note?: string;
+    adminId?: string;
+    conversion?: PayoutConversion;
+    transactionReference?: string;
+  } = {},
 ): Promise<PayoutStageResult> {
   const status = statusForStage(stage);
   const alreadyCommitted =
@@ -2315,6 +2323,10 @@ export async function advancePayoutStage(
     admin_note: options.note ?? request.adminNote,
     processed_at: new Date().toISOString(),
   };
+
+  const referencePatch = options.transactionReference
+    ? { transaction_reference: options.transactionReference }
+    : {};
 
   const conversionPatch = options.conversion
     ? {
@@ -2334,7 +2346,7 @@ export async function advancePayoutStage(
 
   const { error } = await supabase
     .from("payout_requests")
-    .update({ ...core, ...conversionPatch, stage })
+    .update({ ...core, ...conversionPatch, ...referencePatch, stage })
     .eq("id", request.id);
 
   if (error) {

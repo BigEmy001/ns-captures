@@ -53,9 +53,9 @@ import { format } from "date-fns";
 import { submissionStatus, CONTRIBUTOR_LEVELS } from "../data/contributor";
 import { isCreatorRole, isProgrammeRole } from "../data/roles";
 import {
-  PAYOUT_STAGES,
   TERMINAL_STAGES,
-  stageMeta,
+  stageMetaFor,
+  stagesForMethod,
   stageNotifiesByDefault,
   statusForStage,
   type PayoutStage,
@@ -502,8 +502,26 @@ export function Admin() {
       return;
     }
 
-    const meta = stageMeta(stage);
+    const meta = stageMetaFor(request.method, stage);
     const wantsNote = stage === "rejected" || stage === "cancelled";
+
+    // The transaction hash is the one thing a crypto recipient can verify for
+    // themselves, so capture it at the moment the payout is sent.
+    let transactionReference: string | undefined;
+    if (stage === "network_processing" && !request.transactionReference) {
+      const prompt =
+        request.method === "crypto"
+          ? "Transaction hash for this payout:"
+          : "Transaction or payment reference (optional):";
+      transactionReference =
+        window.prompt(`${meta.label} — £${request.amount.toLocaleString()}\n\n${prompt}`, "") ||
+        undefined;
+
+      if (request.method === "crypto" && !transactionReference) {
+        toast.error("A transaction hash is required for a crypto payout");
+        return;
+      }
+    }
 
     const note = wantsNote
       ? (window.prompt(
@@ -521,6 +539,7 @@ export function Admin() {
     const { ok, stageStored } = await advancePayoutStage(request, stage, {
       note: conversionNote || note || undefined,
       adminId: user?.id,
+      transactionReference,
       conversion: conversion
         ? {
             currency: conversion.currency,
@@ -547,6 +566,7 @@ export function Admin() {
               stage,
               status: statusForStage(stage),
               adminNote: conversionNote || note || r.adminNote,
+              transactionReference: transactionReference || r.transactionReference,
               ...(conversion
                 ? {
                     payoutCurrency: conversion.currency,
@@ -1704,7 +1724,7 @@ export function Admin() {
                                       : "bg-amber-50 text-amber-700"
                                 }`}
                               >
-                                {stageMeta(pr.stage).label}
+                                {stageMetaFor(pr.method, pr.stage).label}
                               </span>
                               {pr.conversionFeeStatus === "outstanding" && (
                                 <button
@@ -1746,7 +1766,7 @@ export function Admin() {
                                 className="rounded-lg border border-[#ececec] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#1e4a3f]"
                               >
                                 <optgroup label="Progress">
-                                  {PAYOUT_STAGES.map((s) => (
+                                  {stagesForMethod(pr.method).map((s) => (
                                     <option key={s.id} value={s.id}>
                                       {s.label}
                                     </option>

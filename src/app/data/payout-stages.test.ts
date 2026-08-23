@@ -8,6 +8,8 @@ import {
   stageNotifiesByDefault,
   statusForStage,
   availableForPayout,
+  stagesForMethod,
+  stageMetaFor,
   type PayoutStage,
 } from "./payout-stages";
 
@@ -117,5 +119,68 @@ describe("availableForPayout", () => {
 
   it("is the full balance when nothing is pending", () => {
     expect(availableForPayout(23870, [])).toBe(23870);
+  });
+});
+
+describe("stagesForMethod", () => {
+  it("gives a bank transfer the full correspondent-bank journey", () => {
+    const ids = stagesForMethod("card").map((s) => s.id);
+    expect(ids).toContain("intermediary_processing");
+    expect(ids).toContain("recipient_bank_processing");
+    expect(ids).toHaveLength(10);
+  });
+
+  it("drops the intermediary step for a local transfer", () => {
+    const ids = stagesForMethod("local_bank").map((s) => s.id);
+    expect(ids).not.toContain("intermediary_processing");
+    expect(ids).toContain("recipient_bank_processing");
+  });
+
+  it("gives crypto a short journey — no banks are involved", () => {
+    const ids = stagesForMethod("crypto").map((s) => s.id);
+    expect(ids).toEqual([
+      "requested",
+      "under_review",
+      "approved",
+      "network_processing",
+      "completed",
+    ]);
+    expect(ids).not.toContain("currency_conversion");
+    expect(ids).not.toContain("recipient_bank_processing");
+  });
+
+  it("keeps PayPal short too", () => {
+    expect(stagesForMethod("paypal")).toHaveLength(5);
+  });
+
+  it("falls back to the bank journey for an unknown method", () => {
+    expect(stagesForMethod(undefined)).toHaveLength(10);
+    expect(stagesForMethod("something-new")).toHaveLength(10);
+  });
+
+  it("every stage it offers is one the platform knows", () => {
+    for (const method of ["card", "local_bank", "crypto", "paypal"]) {
+      for (const step of stagesForMethod(method)) {
+        expect(statusForStage(step.id as PayoutStage)).toBeTruthy();
+      }
+    }
+  });
+});
+
+describe("stageMetaFor", () => {
+  it("calls the network step a transaction for crypto, not bank processing", () => {
+    expect(stageMetaFor("crypto", "network_processing").label).toBe("Transaction Sent");
+    expect(stageMetaFor("card", "network_processing").label).toBe(
+      "Bank / Payment Network Processing",
+    );
+  });
+
+  it("tells a crypto contributor the funds are in their wallet", () => {
+    expect(stageMetaFor("crypto", "completed").label).toBe("Confirmed");
+    expect(stageMetaFor("crypto", "completed").body).toContain("wallet");
+  });
+
+  it("leaves stages without an override alone", () => {
+    expect(stageMetaFor("crypto", "approved").label).toBe("Payout Approved");
   });
 });
