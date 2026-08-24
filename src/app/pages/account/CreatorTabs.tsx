@@ -68,6 +68,7 @@ import {
 } from "../../data/contributor";
 import { maskAccount } from "../../../lib/mask";
 import { PayoutTimeline } from "./PayoutTimeline";
+import { SettleChargeModal } from "./SettleChargeModal";
 import { stageMetaFor, isTerminal, availableForPayout } from "../../data/payout-stages";
 import { isProgrammeRole } from "../../data/roles";
 import { getStagedPhotos, type StagedPhoto } from "../../../lib/staging";
@@ -1819,6 +1820,17 @@ export function CreatorTabs({
         </div>
       )}
 
+      {settlingCharge && (
+        <SettleChargeModal
+          request={settlingCharge}
+          contributorName={user?.name || ""}
+          onClose={() => setSettlingCharge(null)}
+          onSubmitted={() => {
+            if (photographerId) fetchPayoutRequests(photographerId).then(setPayoutRequests);
+          }}
+        />
+      )}
+
       {active === "payouts" && (
         <div className="w-full bg-[#FAF9F5] py-8 sm:py-12 min-h-screen">
           <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
@@ -1940,111 +1952,6 @@ export function CreatorTabs({
                         </div>
                       );
                     })}
-                  </div>
-                )}
-
-                {settlingCharge && (
-                  <div className="mb-6 rounded-2xl border border-[#e0b04a]/40 bg-white p-6 ns-shadow-sm">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div>
-                        <h3 className="font-serif text-lg text-[#18211f]">
-                          Settle conversion charge
-                        </h3>
-                        <p className="mt-1 text-sm text-[#59645f]">
-                          £
-                          {(settlingCharge.conversionFeeGbp || 0).toLocaleString("en-GB", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}{" "}
-                          on your {settlingCharge.payoutCurrency} payout. Pay using any method
-                          below, then upload your proof of transfer.
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setSettlingCharge(null)}
-                        className="rounded-full border border-[#ececec] px-4 py-1.5 text-xs font-semibold text-[#4a534e] transition hover:border-[#1e4a3f]"
-                      >
-                        Close
-                      </button>
-                    </div>
-
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      {adminPaymentMethods.length === 0 ? (
-                        <p className="text-sm text-[#758078]">
-                          No payment methods are published yet. Contact NS CAPTURES to arrange
-                          payment.
-                        </p>
-                      ) : (
-                        adminPaymentMethods.map((method) => (
-                          <div
-                            key={method.id}
-                            className="rounded-xl border border-[#ececec] bg-[#FAF9F5] p-4"
-                          >
-                            <p className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
-                              {method.methodType}
-                            </p>
-                            <p className="mt-1 text-sm font-semibold text-[#18211f]">
-                              {method.name}
-                            </p>
-                            {Object.entries(method.details || {})
-                              .filter(([, v]) => typeof v === "string" && v)
-                              .map(([k, v]) => (
-                                <p
-                                  key={k}
-                                  className="mt-1 font-mono text-[11px] break-all text-[#59645f]"
-                                >
-                                  {k}: {String(v)}
-                                </p>
-                              ))}
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    <label className="mt-5 block">
-                      <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
-                        Proof of transfer
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*,application/pdf"
-                        onChange={(e) => setChargeReceipt(e.target.files?.[0] || null)}
-                        className="mt-2 w-full text-sm text-[#4a534e]"
-                      />
-                    </label>
-
-                    <button
-                      onClick={async () => {
-                        if (!chargeReceipt) {
-                          toast.error("Upload your proof of transfer first");
-                          return;
-                        }
-                        setSubmittingCharge(true);
-                        try {
-                          const url = await uploadToCloudinary(chargeReceipt);
-                          const ok = await submitConversionFeePayment(
-                            settlingCharge.id,
-                            url,
-                            "Contributor transfer",
-                          );
-                          if (!ok) throw new Error("Could not record the payment");
-                          toast.success("Payment submitted", {
-                            description:
-                              "NS CAPTURES will confirm receipt and mark the charge settled.",
-                          });
-                          setSettlingCharge(null);
-                          setChargeReceipt(null);
-                        } catch (err: any) {
-                          toast.error(err.message || "Could not submit the payment");
-                        } finally {
-                          setSubmittingCharge(false);
-                        }
-                      }}
-                      disabled={submittingCharge}
-                      className="mt-4 rounded-full bg-[#1e4a3f] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:opacity-40"
-                    >
-                      {submittingCharge ? "Submitting…" : "I have paid this charge"}
-                    </button>
                   </div>
                 )}
 

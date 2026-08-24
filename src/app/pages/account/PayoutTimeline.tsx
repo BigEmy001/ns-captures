@@ -22,11 +22,16 @@ export function PayoutTimeline({
   useEffect(() => {
     let cancelled = false;
 
-    fetchPayoutEvents(request.id).then((rows) => {
-      if (cancelled) return;
-      setEvents(rows);
-      setIsLoading(false);
-    });
+    fetchPayoutEvents(request.id)
+      .then((rows) => {
+        if (!cancelled) setEvents(rows);
+      })
+      // Losing the dated history is not a reason to hide where the payout has
+      // got to — that comes from the payout itself, not from the events.
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
     return () => {
       cancelled = true;
@@ -38,6 +43,9 @@ export function PayoutTimeline({
     if (!reachedAt.has(event.stage)) reachedAt.set(event.stage, event);
   }
 
+  const current = request.stage;
+  const ended = isTerminal(current);
+
   // A wallet payout does not cross correspondent banks, so it does not show
   // steps it can never reach.
   const steps = stagesForMethod(request.method);
@@ -45,8 +53,6 @@ export function PayoutTimeline({
 
   const converted = request.convertedAmount !== null && request.conversionRate !== null;
   const currency = request.payoutCurrency || "GBP";
-  const current = request.stage;
-  const ended = isTerminal(current);
 
   if (isLoading) {
     return <p className="text-xs text-[#758078]">Loading timeline…</p>;
