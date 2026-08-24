@@ -25,7 +25,7 @@ import {
   type Photo,
 } from "../../data/db";
 import { ProposalsPanel } from "./ProposalsPanel";
-import { unfilledPlaceholders } from "../../../lib/agreement";
+import { fillAgreement, unfilledPlaceholders } from "../../../lib/agreement";
 
 const SUB_TABS = [
   { id: "proposals", label: "Proposals" },
@@ -495,6 +495,7 @@ export function AgreementsPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [templates, setTemplates] = useState<AgreementTemplate[]>([]);
   const [templateId, setTemplateId] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     fetchAgreementTemplates()
@@ -518,20 +519,29 @@ export function AgreementsPanel({
 
   const contributorAcquisitions = acquisitions.filter((a) => a.userId === userId);
 
+  const chosen = photographers.find((p) => p.id === userId) as
+    (AdminUser & { contributorId?: string; email?: string; country?: string }) | undefined;
+
+  // The reference is generated when the agreement is issued, so the preview
+  // stands one in for it. Everything else is the contributor's real detail.
+  const fillContext = {
+    reference: "NSC-CA-0000-PREVIEW",
+    version,
+    effectiveDate: new Date().toISOString().slice(0, 10),
+    name: chosen?.name,
+    contributorId: chosen?.contributorId,
+    email: chosen?.email,
+    country: chosen?.country,
+  };
+
   // Warn before issuing, not after: a bracketed blank in a signed contract is
   // not something to discover from the contributor.
-  const chosen = photographers.find((p) => p.id === userId);
-  const remaining = body
-    ? unfilledPlaceholders(body, {
-        reference: "NSC-CA-0000-PREVIEW",
-        version,
-        effectiveDate: new Date().toISOString().slice(0, 10),
-        name: chosen?.name,
-        contributorId: (chosen as { contributorId?: string } | undefined)?.contributorId,
-        email: (chosen as { email?: string } | undefined)?.email,
-        country: (chosen as { country?: string } | undefined)?.country,
-      })
-    : [];
+  const remaining = body ? unfilledPlaceholders(body, fillContext) : [];
+
+  // What the contributor will actually receive. The stored text keeps its
+  // placeholders so that changing contributor re-fills cleanly rather than
+  // baking the first one's name in.
+  const preview = body && chosen ? fillAgreement(body, fillContext) : "";
 
   const submit = async () => {
     if (!userId || !title.trim() || !body.trim()) {
@@ -671,7 +681,42 @@ export function AgreementsPanel({
                 in the signed document exactly as written.
               </span>
             )}
+            <span className="mt-1 block text-xs text-[#8a8f89]">
+              Leave the bracketed placeholders in. They are replaced with the chosen contributor's
+              own details when the agreement is issued.
+            </span>
           </label>
+
+          {/* The stored text keeps its placeholders so switching contributor
+              re-fills cleanly. This shows what one of them will actually get. */}
+          {preview && (
+            <div className="sm:col-span-2 lg:col-span-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className={label}>What {chosen?.name || "they"} will receive</span>
+                <button
+                  type="button"
+                  onClick={() => setShowPreview((v) => !v)}
+                  className="text-xs font-semibold text-[#1e4a3f] hover:underline"
+                >
+                  {showPreview ? "Hide" : "Show"}
+                </button>
+              </div>
+
+              {showPreview && (
+                <pre className="mt-2 max-h-64 overflow-auto rounded-xl border border-[#ececec] bg-[#FAF9F5] p-4 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-[#18211f]">
+                  {preview}
+                </pre>
+              )}
+
+              {!showPreview && (
+                <p className="mt-1 text-xs text-[#8a8f89]">
+                  {remaining.length === 0
+                    ? "Every detail resolves. Nothing bracketed will reach them."
+                    : `${remaining.length} placeholder${remaining.length === 1 ? "" : "s"} will remain as written.`}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <button onClick={submit} disabled={isSaving} className={`${primary} mt-5`}>

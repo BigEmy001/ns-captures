@@ -145,4 +145,52 @@ describe("AgreementsPanel", () => {
     // present in what the form hands over.
     expect(arg.body).toContain("[FULL LEGAL NAME]");
   });
+
+  it("shows what the chosen contributor will actually receive", async () => {
+    show();
+    await pickTemplate();
+    pickContributor();
+
+    fireEvent.click(await screen.findByRole("button", { name: /^show$/i }));
+
+    // The preview carries their details where the placeholders were.
+    const preview = await screen.findByText(/Name: Ernie Blarinckx/);
+    expect(preview).toHaveTextContent("Contributor ID: NSC-000184");
+    expect(preview).toHaveTextContent("Country: Belgium");
+    expect(preview).not.toHaveTextContent("[FULL LEGAL NAME]");
+  });
+
+  it("re-fills when the contributor is changed, rather than keeping the first", async () => {
+    const second = {
+      id: "u2",
+      name: "Junghoon Sung",
+      email: "jh@example.com",
+      contributorId: "NSC-000192",
+      country: "South Korea",
+    } as unknown as AdminUser;
+
+    show([contributor, second]);
+    await pickTemplate();
+    pickContributor("u1");
+    fireEvent.click(await screen.findByRole("button", { name: /^show$/i }));
+    await screen.findByText(/Name: Ernie Blarinckx/);
+
+    pickContributor("u2");
+
+    const preview = await screen.findByText(/Name: Junghoon Sung/);
+    expect(preview).toHaveTextContent("Country: South Korea");
+    // The first contributor's name must not survive the switch.
+    expect(preview).not.toHaveTextContent("Ernie Blarinckx");
+  });
+
+  it("keeps the placeholders in the text it stores, not the filled copy", async () => {
+    show();
+    await pickTemplate();
+    pickContributor();
+
+    const textarea = screen.getByPlaceholderText(
+      /paste the full agreement text/i,
+    ) as HTMLTextAreaElement;
+    expect(textarea.value).toContain("[FULL LEGAL NAME]");
+  });
 });
