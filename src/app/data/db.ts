@@ -2820,12 +2820,20 @@ export async function deletePhoto(photoId: string): Promise<boolean> {
 // UPDATE USER ROLE (admin only) — syncs slug/profile for Photographer
 // ============================================================
 
+/** What the caller needs to tell the person what just happened to them. */
+export interface RoleChangeResult {
+  ok: boolean;
+  contributorId?: string;
+  email?: string;
+  name?: string;
+}
+
 /**
  * Changes someone's role. Promoting to Photographer also opens the contributor
  * portal: an admin setting the role is itself the vetting decision, so it would
  * be wrong to then send that person through the verification fee to get in.
  */
-export async function updateUserRole(userId: string, newRole: string): Promise<boolean> {
+export async function updateUserRole(userId: string, newRole: string): Promise<RoleChangeResult> {
   const becomesCreator = isCreatorRole(newRole) && newRole !== "Admin";
 
   const patch: Record<string, unknown> = { role: newRole };
@@ -2835,7 +2843,7 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
 
   if (error) {
     console.error("updateUserRole", error);
-    return false;
+    return { ok: false };
   }
 
   // Admission to the programme puts a contributor agreement in front of them,
@@ -2909,7 +2917,19 @@ export async function updateUserRole(userId: string, newRole: string): Promise<b
     }
   }
 
-  return true;
+  // The contributor ID is assigned by trigger, so it has to be read back.
+  const { data: after } = await supabase
+    .from("profiles")
+    .select("contributor_id, email, name")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return {
+    ok: true,
+    contributorId: after?.contributor_id || undefined,
+    email: after?.email || undefined,
+    name: after?.name || undefined,
+  };
 }
 
 // ============================================================

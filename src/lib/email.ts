@@ -455,3 +455,34 @@ export async function sendContributorProposal(
 <p style="margin:16px 0 0;font-size:13px;line-height:19px;color:#888888;font-family:inherit;">The invitation expires in 30 days. If it lapses, reply to this email and we will reissue it.</p>`,
   );
 }
+
+/**
+ * Sent when someone is admitted to the contributor programme. They may not be
+ * logged in — and in the case of an admin changing their role, may not be
+ * expecting it at all — so the email has to carry the whole message rather
+ * than relying on them noticing a notification.
+ */
+export async function sendContributorWelcome(email: string, name: string, contributorId?: string) {
+  const safeName = escapeHtml(name);
+  const safeId = contributorId ? escapeHtml(contributorId) : "";
+
+  await send(
+    email,
+    "You are now an NS CAPTURES contributor",
+    `
+<h1 style="margin:0;font-size:24px;line-height:26px;font-weight:400;color:#333333;font-family:inherit;">Welcome to the contributor programme</h1>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Hi ${safeName},</p>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Your NS CAPTURES account is now part of the International Contributor &amp; Photographic Acquisition Programme. Alongside selling through the marketplace, your work can now be considered for direct acquisition, bonuses and publication.</p>
+${
+  safeId
+    ? `<div style="background-color:#f8f9f7; padding:20px; border-radius:8px; margin:20px 0; border:1px solid #dce8df;">
+  <p style="margin:0; font-size:14px; color:#1e4a3f;"><strong>Your contributor ID:</strong> ${safeId}</p>
+  <p style="margin:8px 0 0 0; font-size:14px; color:#1e4a3f;">Quote it on any correspondence about acquisitions or payments.</p>
+</div>`
+    : ""
+}
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;"><strong>One thing to do:</strong> your International Contributor Agreement is waiting to be reviewed and signed. Nothing is transferred until you sign it.</p>
+<p style="margin:16px 0 0;">${btn("https://www.nscaptures.com/account?tab=agreements", "Review your agreement")}</p>
+<p style="margin:20px 0 0;font-size:13px;line-height:19px;color:#888888;font-family:inherit;">If you were not expecting this, reply to this email and we will put it right.</p>`,
+  );
+}

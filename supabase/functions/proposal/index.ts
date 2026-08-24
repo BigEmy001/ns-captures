@@ -253,6 +253,21 @@ serve(async (req) => {
     })
     .eq("id", proposal.id);
 
+  // The password is shown on the page, but they will close it — so send the
+  // sign-in details and the agreement reminder to their inbox as well.
+  const { data: withId } = await admin
+    .from("profiles")
+    .select("contributor_id")
+    .eq("id", userId)
+    .maybeSingle();
+
+  await sendWelcomeEmail(supabaseUrl, serviceRoleKey, {
+    email,
+    name: proposal.name,
+    password,
+    contributorId: withId?.contributor_id || undefined,
+  });
+
   return json({
     ok: true,
     password,
@@ -260,3 +275,46 @@ serve(async (req) => {
     proposal: publicView("accepted"),
   });
 });
+
+/**
+ * Hands the welcome over to the send-email function. Failing to send must not
+ * fail the acceptance — the account exists either way, and the page still
+ * shows them their password.
+ */
+async function sendWelcomeEmail(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  who: { email: string; name: string; password: string; contributorId?: string },
+): Promise<void> {
+  const esc = (v: string) =>
+    v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  const body = `
+<h1 style="margin:0;font-size:24px;line-height:26px;font-weight:400;color:#333333;font-family:inherit;">Welcome to NS CAPTURES</h1>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Hi ${esc(who.name)},</p>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Thank you for accepting our invitation. Your contributor account is ready.</p>
+<div style="background-color:#f8f9f7; padding:20px; border-radius:8px; margin:20px 0; border:1px solid #dce8df;">
+  <p style="margin:0; font-size:14px; color:#1e4a3f;"><strong>Email:</strong> ${esc(who.email)}</p>
+  <p style="margin:8px 0 0 0; font-size:14px; color:#1e4a3f;"><strong>Temporary password:</strong> ${esc(who.password)}</p>
+  ${who.contributorId ? `<p style="margin:8px 0 0 0; font-size:14px; color:#1e4a3f;"><strong>Contributor ID:</strong> ${esc(who.contributorId)}</p>` : ""}
+</div>
+<p style="margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;">Please change your password once you have signed in. Your International Contributor Agreement is waiting to be reviewed and signed — nothing is transferred until you sign it.</p>
+<p style="margin:16px 0 0;"><a href="https://www.nscaptures.com/signin" style="color:#1e4a3f;font-weight:700;">Sign in to NS CAPTURES</a></p>`;
+
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({
+        to: who.email,
+        subject: "Your NS CAPTURES contributor account",
+        body,
+      }),
+    });
+  } catch (err) {
+    console.error("welcome email failed", err);
+  }
+}
