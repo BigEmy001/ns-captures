@@ -5,7 +5,9 @@ import { useAuth } from "../../context/AuthContext";
 import { isProgrammeRole } from "../../data/roles";
 import {
   fetchContributorEarnings,
+  fetchPayoutRequests,
   summariseEarnings,
+  withdrawableFrom,
   type ContributorEarning,
   type EarningStatus,
   type EarningType,
@@ -50,6 +52,7 @@ function periodStart(period: PeriodId): Date | null {
 export function EarningsTab() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<ContributorEarning[]>([]);
+  const [available, setAvailable] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const [typeFilter, setTypeFilter] = useState<EarningType | "all">("all");
@@ -67,10 +70,21 @@ export function EarningsTab() {
       setIsLoading(false);
     });
 
+    // Withdrawable money comes from the balance, never from summing the ledger.
+    if (user.slug) {
+      fetchPayoutRequests(user.slug).then((requests) => {
+        if (!cancelled) {
+          setAvailable(withdrawableFrom(user.payoutBalance ?? 0, requests));
+        }
+      });
+    } else {
+      setAvailable(user.payoutBalance ?? 0);
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, user?.slug, user?.payoutBalance]);
 
   // The summary always reflects the whole ledger — filters narrow the history
   // table below, not the headline balances.
@@ -124,7 +138,7 @@ export function EarningsTab() {
         {/* Headline balances */}
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {[
-            { label: "Available", value: summary.available, hint: "Ready to withdraw" },
+            { label: "Available", value: available, hint: "Ready to withdraw" },
             { label: "Pending", value: summary.pending, hint: "Clears once a sale is approved" },
             { label: "Lifetime", value: summary.lifetime, hint: "Earned since joining" },
           ].map((card) => (

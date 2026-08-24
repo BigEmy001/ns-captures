@@ -882,7 +882,7 @@ export function CreatorTabs({
                   <div className="flex flex-wrap items-start justify-between gap-6">
                     <div className="flex flex-wrap gap-10">
                       {[
-                        { label: "AVAILABLE BALANCE", value: earningsSummary.available },
+                        { label: "AVAILABLE BALANCE", value: availableBalance },
                         { label: "PENDING", value: earningsSummary.pending },
                         { label: "LIFETIME EARNINGS", value: earningsSummary.lifetime },
                       ].map((item) => (

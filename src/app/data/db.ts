@@ -4207,6 +4207,23 @@ export async function fetchContributorEarnings(userId: string): Promise<Contribu
   }));
 }
 
+/**
+ * What a contributor can actually draw: their balance, less anything already
+ * requested and awaiting a decision. Lifetime and the breakdown come from the
+ * ledger, but this number comes from the balance, so what they are shown always
+ * matches what a payout would pay.
+ */
+export function withdrawableFrom(
+  payoutBalance: number,
+  pendingRequests: { amount: number; status: string }[] = [],
+): number {
+  const reserved = pendingRequests
+    .filter((r) => r.status === "PENDING")
+    .reduce((sum, r) => sum + (r.amount || 0), 0);
+
+  return Math.max(0, (payoutBalance || 0) - reserved);
+}
+
 const EMPTY_BY_TYPE: Record<EarningType, number> = {
   licensing: 0,
   acquisition: 0,
@@ -4216,9 +4233,14 @@ const EMPTY_BY_TYPE: Record<EarningType, number> = {
 };
 
 /**
- * Available / Pending / Lifetime, plus the breakdown by earning type.
- * Available counts money cleared but not yet paid out; pending counts money
- * booked against a sale that hasn't been approved yet.
+ * Itemises the ledger: what is pending, what has been earned in total, and how
+ * it breaks down by type.
+ *
+ * The `available` figure it returns is the ledger's own view. It is not what a
+ * contributor can withdraw — profiles.payout_balance is, and the two can differ
+ * whenever a payout settles part of an entry rather than all of it. Anything
+ * showing someone their spendable money should pass the balance to
+ * withdrawableFrom() instead.
  */
 export function summariseEarnings(entries: ContributorEarning[]): EarningsSummary {
   const summary: EarningsSummary = {

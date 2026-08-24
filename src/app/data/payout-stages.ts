@@ -218,6 +218,33 @@ export function stageNotifiesByDefault(stage: PayoutStage): boolean {
 }
 
 /**
+ * Whether an outstanding conversion charge blocks this move.
+ *
+ * The charge is billed separately rather than deducted, so nothing collects it
+ * automatically. If the payout were allowed to run to completion while it was
+ * still owed, there would be no leverage left to collect it and no obvious
+ * moment at which anyone would notice. A payout therefore stops at the
+ * conversion step until the recipient has settled.
+ */
+export function chargeBlocksStage(
+  stage: PayoutStage,
+  feeStatus: string | null | undefined,
+): boolean {
+  if (feeStatus !== "outstanding") return false;
+
+  // Ending the payout is always allowed; only carrying it forward is held.
+  const ADVANCING: PayoutStage[] = [
+    "network_processing",
+    "intermediary_processing",
+    "recipient_bank_processing",
+    "delivered",
+    "completed",
+  ];
+
+  return ADVANCING.includes(stage);
+}
+
+/**
  * What a contributor can actually request. Their balance is not debited until
  * a payout is approved, so anything already awaiting a decision has to be held
  * back — otherwise the same money can be requested twice.

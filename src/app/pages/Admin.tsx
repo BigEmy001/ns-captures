@@ -58,6 +58,7 @@ import {
   stageMetaFor,
   stagesForMethod,
   stageNotifiesByDefault,
+  chargeBlocksStage,
   statusForStage,
   type PayoutStage,
 } from "../data/payout-stages";
@@ -506,6 +507,16 @@ export function Admin() {
     }
 
     const meta = stageMetaFor(request.method, stage);
+
+    // An outstanding conversion charge has to be settled before the payout can
+    // be carried any further.
+    if (chargeBlocksStage(stage, request.conversionFeeStatus)) {
+      toast.error("Conversion charge is still outstanding", {
+        description: `£${(request.conversionFeeGbp || 0).toFixed(2)} is owed on this payout. Mark it paid once received, then continue.`,
+      });
+      return;
+    }
+
     const wantsNote = stage === "rejected" || stage === "cancelled";
 
     // The transaction hash is the one thing a crypto recipient can verify for
