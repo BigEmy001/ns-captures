@@ -475,7 +475,7 @@ function AcquisitionsPanel({
 
 // ── Agreements ──────────────────────────────────────────────────────
 
-function AgreementsPanel({
+export function AgreementsPanel({
   rows,
   acquisitions,
   photographers,
