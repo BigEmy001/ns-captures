@@ -179,8 +179,9 @@ export async function fetchContributorPublicFields(
 ): Promise<Record<string, { contributorLevel?: string; specialties?: string[] }>> {
   if (slugs.length === 0) return {};
 
+  // A visitor with no account reaches this, so it reads the public view.
   const { data, error } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("slug, contributor_level, specialties")
     .in("slug", slugs);
 
@@ -1869,7 +1870,7 @@ export async function fetchPhotographerMonthlyRevenue(
 
   // 2. Hype Engine revenue from balance_adjustments ledger
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("id")
     .eq("slug", photographerId)
     .single();
@@ -2506,7 +2507,11 @@ export async function markConversionFeePaid(payoutRequestId: string): Promise<bo
 
 /** payout_requests keys the photographer by profile slug, not by user id. */
 async function profileIdForSlug(slug: string): Promise<string | null> {
-  const { data } = await supabase.from("profiles").select("id").eq("slug", slug).maybeSingle();
+  const { data } = await supabase
+    .from("public_profiles")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
   return data?.id || null;
 }
 
@@ -2667,7 +2672,10 @@ async function recordPendingSaleEarning(
   });
 }
 
-/** Maps a photo to the profile that earns from it. */
+/**
+ * Maps a photo to the profile that earns from it. A buyer runs this while
+ * checking out, so it reads the public view rather than the profiles table.
+ */
 async function resolvePhotoContributor(
   photoId: string,
 ): Promise<{ userId: string; price: number; title: string } | null> {
@@ -2680,7 +2688,7 @@ async function resolvePhotoContributor(
   if (!photo?.photographer_id) return null;
 
   const { data: profile } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("id")
     .eq("slug", photo.photographer_id)
     .single();
@@ -4337,7 +4345,7 @@ export async function fetchFollowers(photographerId: string): Promise<FollowerIn
   if (followerIds.length === 0) return [];
 
   const { data: profiles } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("id, name, avatar")
     .in("id", followerIds);
 
@@ -4368,7 +4376,7 @@ export async function fetchFollowing(photographerId: string): Promise<FollowerIn
   if (followingIds.length === 0) return [];
 
   const { data: profiles } = await supabase
-    .from("profiles")
+    .from("public_profiles")
     .select("id, name, avatar")
     .in("id", followingIds);
 
