@@ -38,6 +38,7 @@ function request(partial: Partial<PayoutRequest> = {}): PayoutRequest {
     conversionFeePaidAt: null,
     convertedAmount: null,
     transactionReference: null,
+    debitedAt: null,
     ...partial,
   };
 }
@@ -110,5 +111,52 @@ describe("PayoutTimeline renders without crashing", () => {
     render(<PayoutTimeline request={request()} />);
     // Must not be left on the loading state forever, and must not crash.
     await waitFor(() => expect(screen.queryByText("Loading timeline…")).not.toBeInTheDocument());
+  });
+});
+
+describe("steps the payout has moved past", () => {
+  it("ticks earlier steps even when the admin jumped straight ahead", async () => {
+    // Only one event recorded, but the payout is at conversion — everything
+    // before it has necessarily been passed.
+    mockFetchPayoutEvents.mockResolvedValue([
+      { id: "e1", stage: "requested", note: null, createdAt: "2026-08-20T10:00:00Z" },
+    ]);
+
+    const { container } = render(
+      <PayoutTimeline request={request({ stage: "currency_conversion" })} />,
+    );
+    await screen.findByText("Payout Requested");
+
+    // Under Review, Approved and Processing sit before the current step and
+    // must not be dimmed as though they never happened.
+    const items = Array.from(container.querySelectorAll("li"));
+    const labelled = (name: string) => items.find((li) => li.textContent?.includes(name));
+
+    for (const name of ["Under Review", "Payout Approved", "Payment Processing"]) {
+      const li = labelled(name);
+      expect(li, `${name} should render`).toBeTruthy();
+      expect(li?.querySelector(".opacity-45"), `${name} should not be dimmed`).toBeNull();
+    }
+  });
+
+  it("still marks a skipped conditional step as not applicable", async () => {
+    mockFetchPayoutEvents.mockResolvedValue([
+      { id: "e1", stage: "requested", note: null, createdAt: "2026-08-20T10:00:00Z" },
+    ]);
+
+    render(<PayoutTimeline request={request({ stage: "delivered" })} />);
+    await screen.findByText("Payout Requested");
+
+    // No conversion event, and the payout is past it: it did not apply.
+    expect(screen.getAllByText("Not applicable").length).toBeGreaterThan(0);
+  });
+
+  it("does not tick steps the payout has not reached", async () => {
+    const { container } = render(<PayoutTimeline request={request({ stage: "under_review" })} />);
+    await screen.findByText("Payout Requested");
+
+    const items = Array.from(container.querySelectorAll("li"));
+    const delivered = items.find((li) => li.textContent?.includes("Payment Delivered"));
+    expect(delivered?.querySelector(".opacity-45")).toBeTruthy();
   });
 });

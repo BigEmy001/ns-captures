@@ -79,11 +79,18 @@ export function PayoutTimeline({
       <ol className="relative space-y-0">
         {steps.map((step, i) => {
           const event = reachedAt.get(step.id);
-          const reached = Boolean(event);
           const isCurrent = !ended && step.id === current;
-          // A conditional step the payout has already moved past was simply
-          // not applicable to this transfer.
-          const skipped = !reached && !ended && currentIdx > i && step.conditional;
+
+          // A payout that has moved past a step has been through it, whether or
+          // not it paused there long enough to be recorded. An admin jumping
+          // straight to conversion should not leave the steps behind it looking
+          // unfinished — the event only supplies the date.
+          const passed = currentIdx > i;
+
+          // Except a conditional step, which is passed precisely because it did
+          // not apply to this transfer.
+          const skipped = !event && passed && Boolean(step.conditional);
+          const reached = Boolean(event) || (passed && !skipped);
           const pending = !reached && !isCurrent && !skipped;
 
           return (

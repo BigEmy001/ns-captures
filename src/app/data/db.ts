@@ -2160,6 +2160,8 @@ export interface PayoutRequest {
   conversionFeePaidAt: string | null;
   convertedAmount: number | null;
   transactionReference: string | null;
+  /** Set once, when the balance was debited. Its presence prevents a second debit. */
+  debitedAt: string | null;
 }
 
 export interface PayoutConversion {
@@ -2244,6 +2246,7 @@ export async function createPayoutRequest(
     conversionFeePaidAt: data.conversion_fee_paid_at ?? null,
     convertedAmount: data.converted_amount ?? null,
     transactionReference: data.transaction_reference ?? null,
+    debitedAt: data.debited_at ?? null,
     adminNote: data.admin_note || "",
     requestedAt: data.requested_at,
     processedAt: data.processed_at,
@@ -2279,6 +2282,7 @@ export async function fetchPayoutRequests(photographerId?: string): Promise<Payo
     conversionFeePaidAt: r.conversion_fee_paid_at ?? null,
     convertedAmount: r.converted_amount ?? null,
     transactionReference: r.transaction_reference ?? null,
+    debitedAt: r.debited_at ?? null,
     requestedAt: r.requested_at,
     processedAt: r.processed_at,
   }));
@@ -2315,8 +2319,10 @@ export async function advancePayoutStage(
   } = {},
 ): Promise<PayoutStageResult> {
   const status = statusForStage(stage);
-  const alreadyCommitted =
-    request.status === "APPROVED" || request.status === "PAID" || request.stage === "approved";
+  // Whether the money has already left, rather than whether the payout happens
+  // to be sitting at Approved. An admin correcting a mistake by moving the
+  // stage back and forward must not debit the balance twice.
+  const alreadyDebited = Boolean(request.debitedAt);
 
   const core = {
     status,
@@ -2378,7 +2384,7 @@ export async function advancePayoutStage(
   if (!profileId) return { ok: true, stageStored };
 
   // Debit once, when the payout is approved.
-  if (stage === "approved" && !alreadyCommitted) {
+  if (stage === "approved" && !alreadyDebited) {
     const { error: debitError } = await supabase.rpc("adjust_payout_balance", {
       p_user_id: profileId,
       p_adjustment: -(request.amount || 0),
@@ -2389,6 +2395,12 @@ export async function advancePayoutStage(
       console.error("advancePayoutStage debit", debitError);
       return { ok: false, stageStored };
     }
+
+    // Record that it happened, so it cannot happen again.
+    await supabase
+      .from("payout_requests")
+      .update({ debited_at: new Date().toISOString() })
+      .eq("id", request.id);
   }
 
   // Tell the contributor where their payout has got to. The intermediate
