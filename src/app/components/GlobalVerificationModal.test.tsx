@@ -9,7 +9,11 @@ import type { AdminPaymentMethod } from "../data/db";
 vi.mock("../../lib/supabase", () => ({
   supabase: {
     auth: { getUser: vi.fn(), getSession: vi.fn() },
-    from: vi.fn(() => ({ select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data: null }) })),
+    from: vi.fn(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null }),
+    })),
   },
 }));
 
@@ -473,22 +477,41 @@ describe("GlobalVerificationModal", () => {
       });
     });
 
-    it("shows contact support and email buttons", async () => {
+    it("always offers a way to reach the admin, configured or not", async () => {
       mockFetchMyVerificationDocument.mockResolvedValue(null);
 
       render(<GlobalVerificationModal isOpen={true} />);
 
+      // Nothing is configured in this fixture, so it falls back to the default
+      // address rather than leaving someone stuck with no route out.
       await waitFor(() => {
-        expect(screen.getByText("Email Us")).toBeDefined();
+        expect(screen.getByText("Email Admin")).toBeDefined();
       });
+      expect(screen.getByText("Email Admin").closest("a")).toHaveAttribute(
+        "href",
+        expect.stringContaining("mailto:support@ns-captures.com"),
+      );
+    });
+
+    it("uses whatever the admin set instead", async () => {
+      mockFetchMyVerificationDocument.mockResolvedValue(null);
+      mockFetchSiteSettings.mockResolvedValue({ contactLink: "+44 7700 900123" });
+
+      render(<GlobalVerificationModal isOpen={true} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("WhatsApp Admin")).toBeDefined();
+      });
+      expect(screen.getByText("WhatsApp Admin").closest("a")).toHaveAttribute(
+        "href",
+        "https://wa.me/447700900123",
+      );
     });
 
     it("shows close button (onClose is passed)", async () => {
       mockFetchMyVerificationDocument.mockResolvedValue(null);
 
-      const { container } = render(
-        <GlobalVerificationModal isOpen={true} onClose={() => {}} />,
-      );
+      const { container } = render(<GlobalVerificationModal isOpen={true} onClose={() => {}} />);
 
       await waitFor(() => {
         const closeBtn = container.querySelector('[aria-label="Close"]');

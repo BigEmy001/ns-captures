@@ -155,8 +155,12 @@ describe("SettleChargeModal", () => {
 
     fireEvent.click(await screen.findByText("Contact the payment desk"));
 
-    const email = screen.getByRole("link", { name: /email the desk/i });
-    expect(email).toHaveAttribute("href", expect.stringContaining("support@nscaptures.com"));
+    // Nothing configured: falls back to the default Contact Admin address.
+    const email = screen.getByRole("link", { name: /email admin/i });
+    expect(email).toHaveAttribute(
+      "href",
+      expect.stringContaining("mailto:support@ns-captures.com"),
+    );
   });
 
   it("prefers the desk's own contacts over the general ones", async () => {
@@ -171,11 +175,11 @@ describe("SettleChargeModal", () => {
 
     fireEvent.click(await screen.findByText("Contact the payment desk"));
 
-    expect(screen.getByRole("link", { name: /email the desk/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /email admin/i })).toHaveAttribute(
       "href",
       expect.stringContaining("desk@nscaptures.com"),
     );
-    expect(screen.getByRole("link", { name: /whatsapp/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /^whatsapp$/i })).toHaveAttribute(
       "href",
       "https://wa.me/447700900123",
     );
@@ -264,5 +268,16 @@ describe("SettleChargeModal", () => {
     fireEvent.click(await screen.findByText("Crypto wallets"));
 
     expect(screen.getAllByRole("radio")).toHaveLength(1);
+  });
+
+  it("falls back to the Contact Admin setting when the desk has no address", async () => {
+    show([], settings({ contactLink: "https://t.me/nscaptures" }));
+
+    fireEvent.click(await screen.findByText("Contact the payment desk"));
+
+    expect(screen.getByRole("link", { name: /contact admin/i })).toHaveAttribute(
+      "href",
+      "https://t.me/nscaptures",
+    );
   });
 });

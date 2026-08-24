@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { X, Check, Upload, ChevronDown, Copy, Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import { resolveContact, contactLabel, withSubject } from "../../../lib/contact";
 import {
   fetchAdminPaymentMethods,
   fetchSiteSettings,
@@ -237,12 +238,13 @@ export function SettleChargeModal({
     maximumFractionDigits: 2,
   });
 
-  const deskEmail = settings?.paymentDeskEmail || settings?.supportEmail || "";
-  const deskWhatsapp = settings?.paymentDeskWhatsapp || settings?.contactLink || "";
-  const whatsappHref = deskWhatsapp.startsWith("http")
-    ? deskWhatsapp
-    : `https://wa.me/${deskWhatsapp.replace(/[^0-9]/g, "")}`;
-  const deskSubject = encodeURIComponent(`Conversion charge £${owed} — ${contributorName}`);
+  // The desk's own address if the admin set one, otherwise the same Contact
+  // Admin destination every other payment modal uses.
+  const desk = resolveContact(settings?.paymentDeskEmail, settings?.contactLink);
+  const deskWhatsapp = settings?.paymentDeskWhatsapp
+    ? resolveContact(settings.paymentDeskWhatsapp)
+    : null;
+  const deskHref = withSubject(desk, `Conversion charge £${owed} — ${contributorName}`);
 
   const submit = async () => {
     if (!selectedId) {
@@ -440,26 +442,28 @@ export function SettleChargeModal({
                         "If none of these suit you, or your region is not supported, we will arrange another way to settle."}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {deskEmail && (
-                        <a
-                          href={`mailto:${deskEmail}?subject=${deskSubject}`}
-                          className="inline-flex items-center gap-2 rounded-full border border-[#1e4a3f] px-4 py-2 text-xs font-semibold text-[#1e4a3f] transition hover:bg-[#1e4a3f] hover:text-white"
-                        >
-                          <Mail className="size-3.5" /> Email the desk
-                        </a>
-                      )}
+                      <a
+                        href={deskHref}
+                        target={desk.kind === "email" ? undefined : "_blank"}
+                        rel={desk.kind === "email" ? undefined : "noopener noreferrer"}
+                        className="inline-flex items-center gap-2 rounded-full border border-[#1e4a3f] px-4 py-2 text-xs font-semibold text-[#1e4a3f] transition hover:bg-[#1e4a3f] hover:text-white"
+                      >
+                        {desk.kind === "email" ? (
+                          <Mail className="size-3.5" />
+                        ) : (
+                          <MessageCircle className="size-3.5" />
+                        )}
+                        {contactLabel(desk)}
+                      </a>
                       {deskWhatsapp && (
                         <a
-                          href={whatsappHref}
+                          href={deskWhatsapp.href}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 rounded-full border border-[#1e4a3f] px-4 py-2 text-xs font-semibold text-[#1e4a3f] transition hover:bg-[#1e4a3f] hover:text-white"
                         >
                           <MessageCircle className="size-3.5" /> WhatsApp
                         </a>
-                      )}
-                      {!deskEmail && !deskWhatsapp && (
-                        <p className="text-xs text-[#758078]">No contact route is published yet.</p>
                       )}
                     </div>
                   </div>

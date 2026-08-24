@@ -42,6 +42,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { toast } from "sonner";
+import { DEFAULT_CONTACT } from "../../lib/contact";
 import { Eyebrow, Badge, Button } from "../components/ui";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { SideNav } from "../components/SideNav";
@@ -1980,12 +1981,12 @@ export function Admin() {
                       }
                     />
                     <Field
-                      label="Contact Admin Link (WhatsApp/Telegram)"
+                      label="Contact Admin (email, WhatsApp or link)"
                       value={siteSettingsState.contactLink || ""}
                       onChange={(e) =>
                         setSiteSettingsState({ ...siteSettingsState, contactLink: e.target.value })
                       }
-                      placeholder="https://wa.me/..."
+                      placeholder={DEFAULT_CONTACT}
                     />
                     <Field
                       label="Payment Desk Email"

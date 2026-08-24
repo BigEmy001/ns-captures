@@ -26,6 +26,7 @@ import {
   type VerificationDocument,
   type CryptoWalletEntry,
 } from "../data/db";
+import { resolveContact, contactLabel, withSubject } from "../../lib/contact";
 
 interface GlobalVerificationModalProps {
   isOpen?: boolean;
@@ -41,6 +42,9 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
   // App Config State
   const [paymentMethods, setPaymentMethods] = useState<AdminPaymentMethod[]>([]);
   const [contactLink, setContactLink] = useState<string>("");
+  // Always a destination: an unset setting falls back to the default address
+  // rather than removing the button.
+  const contact = resolveContact(contactLink);
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
 
   // Upload State
@@ -352,23 +356,18 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              {contactLink && (
-                <a
-                  href={contactLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 bg-white border border-[#ececec] text-[#18211f] text-sm font-semibold py-3 rounded-full hover:bg-[#f8f9f7] transition flex items-center justify-center gap-2"
-                >
-                  <MessageCircle className="size-4 text-[#1e4a3f]" />
-                  Contact Support
-                </a>
-              )}
               <a
-                href="mailto:support@nscaptures.com"
+                href={withSubject(contact, "Verification enquiry")}
+                target={contact.kind === "email" ? undefined : "_blank"}
+                rel={contact.kind === "email" ? undefined : "noopener noreferrer"}
                 className="flex-1 bg-white border border-[#ececec] text-[#18211f] text-sm font-semibold py-3 rounded-full hover:bg-[#f8f9f7] transition flex items-center justify-center gap-2"
               >
-                <Mail className="size-4 text-[#1e4a3f]" />
-                Email Us
+                {contact.kind === "email" ? (
+                  <Mail className="size-4 text-[#1e4a3f]" />
+                ) : (
+                  <MessageCircle className="size-4 text-[#1e4a3f]" />
+                )}
+                {contactLabel(contact)}
               </a>
             </div>
           </div>
@@ -751,17 +750,19 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                   </p>
 
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                    {contactLink && (
-                      <a
-                        href={contactLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 bg-white border border-[#ececec] text-[#18211f] text-sm font-semibold py-3 sm:py-3.5 rounded-full hover:bg-[#f8f9f7] transition flex items-center justify-center gap-2"
-                      >
+                    <a
+                      href={withSubject(contact, "Verification fee payment")}
+                      target={contact.kind === "email" ? undefined : "_blank"}
+                      rel={contact.kind === "email" ? undefined : "noopener noreferrer"}
+                      className="flex-1 bg-white border border-[#ececec] text-[#18211f] text-sm font-semibold py-3 sm:py-3.5 rounded-full hover:bg-[#f8f9f7] transition flex items-center justify-center gap-2"
+                    >
+                      {contact.kind === "email" ? (
+                        <Mail className="size-4 text-[#1e4a3f]" />
+                      ) : (
                         <MessageCircle className="size-4 text-[#1e4a3f]" />
-                        Contact Admin
-                      </a>
-                    )}
+                      )}
+                      {contactLabel(contact)}
+                    </a>
 
                     <button
                       type="submit"
