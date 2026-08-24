@@ -12,6 +12,7 @@ import {
   type EarningStatus,
   type EarningType,
 } from "../../data/db";
+import { ledgerLabel } from "../../../lib/ledger";
 
 const TYPE_LABELS: Record<EarningType, string> = {
   licensing: "Marketplace Licensing",
@@ -99,7 +100,9 @@ export function EarningsTab() {
       if (statusFilter !== "all" && entry.status !== statusFilter) return false;
       if (since && !isAfter(new Date(entry.createdAt), since)) return false;
       if (query) {
-        const haystack = `${entry.description || ""} ${entry.photoTitle || ""} ${entry.reference || ""}`;
+        // Search what is on screen, so the internal wording is neither
+        // findable nor needed to find a row.
+        const haystack = `${ledgerLabel(entry.description)} ${entry.photoTitle || ""} ${entry.reference || ""}`;
         if (!haystack.toLowerCase().includes(query)) return false;
       }
       return true;
@@ -261,7 +264,10 @@ export function EarningsTab() {
                         {TYPE_LABELS[entry.type]}
                       </td>
                       <td className="px-6 py-4 text-[#59645f]">
-                        {entry.photoTitle || entry.description || entry.reference || "—"}
+                        {entry.photoTitle ||
+                          ledgerLabel(entry.description) ||
+                          entry.reference ||
+                          "—"}
                       </td>
                       <td className="px-6 py-4 text-right font-medium whitespace-nowrap text-[#18211f]">
                         {money(entry.netAmount)}

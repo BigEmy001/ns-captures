@@ -12,6 +12,7 @@ import {
 } from "../../../data/db";
 import { Card, EmptyState, PortalPage, StatusPill, money } from "./shared";
 import type { PillTone } from "./shared";
+import { ledgerLabel } from "../../../../lib/ledger";
 
 // ── Bonuses & Awards ────────────────────────────────────────────────
 
@@ -94,7 +95,8 @@ export function BonusesTab() {
               <li key={award.id} className="flex flex-wrap items-center gap-4 p-5">
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-[#18211f]">
-                    {award.description || (award.type === "award" ? "Discovery award" : "Bonus")}
+                    {ledgerLabel(award.description) ||
+                      (award.type === "award" ? "Discovery award" : "Bonus")}
                   </p>
                   {award.photoTitle && (
                     <p className="mt-0.5 text-sm text-[#758078]">{award.photoTitle}</p>

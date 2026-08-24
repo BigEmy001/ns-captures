@@ -76,6 +76,7 @@ import { CURRENCY_GROUPS, currencyLabel } from "../../../lib/currencies";
 import { sendPayoutRequestSubmitted, sendAdminNotification } from "../../../lib/email";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
+import { ledgerLabel } from "../../../lib/ledger";
 
 // We only need nav for types or internal checks if any, but active is passed in.
 
@@ -2057,7 +2058,7 @@ export function CreatorTabs({
                                 })}
                               </td>
                               <td className="px-6 py-4 text-sm text-[#6b716d] max-w-[200px] truncate">
-                                {adj.reason || "—"}
+                                {ledgerLabel(adj.reason) || "—"}
                               </td>
                               <td className="px-6 py-4 text-sm font-medium text-right">
                                 <span
