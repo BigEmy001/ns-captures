@@ -1988,6 +1988,39 @@ export function Admin() {
                       placeholder="https://wa.me/..."
                     />
                     <Field
+                      label="Payment Desk Email"
+                      value={siteSettingsState.paymentDeskEmail || ""}
+                      onChange={(e) =>
+                        setSiteSettingsState({
+                          ...siteSettingsState,
+                          paymentDeskEmail: e.target.value,
+                        })
+                      }
+                      placeholder="Defaults to the support email"
+                    />
+                    <Field
+                      label="Payment Desk WhatsApp"
+                      value={siteSettingsState.paymentDeskWhatsapp || ""}
+                      onChange={(e) =>
+                        setSiteSettingsState({
+                          ...siteSettingsState,
+                          paymentDeskWhatsapp: e.target.value,
+                        })
+                      }
+                      placeholder="Defaults to the contact link"
+                    />
+                    <Field
+                      label="Payment Desk Note"
+                      value={siteSettingsState.paymentDeskNote || ""}
+                      onChange={(e) =>
+                        setSiteSettingsState({
+                          ...siteSettingsState,
+                          paymentDeskNote: e.target.value,
+                        })
+                      }
+                      placeholder="Shown to anyone settling a charge"
+                    />
+                    <Field
                       label="Platform Fee (%)"
                       type="number"
                       value={String(siteSettingsState.platformFee)}

@@ -89,6 +89,12 @@ export interface SiteSettingsRow {
   conversionFeePercent: number;
   contactLink?: string;
   allowedLicenses?: string[];
+  /** Where to write about settling a charge. Falls back to supportEmail. */
+  paymentDeskEmail?: string;
+  /** WhatsApp link or number for the desk. Falls back to contactLink. */
+  paymentDeskWhatsapp?: string;
+  /** A line of guidance shown beside the desk. */
+  paymentDeskNote?: string;
 }
 
 /**
@@ -982,6 +988,9 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     conversionFeePercent: data.conversion_fee_percent ?? defaults.conversionFeePercent,
     contactLink: data.contact_link,
     allowedLicenses: data.allowed_licenses || defaults.allowedLicenses,
+    paymentDeskEmail: data.payment_desk_email || undefined,
+    paymentDeskWhatsapp: data.payment_desk_whatsapp || undefined,
+    paymentDeskNote: data.payment_desk_note || undefined,
   };
 }
 
@@ -1000,6 +1009,9 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
     moderation_required: settings.moderationRequired,
     contact_link: settings.contactLink,
     allowed_licenses: settings.allowedLicenses,
+    payment_desk_email: settings.paymentDeskEmail || null,
+    payment_desk_whatsapp: settings.paymentDeskWhatsapp || null,
+    payment_desk_note: settings.paymentDeskNote || null,
   };
 
   const { error } = await supabase.from("site_settings").upsert({
