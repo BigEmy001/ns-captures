@@ -904,7 +904,9 @@ export async function addPhotoToCollection(
     return false;
   }
 
-  Promise.resolve(supabase.rpc("increment_collection_count", { cid: collectionId })).catch(() => {
+  Promise.resolve(
+    supabase.rpc("increment_collection_count", { collection_id: collectionId }),
+  ).catch(() => {
     supabase
       .from("collection_photos")
       .select("photo_id", { count: "exact", head: true })
