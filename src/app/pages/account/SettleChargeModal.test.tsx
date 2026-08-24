@@ -299,4 +299,48 @@ describe("SettleChargeModal", () => {
     // The copy button sits inside the label; it must not toggle the choice.
     expect(radio.checked).toBe(false);
   });
+
+  // Layout cannot be measured in jsdom, so these assert the specific mobile
+  // decisions rather than the rendering: a phone gets a bottom sheet with
+  // reachable controls, and long addresses wrap instead of widening the page.
+  describe("on a phone", () => {
+    it("presents as a bottom sheet that fits the visible viewport", async () => {
+      const { container } = show([method()]);
+      await screen.findByText("Crypto wallets");
+
+      const backdrop = container.querySelector('[role="dialog"]')!;
+      expect(backdrop.className).toContain("items-end");
+      expect(backdrop.className).toContain("sm:items-center");
+
+      const sheet = backdrop.firstElementChild as HTMLElement;
+      // dvh, not vh: vh sits under the mobile browser's own chrome.
+      expect(sheet.className).toContain("dvh");
+      expect(sheet.className).toContain("rounded-t-2xl");
+      expect(sheet.className).toContain("overflow-y-auto");
+    });
+
+    it("keeps the close control at a usable size", async () => {
+      show([method()]);
+      const close = await screen.findByRole("button", { name: /close/i });
+      // size-11 is 44px, the smallest comfortable tap target.
+      expect(close.className).toContain("size-11");
+    });
+
+    it("stacks the actions and clears the home indicator", async () => {
+      show([method()]);
+      const submit = await screen.findByRole("button", { name: /i have paid this charge/i });
+      const footer = submit.parentElement!;
+      expect(footer.className).toContain("flex-col-reverse");
+      expect(footer.className).toContain("sm:flex-row");
+      expect(footer.className).toContain("safe-area-inset-bottom");
+    });
+
+    it("wraps a long wallet address rather than widening the sheet", async () => {
+      const long = "bc1qshkdt4xrmny58h67eka2qucqva7wznnq2pq86dxxxxxxxxxxxxxxxxxxxx";
+      show([method({ details: { value: long } })]);
+
+      fireEvent.click(await screen.findByText("Crypto wallets"));
+      expect(screen.getByText(long).className).toContain("break-all");
+    });
+  });
 });

@@ -2886,6 +2886,7 @@ export async function updateUserRole(userId: string, newRole: string): Promise<R
         title: "International Contributor Agreement",
         body: "",
         effectiveDate: new Date().toISOString().slice(0, 10),
+        announce: false,
       });
 
       await notify({
@@ -3231,6 +3232,8 @@ export interface Agreement {
   signedAt: string | null;
   effectiveDate: string | null;
   createdAt: string;
+  declinedReason?: string | null;
+  declinedAt?: string | null;
 }
 
 export async function fetchAgreements(userId: string): Promise<Agreement[]> {
@@ -3253,6 +3256,8 @@ export async function fetchAgreements(userId: string): Promise<Agreement[]> {
     acquisitionId: row.acquisition_id,
     signedName: row.signed_name,
     signedAt: row.signed_at,
+    declinedReason: row.declined_reason ?? null,
+    declinedAt: row.declined_at ?? null,
     effectiveDate: row.effective_date,
     createdAt: row.created_at,
   }));
@@ -3267,6 +3272,23 @@ export async function signAgreement(agreementId: string, signedName: string): Pr
 
   if (error) {
     console.error("signAgreement", error);
+    return false;
+  }
+  return data === true;
+}
+
+/**
+ * Refusing an agreement. The mirror of signing, and just as final: the row
+ * moves to declined and neither answer can be given twice.
+ */
+export async function declineAgreement(agreementId: string, reason?: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("decline_agreement", {
+    p_agreement_id: agreementId,
+    p_reason: reason?.trim() || null,
+  });
+
+  if (error) {
+    console.error("declineAgreement", error);
     return false;
   }
   return data === true;
@@ -3933,6 +3955,12 @@ export async function createAgreement(input: {
   version?: string;
   acquisitionId?: string;
   effectiveDate?: string;
+  /**
+   * Whether to email the contributor that something needs signing. On by
+   * default, so no caller can quietly issue an agreement nobody hears about.
+   * Admission turns it off because the welcome email already says it.
+   */
+  announce?: boolean;
 }): Promise<boolean> {
   const prefix =
     input.kind === "acquisition" ? "ACQ" : input.kind === "publication" ? "PUB" : "NSC-CA";
@@ -3957,6 +3985,29 @@ export async function createAgreement(input: {
     console.error("createAgreement", error);
     return false;
   }
+
+  if (input.announce !== false) {
+    // An unsent email must never make a created agreement look like a failure.
+    try {
+      const { data: who } = await supabase
+        .from("profiles")
+        .select("email, name")
+        .eq("id", input.userId)
+        .maybeSingle();
+
+      if (who?.email) {
+        const { sendAgreementIssued } = await import("../../lib/email");
+        await sendAgreementIssued(who.email, who.name || "there", {
+          title: input.title,
+          reference,
+          version: input.version || "1.0",
+        });
+      }
+    } catch (err) {
+      console.error("Agreement-issued email failed:", err);
+    }
+  }
+
   return true;
 }
 

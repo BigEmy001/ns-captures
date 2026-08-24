@@ -486,3 +486,91 @@ ${
 <p style="margin:20px 0 0;font-size:13px;line-height:19px;color:#888888;font-family:inherit;">If you were not expecting this, reply to this email and we will put it right.</p>`,
   );
 }
+
+const P = `margin:16px 0 0;font-size:16px;line-height:22px;color:#333333;font-family:inherit;`;
+const H1 = `margin:0;font-size:24px;line-height:26px;font-weight:400;color:#333333;font-family:inherit;`;
+const CARD = `background-color:#f8f9f7;padding:20px;border-radius:8px;margin:20px 0;border:1px solid #dce8df;`;
+
+/**
+ * Tells a contributor an agreement is waiting for them.
+ *
+ * Until now the only signal was an in-app notification, so the way to learn
+ * that something needed signing was to log in and notice it.
+ */
+export async function sendAgreementIssued(
+  email: string,
+  name: string,
+  agreement: { title: string; reference: string; version: string },
+) {
+  const safeName = escapeHtml(name);
+  const title = escapeHtml(agreement.title);
+
+  await send(
+    email,
+    `Action needed: ${agreement.title}`,
+    `
+<h1 style="${H1}">An agreement is waiting for you</h1>
+<p style="${P}">Hi ${safeName},</p>
+<p style="${P}">Your <strong>${title}</strong> is ready to review and sign. Nothing is transferred, licensed or acquired under it until you have signed it.</p>
+<div style="${CARD}">
+  <p style="margin:0;font-size:14px;color:#1e4a3f;"><strong>Agreement:</strong> ${title}</p>
+  <p style="margin:8px 0 0 0;font-size:14px;color:#1e4a3f;"><strong>Reference:</strong> ${escapeHtml(agreement.reference)}</p>
+  <p style="margin:8px 0 0 0;font-size:14px;color:#1e4a3f;"><strong>Version:</strong> ${escapeHtml(agreement.version)}</p>
+</div>
+<p style="${P}">You can read it in full, sign it, or decline it — declining is a normal answer and costs you nothing else on the platform.</p>
+<p style="margin:16px 0 0;">${btn("https://www.nscaptures.com/account?tab=agreements", "Review the agreement")}</p>
+<p style="${P}">If you were not expecting this, reply to this email and we will look into it.</p>`,
+  );
+}
+
+/**
+ * The contributor's own copy of what they just signed.
+ *
+ * send-email carries no attachments, so the agreement travels as the body of
+ * the message — which is what makes it a record they hold rather than one
+ * they must log in to see.
+ */
+export async function sendAgreementSigned(
+  email: string,
+  name: string,
+  agreement: {
+    title: string;
+    reference: string;
+    version: string;
+    body: string;
+    signedName: string;
+    signedAt: string;
+  },
+) {
+  const safeName = escapeHtml(name);
+  const title = escapeHtml(agreement.title);
+  const signedOn = new Date(agreement.signedAt).toLocaleString("en-GB", {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+
+  // The stored body is plain text with blank lines between paragraphs.
+  const rendered = escapeHtml(agreement.body || "")
+    .split(/\n{2,}/)
+    .filter((p) => p.trim())
+    .map((p) => `<p style="${P}">${p.replace(/\n/g, "<br/>")}</p>`)
+    .join("");
+
+  await send(
+    email,
+    `Your signed copy: ${agreement.title}`,
+    `
+<h1 style="${H1}">Signed, and here is your copy</h1>
+<p style="${P}">Hi ${safeName},</p>
+<p style="${P}">This confirms you signed the <strong>${title}</strong>. Keep this email — it is your copy of what you agreed to and when.</p>
+<div style="${CARD}">
+  <p style="margin:0;font-size:14px;color:#1e4a3f;"><strong>Reference:</strong> ${escapeHtml(agreement.reference)}</p>
+  <p style="margin:8px 0 0 0;font-size:14px;color:#1e4a3f;"><strong>Version:</strong> ${escapeHtml(agreement.version)}</p>
+  <p style="margin:8px 0 0 0;font-size:14px;color:#1e4a3f;"><strong>Signed by:</strong> ${escapeHtml(agreement.signedName)}</p>
+  <p style="margin:8px 0 0 0;font-size:14px;color:#1e4a3f;"><strong>Signed on:</strong> ${escapeHtml(signedOn)}</p>
+</div>
+${rendered ? `<hr style="border:none;border-top:1px solid #e4e2da;margin:28px 0;"/><p style="margin:0 0 4px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#758078;font-family:inherit;">${title}</p>${rendered}<hr style="border:none;border-top:1px solid #e4e2da;margin:28px 0;"/>` : ""}
+<p style="${P}">A printable version is always available in your account, where you can save it as a PDF.</p>
+<p style="margin:16px 0 0;">${btn("https://www.nscaptures.com/account?tab=agreements", "View in your account")}</p>`,
+  );
+}

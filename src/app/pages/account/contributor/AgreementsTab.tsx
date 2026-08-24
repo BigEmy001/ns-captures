@@ -3,11 +3,13 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "../../../context/AuthContext";
 import {
+  declineAgreement,
   fetchAgreements,
   signAgreement,
   type Agreement,
   type AgreementStatus,
 } from "../../../data/db";
+import { sendAgreementSigned } from "../../../../lib/email";
 import { Card, EmptyState, PortalPage, StatusPill } from "./shared";
 import { printAgreement } from "./printAgreement";
 import type { PillTone } from "./shared";
@@ -36,6 +38,9 @@ export function AgreementsTab() {
   const [typedName, setTypedName] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+  const [decliningId, setDecliningId] = useState<string | null>(null);
+  const [declineReason, setDeclineReason] = useState("");
+  const [isDeclining, setIsDeclining] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -83,8 +88,55 @@ export function AgreementsTab() {
       ),
     );
     setOpenId(null);
+
+    // Their copy, in their inbox. A failure here must not cast doubt on a
+    // signature that is already recorded.
+    const signedAt = new Date().toISOString();
+    if (user?.email) {
+      sendAgreementSigned(user.email, user.name || "there", {
+        title: agreement.title,
+        reference: agreement.reference,
+        version: agreement.version,
+        body: agreement.body || "",
+        signedName: typedName.trim(),
+        signedAt,
+      }).catch((err) => console.error("Signed-copy email failed:", err));
+    }
+
     toast.success("Agreement signed", {
-      description: "Your agreement has been signed and securely recorded.",
+      description: "Recorded, and a copy is on its way to your inbox.",
+    });
+  };
+
+  const handleDecline = async (agreement: Agreement) => {
+    setIsDeclining(true);
+    const ok = await declineAgreement(agreement.id, declineReason);
+    setIsDeclining(false);
+
+    if (!ok) {
+      toast.error("Could not record your decision", {
+        description: "Reload the page and try again. Nothing has changed.",
+      });
+      return;
+    }
+
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === agreement.id
+          ? {
+              ...r,
+              status: "declined",
+              declinedReason: declineReason.trim() || null,
+              declinedAt: new Date().toISOString(),
+            }
+          : r,
+      ),
+    );
+    setDecliningId(null);
+    setDeclineReason("");
+    setOpenId(null);
+    toast.success("Agreement declined", {
+      description: "We have recorded your decision and will be in touch.",
     });
   };
 
@@ -139,7 +191,12 @@ export function AgreementsTab() {
                       {row.effectiveDate &&
                         ` · Effective ${format(new Date(row.effectiveDate), "d MMM yyyy")}`}
                     </p>
-                    {row.signedAt && (
+                    {row.status === "declined" && row.declinedReason && (
+                      <p className="mt-1 text-xs text-[#7a2f27]">
+                        You declined this: “{row.declinedReason}”
+                      </p>
+                    )}
+                    {row.signedAt && row.status !== "declined" && (
                       <p className="mt-1 text-xs text-[#59645f]">
                         Signed by {row.signedName} on{" "}
                         {format(new Date(row.signedAt), "d MMMM yyyy, HH:mm")}
@@ -210,18 +267,75 @@ export function AgreementsTab() {
                           />
                         </label>
 
-                        <button
-                          onClick={() => handleSign(row)}
-                          disabled={!accepted || typedName.trim().length < 2 || isSigning}
-                          className="mt-4 rounded-full bg-[#1e4a3f] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {isSigning ? "Signing…" : "Sign agreement"}
-                        </button>
+                        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <button
+                            onClick={() => handleSign(row)}
+                            disabled={!accepted || typedName.trim().length < 2 || isSigning}
+                            className="rounded-full bg-[#1e4a3f] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:cursor-not-allowed disabled:opacity-40 sm:py-2.5"
+                          >
+                            {isSigning ? "Signing…" : "Sign agreement"}
+                          </button>
+
+                          {decliningId !== row.id && (
+                            <button
+                              onClick={() => {
+                                setDecliningId(row.id);
+                                setDeclineReason("");
+                              }}
+                              className="rounded-full border border-[#ececec] px-5 py-3 text-sm font-semibold text-[#4a534e] transition hover:border-[#b4453c] hover:text-[#b4453c] sm:py-2.5"
+                            >
+                              Decline
+                            </button>
+                          )}
+                        </div>
 
                         <p className="mt-3 max-w-md text-xs text-[#758078]">
                           Signing records your name, the exact version of this agreement and the
                           date and time of acceptance.
                         </p>
+
+                        {/* Declining is a real answer, so it asks once and
+                            explains what follows rather than just refusing. */}
+                        {decliningId === row.id && (
+                          <div className="mt-4 max-w-md rounded-xl border border-[#e8d5d2] bg-[#fdf7f6] p-4">
+                            <p className="text-sm font-semibold text-[#7a2f27]">
+                              Decline this agreement?
+                            </p>
+                            <p className="mt-1 text-xs text-[#7a2f27]">
+                              Nothing is signed and nothing changes elsewhere on your account. We
+                              will be in touch, and a new version can be issued if terms change.
+                            </p>
+
+                            <label className="mt-3 block">
+                              <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                                Reason (optional)
+                              </span>
+                              <textarea
+                                value={declineReason}
+                                onChange={(e) => setDeclineReason(e.target.value)}
+                                rows={3}
+                                placeholder="Anything you would like us to know"
+                                className="mt-2 w-full resize-y rounded-xl border border-[#ececec] bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f]"
+                              />
+                            </label>
+
+                            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                              <button
+                                onClick={() => handleDecline(row)}
+                                disabled={isDeclining}
+                                className="rounded-full bg-[#b4453c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#993a32] disabled:cursor-not-allowed disabled:opacity-40 sm:py-2.5"
+                              >
+                                {isDeclining ? "Recording…" : "Yes, decline"}
+                              </button>
+                              <button
+                                onClick={() => setDecliningId(null)}
+                                className="rounded-full border border-[#ececec] bg-white px-5 py-3 text-sm font-semibold text-[#4a534e] transition hover:border-[#1e4a3f] hover:text-[#1e4a3f] sm:py-2.5"
+                              >
+                                Keep reviewing
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

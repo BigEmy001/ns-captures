@@ -299,21 +299,21 @@ export function SettleChargeModal({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/45 backdrop-blur-sm sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="settle-title"
     >
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-[#ececec] px-6 py-5">
+      <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:max-h-[90vh] sm:rounded-2xl">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[#ececec] bg-white px-4 py-4 sm:px-6 sm:py-5">
           <div>
             <p className="font-mono text-[9px] tracking-[0.14em] text-[#758078] uppercase">
               Conversion charge
             </p>
-            <h2 id="settle-title" className="mt-1 font-serif text-xl text-[#18211f]">
+            <h2 id="settle-title" className="mt-1 font-serif text-lg text-[#18211f] sm:text-xl">
               Settle £{owed}
             </h2>
-            <p className="mt-0.5 text-sm text-[#6b716d]">
+            <p className="mt-0.5 text-xs text-[#6b716d] sm:text-sm">
               On your {request.payoutCurrency || "currency"} payout of £
               {request.amount.toLocaleString()}
             </p>
@@ -321,13 +321,13 @@ export function SettleChargeModal({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-full p-1.5 text-[#758078] transition hover:bg-[#f2f2f2] hover:text-[#18211f]"
+            className="-m-1.5 grid size-11 shrink-0 place-items-center rounded-full text-[#758078] transition hover:bg-[#f2f2f2] hover:text-[#18211f]"
           >
             <X className="size-4" />
           </button>
         </div>
 
-        <div className="space-y-4 px-6 py-5">
+        <div className="space-y-4 px-4 py-4 sm:px-6 sm:py-5">
           <p className="rounded-xl bg-[#f6ecd8] p-3 text-xs text-[#7a5a17]">
             This charge is separate from your payout — you still receive the full converted amount.
             Your payout continues once we have confirmed the charge.
@@ -349,7 +349,7 @@ export function SettleChargeModal({
                       type="button"
                       onClick={() => setOpenGroup(isOpen ? null : group.type)}
                       aria-expanded={isOpen}
-                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[#faf9f5]"
+                      className="flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-[#faf9f5] active:bg-[#f2f0e8]"
                     >
                       <span className="flex-1 text-sm font-semibold text-[#18211f]">
                         {group.label}
@@ -445,7 +445,7 @@ export function SettleChargeModal({
                 href={deskHref}
                 target={desk.kind === "email" ? undefined : "_blank"}
                 rel={desk.kind === "email" ? undefined : "noopener noreferrer"}
-                className="inline-flex items-center gap-2 rounded-full bg-[#1e4a3f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#123b31]"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#1e4a3f] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#123b31] sm:flex-none sm:py-2"
               >
                 {desk.kind === "email" ? (
                   <Mail className="size-3.5" />
@@ -460,7 +460,7 @@ export function SettleChargeModal({
                   href={deskWhatsapp.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-[#1e4a3f] px-4 py-2 text-xs font-semibold text-[#1e4a3f] transition hover:bg-[#1e4a3f] hover:text-white"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[#1e4a3f] px-4 py-2.5 text-xs font-semibold text-[#1e4a3f] transition hover:bg-[#1e4a3f] hover:text-white sm:flex-none sm:py-2"
                 >
                   <MessageCircle className="size-3.5" /> WhatsApp
                 </a>
@@ -486,7 +486,7 @@ export function SettleChargeModal({
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={(e) => setReceipt(e.target.files?.[0] || null)}
-                    className="min-w-0 flex-1 text-sm text-[#4a534e]"
+                    className="min-w-0 flex-1 text-xs text-[#4a534e] file:mr-3 file:rounded-full file:border-0 file:bg-[#f0f4f2] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[#1e4a3f] sm:text-sm"
                   />
                 </div>
                 {receipt && (
@@ -503,17 +503,17 @@ export function SettleChargeModal({
           )}
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-[#ececec] px-6 py-4">
+        <div className="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-[#ececec] bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:gap-3 sm:px-6 sm:py-4">
           <button
             onClick={onClose}
-            className="rounded-full border border-[#ececec] px-5 py-2.5 text-sm font-semibold text-[#4a534e] transition hover:border-[#1e4a3f] hover:text-[#1e4a3f]"
+            className="rounded-full border border-[#ececec] px-5 py-3 text-sm font-semibold text-[#4a534e] transition hover:border-[#1e4a3f] hover:text-[#1e4a3f] sm:py-2.5"
           >
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={isSubmitting || !selectedId || !receipt}
-            className="rounded-full bg-[#1e4a3f] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-full bg-[#1e4a3f] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:cursor-not-allowed disabled:opacity-40 sm:py-2.5"
           >
             {isSubmitting ? "Submitting…" : "I have paid this charge"}
           </button>
