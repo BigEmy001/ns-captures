@@ -8,6 +8,8 @@ import {
   updateAcquisitionStatus,
   fetchAllAgreements,
   createAgreement,
+  fetchAgreementTemplates,
+  type AgreementTemplate,
   awardBonus,
   fetchAllPublicationEntries,
   createPublicationEntry,
@@ -23,6 +25,7 @@ import {
   type Photo,
 } from "../../data/db";
 import { ProposalsPanel } from "./ProposalsPanel";
+import { unfilledPlaceholders } from "../../../lib/agreement";
 
 const SUB_TABS = [
   { id: "proposals", label: "Proposals" },
@@ -490,8 +493,45 @@ function AgreementsPanel({
   const [acquisitionId, setAcquisitionId] = useState("");
   const [body, setBody] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [templates, setTemplates] = useState<AgreementTemplate[]>([]);
+  const [templateId, setTemplateId] = useState("");
+
+  useEffect(() => {
+    fetchAgreementTemplates()
+      .then(setTemplates)
+      .catch(() => setTemplates([]));
+  }, []);
+
+  // Choosing a stored text fills the form rather than replacing it, so it can
+  // still be adjusted for one contributor without editing the template.
+  const applyTemplate = (id: string) => {
+    setTemplateId(id);
+    const t = templates.find((x) => x.id === id);
+    if (!t) return;
+    setKind(t.kind);
+    setTitle(t.title);
+    setVersion(t.version);
+    setBody(t.body);
+  };
+
+  const forThisKind = templates.filter((t) => t.kind === kind);
 
   const contributorAcquisitions = acquisitions.filter((a) => a.userId === userId);
+
+  // Warn before issuing, not after: a bracketed blank in a signed contract is
+  // not something to discover from the contributor.
+  const chosen = photographers.find((p) => p.id === userId);
+  const remaining = body
+    ? unfilledPlaceholders(body, {
+        reference: "NSC-CA-0000-PREVIEW",
+        version,
+        effectiveDate: new Date().toISOString().slice(0, 10),
+        name: chosen?.name,
+        contributorId: (chosen as { contributorId?: string } | undefined)?.contributorId,
+        email: (chosen as { email?: string } | undefined)?.email,
+        country: (chosen as { country?: string } | undefined)?.country,
+      })
+    : [];
 
   const submit = async () => {
     if (!userId || !title.trim() || !body.trim()) {
@@ -531,6 +571,29 @@ function AgreementsPanel({
           The text you paste here is stored on the record and is what the contributor signs.
           Revising a template later never rewrites an agreement that has already been signed.
         </p>
+
+        {forThisKind.length > 0 && (
+          <label className="mt-5 block">
+            <span className={label}>Start from a stored text</span>
+            <select
+              value={templateId}
+              onChange={(e) => applyTemplate(e.target.value)}
+              className={field}
+            >
+              <option value="">Write it myself</option>
+              {forThisKind.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title} · v{t.version}
+                  {t.isCurrent ? " (current)" : ""}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-xs text-[#8a8f89]">
+              The placeholders are filled in for the contributor you choose when the agreement is
+              issued.
+            </span>
+          </label>
+        )}
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block">
@@ -588,14 +651,26 @@ function AgreementsPanel({
           </label>
 
           <label className="block sm:col-span-2 lg:col-span-4">
-            <span className={label}>Agreement text</span>
+            <span className={label}>
+              Agreement text
+              {body ? ` · ${body.length.toLocaleString("en-GB")} characters` : ""}
+            </span>
             <textarea
               rows={10}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) => {
+                setBody(e.target.value);
+                setTemplateId("");
+              }}
               placeholder="Paste the full agreement text as reviewed by your solicitor."
               className={`${field} resize-y font-mono text-xs`}
             />
+            {remaining.length > 0 && (
+              <span className="mt-1 block text-xs text-[#a1701d]">
+                Cannot be filled in for this contributor: {remaining.join(", ")}. They will appear
+                in the signed document exactly as written.
+              </span>
+            )}
           </label>
         </div>
 

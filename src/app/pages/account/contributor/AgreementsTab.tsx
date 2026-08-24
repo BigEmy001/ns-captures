@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
+import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../../context/AuthContext";
 import {
@@ -12,6 +13,7 @@ import {
 import { sendAgreementSigned } from "../../../../lib/email";
 import { Card, EmptyState, PortalPage, StatusPill } from "./shared";
 import { printAgreement } from "./printAgreement";
+import { splitSections } from "../../../../lib/agreement";
 import type { PillTone } from "./shared";
 
 const STATUS_COPY: Record<AgreementStatus, { label: string; tone: PillTone }> = {
@@ -224,17 +226,15 @@ export function AgreementsTab() {
 
                 {isOpen && (
                   <div className="mt-6 border-t border-[#ececec] pt-6">
-                    <div className="max-h-[420px] overflow-y-auto rounded-xl border border-[#ececec] bg-[#FAF9F5] p-6">
-                      {row.body ? (
-                        <div className="text-sm leading-relaxed whitespace-pre-wrap text-[#18211f]">
-                          {row.body}
-                        </div>
-                      ) : (
+                    {row.body ? (
+                      <AgreementBody body={row.body} />
+                    ) : (
+                      <div className="rounded-xl border border-[#ececec] bg-[#FAF9F5] p-6">
                         <p className="text-sm text-[#758078]">
                           The text of this agreement has not been attached to the record.
                         </p>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     {canSign && (
                       <div className="mt-6">
@@ -346,5 +346,92 @@ export function AgreementsTab() {
         </div>
       )}
     </PortalPage>
+  );
+}
+
+/**
+ * The contributor agreement runs to fifty-one numbered sections. Rendered as
+ * one column it is a very long scroll to reach the signature, and on a phone
+ * that is most of the experience of signing.
+ *
+ * It is read a section at a time instead, opened one at a time. Everything
+ * remains present and readable — nothing is hidden from the reader, only from
+ * the same screenful.
+ */
+function AgreementBody({ body }: { body: string }) {
+  const sections = useMemo(() => splitSections(body), [body]);
+  const [openSection, setOpenSection] = useState<number | null>(0);
+  const [showAll, setShowAll] = useState(false);
+
+  // Anything without recognisable headings is better shown as it was written.
+  if (sections.length < 3) {
+    return (
+      <div className="max-h-[420px] overflow-y-auto rounded-xl border border-[#ececec] bg-[#FAF9F5] p-6">
+        <div className="text-sm leading-relaxed whitespace-pre-wrap text-[#18211f]">{body}</div>
+      </div>
+    );
+  }
+
+  if (showAll) {
+    return (
+      <div>
+        <div className="mb-2 flex justify-end">
+          <button
+            onClick={() => setShowAll(false)}
+            className="text-xs font-semibold text-[#1e4a3f] hover:underline"
+          >
+            Read section by section
+          </button>
+        </div>
+        <div className="max-h-[420px] overflow-y-auto rounded-xl border border-[#ececec] bg-[#FAF9F5] p-6">
+          <div className="text-sm leading-relaxed whitespace-pre-wrap text-[#18211f]">{body}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-xs text-[#758078]">
+          {sections.length} sections — open any of them to read.
+        </p>
+        <button
+          onClick={() => setShowAll(true)}
+          className="shrink-0 text-xs font-semibold text-[#1e4a3f] hover:underline"
+        >
+          Read it all at once
+        </button>
+      </div>
+
+      <div className="divide-y divide-[#ececec] overflow-hidden rounded-xl border border-[#ececec] bg-[#FAF9F5]">
+        {sections.map((section, i) => {
+          const isOpen = openSection === i;
+          const heading = section.heading || "Preamble";
+
+          return (
+            <div key={`${heading}-${i}`}>
+              <button
+                onClick={() => setOpenSection(isOpen ? null : i)}
+                aria-expanded={isOpen}
+                className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-white/60"
+              >
+                <span className="flex-1 text-sm font-medium text-[#18211f]">{heading}</span>
+                <ChevronDown
+                  className={`size-4 shrink-0 text-[#8a8f89] transition-transform ${isOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {isOpen && (
+                <div className="max-h-[320px] overflow-y-auto bg-white px-4 pt-1 pb-4">
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap text-[#18211f]">
+                    {section.content}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

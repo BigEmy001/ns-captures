@@ -6,6 +6,7 @@ export type {
   ModerationItem,
   License,
 } from "../data/photos";
+import { fillAgreement } from "../../lib/agreement";
 import { supabase } from "../../lib/supabase";
 import { statusForStage, type PayoutStage } from "./payout-stages";
 import { isCreatorRole } from "./roles";
@@ -3969,15 +3970,37 @@ export async function createAgreement(input: {
     .slice(2, 7)
     .toUpperCase()}`;
 
+  const version = input.version || "1.0";
+  const effectiveDate = input.effectiveDate || null;
+
+  // Who the agreement is about, so its placeholders can be filled in for them.
+  const { data: who } = await supabase
+    .from("profiles")
+    .select("name, email, contributor_id, country")
+    .eq("id", input.userId)
+    .maybeSingle();
+
+  // Filled once, here, and stored filled. Doing it when the agreement is
+  // displayed instead would let a signed document change afterwards.
+  const body = fillAgreement(input.body, {
+    reference,
+    version,
+    effectiveDate,
+    name: who?.name,
+    contributorId: who?.contributor_id,
+    email: who?.email,
+    country: who?.country,
+  });
+
   const { error } = await supabase.from("agreements").insert({
     reference,
     user_id: input.userId,
     kind: input.kind,
     title: input.title,
-    body: input.body,
-    version: input.version || "1.0",
+    body,
+    version,
     acquisition_id: input.acquisitionId || null,
-    effective_date: input.effectiveDate || null,
+    effective_date: effectiveDate,
     status: "awaiting_signature",
   });
 
@@ -3986,29 +4009,52 @@ export async function createAgreement(input: {
     return false;
   }
 
-  if (input.announce !== false) {
+  if (input.announce !== false && who?.email) {
     // An unsent email must never make a created agreement look like a failure.
     try {
-      const { data: who } = await supabase
-        .from("profiles")
-        .select("email, name")
-        .eq("id", input.userId)
-        .maybeSingle();
-
-      if (who?.email) {
-        const { sendAgreementIssued } = await import("../../lib/email");
-        await sendAgreementIssued(who.email, who.name || "there", {
-          title: input.title,
-          reference,
-          version: input.version || "1.0",
-        });
-      }
+      const { sendAgreementIssued } = await import("../../lib/email");
+      await sendAgreementIssued(who.email, who.name || "there", {
+        title: input.title,
+        reference,
+        version,
+      });
     } catch (err) {
       console.error("Agreement-issued email failed:", err);
     }
   }
 
   return true;
+}
+
+export interface AgreementTemplate {
+  id: string;
+  kind: AgreementKind;
+  title: string;
+  version: string;
+  body: string;
+  isCurrent: boolean;
+}
+
+/** The texts available to issue from, newest first. */
+export async function fetchAgreementTemplates(): Promise<AgreementTemplate[]> {
+  const { data, error } = await supabase
+    .from("agreement_templates")
+    .select("id, kind, title, version, body, is_current")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) {
+    if (error) console.error("fetchAgreementTemplates", error);
+    return [];
+  }
+
+  return data.map((t: any) => ({
+    id: t.id,
+    kind: t.kind,
+    title: t.title,
+    version: t.version,
+    body: t.body,
+    isCurrent: t.is_current,
+  }));
 }
 
 export async function fetchAllAgreements(): Promise<(Agreement & { userName?: string })[]> {
