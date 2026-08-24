@@ -29,7 +29,7 @@ export function ledgerLabel(text?: string | null): string {
   if (hype) {
     const n = Number(hype[1]);
     if (Number.isFinite(n)) {
-      return `${n.toLocaleString("en-GB")} additional download${n === 1 ? "" : "s"}`;
+      return `${n.toLocaleString("en-GB")} download${n === 1 ? "" : "s"}`;
     }
   }
 

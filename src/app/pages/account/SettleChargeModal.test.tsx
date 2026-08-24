@@ -146,16 +146,15 @@ describe("SettleChargeModal", () => {
   it("hides a method with no address, rather than offering a dead end", async () => {
     show([method({ name: "Crypto Wallets", details: {} })]);
 
-    await screen.findByText("Contact the payment desk");
+    await screen.findByText("Cannot use any of these?");
     expect(screen.queryByText("Crypto wallets")).not.toBeInTheDocument();
   });
 
   it("offers the payment desk even when nothing is published", async () => {
     show([]);
 
-    fireEvent.click(await screen.findByText("Contact the payment desk"));
-
-    // Nothing configured: falls back to the default Contact Admin address.
+    // No click needed: the way out is on screen from the start.
+    await screen.findByText("Cannot use any of these?");
     const email = screen.getByRole("link", { name: /email admin/i });
     expect(email).toHaveAttribute(
       "href",
@@ -173,7 +172,7 @@ describe("SettleChargeModal", () => {
       }),
     );
 
-    fireEvent.click(await screen.findByText("Contact the payment desk"));
+    await screen.findByText("Cannot use any of these?");
 
     expect(screen.getByRole("link", { name: /email admin/i })).toHaveAttribute(
       "href",
@@ -273,11 +272,31 @@ describe("SettleChargeModal", () => {
   it("falls back to the Contact Admin setting when the desk has no address", async () => {
     show([], settings({ contactLink: "https://t.me/nscaptures" }));
 
-    fireEvent.click(await screen.findByText("Contact the payment desk"));
+    await screen.findByText("Cannot use any of these?");
 
     expect(screen.getByRole("link", { name: /contact admin/i })).toHaveAttribute(
       "href",
       "https://t.me/nscaptures",
     );
+  });
+
+  it("shows the destination in text, since a mailto click can do nothing", async () => {
+    show([], settings({ paymentDeskEmail: "desk@nscaptures.com" }));
+
+    await screen.findByText("Cannot use any of these?");
+    expect(screen.getByText("desk@nscaptures.com")).toBeInTheDocument();
+  });
+
+  it("copying an address does not also select the radio", async () => {
+    show([method({ details: { value: "bc1qexampleaddress" } })]);
+
+    fireEvent.click(await screen.findByText("Crypto wallets"));
+    const radio = screen.getByRole("radio") as HTMLInputElement;
+    expect(radio.checked).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: /^copy$/i }));
+
+    // The copy button sits inside the label; it must not toggle the choice.
+    expect(radio.checked).toBe(false);
   });
 });

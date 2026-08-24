@@ -5,27 +5,25 @@ describe("ledgerLabel", () => {
   it("never shows the contributor the tool's name or the upload id", () => {
     const raw = "Hype Engine: +24 custom downloads on photo upload-1784616302951";
     const shown = ledgerLabel(raw);
-    expect(shown).toBe("24 additional downloads");
+    expect(shown).toBe("24 downloads");
     expect(shown).not.toMatch(/hype/i);
     expect(shown).not.toMatch(/upload-/);
   });
 
   it("reads naturally for a single download", () => {
     expect(ledgerLabel("Hype Engine: +1 custom downloads on photo upload-1786878972574")).toBe(
-      "1 additional download",
+      "1 download",
     );
   });
 
   it("groups the thousands", () => {
     expect(ledgerLabel("Hype Engine: +1200 custom downloads on photo upload-x")).toBe(
-      "1,200 additional downloads",
+      "1,200 downloads",
     );
   });
 
   it("copes with the wording drifting a little", () => {
-    expect(ledgerLabel("hype engine: 3 custom download on photo upload-x")).toBe(
-      "3 additional downloads",
-    );
+    expect(ledgerLabel("hype engine: 3 custom download on photo upload-x")).toBe("3 downloads");
   });
 
   it("leaves an ordinary description alone", () => {
