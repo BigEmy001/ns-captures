@@ -2807,12 +2807,12 @@ export function CreatorTabs({
                         Your country sets the currency we pay you in. Without it we would default to
                         pounds, which may not be what your bank accepts.
                       </p>
-                      <a
-                        href="/account?tab=profile"
-                        className="mt-2.5 inline-block rounded-full bg-[#1e4a3f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#123b31]"
+                      <button
+                        onClick={() => onTabChange?.("security")}
+                        className="mt-2.5 rounded-full bg-[#1e4a3f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#123b31]"
                       >
                         Add your country
-                      </a>
+                      </button>
                     </div>
                   ) : (
                     <p className="rounded-xl border border-[#ececec] bg-[#f7f7f7] p-3 text-xs text-[#59645f]">

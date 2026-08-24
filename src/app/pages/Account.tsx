@@ -1079,11 +1079,18 @@ export function Account() {
                           </option>
                         ))}
                       </select>
-                      {profileData.country && !profileData.payoutCurrency && (
+                      {/* Silence here was the whole problem: a creator with no
+                          country was quietly treated as sterling. */}
+                      {!profileData.country && canCreate ? (
+                        <span className="mt-1 block text-xs text-[#a1701d]">
+                          Needed before you can request a payout — it sets the currency you are paid
+                          in.
+                        </span>
+                      ) : profileData.country && !profileData.payoutCurrency ? (
                         <span className="mt-1 block text-xs text-[#8a8f89]">
                           Payouts default to {currencyForCountry(profileData.country) || "GBP"}.
                         </span>
-                      )}
+                      ) : null}
                     </div>
                     <Field
                       label="City"
@@ -1117,7 +1124,10 @@ export function Account() {
                           ))}
                         </select>
                         <span className="mt-1 block text-xs text-[#8a8f89]">
-                          Payouts are converted from GBP into this currency.
+                          Your balance is held in pounds. Payouts are converted into{" "}
+                          {resolvePayoutCurrency(profileData.payoutCurrency, profileData.country)}{" "}
+                          at the rate on the day, and any conversion charge is shown before it
+                          applies.
                         </span>
                       </div>
                     )}
