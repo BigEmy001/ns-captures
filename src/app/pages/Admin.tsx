@@ -2214,9 +2214,13 @@ export function Admin() {
                         icon: <Landmark className="size-4 text-[#1e4a3f]" />,
                       },
                     ].map((card) => {
-                      const existing = adminPaymentMethods.find(
-                        (m) => m.methodType === card.key || m.methodType.includes(card.key),
-                      );
+                      // Exact match only: "local_bank".includes("bank") is true, so
+                      // a loose test let the Bank Wire card adopt a local bank row.
+                      const matches = adminPaymentMethods.filter((m) => m.methodType === card.key);
+                      const existing = matches[0];
+                      // Several rows of one type can pile up. The toggle speaks for
+                      // all of them, because that is what a user actually sees.
+                      const anyEnabled = matches.some((m) => m.enabled);
                       return (
                         <div key={card.key} className="border border-[#ececec] rounded-xl p-4">
                           <div className="flex items-center justify-between mb-2">
@@ -2232,15 +2236,23 @@ export function Admin() {
                             <div className="flex items-center gap-2">
                               {existing && (
                                 <Toggle
-                                  checked={existing.enabled}
+                                  checked={anyEnabled}
                                   onChange={async (v) => {
-                                    await updateAdminPaymentMethod(existing.id, { enabled: v });
-                                    setAdminPaymentMethods(
-                                      adminPaymentMethods.map((m) =>
-                                        m.id === existing.id ? { ...m, enabled: v } : m,
+                                    await Promise.all(
+                                      matches.map((m) =>
+                                        updateAdminPaymentMethod(m.id, { enabled: v }),
                                       ),
                                     );
-                                    toast.success("Updated");
+                                    setAdminPaymentMethods(
+                                      adminPaymentMethods.map((m) =>
+                                        m.methodType === card.key ? { ...m, enabled: v } : m,
+                                      ),
+                                    );
+                                    toast.success(
+                                      v
+                                        ? `Shown to users${matches.length > 1 ? ` · ${matches.length} entries` : ""}`
+                                        : `Hidden from users${matches.length > 1 ? ` · ${matches.length} entries` : ""}`,
+                                    );
                                   }}
                                 />
                               )}

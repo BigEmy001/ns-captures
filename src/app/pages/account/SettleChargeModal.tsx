@@ -6,6 +6,7 @@ import {
   fetchSiteSettings,
   submitConversionFeePayment,
   type AdminPaymentMethod,
+  type CryptoWalletEntry,
   type PayoutRequest,
   type SiteSettingsRow,
 } from "../../data/db";
@@ -59,14 +60,69 @@ function extraDetails(method: AdminPaymentMethod, address: string): [string, str
 }
 
 /**
- * Two rows naming the same wallet at the same address are one wallet, however
- * many times they were saved. Showing them all would make the list look busy
- * without offering a real choice.
+ * One thing a person can actually send money to.
+ *
+ * A method row is not that unit. The Global Deposit Wallets screen saves every
+ * crypto wallet the admin configures into a single row as details.wallets, so
+ * one row can hold BTC, three USDT networks and an ETH address at once. Each
+ * of those is a separate choice here.
  */
-function dedupe(methods: AdminPaymentMethod[]): AdminPaymentMethod[] {
+interface PayOption {
+  key: string;
+  methodId: string;
+  group: string;
+  label: string;
+  tag?: string;
+  address: string;
+  extras: [string, string][];
+  /** What gets recorded against the payment when they confirm. */
+  recordName: string;
+}
+
+function optionsFrom(method: AdminPaymentMethod): PayOption[] {
+  const wallets = (method.details || {}).wallets;
+
+  if (Array.isArray(wallets)) {
+    return (wallets as CryptoWalletEntry[])
+      .filter((w) => w && typeof w.address === "string" && w.address.trim())
+      .map((w) => ({
+        key: `${method.id}:${w.coin}:${w.network}`,
+        methodId: method.id,
+        group: method.methodType,
+        label: w.coin || method.name,
+        tag: w.network,
+        address: w.address.trim(),
+        extras: [],
+        recordName: `${w.coin} (${w.network})`,
+      }));
+  }
+
+  const address = addressOf(method);
+  if (!address) return [];
+  const network = method.details?.currency || method.details?.network;
+
+  return [
+    {
+      key: method.id,
+      methodId: method.id,
+      group: method.methodType,
+      label: method.name,
+      tag: network ? String(network) : undefined,
+      address,
+      extras: extraDetails(method, address),
+      recordName: method.name,
+    },
+  ];
+}
+
+/**
+ * The same wallet saved under four different rows is still one wallet. Showing
+ * it four times would make the list look busy without offering a real choice.
+ */
+function dedupe(options: PayOption[]): PayOption[] {
   const seen = new Set<string>();
-  return methods.filter((m) => {
-    const key = `${m.methodType}|${m.name.trim().toLowerCase()}|${addressOf(m)}`;
+  return options.filter((o) => {
+    const key = `${o.group}|${o.label.trim().toLowerCase()}|${o.tag || ""}|${o.address}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -151,12 +207,12 @@ export function SettleChargeModal({
   // A method with nowhere to send money is not a way to pay. Keeping it in the
   // list would give someone an option that dead-ends when they open it.
   const groups = useMemo(() => {
-    const usable = dedupe(methods).filter((m) => addressOf(m));
-    const byType = new Map<string, AdminPaymentMethod[]>();
-    for (const m of usable) {
-      const list = byType.get(m.methodType) || [];
-      list.push(m);
-      byType.set(m.methodType, list);
+    const options = dedupe(methods.flatMap(optionsFrom));
+    const byType = new Map<string, PayOption[]>();
+    for (const o of options) {
+      const list = byType.get(o.group) || [];
+      list.push(o);
+      byType.set(o.group, list);
     }
     const ordered = [
       ...GROUP_ORDER,
@@ -170,6 +226,11 @@ export function SettleChargeModal({
         items: byType.get(type)!,
       }));
   }, [methods]);
+
+  const chosen = useMemo(
+    () => groups.flatMap((g) => g.items).find((o) => o.key === selectedId),
+    [groups, selectedId],
+  );
 
   const owed = (request.conversionFeeGbp || 0).toLocaleString("en-GB", {
     minimumFractionDigits: 2,
@@ -209,11 +270,10 @@ export function SettleChargeModal({
       if (!res.ok) throw new Error("Could not upload your receipt");
       const json = await res.json();
 
-      const method = methods.find((m) => m.id === selectedId);
       const ok = await submitConversionFeePayment(
         request.id,
         json.secure_url,
-        method?.name || "Payment method",
+        chosen?.recordName || "Payment method",
       );
       if (!ok) throw new Error("Could not record your payment");
 
@@ -273,7 +333,7 @@ export function SettleChargeModal({
             <div className="mt-2.5 divide-y divide-[#ececec] overflow-hidden rounded-xl border border-[#ececec]">
               {groups.map((group) => {
                 const isOpen = openGroup === group.type;
-                const chosenHere = group.items.some((m) => m.id === selectedId);
+                const chosenHere = group.items.some((o) => o.key === selectedId);
 
                 return (
                   <div key={group.type}>
@@ -299,15 +359,12 @@ export function SettleChargeModal({
 
                     {isOpen && (
                       <div className="space-y-2 bg-[#fcfcfa] px-4 pt-1 pb-4">
-                        {group.items.map((method) => {
-                          const address = addressOf(method);
-                          const isSelected = selectedId === method.id;
-                          const extras = extraDetails(method, address);
-                          const network = method.details?.currency || method.details?.network;
+                        {group.items.map((option) => {
+                          const isSelected = selectedId === option.key;
 
                           return (
                             <label
-                              key={method.id}
+                              key={option.key}
                               className={`block cursor-pointer rounded-xl border p-3 transition ${
                                 isSelected
                                   ? "border-[#1e4a3f] bg-white"
@@ -318,28 +375,28 @@ export function SettleChargeModal({
                                 <input
                                   type="radio"
                                   name="settle-method"
-                                  value={method.id}
+                                  value={option.key}
                                   checked={isSelected}
-                                  onChange={() => setSelectedId(method.id)}
+                                  onChange={() => setSelectedId(option.key)}
                                   className="size-4 shrink-0 accent-[#1e4a3f]"
                                 />
                                 <span className="min-w-0 flex-1 text-sm font-semibold text-[#18211f]">
-                                  {method.name}
+                                  {option.label}
                                 </span>
-                                {network && (
-                                  <span className="shrink-0 font-mono text-[9px] tracking-wider text-[#758078] uppercase">
-                                    {String(network)}
+                                {option.tag && (
+                                  <span className="shrink-0 rounded-full bg-[#f2f2ee] px-2 py-0.5 font-mono text-[9px] tracking-wider text-[#59645f] uppercase">
+                                    {option.tag}
                                   </span>
                                 )}
                               </span>
 
                               <span className="mt-2 block">
-                                <CopyValue value={address} />
+                                <CopyValue value={option.address} />
                               </span>
 
-                              {isSelected && extras.length > 0 && (
+                              {isSelected && option.extras.length > 0 && (
                                 <dl className="mt-2 space-y-1.5">
-                                  {extras.map(([k, v]) => (
+                                  {option.extras.map(([k, v]) => (
                                     <div key={k}>
                                       <dt className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
                                         {prettyKey(k)}

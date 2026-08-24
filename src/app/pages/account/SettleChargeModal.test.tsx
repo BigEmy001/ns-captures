@@ -205,4 +205,64 @@ describe("SettleChargeModal", () => {
     // A method alone is not enough — the receipt is still missing.
     expect(button).toBeDisabled();
   });
+
+  // The Global Deposit Wallets screen saves every wallet into one row, so the
+  // shape below is what production actually holds.
+  const walletRow = (id: string, wallets: { coin: string; network: string; address: string }[]) =>
+    method({ id, name: "Crypto Wallets", methodType: "crypto", details: { wallets } });
+
+  it("offers each configured wallet, not the row that holds them", async () => {
+    show([
+      walletRow("a", [
+        { coin: "BTC", network: "Bitcoin", address: "bc1qshkdt4xrmny58h67eka2qucqva7wznnq2pq86d" },
+        { coin: "USDT", network: "TRC20", address: "TUMWvNB8sxztU3t3exumc2e3CkX2FkFsfm" },
+        { coin: "ETH", network: "ERC20", address: "0xcD24721Afef7C969e0d8B8472e1e6c5292214fD8" },
+      ]),
+    ]);
+
+    fireEvent.click(await screen.findByText("Crypto wallets"));
+
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+    expect(screen.getByText("BTC")).toBeInTheDocument();
+    expect(screen.getByText("TRC20")).toBeInTheDocument();
+    expect(screen.getByText("bc1qshkdt4xrmny58h67eka2qucqva7wznnq2pq86d")).toBeInTheDocument();
+  });
+
+  it("shows one entry for a wallet duplicated across several rows", async () => {
+    const btc = { coin: "BTC", network: "Bitcoin", address: "bc1qshkdt4x" };
+    const usdt = { coin: "USDT", network: "TRC20", address: "TUMWvNB8sx" };
+    show([walletRow("a", [btc, usdt]), walletRow("b", [btc]), walletRow("c", [btc, usdt])]);
+
+    fireEvent.click(await screen.findByText("Crypto wallets"));
+
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+  });
+
+  it("keeps the same coin on different networks apart", async () => {
+    show([
+      walletRow("a", [
+        { coin: "USDT", network: "TRC20", address: "TUMWvNB8sx" },
+        { coin: "USDT", network: "ERC20", address: "0xcD24721A" },
+      ]),
+    ]);
+
+    fireEvent.click(await screen.findByText("Crypto wallets"));
+
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(screen.getByText("TRC20")).toBeInTheDocument();
+    expect(screen.getByText("ERC20")).toBeInTheDocument();
+  });
+
+  it("ignores a wallet entry with no address", async () => {
+    show([
+      walletRow("a", [
+        { coin: "BTC", network: "Bitcoin", address: "bc1qshkdt4x" },
+        { coin: "SOL", network: "Solana", address: "" },
+      ]),
+    ]);
+
+    fireEvent.click(await screen.findByText("Crypto wallets"));
+
+    expect(screen.getAllByRole("radio")).toHaveLength(1);
+  });
 });
