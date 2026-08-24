@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { COUNTRIES } from "../../../lib/countries";
+import { COUNTRIES, currencyForCountry } from "../../../lib/countries";
 import { SPECIALTIES } from "../../data/contributor";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -28,6 +28,7 @@ export function SignUp() {
     email?: string;
     password?: string;
     terms?: string;
+    country?: string;
   }>({});
   const [terms, setTerms] = useState(false);
 
@@ -42,6 +43,10 @@ export function SignUp() {
     if (!password) next.password = "Password is required";
     else if (!isStrongPassword(password))
       next.password = "Use at least 10 characters with letters and numbers";
+    // Not a formality: the country decides which currency a payout is made in,
+    // and asking later means asking at the worst moment — when they are owed
+    // money and waiting.
+    if (!country) next.country = "Choose your country so we can pay you correctly";
     if (!terms) next.terms = "You must agree to the terms";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -242,8 +247,14 @@ export function SignUp() {
               </span>
               <select
                 value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-[#ececec] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#1e4a3f]"
+                onChange={(e) => {
+                  setCountry(e.target.value);
+                  clearError("country");
+                }}
+                aria-invalid={!!errors.country}
+                className={`mt-1.5 w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition focus:border-[#1e4a3f] ${
+                  errors.country ? "border-[#b4453c]" : "border-[#ececec]"
+                }`}
               >
                 <option value="">Select country</option>
                 {COUNTRIES.map((c) => (
@@ -253,6 +264,15 @@ export function SignUp() {
                 ))}
               </select>
             </label>
+            {errors.country ? (
+              <p className="mt-1.5 text-xs text-[#b4453c]">{errors.country}</p>
+            ) : (
+              <p className="mt-1.5 text-xs text-[#758078]">
+                {country
+                  ? `Payouts will be made in ${currencyForCountry(country) || "GBP"}. You can change this later.`
+                  : "This sets the currency your payouts are made in."}
+              </p>
+            )}
           </div>
           <AuthField
             label="City"

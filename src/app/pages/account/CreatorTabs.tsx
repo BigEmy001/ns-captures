@@ -77,6 +77,7 @@ import { sendPayoutRequestSubmitted, sendAdminNotification } from "../../../lib/
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 import { ledgerLabel } from "../../../lib/ledger";
+import { resolvePayoutCurrency } from "../../../lib/countries";
 
 // We only need nav for types or internal checks if any, but active is passed in.
 
@@ -2794,6 +2795,36 @@ export function CreatorTabs({
                   </p>
                 </div>
                 <div className="p-6 space-y-4">
+                  {/* The country decides the payout currency, and this is the
+                      moment it actually matters — so it is asked for here
+                      rather than silently defaulting to sterling. */}
+                  {!user?.country ? (
+                    <div className="rounded-xl border border-[#e0b04a]/40 bg-[#f6ecd8] p-4">
+                      <p className="text-sm font-semibold text-[#7a5a17]">
+                        Tell us your country first
+                      </p>
+                      <p className="mt-1 text-xs text-[#7a5a17]">
+                        Your country sets the currency we pay you in. Without it we would default to
+                        pounds, which may not be what your bank accepts.
+                      </p>
+                      <a
+                        href="/account?tab=profile"
+                        className="mt-2.5 inline-block rounded-full bg-[#1e4a3f] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#123b31]"
+                      >
+                        Add your country
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="rounded-xl border border-[#ececec] bg-[#f7f7f7] p-3 text-xs text-[#59645f]">
+                      Your balance is held in pounds. Payouts are made in{" "}
+                      <span className="font-semibold text-[#18211f]">
+                        {resolvePayoutCurrency(user?.payoutCurrency, user?.country)}
+                      </span>
+                      , converted at the rate on the day. Any conversion charge is shown before it
+                      is applied.
+                    </p>
+                  )}
+
                   <div className="bg-[#f7f7f7] rounded-xl p-4 border border-[#ececec]">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
                       Available Balance
@@ -3162,7 +3193,8 @@ export function CreatorTabs({
                         toast.error("Failed to submit request");
                       }
                     }}
-                    className="w-full rounded-full bg-[#1e4a3f] py-2.5 text-sm font-semibold text-white hover:bg-[#123b31] transition"
+                    disabled={!user?.country}
+                    className="w-full rounded-full bg-[#1e4a3f] py-2.5 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Request Payout
                   </button>
