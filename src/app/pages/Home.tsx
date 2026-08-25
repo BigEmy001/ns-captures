@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router";
 import { Camera, Upload, Quote } from "lucide-react";
 import { HeroSearch } from "../components/HeroSearch";
@@ -16,6 +16,7 @@ import {
   getOptimizedImageUrl,
 } from "../data/db";
 import { AnimatedRays } from "../components/ui/animated-rays";
+import { sampleForHome } from "../data/home-sample";
 
 const heroImage =
   "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=86&w=1800";
@@ -65,6 +66,10 @@ export function Home() {
       if (photographers) setPhotographers(photographers);
     });
   }, []);
+
+  // The grid is a sample, not the library: newest first, but capped so one
+  // photographer with a back catalogue cannot take the whole front page.
+  const featured = useMemo(() => sampleForHome(photos), [photos]);
 
   const trendingTags = ["Portrait", "Lifestyle", "Architecture", "Fashion"];
 
@@ -129,7 +134,7 @@ export function Home() {
         <TopicRail />
 
         <div className="mt-10 columns-2 gap-4 md:columns-3 lg:columns-4 [&>*]:mb-4">
-          {photos.map((p) => (
+          {featured.map((p) => (
             <div key={p.id} className="break-inside-avoid">
               <PhotoCard item={p} />
             </div>
