@@ -3180,6 +3180,7 @@ export interface Acquisition {
   respondedAt: string | null;
   paidAt: string | null;
   createdAt: string;
+  responseNote?: string | null;
 }
 
 export async function fetchAcquisitions(userId: string): Promise<Acquisition[]> {
@@ -3208,6 +3209,7 @@ export async function fetchAcquisitions(userId: string): Promise<Acquisition[]> 
     attribution: row.attribution,
     status: row.status,
     selectionNote: row.selection_note,
+    responseNote: row.response_note ?? null,
     offeredAt: row.offered_at,
     respondedAt: row.responded_at,
     paidAt: row.paid_at,
@@ -3290,6 +3292,29 @@ export async function declineAgreement(agreementId: string, reason?: string): Pr
 
   if (error) {
     console.error("declineAgreement", error);
+    return false;
+  }
+  return data === true;
+}
+
+/**
+ * Answering an acquisition offer. Accepting moves it to agreement_pending —
+ * agreeing in principle is what prompts the agreement, and nothing is
+ * transferred until that agreement is signed.
+ */
+export async function respondToAcquisition(
+  acquisitionId: string,
+  accept: boolean,
+  note?: string,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("respond_to_acquisition", {
+    p_acquisition_id: acquisitionId,
+    p_accept: accept,
+    p_note: note?.trim() || null,
+  });
+
+  if (error) {
+    console.error("respondToAcquisition", error);
     return false;
   }
   return data === true;

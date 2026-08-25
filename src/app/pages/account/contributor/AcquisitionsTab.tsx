@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { useAuth } from "../../../context/AuthContext";
+import { toast } from "sonner";
 import {
   fetchAcquisitions,
+  respondToAcquisition,
   getOptimizedImageUrl,
   type Acquisition,
   type AcquisitionStatus,
@@ -62,8 +64,15 @@ const RIGHTS_LABELS = {
 /** Statuses where the contributor is the one holding things up. */
 const NEEDS_YOU: AcquisitionStatus[] = ["offer_made", "awaiting_contributor", "agreement_pending"];
 
+/** The two states in which an offer is actually open to an answer. */
+const CAN_ANSWER: AcquisitionStatus[] = ["offer_made", "awaiting_contributor"];
+
 export function AcquisitionsTab() {
   const { user } = useAuth();
+  const [answeringId, setAnsweringId] = useState<string | null>(null);
+  const [decliningId, setDecliningId] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const [rows, setRows] = useState<Acquisition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -82,6 +91,40 @@ export function AcquisitionsTab() {
       cancelled = true;
     };
   }, [user?.id]);
+
+  const answer = async (row: Acquisition, accept: boolean) => {
+    setIsSending(true);
+    const ok = await respondToAcquisition(row.id, accept, note);
+    setIsSending(false);
+
+    if (!ok) {
+      toast.error("Could not record your answer", {
+        description: "Reload the page and try again. Nothing has changed.",
+      });
+      return;
+    }
+
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === row.id
+          ? {
+              ...r,
+              status: accept ? "agreement_pending" : "declined",
+              responseNote: note.trim() || null,
+              respondedAt: new Date().toISOString(),
+            }
+          : r,
+      ),
+    );
+    setAnsweringId(null);
+    setDecliningId(null);
+    setNote("");
+    toast.success(accept ? "Offer accepted" : "Offer declined", {
+      description: accept
+        ? "We will prepare the acquisition agreement for your signature."
+        : "We have recorded your decision and will be in touch.",
+    });
+  };
 
   const awaiting = rows.filter((r) => NEEDS_YOU.includes(r.status));
   const totalPaid = rows.filter((r) => r.status === "paid").reduce((sum, r) => sum + r.amount, 0);
@@ -213,6 +256,119 @@ export function AcquisitionsTab() {
                       This offer relates only to the photograph named above and does not transfer
                       rights in any of your other work.
                     </p>
+
+                    {row.responseNote && (
+                      <p className="mt-3 text-xs text-[#59645f]">Your note: “{row.responseNote}”</p>
+                    )}
+
+                    {/* An offer put to someone should be answerable by them.
+                        Accepting only agrees in principle — the agreement that
+                        follows is what actually binds either side. */}
+                    {CAN_ANSWER.includes(row.status) && (
+                      <div className="mt-6 border-t border-[#ececec] pt-5">
+                        <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                          Your answer
+                        </p>
+
+                        {decliningId === row.id ? (
+                          <div className="mt-3 max-w-md rounded-xl border border-[#e8d5d2] bg-[#fdf7f6] p-4">
+                            <p className="text-sm font-semibold text-[#7a2f27]">
+                              Decline this offer?
+                            </p>
+                            <p className="mt-1 text-xs text-[#7a2f27]">
+                              Nothing changes elsewhere on your account, and the photograph stays
+                              yours and stays listed.
+                            </p>
+                            <label className="mt-3 block">
+                              <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                                Reason (optional)
+                              </span>
+                              <textarea
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                rows={3}
+                                placeholder="Anything you would like us to know"
+                                className="mt-2 w-full resize-y rounded-xl border border-[#ececec] bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f]"
+                              />
+                            </label>
+                            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                              <button
+                                onClick={() => answer(row, false)}
+                                disabled={isSending}
+                                className="rounded-full bg-[#b4453c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#993a32] disabled:cursor-not-allowed disabled:opacity-40 sm:py-2.5"
+                              >
+                                {isSending ? "Recording…" : "Yes, decline"}
+                              </button>
+                              <button
+                                onClick={() => setDecliningId(null)}
+                                className="rounded-full border border-[#ececec] bg-white px-5 py-3 text-sm font-semibold text-[#4a534e] transition hover:border-[#1e4a3f] hover:text-[#1e4a3f] sm:py-2.5"
+                              >
+                                Keep considering
+                              </button>
+                            </div>
+                          </div>
+                        ) : answeringId === row.id ? (
+                          <div className="mt-3 max-w-md rounded-xl border border-[#1e4a3f]/25 bg-[#f2f7f4] p-4">
+                            <p className="text-sm font-semibold text-[#18211f]">
+                              Accept this offer?
+                            </p>
+                            <p className="mt-1 text-xs text-[#4a534e]">
+                              This agrees to the terms above in principle. We will then prepare the
+                              acquisition agreement — nothing is transferred until you have signed
+                              it.
+                            </p>
+                            <label className="mt-3 block">
+                              <span className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
+                                Note (optional)
+                              </span>
+                              <textarea
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                rows={2}
+                                placeholder="Anything you would like us to know"
+                                className="mt-2 w-full resize-y rounded-xl border border-[#ececec] bg-white px-4 py-3 text-sm outline-none focus:border-[#1e4a3f]"
+                              />
+                            </label>
+                            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                              <button
+                                onClick={() => answer(row, true)}
+                                disabled={isSending}
+                                className="rounded-full bg-[#1e4a3f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:cursor-not-allowed disabled:opacity-40 sm:py-2.5"
+                              >
+                                {isSending ? "Recording…" : "Yes, accept"}
+                              </button>
+                              <button
+                                onClick={() => setAnsweringId(null)}
+                                className="rounded-full border border-[#ececec] bg-white px-5 py-3 text-sm font-semibold text-[#4a534e] transition hover:border-[#1e4a3f] hover:text-[#1e4a3f] sm:py-2.5"
+                              >
+                                Not yet
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                            <button
+                              onClick={() => {
+                                setAnsweringId(row.id);
+                                setNote("");
+                              }}
+                              className="rounded-full bg-[#1e4a3f] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#123b31] sm:py-2.5"
+                            >
+                              Accept offer
+                            </button>
+                            <button
+                              onClick={() => {
+                                setDecliningId(row.id);
+                                setNote("");
+                              }}
+                              className="rounded-full border border-[#ececec] px-5 py-3 text-sm font-semibold text-[#4a534e] transition hover:border-[#b4453c] hover:text-[#b4453c] sm:py-2.5"
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>
