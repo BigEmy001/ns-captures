@@ -127,8 +127,15 @@ describe("contributorLevelLabel", () => {
     expect(contributorLevelLabel("collection")).toBe("Collection Photographer");
   });
 
-  it("falls back to International for a missing or unknown level", () => {
-    expect(contributorLevelLabel(undefined)).toBe("International Contributor");
+  it("calls someone with no programme standing a photographer", () => {
+    // This used to fall back to the entry contributor tier, which badged
+    // thirteen photographers as International Contributors on their public
+    // pages. An absent level means they are not in the programme.
+    expect(contributorLevelLabel(undefined)).toBe("Photographer");
+    expect(contributorLevelLabel("")).toBe("Photographer");
+  });
+
+  it("still names an unrecognised level rather than inventing one", () => {
     expect(contributorLevelLabel("something-else")).toBe("International Contributor");
   });
 });

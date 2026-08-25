@@ -5,8 +5,16 @@ export const CONTRIBUTOR_LEVELS: Record<string, string> = {
   collection: "Collection Photographer",
 };
 
+/**
+ * The standing to show beside someone's name.
+ *
+ * An absent level means they are not in the programme, and must read as a
+ * photographer rather than falling back to the entry contributor tier — the
+ * old default badged thirteen photographers as International Contributors.
+ */
 export function contributorLevelLabel(level: string | undefined): string {
-  return CONTRIBUTOR_LEVELS[level || "international"] || CONTRIBUTOR_LEVELS.international;
+  if (!level) return "Photographer";
+  return CONTRIBUTOR_LEVELS[level] || CONTRIBUTOR_LEVELS.international;
 }
 
 /**

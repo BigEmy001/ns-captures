@@ -96,7 +96,9 @@ function supabaseUserToAuthUser(supabaseUser: any, profile: any): AuthUser {
     status: profile?.status || "Active",
     payoutBalance: profile?.payout_balance ?? 0,
     contributorId: profile?.contributor_id || undefined,
-    contributorLevel: profile?.contributor_level || "international",
+    // Left undefined rather than defaulted: a photographer has no programme
+    // standing, and forcing one made them read as a contributor.
+    contributorLevel: profile?.contributor_level || undefined,
     country: profile?.country || "",
     payoutCurrency: profile?.payout_currency || "",
     city: profile?.city || "",

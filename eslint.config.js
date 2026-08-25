@@ -26,6 +26,8 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["dist", "supabase/.temp/**", "*.cjs", "*.mjs"],
+    // One-off maintenance scripts run under Node, not in the browser, so the
+    // browser globals config flags console and process in them.
+    ignores: ["dist", "supabase/.temp/**", "*.cjs", "*.mjs", "*.js", "*.mts"],
   },
 );
