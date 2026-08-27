@@ -8,3 +8,12 @@ scratch_upload.mjs
 *.png
 supabase/.temp
 .vercel
+
+# One-off debugging scripts. Two of these were committed to a public repo
+# carrying the service_role key; scripts/no-secrets.mjs now blocks the value
+# itself, and these keep the scratch files out in the first place.
+check_*.mjs
+check_*.cjs
+fix_*.mjs
+reset_*.cjs
+update_*.js

@@ -15,7 +15,8 @@
  * quietly drop those months from the chart. Only the reading changes.
  */
 
-const HYPE = /^\s*Hype Engine:\s*\+?(\d+)\s+custom downloads?\b.*$/i;
+const HYPE_DOWNLOADS = /^\s*Hype\s+Engine[\s:-]*\+?([\d,]+)\s+(?:custom\s+)?downloads?\b.*$/i;
+const HYPE_GENERIC = /^\s*Hype\s+Engine[\s:-]*(.*)$/i;
 
 /**
  * Rewrites an internal ledger description into something the earner can read.
@@ -25,12 +26,28 @@ export function ledgerLabel(text?: string | null): string {
   const raw = (text || "").trim();
   if (!raw) return "";
 
-  const hype = HYPE.exec(raw);
+  const hype = HYPE_DOWNLOADS.exec(raw);
   if (hype) {
-    const n = Number(hype[1]);
+    const n = Number(hype[1].replace(/,/g, ""));
     if (Number.isFinite(n)) {
       return `${n.toLocaleString("en-GB")} download${n === 1 ? "" : "s"}`;
     }
+  }
+
+  const generic = HYPE_GENERIC.exec(raw);
+  if (generic) {
+    const rest = generic[1].trim();
+    if (!rest) {
+      return "Custom downloads";
+    }
+    const restMatch = /^\+?([\d,]+)\s*(.*)$/.exec(rest);
+    if (restMatch) {
+      const n = Number(restMatch[1].replace(/,/g, ""));
+      if (Number.isFinite(n)) {
+        return `${n.toLocaleString("en-GB")} download${n === 1 ? "" : "s"}`;
+      }
+    }
+    return rest.charAt(0).toUpperCase() + rest.slice(1);
   }
 
   return raw;

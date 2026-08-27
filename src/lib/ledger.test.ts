@@ -24,6 +24,10 @@ describe("ledgerLabel", () => {
 
   it("copes with the wording drifting a little", () => {
     expect(ledgerLabel("hype engine: 3 custom download on photo upload-x")).toBe("3 downloads");
+    expect(ledgerLabel("Hype Engine - 5 downloads on photo upload-y")).toBe("5 downloads");
+    expect(ledgerLabel("Hype Engine: +10 downloads")).toBe("10 downloads");
+    expect(ledgerLabel("Hype Engine adjustment")).toBe("Adjustment");
+    expect(ledgerLabel("Hype Engine")).toBe("Custom downloads");
   });
 
   it("leaves an ordinary description alone", () => {

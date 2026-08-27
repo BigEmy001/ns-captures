@@ -26,6 +26,21 @@ export default tseslint.config(
     },
   },
   {
+    // Repository tooling runs under Node, not in the browser. Linted rather
+    // than ignored — scripts/no-secrets.mjs is what stands between a key and
+    // a commit, so it is worth catching mistakes in.
+    files: ["scripts/**/*.{js,mjs,cjs}"],
+    languageOptions: {
+      globals: {
+        Buffer: "readonly",
+        console: "readonly",
+        process: "readonly",
+        __dirname: "readonly",
+        URL: "readonly",
+      },
+    },
+  },
+  {
     // One-off maintenance scripts run under Node, not in the browser, so the
     // browser globals config flags console and process in them.
     ignores: ["dist", "supabase/.temp/**", "*.cjs", "*.mjs", "*.js", "*.mts"],
