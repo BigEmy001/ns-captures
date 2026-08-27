@@ -142,6 +142,7 @@ import {
   type CryptoWalletEntry,
   COINS,
 } from "../data/db";
+import { getDisplayViews, getDisplayLikes, getDisplayDownloads } from "../data/photos";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -3474,18 +3475,30 @@ function AdminUserModal({
     });
   }, [userPhotos, hypeDraftFromPhotos]);
 
-  const totalDownloads = userPhotos.reduce(
-    (sum, p) => sum + Math.max(p.downloads || 0, p.customDownloads || 0),
-    0,
-  );
-  const totalViews = userPhotos.reduce(
-    (sum, p) => sum + Math.max(p.views || 0, p.customViews || 0),
-    0,
-  );
-  const totalLikes = userPhotos.reduce(
-    (sum, p) => sum + Math.max(p.likes || 0, p.customLikes || 0),
-    0,
-  );
+  /**
+   * What the public will see for a photo once the current Hype Engine edits are
+   * saved: the baseline being typed into the box, plus real traffic. Reads the
+   * draft rather than the stored value so the figure moves as the admin types.
+   */
+  const publicTotal = (
+    photo: (typeof userPhotos)[number],
+    field: "views" | "likes" | "downloads",
+  ): number => {
+    const stored = {
+      views: photo.customViews,
+      likes: photo.customLikes,
+      downloads: photo.customDownloads,
+    }[field];
+    const raw = hypeDrafts[photo.id]?.[field];
+    const parsed = raw !== undefined && raw.trim() !== "" ? Number(raw) : undefined;
+    const baseline =
+      Number.isFinite(parsed) && (parsed as number) >= 0 ? (parsed as number) : stored || 0;
+    return baseline + (photo[field] || 0);
+  };
+
+  const totalDownloads = userPhotos.reduce((sum, p) => sum + getDisplayDownloads(p), 0);
+  const totalViews = userPhotos.reduce((sum, p) => sum + getDisplayViews(p), 0);
+  const totalLikes = userPhotos.reduce((sum, p) => sum + getDisplayLikes(p), 0);
 
   const planName =
     user.role === "Enterprise" ? "Enterprise" : user.role === "Buyer" ? "Pro" : "Contributor";
@@ -3935,12 +3948,10 @@ function AdminUserModal({
                             </p>
                             <div className="flex items-center gap-2 mt-1.5 text-[8px] font-mono text-white/80">
                               <span className="flex items-center gap-0.5">
-                                <Eye className="size-2" />{" "}
-                                {Math.max(photo.views || 0, photo.customViews || 0)}
+                                <Eye className="size-2" /> {getDisplayViews(photo)}
                               </span>
                               <span className="flex items-center gap-0.5">
-                                <Download className="size-2" />{" "}
-                                {Math.max(photo.downloads || 0, photo.customDownloads || 0)}
+                                <Download className="size-2" /> {getDisplayDownloads(photo)}
                               </span>
                             </div>
                           </div>
@@ -4708,16 +4719,28 @@ function AdminUserModal({
                               src={photo.image}
                               className="size-10 object-cover rounded bg-[#ececec]"
                             />
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <p className="text-xs font-semibold truncate max-w-[150px]">
                                 {photo.title}
+                              </p>
+                              {/* What visitors have actually done, kept separate from
+                                  the baseline so the admin can tell them apart. */}
+                              <p className="mt-0.5 text-[10px] font-mono text-[#6b716d]">
+                                Real: {(photo.views || 0).toLocaleString()} views ·{" "}
+                                {(photo.likes || 0).toLocaleString()} likes ·{" "}
+                                {(photo.downloads || 0).toLocaleString()} dls
+                              </p>
+                              <p className="text-[10px] font-mono text-[#1e4a3f]">
+                                Public: {publicTotal(photo, "views").toLocaleString()} ·{" "}
+                                {publicTotal(photo, "likes").toLocaleString()} ·{" "}
+                                {publicTotal(photo, "downloads").toLocaleString()}
                               </p>
                             </div>
                             <div className="flex gap-2">
                               {(
                                 [
-                                  { field: "views", label: "Views", width: "w-20" },
-                                  { field: "likes", label: "Likes", width: "w-20" },
+                                  { field: "views", label: "Views", width: "w-28" },
+                                  { field: "likes", label: "Likes", width: "w-28" },
                                   { field: "downloads", label: "Dls", width: "w-16" },
                                 ] as const
                               ).map(({ field, label, width }) => (

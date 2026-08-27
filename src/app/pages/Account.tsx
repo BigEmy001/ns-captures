@@ -72,6 +72,7 @@ import type { Photo } from "../data/db";
 import { Link, useSearchParams } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { format } from "date-fns";
+import { getDisplayViews, getDisplayLikes, getDisplayDownloads } from "../data/photos";
 
 type NavEntry = {
   id: string;
@@ -737,22 +738,13 @@ export function Account() {
                             </td>
                             <td className="px-6 py-4 text-[#6b716d] text-xs">{pur.date}</td>
                             <td className="px-6 py-4 text-right text-xs font-mono text-[#18211f]">
-                              {p
-                                ? Math.max(
-                                    p.downloads || 0,
-                                    p.customDownloads || 0,
-                                  ).toLocaleString()
-                                : "—"}
+                              {p ? getDisplayDownloads(p).toLocaleString() : "—"}
                             </td>
                             <td className="px-6 py-4 text-right text-xs font-mono text-[#18211f]">
-                              {p
-                                ? Math.max(p.views || 0, p.customViews || 0).toLocaleString()
-                                : "—"}
+                              {p ? getDisplayViews(p).toLocaleString() : "—"}
                             </td>
                             <td className="px-6 py-4 text-right text-xs font-mono text-[#18211f]">
-                              {p
-                                ? Math.max(p.likes || 0, p.customLikes || 0).toLocaleString()
-                                : "—"}
+                              {p ? getDisplayLikes(p).toLocaleString() : "—"}
                             </td>
                             <td className="px-6 py-4 text-right">
                               {pur.status === "APPROVED" ? (

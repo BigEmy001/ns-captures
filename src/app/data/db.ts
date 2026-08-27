@@ -1241,12 +1241,10 @@ export async function upsertPhotographerProfileSettings(
 // ============================================================
 
 export async function incrementPhotoDownloads(photoId: string): Promise<void> {
-  const { data } = await supabase.from("photos").select("downloads").eq("id", photoId).single();
-  if (data)
-    await supabase
-      .from("photos")
-      .update({ downloads: (data.downloads || 0) + 1 })
-      .eq("id", photoId);
+  // Goes through the database function: `photos` carries no UPDATE grant for
+  // visitors, and doing the arithmetic in SQL stops two simultaneous downloads
+  // from reading the same number and losing one.
+  await supabase.rpc("increment_photo_download", { p_photo_id: photoId });
 }
 
 // ============================================================
@@ -1254,12 +1252,7 @@ export async function incrementPhotoDownloads(photoId: string): Promise<void> {
 // ============================================================
 
 export async function incrementPhotoViews(photoId: string): Promise<void> {
-  const { data } = await supabase.from("photos").select("views").eq("id", photoId).single();
-  if (data)
-    await supabase
-      .from("photos")
-      .update({ views: (data.views || 0) + 1 })
-      .eq("id", photoId);
+  await supabase.rpc("increment_photo_view", { p_photo_id: photoId });
 }
 
 // ============================================================
@@ -1286,29 +1279,11 @@ export async function toggleLike(userId: string, photoId: string): Promise<boole
 
   if (existing) {
     await supabase.from("user_likes").delete().eq("user_id", userId).eq("photo_id", photoId);
-    const { data: photo } = await supabase
-      .from("photos")
-      .select("likes")
-      .eq("id", photoId)
-      .single();
-    if (photo)
-      await supabase
-        .from("photos")
-        .update({ likes: Math.max((photo.likes || 1) - 1, 0) })
-        .eq("id", photoId);
+    await supabase.rpc("adjust_photo_likes", { p_photo_id: photoId, p_delta: -1 });
     return false;
   } else {
     await supabase.from("user_likes").insert({ user_id: userId, photo_id: photoId });
-    const { data: photo } = await supabase
-      .from("photos")
-      .select("likes")
-      .eq("id", photoId)
-      .single();
-    if (photo)
-      await supabase
-        .from("photos")
-        .update({ likes: (photo.likes || 0) + 1 })
-        .eq("id", photoId);
+    await supabase.rpc("adjust_photo_likes", { p_photo_id: photoId, p_delta: 1 });
     return true;
   }
 }
@@ -1624,8 +1599,7 @@ export async function fetchCategoryStats(): Promise<{ name: string; downloads: n
 
   const cats: Record<string, number> = {};
   data.forEach((r: any) => {
-    cats[r.category] =
-      (cats[r.category] || 0) + Math.max(r.downloads || 0, r.custom_downloads || 0);
+    cats[r.category] = (cats[r.category] || 0) + (r.custom_downloads || 0) + (r.downloads || 0);
   });
 
   return Object.entries(cats)
@@ -1705,15 +1679,15 @@ export async function fetchPhotographerStats(photographerId: string): Promise<{
     };
 
   const totalDownloads = photos.reduce(
-    (s: number, p: any) => s + Math.max(p.downloads || 0, p.custom_downloads || 0),
+    (s: number, p: any) => s + (p.custom_downloads || 0) + (p.downloads || 0),
     0,
   );
   const totalViews = photos.reduce(
-    (s: number, p: any) => s + Math.max(p.views || 0, p.custom_views || 0),
+    (s: number, p: any) => s + (p.custom_views || 0) + (p.views || 0),
     0,
   );
   const totalLikes = photos.reduce(
-    (s: number, p: any) => s + Math.max(p.likes || 0, p.custom_likes || 0),
+    (s: number, p: any) => s + (p.custom_likes || 0) + (p.likes || 0),
     0,
   );
   const avgPrice = photos.reduce((s: number, p: any) => s + (p.price || 0), 0) / photos.length;
@@ -1723,18 +1697,13 @@ export async function fetchPhotographerStats(photographerId: string): Promise<{
   const photoIds = new Set(photos.map((p: any) => p.id));
 
   // Real revenue from purchases
-  let totalRevenue = (purchases || [])
+  const totalRevenue = (purchases || [])
     .filter((p: any) => photoIds.has(p.photo_id))
     .reduce((s: number, p: any) => s + (p.price || 0), 0);
 
-  // Add bonus revenue for custom downloads that exceed actual downloads
-  photos.forEach((p: any) => {
-    const actualDownloads = p.downloads || 0;
-    const customDownloads = p.custom_downloads || 0;
-    if (customDownloads > actualDownloads) {
-      totalRevenue += (customDownloads - actualDownloads) * (p.price || 0);
-    }
-  });
+  // Revenue is what was actually paid, and nothing else. The Hype Engine sets a
+  // display baseline for downloads; it must never reach a figure a photographer
+  // reads as earnings and requests a payout against.
 
   return {
     totalRevenue,
@@ -1922,7 +1891,7 @@ export async function fetchPhotographerWeeklyDownloads(
   if (!photos || photos.length === 0) return [];
 
   const total = photos.reduce(
-    (s: number, p: any) => s + Math.max(p.downloads || 0, p.custom_downloads || 0),
+    (s: number, p: any) => s + (p.custom_downloads || 0) + (p.downloads || 0),
     0,
   );
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -1946,8 +1915,7 @@ export async function fetchPhotographerTopCategories(
 
   const cats: Record<string, number> = {};
   photos.forEach((r: any) => {
-    cats[r.category] =
-      (cats[r.category] || 0) + Math.max(r.downloads || 0, r.custom_downloads || 0);
+    cats[r.category] = (cats[r.category] || 0) + (r.custom_downloads || 0) + (r.downloads || 0);
   });
 
   const total = Object.values(cats).reduce((s, v) => s + v, 0) || 1;
@@ -2791,6 +2759,13 @@ export async function approvePurchase(
 }
 
 export async function rejectPurchase(purchaseId: string): Promise<boolean> {
+  // Read the photo before the status changes, so the download can be taken back.
+  const { data: purchase } = await supabase
+    .from("purchases")
+    .select("photo_id")
+    .eq("id", purchaseId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("purchases")
     .update({ status: "REJECTED" })
@@ -2800,6 +2775,12 @@ export async function rejectPurchase(purchaseId: string): Promise<boolean> {
 
   // The sale never completed, so the photographer's pending share falls away.
   await supabase.rpc("cancel_earning", { p_reference: purchaseId });
+
+  // Checkout counted a download when the payment was submitted. It never
+  // completed, so that download comes off the photograph too.
+  if (purchase?.photo_id) {
+    await supabase.rpc("revoke_photo_download", { p_photo_id: purchase.photo_id });
+  }
 
   return true;
 }

@@ -41,6 +41,31 @@ export interface Photo {
   featured?: boolean;
 }
 
+/**
+ * Displayed metrics are the admin-set Hype Engine baseline plus real traffic.
+ *
+ * The two are stored separately — custom_* is set by an admin, views/likes/
+ * downloads are only ever written by the increment_photo_* database functions —
+ * so a photograph carrying a baseline still ticks up when a real visitor
+ * arrives, and a photograph without one shows its real numbers untouched.
+ *
+ * Read these rather than the raw fields anywhere a number is shown to a person.
+ */
+export function getDisplayViews(photo: { views?: number; customViews?: number }): number {
+  return (photo.customViews || 0) + (photo.views || 0);
+}
+
+export function getDisplayLikes(photo: { likes?: number; customLikes?: number }): number {
+  return (photo.customLikes || 0) + (photo.likes || 0);
+}
+
+export function getDisplayDownloads(photo: {
+  downloads?: number;
+  customDownloads?: number;
+}): number {
+  return (photo.customDownloads || 0) + (photo.downloads || 0);
+}
+
 const u = (id: string, w = 1080) =>
   `https://images.unsplash.com/photo-${id}?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=82&w=${w}`;
 

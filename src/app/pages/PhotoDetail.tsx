@@ -21,7 +21,9 @@ import {
   type Photo,
   type Photographer,
   getOptimizedImageUrl,
+  incrementPhotoViews,
 } from "../data/db";
+import { getDisplayViews, getDisplayLikes, getDisplayDownloads } from "../data/photos";
 import { NotFound } from "./NotFound";
 import { addToCart } from "../data/cart";
 import { useAuth } from "../context/AuthContext";
@@ -67,6 +69,13 @@ export function PhotoDetail() {
       hasUserLikedPhoto(user.id, id).then(setLiked);
     }
   }, [user, id]);
+
+  // Record the visit. Fire and forget — a counter must never block the page or
+  // surface an error to the reader.
+  useEffect(() => {
+    if (!id) return;
+    incrementPhotoViews(id);
+  }, [id]);
 
   if (loading) {
     return (
@@ -210,17 +219,14 @@ export function PhotoDetail() {
 
           <div className="mt-6 flex flex-wrap gap-6 border-y border-[#ececec] py-4 text-sm text-[#6b716d]">
             <span className="flex items-center gap-2">
-              <Eye className="size-4" />{" "}
-              {Math.max(photo.views || 0, photo.customViews || 0).toLocaleString()} views
+              <Eye className="size-4" /> {getDisplayViews(photo).toLocaleString()} views
             </span>
             <span className="flex items-center gap-2">
-              <Download className="size-4" />{" "}
-              {Math.max(photo.downloads || 0, photo.customDownloads || 0).toLocaleString()}{" "}
+              <Download className="size-4" /> {getDisplayDownloads(photo).toLocaleString()}{" "}
               downloads
             </span>
             <span className="flex items-center gap-2">
-              <Heart className="size-4" />{" "}
-              {Math.max(photo.likes || 0, photo.customLikes || 0).toLocaleString()} likes
+              <Heart className="size-4" /> {getDisplayLikes(photo).toLocaleString()} likes
             </span>
             <span className="flex items-center gap-2">
               <MapPin className="size-4" /> {photo.location}

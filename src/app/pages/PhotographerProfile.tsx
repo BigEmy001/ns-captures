@@ -24,6 +24,7 @@ import {
 } from "../data/db";
 import { contributorLevelLabel } from "../data/contributor";
 import { NotFound } from "./NotFound";
+import { getDisplayViews, getDisplayDownloads } from "../data/photos";
 
 type Tab = "highlights" | "gallery" | "collections" | "statistics";
 
@@ -65,17 +66,11 @@ export function PhotographerProfile() {
     );
   }
 
-  const totalDownloads = shots.reduce(
-    (s, p) => s + Math.max(p.downloads || 0, p.customDownloads || 0),
-    0,
-  );
-  const totalViews = shots.reduce((s, p) => s + Math.max(p.views || 0, p.customViews || 0), 0);
+  const totalDownloads = shots.reduce((s, p) => s + getDisplayDownloads(p), 0);
+  const totalViews = shots.reduce((s, p) => s + getDisplayViews(p), 0);
 
   const sorted = [...shots].sort((a, b) =>
-    sort === "popular"
-      ? Math.max(b.downloads || 0, b.customDownloads || 0) -
-        Math.max(a.downloads || 0, a.customDownloads || 0)
-      : 0,
+    sort === "popular" ? getDisplayDownloads(b) - getDisplayDownloads(a) : 0,
   );
 
   const tabs: { id: Tab; label: string; count?: number; badge?: string }[] = [

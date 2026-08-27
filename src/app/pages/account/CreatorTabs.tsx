@@ -78,6 +78,7 @@ import { useAuth } from "../../context/AuthContext";
 import { toast } from "sonner";
 import { ledgerLabel } from "../../../lib/ledger";
 import { resolvePayoutCurrency } from "../../../lib/countries";
+import { getDisplayViews, getDisplayDownloads } from "../../data/photos";
 
 // We only need nav for types or internal checks if any, but active is passed in.
 
@@ -1001,11 +1002,7 @@ export function CreatorTabs({
                     <div className="space-y-2">
                       {portfolioPhotos
                         .filter((p) => p.photographerId === photographerId)
-                        .sort(
-                          (a, b) =>
-                            Math.max(b.downloads || 0, b.customDownloads || 0) -
-                            Math.max(a.downloads || 0, a.customDownloads || 0),
-                        )
+                        .sort((a, b) => getDisplayDownloads(b) - getDisplayDownloads(a))
                         .slice(0, 4)
                         .map((p, i) => (
                           <div
@@ -1024,19 +1021,11 @@ export function CreatorTabs({
                                 {p.title}
                               </p>
                               <p className="text-xs text-[#6b716d]">
-                                {Math.max(
-                                  p.downloads || 0,
-                                  p.customDownloads || 0,
-                                ).toLocaleString()}{" "}
-                                downloads
+                                {getDisplayDownloads(p).toLocaleString()} downloads
                               </p>
                             </div>
                             <span className="font-serif text-base text-[#1e4a3f] font-semibold">
-                              £
-                              {(
-                                (Math.max(p.downloads || 0, p.customDownloads || 0) * p.price) /
-                                100
-                              ).toFixed(0)}
+                              £{(((p.downloads || 0) * p.price) / 100).toFixed(0)}
                             </span>
                           </div>
                         ))}
@@ -1764,10 +1753,8 @@ export function CreatorTabs({
                           </button>
                         )}
                         <div className="flex items-center gap-3 text-[11px] text-[#758078]">
-                          <span>
-                            {Math.max(photo.downloads || 0, photo.customDownloads || 0)} downloads
-                          </span>
-                          <span>{Math.max(photo.views || 0, photo.customViews || 0)} views</span>
+                          <span>{getDisplayDownloads(photo)} downloads</span>
+                          <span>{getDisplayViews(photo)} views</span>
                         </div>
                       </div>
                     </div>
