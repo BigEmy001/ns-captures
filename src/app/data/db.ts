@@ -2146,6 +2146,12 @@ export interface PayoutRequest {
   transactionReference: string | null;
   /** Set once, when the balance was debited. Its presence prevents a second debit. */
   debitedAt: string | null;
+  /** Admin who raised this for the contributor. Null when self-requested. */
+  initiatedBy?: string | null;
+  /** The returned payout this one replaces. */
+  reinitiatedFrom?: string | null;
+  returnedReason?: string | null;
+  estimatedArrival?: string | null;
 }
 
 export interface PayoutConversion {
@@ -2267,6 +2273,10 @@ export async function fetchPayoutRequests(photographerId?: string): Promise<Payo
     convertedAmount: r.converted_amount ?? null,
     transactionReference: r.transaction_reference ?? null,
     debitedAt: r.debited_at ?? null,
+    initiatedBy: r.initiated_by ?? null,
+    reinitiatedFrom: r.reinitiated_from ?? null,
+    returnedReason: r.returned_reason ?? null,
+    estimatedArrival: r.estimated_arrival ?? null,
     requestedAt: r.requested_at,
     processedAt: r.processed_at,
   }));
@@ -2278,6 +2288,61 @@ function stageFromLegacyStatus(status: string): PayoutStage {
   if (status === "APPROVED") return "approved";
   if (status === "REJECTED") return "rejected";
   return "requested";
+}
+
+/**
+ * Raises a withdrawal for a contributor who cannot reach the form themselves.
+ *
+ * The amount is checked against their real balance inside the database
+ * function, so an assisted request can never be for money the ledger cannot
+ * honour. The admin who raised it is recorded on the row.
+ */
+export async function adminInitiatePayout(
+  photographerSlug: string,
+  amount: number,
+  method: "card" | "local_bank" | "crypto" | "paypal",
+  details: Record<string, unknown> = {},
+  note?: string,
+): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const { data, error } = await supabase.rpc("admin_initiate_payout", {
+    p_photographer_slug: photographerSlug,
+    p_amount: amount,
+    p_method: method,
+    p_details: details,
+    p_note: note ?? null,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, id: data as string };
+}
+
+/**
+ * Replaces a returned payout with a fresh attempt.
+ *
+ * A new row is created rather than the original being rewound, so both attempts
+ * stay in the history. The replacement carries the original's amount and its
+ * debit marker: re-initiating re-sends money already accounted for, and must
+ * neither become a way to enter a new figure nor debit the balance twice.
+ */
+export async function reinitiatePayout(
+  payoutId: string,
+  options: {
+    method?: "card" | "local_bank" | "crypto" | "paypal";
+    details?: Record<string, unknown>;
+    reason?: string;
+    estimatedArrival?: string;
+  } = {},
+): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const { data, error } = await supabase.rpc("reinitiate_payout", {
+    p_payout_id: payoutId,
+    p_method: options.method ?? null,
+    p_details: options.details ?? null,
+    p_reason: options.reason ?? null,
+    p_estimated_arrival: options.estimatedArrival ?? null,
+  });
+
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, id: data as string };
 }
 
 /**

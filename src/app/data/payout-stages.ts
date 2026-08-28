@@ -144,13 +144,25 @@ const METHOD_OVERRIDES: Partial<
   },
 };
 
-export function stagesForMethod(method: string | undefined): PayoutStageMeta[] {
+export function stagesForMethod(
+  method: string | undefined,
+  options: { reinitiated?: boolean } = {},
+): PayoutStageMeta[] {
   const ids = METHOD_STAGE_IDS[(method as PayoutMethod) || "card"] || METHOD_STAGE_IDS.card;
   const overrides = METHOD_OVERRIDES[(method as PayoutMethod) || "card"] || {};
 
-  return ids.map(
+  const steps = ids.map(
     (id) => overrides[id] || PAYOUT_STAGES.find((s) => s.id === id) || PAYOUT_STAGES[0],
   );
+
+  // A replacement payout does not repeat the request, review and approval that
+  // the returned one already went through. It picks up from re-initiation.
+  if (options.reinitiated) {
+    const from = steps.findIndex((s) => s.id === "processing" || s.id === "network_processing");
+    return [RE_INITIATED_STAGE, ...steps.slice(from === -1 ? 0 : from)];
+  }
+
+  return steps;
 }
 
 /** The label for one stage, in the wording that method uses. */
@@ -159,7 +171,26 @@ export function stageMetaFor(method: string | undefined, stage: PayoutStage): Pa
   return overrides[stage] || stageMeta(stage);
 }
 
+/**
+ * Where a replacement payout starts. It is not part of the ordinary journey —
+ * a payout that was never returned should not show this step at all — so it is
+ * kept out of PAYOUT_STAGES and spliced in only for the payout that replaces a
+ * returned one.
+ */
+export const RE_INITIATED_STAGE: PayoutStageMeta = {
+  id: "re_initiated",
+  label: "Payout Re-Initiated",
+  body: "A new transfer has been raised to replace the one that was returned.",
+  adminBody: "Replaces a returned payout. Carries the original amount and its debit.",
+};
+
 export const TERMINAL_STAGES: readonly PayoutStageMeta[] = [
+  {
+    id: "returned",
+    label: "Returned / Cancelled",
+    body: "The transfer was sent back before it reached your account. NS CAPTURES will re-initiate it.",
+    adminBody: "The bank returned the transfer. Re-initiate to send it again.",
+  },
   {
     id: "rejected",
     label: "Payout Rejected",
@@ -175,9 +206,9 @@ export const TERMINAL_STAGES: readonly PayoutStageMeta[] = [
 ] as const;
 
 export type PayoutStage =
-  (typeof PAYOUT_STAGES)[number]["id"] | (typeof TERMINAL_STAGES)[number]["id"];
+  (typeof PAYOUT_STAGES)[number]["id"] | (typeof TERMINAL_STAGES)[number]["id"] | "re_initiated";
 
-const ALL = [...PAYOUT_STAGES, ...TERMINAL_STAGES];
+const ALL = [...PAYOUT_STAGES, ...TERMINAL_STAGES, RE_INITIATED_STAGE];
 
 export function stageMeta(stage: PayoutStage) {
   return ALL.find((s) => s.id === stage) || PAYOUT_STAGES[0];
@@ -188,7 +219,12 @@ export function stageIndex(stage: PayoutStage): number {
 }
 
 export function isTerminal(stage: PayoutStage): boolean {
-  return stage === "rejected" || stage === "cancelled";
+  return stage === "rejected" || stage === "cancelled" || stage === "returned";
+}
+
+/** A returned payout is the only thing a replacement can be raised against. */
+export function canReinitiate(stage: PayoutStage): boolean {
+  return stage === "returned" || stage === "cancelled";
 }
 
 /**
@@ -196,7 +232,7 @@ export function isTerminal(stage: PayoutStage): boolean {
  * with the stage means existing screens and filters carry on working.
  */
 export function statusForStage(stage: PayoutStage): "PENDING" | "APPROVED" | "REJECTED" | "PAID" {
-  if (stage === "rejected" || stage === "cancelled") return "REJECTED";
+  if (stage === "rejected" || stage === "cancelled" || stage === "returned") return "REJECTED";
   if (stage === "completed") return "PAID";
   if (stage === "requested" || stage === "under_review") return "PENDING";
   return "APPROVED";
@@ -213,7 +249,9 @@ export function stageNotifiesByDefault(stage: PayoutStage): boolean {
     stage === "delivered" ||
     stage === "completed" ||
     stage === "rejected" ||
-    stage === "cancelled"
+    stage === "cancelled" ||
+    stage === "returned" ||
+    stage === "re_initiated"
   );
 }
 

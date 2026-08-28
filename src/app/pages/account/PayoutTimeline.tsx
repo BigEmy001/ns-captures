@@ -47,8 +47,11 @@ export function PayoutTimeline({
   const ended = isTerminal(current);
 
   // A wallet payout does not cross correspondent banks, so it does not show
-  // steps it can never reach.
-  const steps = stagesForMethod(request.method);
+  // steps it can never reach. A replacement payout starts at re-initiation
+  // rather than repeating the request and approval the returned one went through.
+  const steps = stagesForMethod(request.method, {
+    reinitiated: Boolean(request.reinitiatedFrom) || request.stage === "re_initiated",
+  });
   const currentIdx = steps.findIndex((s) => s.id === current);
 
   const converted = request.convertedAmount !== null && request.conversionRate !== null;

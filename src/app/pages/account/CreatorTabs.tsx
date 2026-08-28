@@ -68,6 +68,7 @@ import {
 } from "../../data/contributor";
 import { maskAccount } from "../../../lib/mask";
 import { PayoutTimeline } from "./PayoutTimeline";
+import { PayoutSummaryCard } from "./PayoutSummaryCard";
 import { SettleChargeModal } from "./SettleChargeModal";
 import { stageMetaFor, isTerminal, availableForPayout } from "../../data/payout-stages";
 import { isProgrammeRole } from "../../data/roles";
@@ -1901,7 +1902,7 @@ export function CreatorTabs({
                           key={request.id}
                           className="bg-white border border-[#ececec] rounded-2xl ns-shadow-sm overflow-hidden"
                         >
-                          <div className="flex flex-wrap items-center gap-4 px-6 py-4">
+                          <div className="flex flex-wrap items-center gap-3 px-4 py-4 sm:gap-4 sm:px-6">
                             <div className="min-w-0 flex-1">
                               <p className="font-serif text-lg text-[#18211f]">
                                 £{request.amount.toLocaleString()}
@@ -1931,7 +1932,15 @@ export function CreatorTabs({
                             </button>
                           </div>
                           {isOpen && (
-                            <div className="border-t border-[#ececec] px-6 py-5">
+                            <div className="border-t border-[#ececec] px-4 py-4 sm:px-6 sm:py-5 space-y-5">
+                              <PayoutSummaryCard
+                                request={request}
+                                previous={
+                                  request.reinitiatedFrom
+                                    ? payoutRequests.find((p) => p.id === request.reinitiatedFrom)
+                                    : undefined
+                                }
+                              />
                               <PayoutTimeline
                                 request={request}
                                 onSettleCharge={setSettlingCharge}

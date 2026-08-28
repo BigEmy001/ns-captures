@@ -124,6 +124,28 @@ describe("availableForPayout", () => {
   });
 });
 
+describe("stagesForMethod, re-initiated", () => {
+  it("starts a replacement at re-initiation, not back at the request", () => {
+    const ids = stagesForMethod("local_bank", { reinitiated: true }).map((s) => s.id);
+    expect(ids[0]).toBe("re_initiated");
+    expect(ids).not.toContain("requested");
+    expect(ids).not.toContain("under_review");
+    expect(ids).not.toContain("approved");
+    expect(ids).toContain("completed");
+  });
+
+  it("keeps re-initiation out of an ordinary payout's journey", () => {
+    for (const method of ["card", "local_bank", "crypto", "paypal"]) {
+      expect(stagesForMethod(method).map((s) => s.id)).not.toContain("re_initiated");
+    }
+  });
+
+  it("still ends a re-initiated wallet payout at confirmation", () => {
+    const ids = stagesForMethod("crypto", { reinitiated: true }).map((s) => s.id);
+    expect(ids).toEqual(["re_initiated", "network_processing", "completed"]);
+  });
+});
+
 describe("stagesForMethod", () => {
   it("gives a bank transfer the full correspondent-bank journey", () => {
     const ids = stagesForMethod("card").map((s) => s.id);

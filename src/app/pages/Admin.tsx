@@ -62,6 +62,7 @@ import {
   chargeBlocksStage,
   statusForStage,
   type PayoutStage,
+  canReinitiate,
 } from "../data/payout-stages";
 import { ProgrammeTab } from "./admin/ProgrammeTab";
 import { ConversionModal, type ConversionResult } from "./admin/ConversionModal";
@@ -102,6 +103,7 @@ import {
   fetchAllPaymentMethods,
   fetchPayoutRequests,
   advancePayoutStage,
+  reinitiatePayout,
   markConversionFeePaid,
   deletePhoto,
   setPhotoAcquisitionState,
@@ -143,6 +145,7 @@ import {
   COINS,
 } from "../data/db";
 import { getDisplayViews, getDisplayLikes, getDisplayDownloads } from "../data/photos";
+import { InitiatePayoutPanel, type PayoutCandidate } from "./admin/InitiatePayoutPanel";
 
 const nav = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -519,6 +522,39 @@ export function Admin() {
   const payoutCurrencyFor = (request: PayoutRequest) => {
     const profile = adminUsersList.find((u) => u.slug === request.photographerId);
     return resolvePayoutCurrency(request.payoutCurrency, profile?.country);
+  };
+
+  /** Contributors with money to withdraw, for the assisted-request form. */
+  const payoutCandidates: PayoutCandidate[] = adminUsersList
+    .filter((u) => (u.payoutBalance ?? 0) > 0 && u.slug)
+    .map((u) => ({
+      slug: u.slug as string,
+      name: u.name,
+      balance: Number(u.payoutBalance ?? 0),
+    }))
+    .sort((a, b) => b.balance - a.balance);
+
+  /**
+   * Raises a replacement for a payout the bank sent back. The amount comes from
+   * the original — re-initiating re-sends money already accounted for, so there
+   * is deliberately nothing here to type a new figure into.
+   */
+  const reinitiate = async (request: PayoutRequest) => {
+    const reason = window.prompt(
+      "Why was this payout returned? (shown to the contributor)",
+      request.returnedReason || "",
+    );
+    if (reason === null) return;
+
+    const result = await reinitiatePayout(request.id, { reason: reason || undefined });
+    if (!result.ok) {
+      toast.error(result.error || "Could not re-initiate the payout");
+      return;
+    }
+
+    const refreshed = await fetchPayoutRequests();
+    setPayoutRequestList(refreshed);
+    toast.success("Replacement transfer raised");
   };
 
   const movePayout = async (
@@ -1672,6 +1708,11 @@ export function Admin() {
               {/* Payout Requests */}
               <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm">
                 <h3 className="mb-4 font-serif text-lg text-[#18211f]">Payout Requests</h3>
+
+                <InitiatePayoutPanel
+                  candidates={payoutCandidates}
+                  onCreated={(created) => setPayoutRequestList((prev) => [created, ...prev])}
+                />
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
@@ -1820,6 +1861,15 @@ export function Admin() {
                                   ))}
                                 </optgroup>
                               </select>
+                              {canReinitiate(pr.stage) && (
+                                <button
+                                  onClick={() => reinitiate(pr)}
+                                  className="mt-1.5 block w-full rounded-full bg-[#dce8df] px-3 py-1 text-[10px] font-semibold text-[#1e4a3f] transition hover:bg-[#c8dccd]"
+                                  title="Raise a replacement transfer carrying the same amount"
+                                >
+                                  Re-initiate
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))
