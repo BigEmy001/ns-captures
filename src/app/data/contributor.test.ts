@@ -80,7 +80,7 @@ describe("summariseEarnings", () => {
       available: 0,
       pending: 0,
       lifetime: 0,
-      byType: { licensing: 0, acquisition: 0, bonus: 0, award: 0, adjustment: 0 },
+      byType: { licensing: 0, acquisition: 0, bonus: 0, award: 0, download: 0, adjustment: 0 },
     });
   });
 });

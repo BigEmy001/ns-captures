@@ -68,9 +68,24 @@ describe("PayoutSummaryCard", () => {
     expect(screen.getByText(/Beneficiary bank returned the transfer/)).toBeInTheDocument();
   });
 
-  it("tells the contributor their balance is untouched when a payout is returned", () => {
+  it("says the balance is untouched only when nothing was actually debited", () => {
     render(<PayoutSummaryCard request={{ ...base, stage: "returned", status: "REJECTED" }} />);
     expect(screen.getByText(/No money has left your balance/)).toBeInTheDocument();
+  });
+
+  it("does not claim an untouched balance once the payout has been debited", () => {
+    render(
+      <PayoutSummaryCard
+        request={{
+          ...base,
+          stage: "returned",
+          status: "REJECTED",
+          debitedAt: "2026-08-28T10:00:00.000Z",
+        }}
+      />,
+    );
+    expect(screen.queryByText(/No money has left your balance/)).not.toBeInTheDocument();
+    expect(screen.getByText(/has not returned to your available balance/)).toBeInTheDocument();
   });
 
   it("says so when NS CAPTURES raised the withdrawal on the contributor's behalf", () => {

@@ -8,7 +8,7 @@ export type {
 } from "../data/photos";
 import { fillAgreement } from "../../lib/agreement";
 import { supabase } from "../../lib/supabase";
-import { statusForStage, type PayoutStage } from "./payout-stages";
+import { statusForStage, stageIndex, type PayoutStage } from "./payout-stages";
 import { isCreatorRole } from "./roles";
 import {
   shouldShowInApp,
@@ -145,7 +145,8 @@ async function creditContributor(args: {
   return true;
 }
 
-export type EarningType = "licensing" | "acquisition" | "bonus" | "award" | "adjustment";
+export type EarningType =
+  "licensing" | "acquisition" | "bonus" | "award" | "download" | "adjustment";
 export type EarningStatus = "pending" | "available" | "paid" | "cancelled";
 
 export interface ContributorEarning {
@@ -1762,7 +1763,7 @@ export async function updatePhotoHypeOverrides(
           const creditAmount = Math.round(extraDownloads * photo.price * (commissionPct / 100));
           await creditContributor({
             userId: profile.id,
-            type: "adjustment",
+            type: "download",
             netAmount: creditAmount,
             grossAmount: extraDownloads * photo.price,
             platformFee: extraDownloads * photo.price - creditAmount,
@@ -2432,8 +2433,28 @@ export async function advancePayoutStage(
   const profileId = await profileIdForSlug(request.photographerId);
   if (!profileId) return { ok: true, stageStored };
 
-  // Debit once, when the payout is approved.
-  if (stage === "approved" && !alreadyDebited) {
+  // Give the money back when a payout is called off after it was debited.
+  // `returned` is not included: that money is expected to move again on a
+  // replacement, which carries the debit forward rather than taking it twice.
+  if ((stage === "cancelled" || stage === "rejected") && alreadyDebited) {
+    const { error: refundError } = await supabase.rpc("refund_payout", {
+      p_payout_id: request.id,
+      p_reason: options.note || null,
+    });
+    if (refundError) console.error("advancePayoutStage refund", refundError);
+  }
+
+  // Debit once, at approval or any point past it.
+  //
+  // Keying only on `stage === "approved"` meant an admin who moved a payout
+  // straight from Requested to Processing skipped the debit entirely, and the
+  // money went out without ever leaving the balance. Anything at or beyond
+  // approval commits the money, so the debit is owed from that point on.
+  const approvedIdx = stageIndex("approved");
+  const thisIdx = stageIndex(stage);
+  const commitsMoney = thisIdx >= approvedIdx && approvedIdx !== -1 && thisIdx !== -1;
+
+  if (commitsMoney && !alreadyDebited) {
     const { error: debitError } = await supabase.rpc("adjust_payout_balance", {
       p_user_id: profileId,
       p_adjustment: -(request.amount || 0),
@@ -2460,6 +2481,7 @@ export async function advancePayoutStage(
     completed: { title: "Payout completed" },
     rejected: { title: "Payout rejected", priority: "high" },
     cancelled: { title: "Payout cancelled", priority: "high" },
+    returned: { title: "Payout returned by the bank", priority: "high" },
   };
 
   const announcement = NOTIFIED_STAGES[stage];
@@ -2469,7 +2491,12 @@ export async function advancePayoutStage(
       category: "earnings",
       priority: announcement.priority,
       title: announcement.title,
-      body: `£${(request.amount || 0).toLocaleString()}${options.note ? ` — ${options.note}` : ""}`,
+      body:
+        `£${(request.amount || 0).toLocaleString()}${options.note ? ` — ${options.note}` : ""}` +
+        // Say plainly where the money is, rather than leaving them to wonder.
+        ((stage === "cancelled" || stage === "rejected") && alreadyDebited
+          ? " — returned to your available balance."
+          : ""),
       link: "/account?tab=payouts",
     });
   }
@@ -4451,6 +4478,7 @@ const EMPTY_BY_TYPE: Record<EarningType, number> = {
   acquisition: 0,
   bonus: 0,
   award: 0,
+  download: 0,
   adjustment: 0,
 };
 

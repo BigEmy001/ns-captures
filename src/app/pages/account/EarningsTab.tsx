@@ -14,11 +14,12 @@ import {
 } from "../../data/db";
 import { ledgerLabel } from "../../../lib/ledger";
 
-const TYPE_LABELS: Record<EarningType, string> = {
+export const TYPE_LABELS: Record<EarningType, string> = {
   licensing: "Marketplace Licensing",
   acquisition: "Direct Acquisitions",
   bonus: "Performance Bonuses",
   award: "Discovery Awards",
+  download: "Photo Downloads",
   adjustment: "Adjustments",
 };
 
@@ -113,8 +114,12 @@ export function EarningsTab() {
   // zero to a marketplace photographer implies they are owed something.
   const inProgramme = isProgrammeRole(user?.role);
 
-  const breakdown = (["licensing", "acquisition", "bonus", "award", "adjustment"] as EarningType[])
-    .filter((type) => inProgramme || type === "licensing" || type === "adjustment")
+  const breakdown = (
+    ["licensing", "acquisition", "bonus", "award", "download", "adjustment"] as EarningType[]
+  )
+    .filter(
+      (type) => inProgramme || type === "licensing" || type === "download" || type === "adjustment",
+    )
     .map((type) => ({ type, amount: summary.byType[type] }))
     .filter((row) => row.type !== "adjustment" || row.amount !== 0);
 
@@ -196,7 +201,13 @@ export function EarningsTab() {
               >
                 <option value="all">All types</option>
                 {(Object.keys(TYPE_LABELS) as EarningType[])
-                  .filter((type) => inProgramme || type === "licensing" || type === "adjustment")
+                  .filter(
+                    (type) =>
+                      inProgramme ||
+                      type === "licensing" ||
+                      type === "download" ||
+                      type === "adjustment",
+                  )
                   .map((type) => (
                     <option key={type} value={type}>
                       {TYPE_LABELS[type]}

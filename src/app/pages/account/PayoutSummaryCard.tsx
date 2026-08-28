@@ -162,8 +162,10 @@ export function PayoutSummaryCard({
       {canReinitiate(request.stage) && (
         <p className="mt-5 rounded-xl border border-[#f0d8d8] bg-[#fdf6f6] px-4 py-3 text-xs text-[#9b2c2c]">
           This transfer was sent back before it reached your account
-          {request.returnedReason ? `: ${request.returnedReason}` : "."} No money has left your
-          balance. NS CAPTURES will raise a replacement transfer.
+          {request.returnedReason ? `: ${request.returnedReason}` : "."}{" "}
+          {request.debitedAt
+            ? "The amount is still held against this payout and has not returned to your available balance. NS CAPTURES will raise a replacement transfer."
+            : "No money has left your balance."}
         </p>
       )}
     </section>
