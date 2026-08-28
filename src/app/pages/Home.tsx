@@ -46,6 +46,18 @@ export function Home() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [photographers, setPhotographers] = useState<Photographer[]>([]);
 
+  /**
+   * The landing page shows a handful of established photographers, not the
+   * whole roster — a card reading "0 images" beside one reading "313" does the
+   * section no favours, and abandoned signups should not be the shop window.
+   * fetchPhotographers already sorts by portfolio size.
+   */
+  const MIN_PORTFOLIO = 50;
+  const MAX_CONTRIBUTORS = 4;
+  const featuredContributors = photographers
+    .filter((p) => p.images >= MIN_PORTFOLIO)
+    .slice(0, MAX_CONTRIBUTORS);
+
   useEffect(() => {
     Promise.all([
       fetchPhotos().catch(() => {
@@ -219,7 +231,7 @@ export function Home() {
             </Link>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {photographers.map((p) => (
+            {featuredContributors.map((p) => (
               <Link
                 key={p.id}
                 to={`/photographer/${p.id}`}
@@ -243,7 +255,9 @@ export function Home() {
                 </div>
                 <div className="mt-5 flex items-center justify-between text-xs text-[#6b716d]">
                   <span>{p.specialty}</span>
-                  <span>{p.images} images</span>
+                  <span>
+                    {p.images.toLocaleString()} {p.images === 1 ? "image" : "images"}
+                  </span>
                 </div>
               </Link>
             ))}

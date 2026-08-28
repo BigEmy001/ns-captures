@@ -206,25 +206,45 @@ export async function fetchContributorPublicFields(
   return map;
 }
 
+/**
+ * Every photographer, with their published portfolio size, largest first.
+ *
+ * Counts come from the database rather than the browser — the alternative is
+ * downloading every photo's photographer_id to work out thirty-odd numbers.
+ *
+ * Deliberately unfiltered. The creator dashboard looks itself up in this list
+ * by slug, so dropping photographers with nothing published would stop a new
+ * creator finding their own profile. Callers that are shop windows rather than
+ * lookups do their own filtering — see Home.
+ */
 export async function fetchPhotographers(): Promise<Photographer[]> {
   return withRetry(
     async () => {
-      const { data, error } = await supabase.from("photographers").select("*").order("name");
+      const [{ data, error }, { data: counts }] = await Promise.all([
+        supabase.from("photographers").select("*").order("name"),
+        supabase.rpc("photographer_photo_counts"),
+      ]);
 
       if (error || !data || data.length === 0) return [];
 
-      return data.map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        location: p.location || "",
-        specialty: p.specialty || "",
-        images: 0,
-        avatar: p.avatar || "",
-        bio: p.bio || "",
-        cover: p.cover || p.avatar || "",
-        verified: p.verified || false,
-        gear: p.gear || [],
-      }));
+      const byId = new Map<string, number>(
+        (counts || []).map((r: any) => [r.photographer_id, Number(r.photo_count) || 0]),
+      );
+
+      return data
+        .map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          location: p.location || "",
+          specialty: p.specialty || "",
+          images: byId.get(p.id) || 0,
+          avatar: p.avatar || "",
+          bio: p.bio || "",
+          cover: p.cover || p.avatar || "",
+          verified: p.verified || false,
+          gear: p.gear || [],
+        }))
+        .sort((a, b) => b.images - a.images);
     },
     { maxRetries: 2, baseDelay: 800 },
   );
@@ -509,21 +529,39 @@ export async function fetchPhotosByPhotographer(photographerId: string): Promise
 // COLLECTIONS
 // ============================================================
 
+/**
+ * Curated collections, sized by what they actually contain.
+ *
+ * collections.count is a stored figure nothing maintains — every collection
+ * overstated itself by three to seven times. The count comes from membership
+ * now, and a collection holding nothing is left out rather than shown as an
+ * empty set.
+ */
 export async function fetchCollections(): Promise<Collection[]> {
   return withRetry(
     async () => {
-      const { data, error } = await supabase.from("collections").select("*");
+      const [{ data, error }, { data: counts }] = await Promise.all([
+        supabase.from("collections").select("*"),
+        supabase.rpc("collection_photo_counts"),
+      ]);
 
       if (error || !data || data.length === 0) return [];
 
-      return data.map((c: any) => ({
-        id: c.id,
-        title: c.title,
-        curator: c.curator || "",
-        count: c.count || 0,
-        description: c.description || "",
-        cover: c.cover || [],
-      }));
+      const byId = new Map<string, number>(
+        (counts || []).map((r: any) => [r.collection_id, Number(r.photo_count) || 0]),
+      );
+
+      return data
+        .map((c: any) => ({
+          id: c.id,
+          title: c.title,
+          curator: c.curator || "",
+          count: byId.get(c.id) || 0,
+          description: c.description || "",
+          cover: c.cover || [],
+        }))
+        .filter((c) => c.count > 0)
+        .sort((a, b) => b.count - a.count);
     },
     { maxRetries: 2, baseDelay: 800 },
   );
