@@ -17,3 +17,12 @@ check_*.cjs
 fix_*.mjs
 reset_*.cjs
 update_*.js
+
+# Photographer submissions dropped into the repo root while their work is
+# catalogued. The photographs live in Cloudinary, not in git — Bogyeong Jin's
+# folder alone is 96 MB. Put new ones in submissions/ and they are ignored
+# automatically.
+submissions/
+Akiyama Tomoya from japan/
+Bogyeong Jin from south korea/
+Ryusei Yamada from japan\ /
