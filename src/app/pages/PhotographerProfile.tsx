@@ -11,6 +11,7 @@ import {
   Bookmark,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "../context/AuthContext";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { Eyebrow } from "../components/ui";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
@@ -22,6 +23,10 @@ import {
   type Photo,
   getOptimizedImageUrl,
   fetchFollowerCount,
+  fetchFollowers,
+  toggleFollow,
+  hasUserFollowedPhotographer,
+  type FollowerInfo,
 } from "../data/db";
 import { contributorLevelLabel } from "../data/contributor";
 import { NotFound } from "./NotFound";
@@ -31,7 +36,12 @@ type Tab = "highlights" | "gallery" | "collections" | "statistics";
 
 export function PhotographerProfile() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [followerCount, setFollowerCount] = useState<number | null>(null);
+  const [followers, setFollowers] = useState<FollowerInfo[]>([]);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
   const [photographer, setPhotographer] = useState<Photographer | null>(null);
   const [shots, setShots] = useState<Photo[]>([]);
 
@@ -44,16 +54,24 @@ export function PhotographerProfile() {
         setPhotographer({ ...p, ...(extra[id ?? ""] || {}) });
         const photos = await fetchPhotosByPhotographer(id ?? "");
         setShots(photos);
-        // A count failing is not a reason to break the page.
+        // Neither of these is a reason to break the page if it fails.
         fetchFollowerCount(id ?? "")
           .then(setFollowerCount)
           .catch(() => {});
+        fetchFollowers(id ?? "", 24)
+          .then(setFollowers)
+          .catch(() => {});
+        if (user) {
+          hasUserFollowedPhotographer(user.id, id ?? "")
+            .then(setIsFollowing)
+            .catch(() => {});
+        }
       } else {
         setPhotographer(p);
       }
     };
     load();
-  }, [id]);
+  }, [id, user]);
   const [tab, setTab] = useState<Tab>("gallery");
   const [sort, setSort] = useState<"recency" | "popular">("recency");
 
@@ -116,13 +134,54 @@ export function PhotographerProfile() {
             <p className="mt-3 flex items-center gap-1.5 text-sm text-[#6b716d]">
               <MapPin className="size-4" /> {photographer.location}
             </p>
-            {followerCount !== null && followerCount > 0 && (
-              <p className="mt-3 text-sm text-[#59645f]">
-                <span className="font-serif text-lg text-[#18211f]">
-                  {followerCount.toLocaleString()}
-                </span>{" "}
-                {followerCount === 1 ? "follower" : "followers"}
-              </p>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {followerCount !== null && followerCount > 0 && (
+                <button
+                  onClick={() => setShowFollowers((v) => !v)}
+                  aria-expanded={showFollowers}
+                  className="text-sm text-[#59645f] hover:text-[#1e4a3f]"
+                >
+                  <span className="font-serif text-lg text-[#18211f]">
+                    {followerCount.toLocaleString()}
+                  </span>{" "}
+                  {followerCount === 1 ? "follower" : "followers"}
+                </button>
+              )}
+              {user && user.slug !== id && (
+                <button
+                  onClick={async () => {
+                    setFollowBusy(true);
+                    const now = await toggleFollow(user.id, id ?? "");
+                    setFollowBusy(false);
+                    setIsFollowing(now);
+                    setFollowerCount((c) => (c ?? 0) + (now ? 1 : -1));
+                    toast(now ? `Following ${photographer.name}` : "Unfollowed");
+                  }}
+                  disabled={followBusy}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+                    isFollowing
+                      ? "border border-[#ececec] text-[#6b716d] hover:border-[#1e4a3f] hover:text-[#1e4a3f]"
+                      : "bg-[#1e4a3f] text-white hover:bg-[#123b31]"
+                  }`}
+                >
+                  {isFollowing ? "Following" : "Follow"}
+                </button>
+              )}
+            </div>
+            {showFollowers && followers.length > 0 && (
+              <ul className="mt-4 flex flex-wrap gap-3">
+                {followers.map((f, i) => (
+                  <li key={`${f.name}-${i}`} className="flex items-center gap-2">
+                    <Avatar className="size-7">
+                      <AvatarImage src={f.avatar} alt="" className="object-cover" />
+                      <AvatarFallback className="bg-[#e7ebe2] font-mono text-[9px] text-[#1e4a3f]">
+                        {f.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs text-[#59645f]">{f.name}</span>
+                  </li>
+                ))}
+              </ul>
             )}
             {photographer.specialties && photographer.specialties.length > 0 && (
               <ul className="mt-3 flex flex-wrap gap-1.5">

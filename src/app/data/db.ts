@@ -4659,32 +4659,31 @@ export interface FollowerInfo {
   followingId: string;
   name: string;
   avatar: string;
+  country?: string;
 }
 
-export async function fetchFollowers(photographerId: string): Promise<FollowerInfo[]> {
-  const { data } = await supabase
-    .from("user_follows")
-    .select("follower_id, following_id")
-    .eq("following_id", photographerId)
-    .limit(50);
+/**
+ * Recent followers of one photographer.
+ *
+ * Goes through photographer_followers() rather than reading user_follows: the
+ * table's only SELECT policy is "your own follows", so a direct read returns
+ * nothing to anyone — the photographer included. The function returns display
+ * fields alone, so showing one list does not expose who else somebody follows.
+ */
+export async function fetchFollowers(photographerId: string, limit = 24): Promise<FollowerInfo[]> {
+  const { data, error } = await supabase.rpc("photographer_followers", {
+    p_photographer_id: photographerId,
+    p_limit: limit,
+  });
 
-  if (!data) return [];
+  if (error || !data) return [];
 
-  const followerIds = [...new Set(data.map((r: any) => r.follower_id))];
-  if (followerIds.length === 0) return [];
-
-  const { data: profiles } = await supabase
-    .from("public_profiles")
-    .select("id, name, avatar")
-    .in("id", followerIds);
-
-  const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
-
-  return data.map((r: any) => ({
-    followerId: r.follower_id,
-    followingId: r.following_id,
-    name: profileMap.get(r.follower_id)?.name || r.follower_id,
-    avatar: profileMap.get(r.follower_id)?.avatar || "",
+  return (data as any[]).map((r) => ({
+    followerId: "",
+    followingId: photographerId,
+    name: r.name || "Member",
+    avatar: r.avatar || "",
+    country: r.country || "",
   }));
 }
 
