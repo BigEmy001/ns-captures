@@ -96,6 +96,13 @@ export interface SiteSettingsRow {
   paymentDeskWhatsapp?: string;
   /** A line of guidance shown beside the desk. */
   paymentDeskNote?: string;
+  /** Whether scheduled view/like activity runs. Never affects downloads. */
+  hypeEngineAuto?: boolean;
+  /** subtle | active | aggressive — scales the subset size and view ceiling. */
+  hypeEngineIntensity?: string;
+  /** Read-only: what the last pass did, so an unattended job stays inspectable. */
+  hypeEngineLastRun?: string | null;
+  hypeEngineLastSummary?: string | null;
 }
 
 /**
@@ -673,6 +680,23 @@ export async function fetchModerationQueue(): Promise<ModerationItem[]> {
 // STATS (for admin dashboard)
 // ============================================================
 
+/**
+ * Runs one pass of scheduled view/like activity immediately.
+ *
+ * The same function the scheduler calls, forced past the on/off toggle so an
+ * admin can see a batch land before trusting it to run unattended. Admin-gated
+ * in the database, not here.
+ */
+export async function runHypeEngineNow(): Promise<{
+  ok: boolean;
+  summary?: string;
+  error?: string;
+}> {
+  const { data, error } = await supabase.rpc("run_hype_engine_now");
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, summary: data as string };
+}
+
 export async function fetchPlatformStats() {
   const [usersCount, photosCount, photographerCount, purchasesSum] = await Promise.all([
     // Generated test accounts are excluded from both counts. These numbers are
@@ -1043,6 +1067,8 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     maintenanceMode: false,
     signupEnabled: true,
     moderationRequired: true,
+    hypeEngineAuto: false,
+    hypeEngineIntensity: "active",
     conversionFeePercent: 3.7,
     allowedLicenses: ["COMMERCIAL", "EDITORIAL", "ROYALTY FREE", "EXCLUSIVE"],
   };
@@ -1063,6 +1089,10 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     maintenanceMode: data.maintenance_mode ?? defaults.maintenanceMode,
     signupEnabled: data.signup_enabled ?? defaults.signupEnabled,
     moderationRequired: data.moderation_required ?? defaults.moderationRequired,
+    hypeEngineAuto: data.hype_engine_auto ?? false,
+    hypeEngineIntensity: data.hype_engine_intensity ?? "active",
+    hypeEngineLastRun: data.hype_engine_last_run ?? null,
+    hypeEngineLastSummary: data.hype_engine_last_summary ?? null,
     conversionFeePercent: data.conversion_fee_percent ?? defaults.conversionFeePercent,
     contactLink: data.contact_link,
     allowedLicenses: data.allowed_licenses || defaults.allowedLicenses,
@@ -1085,6 +1115,8 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
     maintenance_mode: settings.maintenanceMode,
     signup_enabled: settings.signupEnabled,
     moderation_required: settings.moderationRequired,
+    hype_engine_auto: settings.hypeEngineAuto ?? false,
+    hype_engine_intensity: settings.hypeEngineIntensity ?? "active",
     contact_link: settings.contactLink,
     allowed_licenses: settings.allowedLicenses,
     payment_desk_email: settings.paymentDeskEmail || null,

@@ -143,6 +143,7 @@ import {
   type ContributorSubmission,
   type CryptoWalletEntry,
   COINS,
+  runHypeEngineNow,
 } from "../data/db";
 import { getDisplayViews, getDisplayLikes, getDisplayDownloads } from "../data/photos";
 import { InitiatePayoutPanel, type PayoutCandidate } from "./admin/InitiatePayoutPanel";
@@ -2239,6 +2240,46 @@ export function Admin() {
                         setSiteSettingsState({ ...siteSettingsState, moderationRequired: v })
                       }
                     />
+                    <Toggle
+                      label="Auto Hype Engine"
+                      description="Adds views and likes to a changing subset of photographs each hour. Never touches downloads."
+                      checked={Boolean(siteSettingsState.hypeEngineAuto)}
+                      onChange={(v) =>
+                        setSiteSettingsState({ ...siteSettingsState, hypeEngineAuto: v })
+                      }
+                    />
+                    {siteSettingsState.hypeEngineAuto && (
+                      <div className="rounded-xl border border-[#ececec] bg-[#f8f9f7] p-4">
+                        <label className="block">
+                          <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-[#8a8f89]">
+                            Activity level
+                          </span>
+                          <select
+                            value={siteSettingsState.hypeEngineIntensity || "active"}
+                            onChange={(e) =>
+                              setSiteSettingsState({
+                                ...siteSettingsState,
+                                hypeEngineIntensity: e.target.value,
+                              })
+                            }
+                            className="mt-1 w-full rounded-lg border border-[#ececec] bg-white px-3 py-2 text-sm outline-none focus:border-[#1e4a3f] sm:w-64"
+                          >
+                            <option value="subtle">Subtle — 8–12% of photos, up to 6 views</option>
+                            <option value="active">
+                              Active — 15–25% of photos, up to 15 views
+                            </option>
+                            <option value="aggressive">
+                              Aggressive — 30–40% of photos, up to 28 views
+                            </option>
+                          </select>
+                        </label>
+                        <p className="mt-3 text-xs text-[#6b716d]">
+                          Most photographs in a pass get nothing; a few get a lot. Requires the{" "}
+                          <code className="font-mono text-[11px]">pg_cron</code> extension, enabled
+                          under Database → Extensions.
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-end pt-4 border-t border-[#ececec]">
                     <button
@@ -3480,6 +3521,8 @@ function AdminUserModal({
   const isPhotographer = isCreatorRole(user.role);
   const [userPurchasesList, setUserPurchasesList] = useState<Purchase[]>([]);
   const [modalTab, setModalTab] = useState<"overview" | "ledger" | "kyc" | "hype">("overview");
+  const [runningBoost, setRunningBoost] = useState(false);
+  const [lastBoost, setLastBoost] = useState<string | null>(null);
   const [userPaymentMethods, setUserPaymentMethods] = useState<PhotographerPaymentMethod[]>([]);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailSubject, setEmailSubject] = useState("");
@@ -4773,6 +4816,47 @@ function AdminUserModal({
                 </div>
 
                 <div className="space-y-6">
+                  {/* One pass on demand. An unattended job you cannot watch is
+                      one you stop trusting, so this shows what it did. */}
+                  <div className="rounded-xl border border-[#ececec] bg-[#f8f9f7] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold uppercase tracking-wider text-[#18211f]">
+                          Auto-Boost
+                        </p>
+                        <p className="mt-1 text-xs text-[#6b716d]">
+                          Runs one pass across the whole library — views and likes only, never
+                          downloads.
+                        </p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          setRunningBoost(true);
+                          const result = await runHypeEngineNow();
+                          setRunningBoost(false);
+                          if (!result.ok) {
+                            toast.error(result.error || "Could not run the boost");
+                            return;
+                          }
+                          // The pass runs across the whole library, not just
+                          // this contributor, so the rows behind this modal are
+                          // left alone — the summary says what moved.
+                          setLastBoost(result.summary || "");
+                          toast.success(result.summary || "Boost complete");
+                        }}
+                        disabled={runningBoost}
+                        className="shrink-0 rounded-full bg-[#1e4a3f] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#123b31] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {runningBoost ? "Running…" : "Run Auto-Boost Now"}
+                      </button>
+                    </div>
+                    {lastBoost && (
+                      <p className="mt-3 border-t border-[#ececec] pt-3 font-mono text-[11px] text-[#1e4a3f]">
+                        Last run: {lastBoost}
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <p className="text-xs font-bold text-[#18211f] uppercase tracking-wider mb-3 pb-2 border-b border-[#ececec]">
                       Asset Overrides
