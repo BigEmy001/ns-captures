@@ -1471,12 +1471,25 @@ export async function toggleFollow(userId: string, photographerId: string): Prom
   }
 }
 
+/**
+ * The follower number shown on a profile: the baseline plus real follows.
+ *
+ * Counted in the database so a visitor pressing Follow moves the same number
+ * the baseline contributes to, rather than the two being tracked separately and
+ * drifting apart.
+ */
 export async function fetchFollowerCount(photographerId: string): Promise<number> {
-  const { count } = await supabase
-    .from("user_follows")
-    .select("follower_id", { count: "exact", head: true })
-    .eq("following_id", photographerId);
-  return count || 0;
+  const { data, error } = await supabase.rpc("photographer_follower_counts");
+  if (error || !data) {
+    // Fall back to real follows alone rather than showing nothing.
+    const { count } = await supabase
+      .from("user_follows")
+      .select("follower_id", { count: "exact", head: true })
+      .eq("following_id", photographerId);
+    return count || 0;
+  }
+  const row = (data as any[]).find((r) => r.photographer_id === photographerId);
+  return Number(row?.follower_count) || 0;
 }
 
 // ============================================================

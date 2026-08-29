@@ -21,6 +21,7 @@ import {
   type Photographer,
   type Photo,
   getOptimizedImageUrl,
+  fetchFollowerCount,
 } from "../data/db";
 import { contributorLevelLabel } from "../data/contributor";
 import { NotFound } from "./NotFound";
@@ -30,6 +31,7 @@ type Tab = "highlights" | "gallery" | "collections" | "statistics";
 
 export function PhotographerProfile() {
   const { id } = useParams();
+  const [followerCount, setFollowerCount] = useState<number | null>(null);
   const [photographer, setPhotographer] = useState<Photographer | null>(null);
   const [shots, setShots] = useState<Photo[]>([]);
 
@@ -42,6 +44,10 @@ export function PhotographerProfile() {
         setPhotographer({ ...p, ...(extra[id ?? ""] || {}) });
         const photos = await fetchPhotosByPhotographer(id ?? "");
         setShots(photos);
+        // A count failing is not a reason to break the page.
+        fetchFollowerCount(id ?? "")
+          .then(setFollowerCount)
+          .catch(() => {});
       } else {
         setPhotographer(p);
       }
@@ -110,6 +116,14 @@ export function PhotographerProfile() {
             <p className="mt-3 flex items-center gap-1.5 text-sm text-[#6b716d]">
               <MapPin className="size-4" /> {photographer.location}
             </p>
+            {followerCount !== null && followerCount > 0 && (
+              <p className="mt-3 text-sm text-[#59645f]">
+                <span className="font-serif text-lg text-[#18211f]">
+                  {followerCount.toLocaleString()}
+                </span>{" "}
+                {followerCount === 1 ? "follower" : "followers"}
+              </p>
+            )}
             {photographer.specialties && photographer.specialties.length > 0 && (
               <ul className="mt-3 flex flex-wrap gap-1.5">
                 {photographer.specialties.map((s) => (
