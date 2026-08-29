@@ -697,6 +697,41 @@ export async function runHypeEngineNow(): Promise<{
   return { ok: true, summary: data as string };
 }
 
+/**
+ * The photographs people are actually looking at.
+ *
+ * Reads real views only — custom_views is a baseline someone set, and ordering
+ * by it would just list whatever was last boosted. This is the one ranking on
+ * the platform that means something, and the only one that gets more
+ * convincing as time passes rather than less.
+ */
+export async function fetchTrending(limit = 12): Promise<Photo[]> {
+  const { data, error } = await supabase.rpc("trending_photos", { p_limit: limit });
+  if (error || !data) return [];
+
+  return (data as any[]).map((r) => ({
+    id: r.id,
+    title: r.title,
+    photographerId: r.photographer_id || "",
+    photographer: r.photographer_name || "",
+    license: (r.license || "COMMERCIAL") as License,
+    category: r.category || "",
+    location: "",
+    color: r.color || "#555555",
+    orientation: r.orientation || "portrait",
+    ratio: r.ratio || "aspect-[4/5]",
+    price: Number(r.price) || 0,
+    downloads: 0,
+    views: Number(r.real_views) || 0,
+    likes: 0,
+    camera: "",
+    lens: "",
+    iso: 100,
+    keywords: [],
+    image: r.image || "",
+  })) as Photo[];
+}
+
 export async function fetchPlatformStats() {
   const [usersCount, photosCount, photographerCount, purchasesSum] = await Promise.all([
     // Generated test accounts are excluded from both counts. These numbers are

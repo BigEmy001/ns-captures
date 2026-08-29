@@ -4297,18 +4297,18 @@ function AdminUserModal({
                     <input
                       type="number"
                       id="ledger-amount"
-                      placeholder="e.g. 50 or -50"
+                      placeholder="e.g. 50 to credit, -50 to deduct"
                       className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
                     />
                   </div>
                   <div className="flex-2">
                     <label className="block text-xs font-semibold text-[#4a534e] mb-1.5">
-                      Reason / Note
+                      Reason / Note <span className="text-[#9b2c2c]">*</span>
                     </label>
                     <input
                       type="text"
                       id="ledger-note"
-                      placeholder="e.g. Bonus for top performing image"
+                      placeholder="Required — shown on the contributor's ledger"
                       className="w-full text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
                     />
                   </div>
@@ -4321,7 +4321,31 @@ function AdminUserModal({
                         toast.error("Please enter a valid adjustment amount");
                         return;
                       }
-                      const note = noteEl?.value?.trim() || undefined;
+                      const note = noteEl?.value?.trim();
+                      // Money moving on or off somebody's balance always needs a
+                      // reason. The contributor sees this line in their earnings
+                      // history, and an unexplained change is the one thing
+                      // guaranteed to generate a dispute.
+                      if (!note) {
+                        toast.error("Give a reason — the contributor sees it on their ledger");
+                        return;
+                      }
+                      if (amount < 0) {
+                        const balance = user.payoutBalance ?? 0;
+                        if (Math.abs(amount) > balance) {
+                          toast.error(
+                            `Cannot deduct £${Math.abs(amount).toLocaleString()} — the balance is £${balance.toLocaleString()}`,
+                          );
+                          return;
+                        }
+                        if (
+                          !window.confirm(
+                            `Deduct £${Math.abs(amount).toLocaleString()} from ${user.name}?\n\nReason: ${note}\n\nBalance ${balance.toLocaleString()} → ${(balance + amount).toLocaleString()}`,
+                          )
+                        ) {
+                          return;
+                        }
+                      }
                       const ok = await updateAdminBalance(user.id, amount, note, adminId);
                       if (ok) {
                         setAdminUsersList((users) =>
@@ -4334,7 +4358,11 @@ function AdminUserModal({
                         onUserUpdate(user.id, {
                           payoutBalance: (user.payoutBalance ?? 0) + amount,
                         });
-                        toast.success(`Balance adjusted by £${amount >= 0 ? "+" : ""}${amount}`);
+                        toast.success(
+                          amount >= 0
+                            ? `Credited £${amount.toLocaleString()} to ${user.name}`
+                            : `Deducted £${Math.abs(amount).toLocaleString()} from ${user.name}`,
+                        );
                         if (amountEl) amountEl.value = "";
                         if (noteEl) noteEl.value = "";
                       } else {

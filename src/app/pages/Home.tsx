@@ -14,6 +14,7 @@ import {
   fetchCollections,
   fetchPhotographers,
   getOptimizedImageUrl,
+  fetchTrending,
 } from "../data/db";
 import { AnimatedRays } from "../components/ui/animated-rays";
 import { sampleForHome } from "../data/home-sample";
@@ -45,6 +46,16 @@ export function Home() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [photographers, setPhotographers] = useState<Photographer[]>([]);
+  const [trending, setTrending] = useState<Photo[]>([]);
+
+  /**
+   * Trending appears only once real traffic says something. Ordering a dozen
+   * photographs that have had one view each is noise dressed as a signal, and
+   * an empty-looking section is worse than no section — so below the threshold
+   * this simply is not on the page.
+   */
+  const TRENDING_MIN_VIEWS = 10;
+  const showTrending = trending.length >= 8 && (trending[0]?.views ?? 0) >= TRENDING_MIN_VIEWS;
 
   /**
    * The landing page shows a handful of established photographers, not the
@@ -68,13 +79,15 @@ export function Home() {
         toast.error("An error occurred");
         return null;
       }),
+      fetchTrending(12).catch(() => null),
       fetchPhotographers().catch(() => {
         toast.error("An error occurred");
         return null;
       }),
-    ]).then(([photos, collections, photographers]) => {
+    ]).then(([photos, collections, trendingPhotos, photographers]) => {
       if (photos) setPhotos(photos);
       if (collections) setCollections(collections);
+      if (trendingPhotos) setTrending(trendingPhotos);
       if (photographers) setPhotographers(photographers);
     });
   }, []);
@@ -212,6 +225,31 @@ export function Home() {
           </div>
         </div>
       </section>
+
+      {/* Trending — real traffic only, hidden until it says something */}
+      {showTrending && (
+        <section className="mx-auto max-w-[1440px] px-5 py-16 sm:px-8 lg:px-12">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <Eyebrow>MOST VIEWED THIS WEEK</Eyebrow>
+              <h2 className="mt-3 font-serif text-4xl leading-[1.03] sm:text-5xl">
+                What people are looking at.
+              </h2>
+            </div>
+            <Link
+              to="/search"
+              className="hidden text-sm font-semibold text-[#1e4a3f] hover:underline sm:block"
+            >
+              Browse everything
+            </Link>
+          </div>
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {trending.slice(0, 8).map((p) => (
+              <PhotoCard key={p.id} item={p} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Contributors */}
       <section className="border-y border-[#ececec] bg-[#fafafa]">
