@@ -578,24 +578,49 @@ const ADMIN_USER_COLUMNS =
 const ADMIN_USER_PROGRAMME_COLUMNS =
   ", contributor_id, contributor_level, country, city, specialties, payout_currency";
 
-export async function fetchAdminUsers(): Promise<AdminUser[]> {
-  const withProgramme = await supabase
-    .from("profiles")
-    .select(ADMIN_USER_COLUMNS + ADMIN_USER_PROGRAMME_COLUMNS)
-    .order("created_at", { ascending: false });
+/** PostgREST caps a request at 1,000 rows, so pages are fetched explicitly. */
+const ADMIN_USER_PAGE = 1000;
+
+export async function fetchAdminUsers(
+  options: { includeSynthetic?: boolean } = {},
+): Promise<AdminUser[]> {
+  /**
+   * Every profile, not the first thousand.
+   *
+   * This used to be one unbounded select. PostgREST silently caps a response at
+   * 1,000 rows, and the order is newest first — so once the platform passed a
+   * thousand accounts, every older one vanished from the admin console. Search
+   * and the role filters run over this array in the browser, so they went blind
+   * at the same moment: the users were in the database and simply never
+   * reached the page.
+   */
+  const fetchPage = async (from: number, columns: string) => {
+    let q = supabase.from("profiles").select(columns);
+    // Generated test accounts are 99% of the table and own nothing. They are
+    // left out unless the console asks for them, so the twenty-odd real
+    // accounts are not a needle in a haystack.
+    if (!options.includeSynthetic) q = q.eq("is_synthetic", false);
+    return q.order("created_at", { ascending: false }).range(from, from + ADMIN_USER_PAGE - 1);
+  };
 
   // The programme columns do not exist until those migrations run. Fall back
   // to the core columns rather than showing an empty user list.
-  const result = withProgramme.error
-    ? await supabase
-        .from("profiles")
-        .select(ADMIN_USER_COLUMNS)
-        .order("created_at", { ascending: false })
-    : withProgramme;
+  const probe = await fetchPage(0, ADMIN_USER_COLUMNS + ADMIN_USER_PROGRAMME_COLUMNS);
+  const columns = probe.error
+    ? ADMIN_USER_COLUMNS
+    : ADMIN_USER_COLUMNS + ADMIN_USER_PROGRAMME_COLUMNS;
+  const first = probe.error ? await fetchPage(0, columns) : probe;
 
-  const data = result.data as any[] | null;
+  if (first.error || !first.data) return [];
 
-  if (result.error || !data || data.length === 0) return [];
+  let data = first.data as any[];
+  for (let from = ADMIN_USER_PAGE; data.length === from; from += ADMIN_USER_PAGE) {
+    const next = await fetchPage(from, columns);
+    if (next.error || !next.data || next.data.length === 0) break;
+    data = data.concat(next.data as any[]);
+  }
+
+  if (data.length === 0) return [];
 
   return data.map((p: any, i: number) => ({
     id: p.id,
@@ -650,11 +675,22 @@ export async function fetchModerationQueue(): Promise<ModerationItem[]> {
 
 export async function fetchPlatformStats() {
   const [usersCount, photosCount, photographerCount, purchasesSum] = await Promise.all([
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
+    // Generated test accounts are excluded from both counts. These numbers are
+    // what the admin runs the platform on — activity, conversion, support load
+    // — and two thousand inert rows would make every one of them meaningless.
+    //
+    // This used to filter on `neq("company", "NS Community")`, the marker the
+    // generator sets. PostgREST's neq drops NULLs as well, and 23 of the 26 real
+    // accounts have no company, so the count read 3. The flag is unambiguous.
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("is_synthetic", false),
     supabase.from("photos").select("id", { count: "exact", head: true }),
     supabase
       .from("profiles")
       .select("id", { count: "exact", head: true })
+      .eq("is_synthetic", false)
       .in("role", ["Photographer", "Contributor"]),
     supabase.from("purchases").select("price"),
   ]);

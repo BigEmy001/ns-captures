@@ -221,6 +221,9 @@ export function Admin() {
   // Supabase data
   const [queue, setQueue] = useState<ModerationItem[]>([]);
   const [adminUsersList, setAdminUsersList] = useState<AdminUser[]>([]);
+  // Generated test accounts are left out unless asked for — they outnumber the
+  // real ones eighty to one and own nothing.
+  const [showSynthetic, setShowSynthetic] = useState(false);
   const [assetsList, setAssetsList] = useState<Photo[]>([]);
   const [siteSettingsState, setSiteSettingsState] = useState<SiteSettingsRow>(defaultSiteSettings);
   const [adminPayouts, setAdminPayouts] = useState<Payout[]>([]);
@@ -278,13 +281,16 @@ export function Admin() {
         .then(setAssetsList)
         .catch(() => {});
     }
-    // Fetch admin users on mount for verification tab user lookups
-    if (adminUsersList.length === 0) {
-      fetchAdminUsers()
-        .then(setAdminUsersList)
-        .catch(() => {});
-    }
   }, []);
+
+  // The user list, refetched when the generated-accounts toggle moves. Asking
+  // the database rather than filtering in the browser keeps two thousand rows
+  // the console will not show off the wire entirely.
+  useEffect(() => {
+    fetchAdminUsers({ includeSynthetic: showSynthetic })
+      .then(setAdminUsersList)
+      .catch(() => {});
+  }, [showSynthetic]);
 
   useEffect(() => {
     switch (active) {
@@ -1136,6 +1142,21 @@ export function Admin() {
                     <option value="Enterprise">Enterprise</option>
                     <option value="Admin">Admin</option>
                   </select>
+                  {/* Say how many of how many. A list that had quietly stopped
+                      at a thousand rows looked exactly like a complete one. */}
+                  <span className="self-center whitespace-nowrap font-mono text-[11px] text-[#6b716d]">
+                    {filteredUsers.length.toLocaleString()} of{" "}
+                    {adminUsersList.length.toLocaleString()}
+                  </span>
+                  <label className="flex cursor-pointer select-none items-center gap-2 self-center whitespace-nowrap text-xs text-[#6b716d]">
+                    <input
+                      type="checkbox"
+                      checked={showSynthetic}
+                      onChange={(e) => setShowSynthetic(e.target.checked)}
+                      className="size-3.5 accent-[#1e4a3f]"
+                    />
+                    Show generated accounts
+                  </label>
                   <select
                     value={userStatusFilter}
                     onChange={(e) => setUserStatusFilter(e.target.value)}
