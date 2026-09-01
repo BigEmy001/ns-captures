@@ -665,15 +665,45 @@ export async function fetchModerationQueue(): Promise<ModerationItem[]> {
     .eq("status", "pending")
     .order("submitted", { ascending: true });
 
-  if (error || !data || data.length === 0) return [];
+  if (error) console.error("fetchModerationQueue", error);
 
-  return data.map((m: any) => ({
+  const queued: ModerationItem[] = (data || []).map((m: any) => ({
     id: m.id,
     photoId: m.photo_id,
     photographer: m.photographer,
     reason: m.reason,
     submitted: m.submitted,
   }));
+
+  // A photograph awaiting review is one whose own status says so. The queue is
+  // an index over that, and an index can be missing a row: until migration 060
+  // the contributor's insert here was refused by row-level security and the
+  // failure was swallowed, which left photographs that no buyer could see
+  // because they were unpublished and no administrator could see because they
+  // were unqueued.
+  //
+  // So the photographs are the authority and the queue only decorates them.
+  // Anything pending review that has no queue row is listed anyway, and
+  // resolveModeration is given the photo id directly, so a decision lands on
+  // the photograph whether or not a queue row was ever written.
+  const seen = new Set(queued.map((m) => m.photoId));
+  const { data: stranded } = await supabase
+    .from("photos")
+    .select("id, title, photographer_name, uploaded_at")
+    .eq("status", "pending_review");
+
+  for (const photo of stranded || []) {
+    if (seen.has(photo.id)) continue;
+    queued.push({
+      id: `MOD-${photo.id}`,
+      photoId: photo.id,
+      photographer: photo.photographer_name || "Unknown photographer",
+      reason: "Awaiting review",
+      submitted: photo.uploaded_at || "",
+    });
+  }
+
+  return queued.sort((a, b) => String(a.submitted).localeCompare(String(b.submitted)));
 }
 
 // ============================================================

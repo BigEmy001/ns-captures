@@ -716,7 +716,20 @@ export function CreatorTabs({
         setPortfolioPhotos((prev) => [saved, ...prev]);
 
         if (photoStatus === "pending_review") {
-          await submitPhotoForReview(saved.id, user?.name || "Unknown Photographer");
+          // The photograph's own status is what puts it in front of the review
+          // team; this row only gives the queue a reason and a timestamp. It
+          // used to be the only thing the admin screen read, so when the
+          // insert was refused the submission became invisible to everyone but
+          // its uploader. fetchModerationQueue now falls back to the
+          // photograph itself, so a failure here costs the note, not the
+          // submission — worth recording, not worth alarming the contributor.
+          const queued = await submitPhotoForReview(saved.id, user?.name || "Unknown Photographer");
+          if (!queued) {
+            console.warn(
+              `Could not write a moderation queue row for ${saved.id}; ` +
+                "the submission still stands on the photograph's own status.",
+            );
+          }
         }
 
         setLastSubmission({
