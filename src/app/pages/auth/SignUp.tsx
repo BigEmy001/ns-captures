@@ -1,10 +1,11 @@
 import { Link } from "react-router";
 import { COUNTRIES, currencyForCountry } from "../../../lib/countries";
 import { SPECIALTIES } from "../../data/contributor";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { AuthLayout, AuthField } from "./AuthLayout";
 import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../../lib/supabase";
 import { isStrongPassword, isValidEmail } from "../../../lib/validation";
 import { getCsrfToken } from "../../../lib/csrf";
 
@@ -22,6 +23,7 @@ export function SignUp() {
   const [occupation, setOccupation] = useState("");
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [signupDisabled, setSignupDisabled] = useState(false);
   const [errors, setErrors] = useState<{
     firstName?: string;
     lastName?: string;
@@ -33,6 +35,28 @@ export function SignUp() {
   const [terms, setTerms] = useState(false);
 
   const [isSuccess, setIsSuccess] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkSignup() {
+      try {
+        const { data } = await supabase
+          .from("site_settings")
+          .select("signup_enabled")
+          .eq("id", 1)
+          .maybeSingle();
+        if (!cancelled && data && data.signup_enabled === false) {
+          setSignupDisabled(true);
+        }
+      } catch {
+        // fail open
+      }
+    }
+    checkSignup();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const validate = () => {
     const next: typeof errors = {};
@@ -142,6 +166,15 @@ export function SignUp() {
         </>
       }
     >
+      {signupDisabled && (
+        <div className="mb-6 rounded-2xl border border-[#d4183d]/20 bg-[#d4183d]/5 p-4 text-center">
+          <p className="text-sm font-semibold text-[#d4183d]">Registrations Temporarily Closed</p>
+          <p className="mt-1 text-xs text-[#d4183d]/80">
+            New user registration is currently paused by platform administration.
+          </p>
+        </div>
+      )}
+
       <form onSubmit={submit} className="space-y-4">
         <input type="hidden" name="csrf_token" value={getCsrfToken()} />
 
@@ -350,10 +383,14 @@ export function SignUp() {
         </div>
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || signupDisabled}
           className="w-full rounded-full bg-[#1e4a3f] py-3 text-sm font-semibold text-white transition hover:bg-[#123b31] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? "Creating account..." : "Create account"}
+          {signupDisabled
+            ? "Registrations closed"
+            : isLoading
+              ? "Creating account..."
+              : "Create account"}
         </button>
       </form>
     </AuthLayout>

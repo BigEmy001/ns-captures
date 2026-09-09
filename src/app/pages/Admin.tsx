@@ -144,8 +144,15 @@ import {
   type CryptoWalletEntry,
   COINS,
   runHypeEngineNow,
+  fetchPhotographers,
+  fetchPhotosByPhotographer,
 } from "../data/db";
-import { getDisplayViews, getDisplayLikes, getDisplayDownloads } from "../data/photos";
+import {
+  getDisplayViews,
+  getDisplayLikes,
+  getDisplayDownloads,
+  type Photographer,
+} from "../data/photos";
 import { InitiatePayoutPanel, type PayoutCandidate } from "./admin/InitiatePayoutPanel";
 
 const nav = [
@@ -201,6 +208,15 @@ const defaultSiteSettings: SiteSettingsRow = {
   conversionFeePercent: 3.7,
   signupEnabled: true,
   moderationRequired: true,
+  featuredSpotlightActive: true,
+  featuredPhotographerId: "junghoon-sung-e85d599d",
+  featuredPhotoId: "upload-1787495107835",
+  featuredSpotlightHeadline: "Photographer of the Week",
+  featuredSpotlightTitle: "Workshop After Hours — Nocturnal Seoul",
+  featuredPhotoStory:
+    "Captured at 2:00 AM in a quiet industrial alleyway of Euljiro, Seoul. The late night mist mixed with incandescent tungsten light, illuminating decades of metalcraft machinery and quiet dedication long after the city went to sleep.",
+  featuredPhotographerQuote:
+    "Photography to me is about finding the moments of quiet poetry in the midst of relentless urban motion.",
 };
 
 export function Admin() {
@@ -248,8 +264,13 @@ export function Admin() {
   const [adminEditMethod, setAdminEditMethod] = useState<string | null>(null);
   const [adminCryptoWallets, setAdminCryptoWallets] = useState<CryptoWalletEntry[]>([]);
 
+  // Editorial Spotlight state
+  const [spotlightPhotographers, setSpotlightPhotographers] = useState<Photographer[]>([]);
+  const [spotlightPhotos, setSpotlightPhotos] = useState<Photo[]>([]);
+  const [loadingSpotlightPhotos, setLoadingSpotlightPhotos] = useState(false);
+
   const requestedSubTab = params.get("subtab");
-  const validSubTabs = ["general", "licensing", "toggles", "payments"];
+  const validSubTabs = ["general", "licensing", "toggles", "payments", "spotlight"];
   const settingsSubTab = validSubTabs.includes(requestedSubTab || "")
     ? requestedSubTab!
     : "general";
@@ -426,6 +447,30 @@ export function Admin() {
         break;
     }
   }, [active]);
+
+  useEffect(() => {
+    if (active === "settings") {
+      if (spotlightPhotographers.length === 0) {
+        fetchPhotographers()
+          .then(setSpotlightPhotographers)
+          .catch(() => null);
+      }
+    }
+  }, [active, spotlightPhotographers.length]);
+
+  useEffect(() => {
+    const creatorId = siteSettingsState.featuredPhotographerId;
+    if (active === "settings" && creatorId) {
+      setLoadingSpotlightPhotos(true);
+      fetchPhotosByPhotographer(creatorId)
+        .then((photos) => {
+          setSpotlightPhotos(photos);
+        })
+        .catch(() => setSpotlightPhotos([]))
+        .finally(() => setLoadingSpotlightPhotos(false));
+    }
+  }, [active, siteSettingsState.featuredPhotographerId]);
+
   const [userSearch, setUserSearch] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<string>("all");
   const [userStatusFilter, setUserStatusFilter] = useState<string>("all");
@@ -2005,7 +2050,7 @@ export function Admin() {
 
           {/* Settings */}
           {active === "settings" && (
-            <div className="mt-8 space-y-6 max-w-3xl">
+            <div className="mt-8 space-y-6 max-w-4xl">
               {/* Settings sub-tabs */}
               <div className="flex gap-1 border-b border-[#ececec] mb-6 overflow-x-auto">
                 {[
@@ -2013,6 +2058,7 @@ export function Admin() {
                   { id: "licensing", label: "Licensing & Pricing" },
                   { id: "toggles", label: "Feature Toggles" },
                   { id: "payments", label: "Payment Methods" },
+                  { id: "spotlight", label: "Editorial Spotlight" },
                 ].map((t) => (
                   <button
                     key={t.id}
@@ -2274,9 +2320,10 @@ export function Admin() {
                           </select>
                         </label>
                         <p className="mt-3 text-xs text-[#6b716d]">
-                          Most photographs in a pass get nothing; a few get a lot. Requires the{" "}
-                          <code className="font-mono text-[11px]">pg_cron</code> extension, enabled
-                          under Database → Extensions.
+                          Each hour, the engine selects a percentage of photographs based on the
+                          activity level above. Selected photographs receive additional views and
+                          likes; all others remain unchanged. Downloads and contributor earnings are
+                          never affected.
                         </p>
                       </div>
                     )}
@@ -2926,6 +2973,289 @@ export function Admin() {
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+              {settingsSubTab === "spotlight" && (
+                <div className="space-y-6">
+                  {/* Top Bar with Toggle */}
+                  <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <h3 className="font-serif text-lg text-[#18211f]">
+                          Photographer of the Week & Editorial Spotlight
+                        </h3>
+                        <p className="text-xs text-[#6b716d] mt-1">
+                          Curate the hero editorial story shown on the homepage, highlighting the
+                          creator, their craft, and the story behind the shot.
+                        </p>
+                      </div>
+                      <Toggle
+                        label="Spotlight Active"
+                        description="Show or hide on homepage"
+                        checked={Boolean(siteSettingsState.featuredSpotlightActive ?? true)}
+                        onChange={(v) =>
+                          setSiteSettingsState({
+                            ...siteSettingsState,
+                            featuredSpotlightActive: v,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* Step 1: Creator & Work Selection */}
+                  <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-mono text-xs font-semibold uppercase tracking-wider text-[#1e4a3f]">
+                        1. Select Photographer & Photograph
+                      </h4>
+                      <span className="text-xs text-[#6b716d]">
+                        {spotlightPhotographers.length} creators available
+                      </span>
+                    </div>
+
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-semibold text-[#18211f] mb-1.5">
+                          Photographer
+                        </label>
+                        <select
+                          value={siteSettingsState.featuredPhotographerId || ""}
+                          onChange={(e) => {
+                            const pId = e.target.value;
+                            setSiteSettingsState({
+                              ...siteSettingsState,
+                              featuredPhotographerId: pId,
+                            });
+                          }}
+                          className="w-full rounded-xl border border-[#ececec] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#1e4a3f]"
+                        >
+                          <option value="">-- Choose Photographer --</option>
+                          {spotlightPhotographers.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} ({p.location || "Global"} · {p.images} photos)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-[#18211f] mb-1.5">
+                          Section Eyebrow / Headline
+                        </label>
+                        <input
+                          type="text"
+                          value={
+                            siteSettingsState.featuredSpotlightHeadline ||
+                            "Photographer of the Week"
+                          }
+                          onChange={(e) =>
+                            setSiteSettingsState({
+                              ...siteSettingsState,
+                              featuredSpotlightHeadline: e.target.value,
+                            })
+                          }
+                          placeholder="e.g. Photographer of the Week, Artist in Focus"
+                          className="w-full rounded-xl border border-[#ececec] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#1e4a3f]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Visual Photo Picker Gallery */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2.5">
+                        <label className="text-xs font-semibold text-[#18211f]">
+                          Select Photo to Feature
+                        </label>
+                        <span className="font-mono text-[11px] text-[#6b716d]">
+                          {spotlightPhotos.length} published{" "}
+                          {spotlightPhotos.length === 1 ? "photo" : "photos"}
+                        </span>
+                      </div>
+
+                      {loadingSpotlightPhotos ? (
+                        <div className="py-12 text-center text-xs text-[#6b716d] animate-pulse rounded-xl border border-[#ececec] bg-[#f8f9f7]">
+                          Loading creator's portfolio...
+                        </div>
+                      ) : spotlightPhotos.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-[#ececec] py-10 text-center text-xs text-[#8a8f89] bg-[#f8f9f7]">
+                          {siteSettingsState.featuredPhotographerId
+                            ? "No published photos found for this creator."
+                            : "Select a photographer above to load their portfolio."}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-6 max-h-[380px] overflow-y-auto p-2.5 rounded-xl border border-[#ececec] bg-[#f8f9f7]">
+                          {spotlightPhotos.map((photo) => {
+                            const isSelected = siteSettingsState.featuredPhotoId === photo.id;
+                            return (
+                              <button
+                                key={photo.id}
+                                type="button"
+                                onClick={() => {
+                                  setSiteSettingsState({
+                                    ...siteSettingsState,
+                                    featuredPhotoId: photo.id,
+                                    featuredSpotlightTitle: `${photo.title} — ${photo.location || "Editorial Series"}`,
+                                    featuredPhotoStory:
+                                      photo.description ||
+                                      siteSettingsState.featuredPhotoStory ||
+                                      "",
+                                  });
+                                }}
+                                className={`group relative aspect-[4/3] rounded-lg overflow-hidden border-2 transition text-left ${
+                                  isSelected
+                                    ? "border-[#1e4a3f] ring-2 ring-[#1e4a3f]/20 shadow-md scale-[1.02]"
+                                    : "border-transparent hover:border-[#1e4a3f]/40 opacity-80 hover:opacity-100"
+                                }`}
+                              >
+                                <img
+                                  src={getOptimizedImageUrl(photo.image, 300)}
+                                  alt={photo.title}
+                                  className="size-full object-cover"
+                                />
+                                {isSelected && (
+                                  <div className="absolute inset-0 bg-[#1e4a3f]/30 flex items-center justify-center">
+                                    <span className="rounded-full bg-[#1e4a3f] text-white p-1 shadow-sm">
+                                      <Check className="size-4" />
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="absolute bottom-0 inset-x-0 bg-black/70 px-2 py-1 text-[10px] text-white truncate">
+                                  {photo.title}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Step 2: Editorial Storytelling */}
+                  <div className="border border-[#ececec]/80 bg-white rounded-2xl p-6 ns-shadow-sm space-y-6">
+                    <h4 className="font-mono text-xs font-semibold uppercase tracking-wider text-[#1e4a3f]">
+                      2. Editorial Narrative & Story
+                    </h4>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-[#18211f] mb-1.5">
+                          Feature Title / Editorial Hook
+                        </label>
+                        <input
+                          type="text"
+                          value={siteSettingsState.featuredSpotlightTitle || ""}
+                          onChange={(e) =>
+                            setSiteSettingsState({
+                              ...siteSettingsState,
+                              featuredSpotlightTitle: e.target.value,
+                            })
+                          }
+                          placeholder="e.g. Workshop After Hours — Nocturnal Seoul"
+                          className="w-full rounded-xl border border-[#ececec] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#1e4a3f]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-[#18211f] mb-1.5">
+                          About the Picture (Story Behind the Shot)
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={siteSettingsState.featuredPhotoStory || ""}
+                          onChange={(e) =>
+                            setSiteSettingsState({
+                              ...siteSettingsState,
+                              featuredPhotoStory: e.target.value,
+                            })
+                          }
+                          placeholder="Describe the context, mood, cultural setting, or technical craft of the shot..."
+                          className="w-full rounded-xl border border-[#ececec] bg-white p-3.5 text-sm leading-relaxed outline-none focus:border-[#1e4a3f]"
+                        />
+                        <p className="mt-1 text-[11px] text-[#6b716d]">
+                          This is displayed directly on the homepage as the primary editorial
+                          narrative.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-[#18211f] mb-1.5">
+                          Artist Quote (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={siteSettingsState.featuredPhotographerQuote || ""}
+                          onChange={(e) =>
+                            setSiteSettingsState({
+                              ...siteSettingsState,
+                              featuredPhotographerQuote: e.target.value,
+                            })
+                          }
+                          placeholder='e.g. "Photography to me is about finding the moments of quiet poetry..."'
+                          className="w-full rounded-xl border border-[#ececec] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#1e4a3f]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Live Preview Card */}
+                    <div className="pt-4 border-t border-[#ececec]">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="font-mono text-xs font-semibold uppercase tracking-wider text-[#758078]">
+                          Live Homepage Preview
+                        </span>
+                        <span className="text-[11px] text-[#8a8f89]">Updates as you edit</span>
+                      </div>
+
+                      <div className="rounded-2xl border border-[#e5e7e2] bg-[#f8f9f7] p-5">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#1e4a3f] font-semibold mb-2">
+                          {siteSettingsState.featuredSpotlightHeadline ||
+                            "Photographer of the Week"}
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 items-start">
+                          {siteSettingsState.featuredPhotoId &&
+                            spotlightPhotos.find(
+                              (p) => p.id === siteSettingsState.featuredPhotoId,
+                            ) && (
+                              <div className="w-full sm:w-48 aspect-[4/3] rounded-lg overflow-hidden bg-black shrink-0">
+                                <img
+                                  src={getOptimizedImageUrl(
+                                    spotlightPhotos.find(
+                                      (p) => p.id === siteSettingsState.featuredPhotoId,
+                                    )!.image,
+                                    400,
+                                  )}
+                                  alt="Preview"
+                                  className="size-full object-cover"
+                                />
+                              </div>
+                            )}
+                          <div className="space-y-2 flex-1 min-w-0">
+                            <h5 className="font-serif text-lg font-medium text-[#18211f] leading-snug">
+                              {siteSettingsState.featuredSpotlightTitle || "Untitled Feature"}
+                            </h5>
+                            <p className="text-xs text-[#4a534e] line-clamp-3 leading-relaxed">
+                              {siteSettingsState.featuredPhotoStory || "No story written yet."}
+                            </p>
+                            {siteSettingsState.featuredPhotographerQuote && (
+                              <p className="text-xs italic text-[#6b716d]">
+                                "{siteSettingsState.featuredPhotographerQuote}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4 border-t border-[#ececec]">
+                      <button
+                        onClick={handleSettingsSave}
+                        className="rounded-full bg-[#1e4a3f] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#123b31] transition"
+                      >
+                        Save Spotlight Settings
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

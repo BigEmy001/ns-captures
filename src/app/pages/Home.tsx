@@ -15,7 +15,10 @@ import {
   fetchPhotographers,
   getOptimizedImageUrl,
   fetchTrending,
+  fetchEditorialSpotlight,
+  type EditorialSpotlightData,
 } from "../data/db";
+import { EditorialSpotlight } from "../components/EditorialSpotlight";
 import { AnimatedRays } from "../components/ui/animated-rays";
 import { sampleForHome } from "../data/home-sample";
 
@@ -47,6 +50,7 @@ export function Home() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [photographers, setPhotographers] = useState<Photographer[]>([]);
   const [trending, setTrending] = useState<Photo[]>([]);
+  const [spotlight, setSpotlight] = useState<EditorialSpotlightData | null>(null);
 
   /**
    * Trending appears only once real traffic says something. Ordering a dozen
@@ -70,6 +74,10 @@ export function Home() {
     .slice(0, MAX_CONTRIBUTORS);
 
   useEffect(() => {
+    fetchEditorialSpotlight()
+      .then(setSpotlight)
+      .catch(() => null);
+
     Promise.all([
       fetchPhotos().catch(() => {
         toast.error("An error occurred");
@@ -250,6 +258,9 @@ export function Home() {
           </div>
         </section>
       )}
+
+      {/* Editorial Spotlight — Photographer of the Week */}
+      <EditorialSpotlight data={spotlight} />
 
       {/* Contributors */}
       <section className="border-y border-[#ececec] bg-[#fafafa]">

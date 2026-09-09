@@ -103,6 +103,14 @@ export interface SiteSettingsRow {
   /** Read-only: what the last pass did, so an unattended job stays inspectable. */
   hypeEngineLastRun?: string | null;
   hypeEngineLastSummary?: string | null;
+  /** Editorial Spotlight on the homepage */
+  featuredSpotlightActive?: boolean;
+  featuredPhotographerId?: string | null;
+  featuredPhotoId?: string | null;
+  featuredSpotlightHeadline?: string;
+  featuredSpotlightTitle?: string | null;
+  featuredPhotoStory?: string | null;
+  featuredPhotographerQuote?: string | null;
 }
 
 /**
@@ -1136,6 +1144,15 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     hypeEngineIntensity: "active",
     conversionFeePercent: 3.7,
     allowedLicenses: ["COMMERCIAL", "EDITORIAL", "ROYALTY FREE", "EXCLUSIVE"],
+    featuredSpotlightActive: true,
+    featuredPhotographerId: "junghoon-sung-e85d599d",
+    featuredPhotoId: "upload-1787495107835",
+    featuredSpotlightHeadline: "Photographer of the Week",
+    featuredSpotlightTitle: "Workshop After Hours — Nocturnal Seoul",
+    featuredPhotoStory:
+      "Captured at 2:00 AM in a quiet industrial alleyway of Euljiro, Seoul. The late night mist mixed with incandescent tungsten light, illuminating decades of metalcraft machinery and quiet dedication long after the city went to sleep.",
+    featuredPhotographerQuote:
+      "Photography to me is about finding the moments of quiet poetry in the midst of relentless urban motion.",
   };
 
   const { data, error } = await supabase.from("site_settings").select("*").eq("id", 1).single();
@@ -1164,12 +1181,20 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     paymentDeskEmail: data.payment_desk_email || undefined,
     paymentDeskWhatsapp: data.payment_desk_whatsapp || undefined,
     paymentDeskNote: data.payment_desk_note || undefined,
+    featuredSpotlightActive: data.featured_spotlight_active ?? defaults.featuredSpotlightActive,
+    featuredPhotographerId: data.featured_photographer_id ?? defaults.featuredPhotographerId,
+    featuredPhotoId: data.featured_photo_id ?? defaults.featuredPhotoId,
+    featuredSpotlightHeadline:
+      data.featured_spotlight_headline || defaults.featuredSpotlightHeadline,
+    featuredSpotlightTitle: data.featured_spotlight_title ?? defaults.featuredSpotlightTitle,
+    featuredPhotoStory: data.featured_photo_story ?? defaults.featuredPhotoStory,
+    featuredPhotographerQuote:
+      data.featured_photographer_quote ?? defaults.featuredPhotographerQuote,
   };
 }
 
 export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boolean> {
-  const core = {
-    id: 1,
+  const core: Record<string, any> = {
     site_name: settings.siteName,
     site_url: settings.siteUrl,
     support_email: settings.supportEmail,
@@ -1183,30 +1208,119 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
     hype_engine_auto: settings.hypeEngineAuto ?? false,
     hype_engine_intensity: settings.hypeEngineIntensity ?? "active",
     contact_link: settings.contactLink,
-    allowed_licenses: settings.allowedLicenses,
     payment_desk_email: settings.paymentDeskEmail || null,
     payment_desk_whatsapp: settings.paymentDeskWhatsapp || null,
     payment_desk_note: settings.paymentDeskNote || null,
+    conversion_fee_percent: settings.conversionFeePercent,
+    featured_spotlight_active: settings.featuredSpotlightActive ?? true,
+    featured_photographer_id: settings.featuredPhotographerId || null,
+    featured_photo_id: settings.featuredPhotoId || null,
+    featured_spotlight_headline: settings.featuredSpotlightHeadline || "Photographer of the Week",
+    featured_spotlight_title: settings.featuredSpotlightTitle || null,
+    featured_photo_story: settings.featuredPhotoStory || null,
+    featured_photographer_quote: settings.featuredPhotographerQuote || null,
   };
 
-  const { error } = await supabase.from("site_settings").upsert({
-    ...core,
-    conversion_fee_percent: settings.conversionFeePercent,
-  });
-
-  if (!error) return true;
-
-  // The conversion charge column does not exist yet. Saving settings — the
-  // maintenance toggle among them — must not depend on that migration.
-  const { error: coreError } = await supabase.from("site_settings").upsert(core);
-
-  if (coreError) {
-    console.error("updateSiteSettings", coreError);
-    return false;
+  // Try updating with allowed_licenses if provided
+  if (settings.allowedLicenses) {
+    const withLicenses = { ...core, allowed_licenses: settings.allowedLicenses };
+    const { error: licError } = await supabase
+      .from("site_settings")
+      .update(withLicenses)
+      .eq("id", 1);
+    if (!licError) return true;
   }
 
-  console.warn("Settings saved without the conversion charge:", error.message);
-  return true;
+  // Older deployments may not have optional settings columns yet.
+  const { error } = await supabase.from("site_settings").update(core).eq("id", 1);
+  if (!error) return true;
+
+  // Fallback: if row 1 doesn't exist yet, upsert with id
+  const { error: upsertError } = await supabase.from("site_settings").upsert({ id: 1, ...core });
+  if (!upsertError) return true;
+
+  console.error("updateSiteSettings failed:", upsertError || error);
+  return false;
+}
+
+export interface EditorialSpotlightData {
+  active: boolean;
+  headline: string;
+  title: string;
+  story: string;
+  quote?: string;
+  photographer: Photographer;
+  photo: Photo;
+}
+
+/**
+ * Loads the curated editorial spotlight for the landing page.
+ * Returns null if disabled in site settings or if no valid creator/photo can be resolved.
+ */
+export async function fetchEditorialSpotlight(): Promise<EditorialSpotlightData | null> {
+  try {
+    const settings = await fetchSiteSettings();
+    if (settings.featuredSpotlightActive === false) {
+      return null;
+    }
+
+    const photographerId = settings.featuredPhotographerId || "junghoon-sung-e85d599d";
+    const photoId = settings.featuredPhotoId || "upload-1787495107835";
+
+    const [photoRes, photographer] = await Promise.all([
+      supabase.from("photos").select("*").eq("id", photoId).maybeSingle(),
+      fetchPhotographer(photographerId),
+    ]);
+
+    let photo: Photo | undefined;
+    if (photoRes.data) {
+      photo = rowToPhoto(photoRes.data);
+    }
+
+    // Fallback: If specific photo not found, try getting any published photo from this photographer
+    if (!photo && photographerId) {
+      const { data: altPhotos } = await supabase
+        .from("photos")
+        .select("*")
+        .eq("photographer_id", photographerId)
+        .eq("status", "published")
+        .limit(1);
+      if (altPhotos && altPhotos[0]) {
+        photo = rowToPhoto(altPhotos[0]);
+      }
+    }
+
+    // Fallback: If still no photo, fetch from all photos
+    if (!photo) {
+      const allPhotos = await fetchPhotos();
+      photo = allPhotos[0];
+    }
+
+    let finalPhotographer = photographer;
+    if (!finalPhotographer && photo) {
+      finalPhotographer = await fetchPhotographer(photo.photographerId);
+    }
+
+    if (!finalPhotographer || !photo) {
+      return null;
+    }
+
+    return {
+      active: true,
+      headline: settings.featuredSpotlightHeadline || "Photographer of the Week",
+      title: settings.featuredSpotlightTitle || photo.title,
+      story:
+        settings.featuredPhotoStory ||
+        photo.description ||
+        "A compelling glimpse into visual storytelling and raw photographic craftsmanship.",
+      quote: settings.featuredPhotographerQuote || undefined,
+      photographer: finalPhotographer,
+      photo,
+    };
+  } catch (err) {
+    console.error("fetchEditorialSpotlight error:", err);
+    return null;
+  }
 }
 
 export type MaintenanceStatus = {
