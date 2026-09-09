@@ -5,7 +5,7 @@ import { HeroSearch } from "../components/HeroSearch";
 import { CategoryNav } from "../components/CategoryNav";
 import { TopicRail } from "../components/TopicRail";
 import { PhotoCard } from "../components/PhotoCard";
-import { Eyebrow, Button, Badge, PartnerButton } from "../components/ui";
+import { Eyebrow, Button, PartnerButton } from "../components/ui";
 import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import { toast } from "sonner";
 import type { Photo, Collection, Photographer } from "../data/photos";
@@ -16,9 +16,12 @@ import {
   getOptimizedImageUrl,
   fetchTrending,
   fetchEditorialSpotlight,
+  fetchSiteSettings,
   type EditorialSpotlightData,
 } from "../data/db";
 import { EditorialSpotlight } from "../components/EditorialSpotlight";
+import { Web3WaitlistSection } from "../components/Web3WaitlistSection";
+import { SITE_SETTINGS_UPDATED_EVENT } from "../components/MaintenanceGate";
 import { AnimatedRays } from "../components/ui/animated-rays";
 import { sampleForHome } from "../data/home-sample";
 
@@ -51,6 +54,7 @@ export function Home() {
   const [photographers, setPhotographers] = useState<Photographer[]>([]);
   const [trending, setTrending] = useState<Photo[]>([]);
   const [spotlight, setSpotlight] = useState<EditorialSpotlightData | null>(null);
+  const [web3WaitlistEnabled, setWeb3WaitlistEnabled] = useState(true);
 
   /**
    * Trending appears only once real traffic says something. Ordering a dozen
@@ -78,6 +82,17 @@ export function Home() {
       .then(setSpotlight)
       .catch(() => null);
 
+    const loadSettings = () => {
+      fetchSiteSettings()
+        .then((s) => {
+          setWeb3WaitlistEnabled(s.web3WaitlistEnabled ?? true);
+        })
+        .catch(() => null);
+    };
+
+    loadSettings();
+    window.addEventListener(SITE_SETTINGS_UPDATED_EVENT, loadSettings);
+
     Promise.all([
       fetchPhotos().catch(() => {
         toast.error("An error occurred");
@@ -98,6 +113,10 @@ export function Home() {
       if (trendingPhotos) setTrending(trendingPhotos);
       if (photographers) setPhotographers(photographers);
     });
+
+    return () => {
+      window.removeEventListener(SITE_SETTINGS_UPDATED_EVENT, loadSettings);
+    };
   }, []);
 
   // The grid is a sample, not the library: newest first, but capped so one
@@ -384,6 +403,9 @@ export function Home() {
           </div>
         </div>
       </section>
+
+      {/* Web3 / On-Chain Coming Soon & Waitlist */}
+      {web3WaitlistEnabled && <Web3WaitlistSection />}
 
       {/* CTA */}
       <section className="bg-[#182e27] px-5 py-20 text-[#f4f1e9] sm:px-8 lg:px-12">

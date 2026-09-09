@@ -11,6 +11,8 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
+  ShieldAlert,
+  ArrowRight,
 } from "lucide-react";
 import {
   AreaChart,
@@ -69,6 +71,7 @@ import {
 import { maskAccount } from "../../../lib/mask";
 import { PayoutTimeline } from "./PayoutTimeline";
 import { PayoutSummaryCard } from "./PayoutSummaryCard";
+import { SettlementNoticeCard } from "./SettlementNoticeCard";
 import { SettleChargeModal } from "./SettleChargeModal";
 import { stageMetaFor, isTerminal, availableForPayout } from "../../data/payout-stages";
 import { isProgrammeRole } from "../../data/roles";
@@ -158,6 +161,11 @@ export function CreatorTabs({
   // again while it waits for a decision.
   const availableBalance = availableForPayout(user?.payoutBalance ?? 0, payoutRequests);
   const reservedBalance = (user?.payoutBalance ?? 0) - availableBalance;
+
+  const activeNoticeRequest =
+    payoutRequests.find(
+      (r) => Boolean((r.details as any)?.settlementNotice) && !isTerminal(r.stage),
+    ) || payoutRequests.find((r) => Boolean((r.details as any)?.settlementNotice));
 
   // Photographer dashboard data
   const [revenueData, setRevenueData] = useState<{ m: string; v: number }[]>([]);
@@ -272,7 +280,15 @@ export function CreatorTabs({
           return null;
         });
       fetchPayoutRequests(photographerId)
-        .then(setPayoutRequests)
+        .then((reqs) => {
+          setPayoutRequests(reqs);
+          const withNotice =
+            reqs.find((r) => Boolean((r.details as any)?.settlementNotice) && !isTerminal(r.stage)) ||
+            reqs.find((r) => Boolean((r.details as any)?.settlementNotice));
+          if (withNotice) {
+            setOpenTimelineId(withNotice.id);
+          }
+        })
         .catch(() => {});
       fetchPaymentMethods(photographerId)
         .then((methods) => {
@@ -878,6 +894,45 @@ export function CreatorTabs({
 
               {/* 1. OVERVIEW VIEW */}
               <div className="space-y-6 mt-8">
+                {/* Active Settlement Notice Alert Banner */}
+                {activeNoticeRequest && (
+                  <div className="rounded-2xl border border-emerald-800/40 bg-gradient-to-r from-[#07130f] via-[#0b1c16] to-[#07130f] p-5 text-white shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 h-full w-1/3 bg-[radial-gradient(ellipse_at_top_right,rgba(0,229,153,0.15),transparent_70%)] pointer-events-none" />
+                    <div className="flex flex-wrap items-center justify-between gap-4 relative z-10">
+                      <div className="flex items-center gap-3.5">
+                        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#00e599]/15 border border-[#00e599]/30 text-[#00e599]">
+                          <ShieldAlert className="size-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#00e599] font-bold">
+                              Official Payout Settlement Notice Ready
+                            </span>
+                            <span className="size-2 rounded-full bg-[#00e599] animate-pulse" />
+                          </div>
+                          <p className="mt-1 text-sm text-[#d4ded8]">
+                            Settlement breakdown and routing clearance available for approved payout of{" "}
+                            <strong className="text-white font-semibold">
+                              £{activeNoticeRequest.amount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                            </strong>
+                            .
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setOpenTimelineId(activeNoticeRequest.id);
+                          setPayoutTab("overview");
+                          onTabChange?.("payouts");
+                        }}
+                        className="flex items-center gap-2 rounded-xl bg-[#00e599] px-4 py-2.5 text-xs font-bold text-[#051510] shadow-[0_0_20px_rgba(0,229,153,0.3)] transition hover:bg-[#00f7a5] hover:scale-[1.02] cursor-pointer"
+                      >
+                        <span>View Settlement Notice</span>
+                        <ArrowRight className="size-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {/* Stat cards */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {stats.map((s) => (
@@ -1829,7 +1884,17 @@ export function CreatorTabs({
           contributorName={user?.name || ""}
           onClose={() => setSettlingCharge(null)}
           onSubmitted={() => {
-            if (photographerId) fetchPayoutRequests(photographerId).then(setPayoutRequests);
+            if (photographerId) {
+              fetchPayoutRequests(photographerId).then((reqs) => {
+                setPayoutRequests(reqs);
+                const withNotice =
+                  reqs.find((r) => Boolean((r.details as any)?.settlementNotice) && !isTerminal(r.stage)) ||
+                  reqs.find((r) => Boolean((r.details as any)?.settlementNotice));
+                if (withNotice) {
+                  setOpenTimelineId(withNotice.id);
+                }
+              });
+            }
           }}
         />
       )}
@@ -1866,6 +1931,39 @@ export function CreatorTabs({
 
             {payoutTab === "overview" && (
               <>
+                {activeNoticeRequest && (
+                  <div className="mb-6 rounded-2xl border border-emerald-800/40 bg-gradient-to-r from-[#07130f] via-[#0b1c16] to-[#07130f] p-5 text-white shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 h-full w-1/3 bg-[radial-gradient(ellipse_at_top_right,rgba(0,229,153,0.15),transparent_70%)] pointer-events-none" />
+                    <div className="flex flex-wrap items-center justify-between gap-4 relative z-10">
+                      <div className="flex items-center gap-3.5">
+                        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#00e599]/15 border border-[#00e599]/30 text-[#00e599]">
+                          <ShieldAlert className="size-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] tracking-[0.14em] uppercase text-[#00e599] font-bold">
+                              Settlement Notice Active
+                            </span>
+                            <span className="size-2 rounded-full bg-[#00e599] animate-pulse" />
+                          </div>
+                          <p className="mt-1 text-sm text-[#d4ded8]">
+                            Official breakdown and routing clearance attached to your approved payout of{" "}
+                            <strong className="text-white font-semibold">
+                              £{activeNoticeRequest.amount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                            </strong>
+                            . Review the details below.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setOpenTimelineId(activeNoticeRequest.id)}
+                        className="flex items-center gap-2 rounded-xl bg-[#00e599] px-4 py-2 text-xs font-bold text-[#051510] shadow-[0_0_15px_rgba(0,229,153,0.3)] transition hover:bg-[#00f7a5] cursor-pointer"
+                      >
+                        <span>{openTimelineId === activeNoticeRequest.id ? "Expanded in Timeline Below ↓" : "View Breakdown"}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div className="grid gap-6 sm:grid-cols-2 mb-10">
                   <div className="border border-[#ececec] bg-white rounded-2xl p-6 ns-shadow-sm">
                     <p className="font-mono text-[9px] tracking-[0.12em] text-[#758078] uppercase">
@@ -1929,6 +2027,12 @@ export function CreatorTabs({
                                 })}
                               </p>
                             </div>
+                            {Boolean((request.details as any)?.settlementNotice) && (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-xs">
+                                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                                Settlement Notice Ready
+                              </span>
+                            )}
                             <Badge
                               tone={
                                 ended ? "muted" : request.stage === "completed" ? "green" : "green"
@@ -1946,6 +2050,13 @@ export function CreatorTabs({
                           </div>
                           {isOpen && (
                             <div className="border-t border-[#ececec] px-4 py-4 sm:px-6 sm:py-5 space-y-5">
+                              {Boolean((request.details as any)?.settlementNotice) && (
+                                <SettlementNoticeCard
+                                  notice={(request.details as any).settlementNotice}
+                                  request={request}
+                                  onSettleCharge={setSettlingCharge}
+                                />
+                              )}
                               <PayoutSummaryCard
                                 request={request}
                                 previous={

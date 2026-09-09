@@ -111,6 +111,14 @@ export interface SiteSettingsRow {
   featuredSpotlightTitle?: string | null;
   featuredPhotoStory?: string | null;
   featuredPhotographerQuote?: string | null;
+  /** Whether the Web3 / On-Chain Coming Soon & Waitlist section is active */
+  web3WaitlistEnabled?: boolean;
+  /** Public headline for the waitlist launch message */
+  web3WaitlistHeadline?: string;
+  /** Public intro copy for the waitlist launch message */
+  web3WaitlistSubtitle?: string;
+  /** Admin-curated feature list shown under the waitlist CTA */
+  web3WaitlistFeatures?: string[];
 }
 
 /**
@@ -660,6 +668,7 @@ export async function fetchAdminUsers(
     location: p.location || "",
     socialLinks: p.social_links || {},
     references: p.profile_references || [],
+    walletAddress: p.wallet_address || undefined,
     joined: p.created_at
       ? new Date(p.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })
       : "Unknown",
@@ -1153,6 +1162,15 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
       "Captured at 2:00 AM in a quiet industrial alleyway of Euljiro, Seoul. The late night mist mixed with incandescent tungsten light, illuminating decades of metalcraft machinery and quiet dedication long after the city went to sleep.",
     featuredPhotographerQuote:
       "Photography to me is about finding the moments of quiet poetry in the midst of relentless urban motion.",
+    web3WaitlistEnabled: true,
+    web3WaitlistHeadline: "Available soon",
+    web3WaitlistSubtitle:
+      "Visitors can register for early access and be notified when the launch window opens.",
+    web3WaitlistFeatures: [
+      "Private beta access",
+      "Curated collector drops",
+      "Creator-first release flow",
+    ],
   };
 
   const { data, error } = await supabase.from("site_settings").select("*").eq("id", 1).single();
@@ -1190,6 +1208,13 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     featuredPhotoStory: data.featured_photo_story ?? defaults.featuredPhotoStory,
     featuredPhotographerQuote:
       data.featured_photographer_quote ?? defaults.featuredPhotographerQuote,
+    web3WaitlistEnabled: data.web3_waitlist_enabled ?? defaults.web3WaitlistEnabled,
+    web3WaitlistHeadline: data.web3_waitlist_headline ?? defaults.web3WaitlistHeadline,
+    web3WaitlistSubtitle: data.web3_waitlist_subtitle ?? defaults.web3WaitlistSubtitle,
+    web3WaitlistFeatures:
+      data.web3_waitlist_features && data.web3_waitlist_features.length
+        ? data.web3_waitlist_features
+        : defaults.web3WaitlistFeatures,
   };
 }
 
@@ -1219,6 +1244,16 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
     featured_spotlight_title: settings.featuredSpotlightTitle || null,
     featured_photo_story: settings.featuredPhotoStory || null,
     featured_photographer_quote: settings.featuredPhotographerQuote || null,
+    web3_waitlist_enabled: settings.web3WaitlistEnabled ?? true,
+    web3_waitlist_headline: settings.web3WaitlistHeadline || "Available soon",
+    web3_waitlist_subtitle:
+      settings.web3WaitlistSubtitle ||
+      "Visitors can register for early access and be notified when the launch window opens.",
+    web3_waitlist_features: settings.web3WaitlistFeatures || [
+      "Private beta access",
+      "Curated collector drops",
+      "Creator-first release flow",
+    ],
   };
 
   // Try updating with allowed_licenses if provided
@@ -2463,6 +2498,22 @@ export interface PayoutConversion {
   netConverted: number;
 }
 
+export interface PayoutSettlementNotice {
+  enabled: boolean;
+  scheduledDeliveryNotice?: string;
+  approvedPayout: number;
+  conversionCostPercent: number;
+  conversionCostAmount: number;
+  networkTransferPercent: number;
+  networkTransferAmount: number;
+  totalSettlementCosts: number;
+  payoutAmountScheduled: number;
+  salutation?: string;
+  bodyText?: string;
+  departmentSignoff?: string;
+  updatedAt?: string;
+}
+
 export interface PayoutEvent {
   id: string;
   stage: PayoutStage;
@@ -2540,6 +2591,56 @@ export async function createPayoutRequest(
     requestedAt: data.requested_at,
     processedAt: data.processed_at,
   };
+}
+
+export async function updatePayoutRequestDetails(
+  id: string,
+  details: Record<string, unknown>,
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from("payout_requests")
+      .update({ details })
+      .eq("id", id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function updatePayoutSettlementNotice(
+  id: string,
+  notice: PayoutSettlementNotice,
+  existingDetails: Record<string, unknown> = {},
+  syncFees: boolean = true,
+): Promise<boolean> {
+  try {
+    const updatedDetails = {
+      ...existingDetails,
+      settlementNotice: notice,
+    };
+
+    const updatePayload: Record<string, unknown> = {
+      details: updatedDetails,
+    };
+
+    if (syncFees && notice.enabled) {
+      updatePayload.conversion_fee_percent = notice.conversionCostPercent;
+      updatePayload.conversion_fee_amount = notice.conversionCostAmount;
+      updatePayload.conversion_fee_gbp = notice.totalSettlementCosts;
+      updatePayload.conversion_fee_bearer = "contributor";
+      updatePayload.conversion_fee_status = "outstanding";
+    }
+
+    const { error } = await supabase
+      .from("payout_requests")
+      .update(updatePayload)
+      .eq("id", id);
+
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 export async function fetchPayoutRequests(photographerId?: string): Promise<PayoutRequest[]> {
@@ -5204,3 +5305,157 @@ export async function deleteAdminPaymentMethod(id: string): Promise<void> {
 
   if (error) throw new Error(error.message);
 }
+
+// ============================================================
+// WEB3 WAITLIST
+// ============================================================
+
+export interface Web3WaitlistEntry {
+  id: string;
+  email: string;
+  name?: string;
+  role: string;
+  walletAddress?: string;
+  status: string;
+  notes?: string;
+  userId?: string;
+  createdAt: string;
+}
+
+export interface Web3WaitlistInput {
+  email: string;
+  name?: string;
+  role?: string;
+  walletAddress?: string;
+  notes?: string;
+  userId?: string;
+}
+
+export async function joinWeb3Waitlist(
+  entry: Web3WaitlistInput,
+): Promise<{ ok: boolean; alreadyExists?: boolean; error?: string }> {
+  try {
+    const trimmedEmail = entry.email.trim().toLowerCase();
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      return { ok: false, error: "A valid email address is required." };
+    }
+
+    const { data: existing } = await supabase
+      .from("web3_waitlist")
+      .select("id")
+      .eq("email", trimmedEmail)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("web3_waitlist")
+        .update({
+          name: entry.name?.trim() || undefined,
+          role: entry.role || undefined,
+          wallet_address: entry.walletAddress?.trim() || undefined,
+          notes: entry.notes?.trim() || undefined,
+        })
+        .eq("email", trimmedEmail);
+
+      return { ok: true, alreadyExists: true };
+    }
+
+    const { error } = await supabase.from("web3_waitlist").insert({
+      email: trimmedEmail,
+      name: entry.name?.trim() || null,
+      role: entry.role || "collector",
+      wallet_address: entry.walletAddress?.trim() || null,
+      notes: entry.notes?.trim() || null,
+      user_id: entry.userId || null,
+      status: "pending",
+    });
+
+    if (error) {
+      console.error("joinWeb3Waitlist error:", error);
+      return { ok: false, error: error.message };
+    }
+
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || "Failed to join waitlist" };
+  }
+}
+
+export async function fetchWeb3Waitlist(): Promise<Web3WaitlistEntry[]> {
+  try {
+    const { data, error } = await supabase
+      .from("web3_waitlist")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error || !data) {
+      console.error("fetchWeb3Waitlist error:", error);
+      return [];
+    }
+
+    return data.map((row: any) => ({
+      id: row.id,
+      email: row.email,
+      name: row.name || undefined,
+      role: row.role || "collector",
+      walletAddress: row.wallet_address || undefined,
+      status: row.status || "pending",
+      notes: row.notes || undefined,
+      userId: row.user_id || undefined,
+      createdAt: row.created_at,
+    }));
+  } catch (err) {
+    console.error("fetchWeb3Waitlist exception:", err);
+    return [];
+  }
+}
+
+export async function updateWeb3WaitlistStatus(id: string, status: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from("web3_waitlist").update({ status }).eq("id", id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function updateWeb3WaitlistWalletAddress(
+  id: string,
+  walletAddress: string,
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from("web3_waitlist")
+      .update({ wallet_address: walletAddress.trim() || null })
+      .eq("id", id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function updateUserWalletAddress(
+  userId: string,
+  walletAddress: string,
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ wallet_address: walletAddress.trim() || null })
+      .eq("id", userId);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteWeb3WaitlistEntry(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from("web3_waitlist").delete().eq("id", id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+

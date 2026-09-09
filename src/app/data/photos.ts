@@ -11031,6 +11031,7 @@ export interface AdminUser {
   specialties?: string[];
   socialLinks?: Record<string, string>;
   references?: { name: string; relation: string; contact: string }[];
+  walletAddress?: string;
 }
 
 export const adminUsers: AdminUser[] = [

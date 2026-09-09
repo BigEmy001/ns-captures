@@ -2,49 +2,8 @@ import { supabase } from "./supabase";
 import { escapeHtml } from "./validation";
 
 async function send(to: string, subject: string, body: string) {
-  const fullHtml = `<!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width"/></head>
-<body style="margin:0;padding:0;background-color:#242424;font-family:Roboto,BlinkMacSystemFont,Segoe UI,Helvetica Neue,Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background-color:#242424;">
-<tr><td align="center" style="padding:45px 0 60px 0;">
-<table width="600" cellpadding="0" cellspacing="0" style="background-color:#F8F8F8;">
-<tr><td style="padding:0 50px 40px 50px;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="padding:60px 0 40px 0;">
-<svg width="700" height="700" viewBox="0 0 700 700" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;width:80px;height:80px;">
-<rect width="700" height="700" fill="white"/>
-<path d="M408.602 226.458C416.585 225.749 432.633 226.199 441.109 226.203L502.536 226.264L511.721 270.435C489.584 270.727 467.246 270.05 445.222 270.43C423.021 270.812 397.602 266.65 380.618 284.038C367.723 297.071 368.086 316.828 380.126 330.203C396.255 348.115 416.803 345.815 438.706 345.628C449.198 345.538 459.617 345.597 470.044 347.47C509.261 354.515 542.696 387.258 542.955 428.725C543.269 449.967 534.874 470.402 519.721 485.289C496.189 508.636 471.278 510.902 440.311 510.845C390.118 511.257 366.933 508.853 334.869 466.507C375.449 466.088 415.932 466.927 456.665 466.298C490.568 465.773 513.019 427.5 485.842 402.315C464.568 382.593 430.456 392.903 404.094 389.041C365.61 383.412 330.24 353.352 326.393 313.257C324.466 292.947 330.828 272.721 344.046 257.175C360.747 237.129 383.328 228.872 408.602 226.458Z" fill="black"/>
-<path d="M138.549 203.895C143.958 207.542 157.137 220.77 162.5 225.923L208.173 269.811L399.595 455.635C377.87 456.2 354.693 455.805 332.862 455.789L267.833 392.346C239.7 364.608 211.37 337.065 182.846 309.724C181.664 373.474 182.894 439.015 182.499 503.03C168.095 503.457 152.733 503.28 138.325 503.062L138.311 309.433C138.303 275.469 137.478 237.609 138.549 203.895Z" fill="black"/>
-<path d="M534.4 190.718C546.609 187.6 559.052 194.927 562.246 207.12C565.439 219.314 558.189 231.8 546.012 235.07C533.738 238.369 521.117 231.042 517.892 218.74C514.666 206.438 522.077 193.864 534.4 190.718Z" fill="#0B3D2F"/>
-</svg>
-</td></tr>
-<tr><td style="padding:0 0 15px 0;">
-${body}
-</td></tr>
-</table>
-</td></tr>
-<tr><td style="padding:0 50px 40px 50px;">
-<table width="100%" cellpadding="0" cellspacing="0">
-<tr><td style="border-top:1px solid #e0e0e0;padding:30px 0 0 0;">
-<p style="margin:0 0 4px 0;font-size:14px;font-weight:700;color:#1e4a3f;font-family:inherit;">NS CAPTURES</p>
-<p style="margin:0 0 2px 0;font-size:12px;color:#555555;font-family:inherit;">Global Photography Acquisition &amp; Licensing</p>
-<p style="margin:0 0 12px 0;font-size:12px;color:#888888;font-family:inherit;">&#x1F4CD; London, United Kingdom</p>
-<p style="margin:0 0 10px 0;font-size:11px;line-height:16px;color:#999999;font-family:inherit;">
-<strong>CONFIDENTIALITY NOTICE:</strong> This email and any attachments are intended only for the use of the individual or entity to whom they are addressed. They may contain confidential or legally privileged information. If you are not the intended recipient, please notify the sender immediately, delete this message, and do not disclose, copy, or distribute its contents.
-</p>
-<p style="margin:0;font-size:11px;color:#999999;font-family:inherit;">&copy; NS CAPTURES. All Rights Reserved.</p>
-</td></tr>
-</table>
-</td></tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
-
   const { error } = await supabase.functions.invoke("send-email", {
-    body: { to, subject, body: fullHtml },
+    body: { to, subject, body },
   });
   if (error) console.error("Email send failed:", error);
 }
@@ -424,6 +383,292 @@ ${
 }
 
 /**
+ * Official Payout Settlement Notification with itemized breakdown and delivery schedule.
+ */
+export async function sendPayoutSettlementNotificationEmail({
+  to,
+  recipientName,
+  approvedPayout,
+  conversionCostPercent,
+  conversionCostAmount,
+  networkTransferPercent,
+  networkTransferAmount,
+  totalSettlementCosts,
+  payoutAmountScheduled,
+  scheduledDeliveryNotice,
+  salutation,
+  bodyText,
+  departmentSignoff,
+}: {
+  to: string;
+  recipientName: string;
+  approvedPayout: number;
+  conversionCostPercent: number;
+  conversionCostAmount: number;
+  networkTransferPercent: number;
+  networkTransferAmount: number;
+  totalSettlementCosts: number;
+  payoutAmountScheduled: number;
+  scheduledDeliveryNotice?: string;
+  salutation?: string;
+  bodyText?: string;
+  departmentSignoff?: string;
+}) {
+  const safeName = escapeHtml(recipientName);
+  const safeSchedule = escapeHtml(
+    scheduledDeliveryNotice ||
+      "This message was automatically scheduled for delivery at 7:00 a.m. in the recipient's local time for convenience.",
+  );
+  const safeSalutation = escapeHtml(salutation || `Dear ${safeName},`);
+  const safeSignoff = escapeHtml(
+    departmentSignoff ||
+      "Kind regards,\nFinance & Settlement Department\nNS CAPTURES",
+  ).replace(/\n/g, "<br/>");
+
+  const defaultParagraphs = [
+    `We are pleased to confirm that your payout of <strong style="color:#ffffff;">&pound;${approvedPayout.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> has been approved for digital-asset settlement.`,
+    `Following a final regional routing review, it was determined that your region is currently awaiting access to the company's upcoming Web3 settlement platform. The payout will therefore proceed through the alternative digital-asset conversion and withdrawal route.`,
+    `Under the stated payout policy, the approved payout amount must be delivered in full. Settlement-related costs are therefore recorded separately and are not deducted from the approved payout amount.`,
+    `The applicable settlement costs are shown above. The regional review is also the reason this additional settlement requirement has appeared at this stage of processing.`,
+    `Once the settlement process has been completed, the approved &pound;${approvedPayout.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} payout will proceed through the applicable GBP-to-USDT conversion and digital-asset withdrawal route.`,
+  ];
+
+  const paragraphsHtml = (
+    bodyText
+      ? bodyText.split("\n\n").map((p) => escapeHtml(p.trim()))
+      : defaultParagraphs
+  )
+    .map(
+      (p) =>
+        `<p style="margin:0 0 12px;font-size:13.5px;line-height:21px;color:#cbd5e1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">${p}</p>`,
+    )
+    .join("");
+
+  const body = `
+<!-- MAD FINTECH OBSIDIAN CARD -->
+<div style="max-width:540px;margin:0 auto;background-color:#090f0c;border:1px solid #1a382b;border-radius:14px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,0.6);">
+  
+  <!-- Top Protocol Clearance Ribbon -->
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#064e3b;border-bottom:2px solid #00e599;">
+    <tr>
+      <td style="padding:14px 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td align="left">
+              <span style="display:inline-block;color:#00e599;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;">
+                &#9679; CLEARANCE PROTOCOL // LEVEL-4 DISPATCH
+              </span>
+            </td>
+            <td align="right">
+              <span style="display:inline-block;background-color:rgba(0,229,153,0.15);border:1px solid #00e599;border-radius:4px;padding:3px 8px;color:#a7f3d0;font-family:ui-monospace,monospace;font-size:10px;font-weight:600;letter-spacing:0.8px;">
+                REF: #NSC-8842-SETTLE
+              </span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Automated Dispatch Callout -->
+  <div style="margin:20px 20px 0;background-color:#0b1812;border:1px solid #163626;border-radius:8px;padding:12px 16px;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="22" valign="top" style="font-size:14px;line-height:18px;color:#00e599;">&#9889;</td>
+        <td style="padding-left:8px;">
+          <div style="font-family:ui-monospace,monospace;font-size:10px;font-weight:700;color:#00e599;letter-spacing:1px;text-transform:uppercase;">
+            AUTOMATED SYSTEM NOTIFICATION
+          </div>
+          <div style="font-size:12px;line-height:18px;color:#94a3b8;font-style:italic;margin-top:2px;">
+            &ldquo;${safeSchedule}&rdquo;
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Hero Amount Section -->
+  <div style="text-align:center;padding:26px 20px 22px;border-bottom:1px solid #142a20;">
+    <div style="display:inline-block;background-color:rgba(0,229,153,0.1);border:1px solid #00e599;border-radius:20px;padding:4px 14px;margin-bottom:12px;">
+      <span style="color:#00e599;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;font-family:ui-monospace,monospace;">
+        &#9679; APPROVED FOR DIGITAL-ASSET SETTLEMENT
+      </span>
+    </div>
+    <div style="color:#94a3b8;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;">
+      Approved Payout Capital
+    </div>
+    <div style="font-size:46px;font-weight:800;line-height:50px;color:#ffffff;letter-spacing:-1.5px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+      &pound;${approvedPayout.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+    </div>
+    <div style="color:#64748b;font-size:11px;margin-top:8px;font-family:ui-monospace,monospace;letter-spacing:0.5px;">
+      CURRENCY: GBP (STERLING) &bull; SETTLEMENT ROUTE: USDT (TRC-20 / ERC-20)
+    </div>
+  </div>
+
+  <!-- Security Screening Row -->
+  <div style="padding:16px 20px 0;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="33.3%" style="padding:0 4px 0 0;">
+          <div style="background-color:#0c1612;border:1px solid #153223;border-radius:6px;padding:8px;text-align:center;">
+            <div style="color:#00e599;font-size:10px;font-weight:700;font-family:ui-monospace,monospace;">AML AUDIT</div>
+            <div style="color:#f8fafc;font-size:11px;font-weight:700;margin-top:2px;">CLEARED &#10003;</div>
+          </div>
+        </td>
+        <td width="33.3%" style="padding:0 2px;">
+          <div style="background-color:#0c1612;border:1px solid #153223;border-radius:6px;padding:8px;text-align:center;">
+            <div style="color:#00e599;font-size:10px;font-weight:700;font-family:ui-monospace,monospace;">PRINCIPAL</div>
+            <div style="color:#f8fafc;font-size:11px;font-weight:700;margin-top:2px;">100% INTACT</div>
+          </div>
+        </td>
+        <td width="33.3%" style="padding:0 0 0 4px;">
+          <div style="background-color:#1c1304;border:1px solid #b45309;border-radius:6px;padding:8px;text-align:center;">
+            <div style="color:#fbbf24;font-size:10px;font-weight:700;font-family:ui-monospace,monospace;">SETTLEMENT</div>
+            <div style="color:#fbbf24;font-size:11px;font-weight:700;margin-top:2px;">PENDING CLEARANCE</div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Itemized Settlement Breakdown Table -->
+  <div style="margin:20px 20px;background-color:#070d0a;border:1px solid #173727;border-radius:8px;overflow:hidden;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr style="background-color:#0b1e16;border-bottom:1px solid #173727;">
+        <td colspan="2" style="padding:10px 16px;">
+          <span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:#00e599;letter-spacing:1px;text-transform:uppercase;">
+            PAYOUT SETTLEMENT BREAKDOWN
+          </span>
+        </td>
+      </tr>
+
+      <!-- Approved Payout -->
+      <tr style="border-bottom:1px solid #11251c;background-color:#08120d;">
+        <td style="padding:12px 16px;">
+          <div style="color:#f8fafc;font-size:13px;font-weight:600;">&bull; Approved Payout</div>
+          <div style="color:#64748b;font-size:11px;">Full creator allocation · zero deductions from capital</div>
+        </td>
+        <td align="right" style="padding:12px 16px;white-space:nowrap;">
+          <span style="color:#ffffff;font-size:14px;font-weight:700;font-family:ui-monospace,monospace;">&pound;${approvedPayout.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </td>
+      </tr>
+
+      <!-- Conversion Cost -->
+      <tr style="border-bottom:1px solid #11251c;background-color:#060b08;">
+        <td style="padding:12px 16px;">
+          <div style="color:#e2e8f0;font-size:13px;font-weight:600;">&bull; Digital Asset Conversion &amp; Withdrawal Cost (${conversionCostPercent}%)</div>
+          <div style="color:#64748b;font-size:11px;">GBP-to-USDT cross-border liquidity provisioning</div>
+        </td>
+        <td align="right" style="padding:12px 16px;white-space:nowrap;">
+          <span style="color:#cbd5e1;font-size:14px;font-weight:600;font-family:ui-monospace,monospace;">&pound;${conversionCostAmount.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </td>
+      </tr>
+
+      <!-- Transfer Cost -->
+      <tr style="border-bottom:1px solid #11251c;background-color:#08120d;">
+        <td style="padding:12px 16px;">
+          <div style="color:#e2e8f0;font-size:13px;font-weight:600;">&bull; USDT Network/Transfer Cost (${networkTransferPercent}%)</div>
+          <div style="color:#64748b;font-size:11px;">Validator clearance &amp; smart-contract gas execution</div>
+        </td>
+        <td align="right" style="padding:12px 16px;white-space:nowrap;">
+          <span style="color:#cbd5e1;font-size:14px;font-weight:600;font-family:ui-monospace,monospace;">&pound;${networkTransferAmount.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </td>
+      </tr>
+
+      <!-- Settlement Obligation (Gold Glow) -->
+      <tr style="background-color:#261704;border-top:1px solid #d97706;border-bottom:1px solid #d97706;">
+        <td style="padding:14px 16px;">
+          <div style="color:#fbbf24;font-size:13px;font-weight:700;letter-spacing:0.3px;text-transform:uppercase;">
+            &#9889; Total Settlement Costs
+          </div>
+          <div style="color:#f59e0b;font-size:11px;font-weight:600;margin-top:2px;">
+            Recorded separately &bull; Not deducted from approved payout
+          </div>
+        </td>
+        <td align="right" style="padding:14px 16px;white-space:nowrap;">
+          <span style="display:inline-block;background-color:#d97706;color:#ffffff;font-weight:800;font-size:15px;padding:5px 12px;border-radius:5px;font-family:ui-monospace,monospace;box-shadow:0 2px 8px rgba(217,119,6,0.4);">
+            &pound;${totalSettlementCosts.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </td>
+      </tr>
+
+      <!-- Guaranteed Payout Scheduled (Emerald Glow) -->
+      <tr style="background-color:#062b1d;border-top:1px solid #00e599;">
+        <td style="padding:14px 16px;">
+          <div style="color:#00e599;font-size:13px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;">
+            &#10003; Payout Amount Scheduled for Delivery
+          </div>
+          <div style="color:#6ee7b7;font-size:11px;margin-top:2px;">
+            100% full approved payout delivered intact
+          </div>
+        </td>
+        <td align="right" style="padding:14px 16px;white-space:nowrap;">
+          <span style="color:#00e599;font-size:19px;font-weight:800;font-family:ui-monospace,monospace;letter-spacing:-0.5px;">
+            &pound;${payoutAmountScheduled.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Official Letter Section -->
+  <div style="margin:0 20px 20px;padding:22px;background-color:#08130f;border:1px solid #163627;border-left:4px solid #00e599;border-radius:8px;">
+    <h3 style="margin:0 0 14px;font-size:15px;font-weight:700;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+      ${safeSalutation}
+    </h3>
+    
+    ${paragraphsHtml}
+
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #142a1f;font-size:13px;line-height:20px;color:#94a3b8;">
+      ${safeSignoff}
+    </div>
+  </div>
+
+  <!-- Mad CTA Button -->
+  <div style="text-align:center;padding:6px 20px 24px;">
+    <table cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">
+      <tr>
+        <td align="center" style="background-color:#00e599;border-radius:8px;box-shadow:0 6px 24px rgba(0,229,153,0.45);padding:15px 36px;">
+          <a href="https://www.nscaptures.com/account?tab=payouts" style="color:#021c12;font-size:14.5px;font-weight:800;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;letter-spacing:0.8px;text-transform:uppercase;display:inline-block;">
+            Settle Clearance &amp; Release Payout &rarr;
+          </a>
+        </td>
+      </tr>
+    </table>
+    <div style="color:#64748b;font-size:10.5px;margin-top:12px;font-family:ui-monospace,monospace;letter-spacing:0.5px;">
+      256-BIT ENCRYPTED AUDIT CHANNEL &bull; INSTANT CLEARANCE ROUTING
+    </div>
+  </div>
+
+  <!-- Cryptographic Footer Seal -->
+  <div style="background-color:#050907;border-top:1px solid #132b1f;padding:12px 20px;">
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td>
+          <span style="color:#475569;font-family:ui-monospace,monospace;font-size:10px;">
+            CRYPTOGRAPHIC HASH: <span style="color:#94a3b8;">SHA256:8842-SETTLE-OK</span>
+          </span>
+        </td>
+        <td align="right">
+          <span style="color:#00e599;font-family:ui-monospace,monospace;font-size:10px;font-weight:700;">
+            &#9679; AUTHENTICATED DISPATCH
+          </span>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+`;
+
+  await send(
+    to,
+    `AUTOMATED NOTIFICATION: Payout Settlement Breakdown — £${approvedPayout.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    body,
+  );
+}
+
+/**
  * The invitation itself. Deliberately short: the proposal is a document, and it
  * lives at the link rather than being pasted into an email body, where it could
  * be neither tracked nor answered.
@@ -574,3 +819,77 @@ ${rendered ? `<hr style="border:none;border-top:1px solid #e4e2da;margin:28px 0;
 <p style="margin:16px 0 0;">${btn("https://www.nscaptures.com/account?tab=agreements", "View in your account")}</p>`,
   );
 }
+
+/**
+ * Notifies a photographer when their work is chosen as the Featured Photographer / Spotlight.
+ */
+export async function sendFeaturedSpotlightNotification(
+  to: string,
+  photographerName: string,
+  photoTitle: string,
+  headline: string = "Featured Photographer",
+  quote?: string,
+  story?: string,
+) {
+  const safeName = escapeHtml(photographerName);
+  const safeTitle = escapeHtml(photoTitle);
+  const safeHeadline = escapeHtml(headline);
+  const safeQuote = quote ? escapeHtml(quote) : "";
+  const safeStory = story ? escapeHtml(story) : "";
+
+  await send(
+    to,
+    `Congratulations! You're featured on NS CAPTURES`,
+    `
+<h1 style="${H1}">You're in the Spotlight!</h1>
+<p style="${P}">Hi ${safeName},</p>
+<p style="${P}">We are delighted to share that our editorial curation team has selected your work to be showcased as our <strong>${safeHeadline}</strong> on the NS CAPTURES homepage.</p>
+<div style="${CARD}">
+  <p style="margin:0;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:#1e4a3f;">${safeHeadline}</p>
+  <p style="margin:6px 0 0;font-size:18px;font-weight:600;color:#18211f;">${safeTitle}</p>
+  ${safeStory ? `<p style="margin:10px 0 0;font-size:14px;line-height:20px;color:#555555;">${safeStory}</p>` : ""}
+  ${safeQuote ? `<p style="margin:12px 0 0;font-size:13px;line-height:18px;font-style:italic;color:#6b716d;">"${safeQuote}"</p>` : ""}
+</div>
+<p style="${P}">Your featured craft and artist profile are now prominent on the front page for collectors, creative directors, and our global photography community.</p>
+<p style="margin:24px 0 0;">${btn("https://www.nscaptures.com", "View Your Feature Live")}</p>
+<p style="margin:20px 0 0;font-size:13px;line-height:19px;color:#888888;font-family:inherit;">Thank you for sharing your vision with NS CAPTURES. Keep capturing the extraordinary.</p>`,
+  );
+}
+
+/**
+ * Notifies a user when they join the Web3 Early Access Waitlist.
+ */
+export async function sendWeb3WaitlistConfirmation(
+  to: string,
+  name?: string,
+  role?: string,
+) {
+  const safeName = name ? escapeHtml(name) : "Creator";
+  const roleLabel = role
+    ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()
+    : "Collector & Creator";
+
+  await send(
+    to,
+    `Welcome to the NS CAPTURES Web3 Early Access Waitlist`,
+    `
+<h1 style="${H1}">You're on the list!</h1>
+<p style="${P}">Hi ${safeName},</p>
+<p style="${P}">Thank you for securing your early access spot for the upcoming <strong>NS CAPTURES Web3 & On-Chain Photography</strong> rollout.</p>
+<div style="${CARD}">
+  <p style="margin:0;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:#1e4a3f;">Your Waitlist Registration</p>
+  <p style="margin:6px 0 0;font-size:15px;color:#18211f;">Role: <strong>${escapeHtml(roleLabel)}</strong></p>
+  <p style="margin:4px 0 0;font-size:13px;color:#555555;">Status: <span style="color:#1e4a3f;font-weight:600;">Priority Access Confirmed</span></p>
+</div>
+<p style="${P}">Here is a glimpse of what's coming soon to NS CAPTURES on the decentralized web:</p>
+<ul style="margin:12px 0 0 20px;padding:0;color:#444444;font-size:14px;line-height:22px;">
+  <li><strong>On-Chain Provenance & Licensing:</strong> Immutable cryptographic copyright stamps, proof of authorship, and metadata preservation.</li>
+  <li><strong>Perpetual Creator Royalties:</strong> Smart contract-governed secondary royalties dispatched directly to photographer wallets.</li>
+  <li><strong>Decentralized Master Archival:</strong> Permanent IPFS & Arweave storage protecting full-resolution RAW masters.</li>
+  <li><strong>Curated Digital Editions:</strong> Token-gated limited collector editions alongside legal commercial acquisition.</li>
+</ul>
+<p style="${P}">We will notify you the moment early access invitations and genesis mint slots become available.</p>
+<p style="margin:24px 0 0;">${btn("https://www.nscaptures.com", "Explore NS CAPTURES")}</p>`,
+  );
+}
+
