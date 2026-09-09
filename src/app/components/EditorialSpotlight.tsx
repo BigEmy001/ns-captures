@@ -83,7 +83,7 @@ export function EditorialSpotlight({ data }: EditorialSpotlightProps) {
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                   <Link
                     to={`/photo/${photo.id}`}
-                    className="inline-flex items-center justify-center border border-[#1d1d1d] bg-[#1d1d1d] px-6 py-3 text-[10px] font-medium uppercase tracking-[0.28em] text-white transition hover:bg-[#111111]"
+                    className="inline-flex items-center justify-center border border-[#1e4a3f] bg-[#1e4a3f] px-6 py-3 text-[10px] font-medium uppercase tracking-[0.28em] text-white transition hover:bg-[#123b31]"
                   >
                     Inquire now
                   </Link>
