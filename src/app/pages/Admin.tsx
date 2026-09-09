@@ -211,7 +211,7 @@ const defaultSiteSettings: SiteSettingsRow = {
   featuredSpotlightActive: true,
   featuredPhotographerId: "junghoon-sung-e85d599d",
   featuredPhotoId: "upload-1787495107835",
-  featuredSpotlightHeadline: "Photographer of the Week",
+  featuredSpotlightHeadline: "Featured Photographer",
   featuredSpotlightTitle: "Workshop After Hours — Nocturnal Seoul",
   featuredPhotoStory:
     "Captured at 2:00 AM in a quiet industrial alleyway of Euljiro, Seoul. The late night mist mixed with incandescent tungsten light, illuminating decades of metalcraft machinery and quiet dedication long after the city went to sleep.",
@@ -2984,7 +2984,7 @@ export function Admin() {
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div>
                         <h3 className="font-serif text-lg text-[#18211f]">
-                          Photographer of the Week & Editorial Spotlight
+                          Featured Photographer & Editorial Spotlight
                         </h3>
                         <p className="text-xs text-[#6b716d] mt-1">
                           Curate the hero editorial story shown on the homepage, highlighting the
@@ -3048,8 +3048,7 @@ export function Admin() {
                         <input
                           type="text"
                           value={
-                            siteSettingsState.featuredSpotlightHeadline ||
-                            "Photographer of the Week"
+                            siteSettingsState.featuredSpotlightHeadline || "Featured Photographer"
                           }
                           onChange={(e) =>
                             setSiteSettingsState({
@@ -3057,7 +3056,7 @@ export function Admin() {
                               featuredSpotlightHeadline: e.target.value,
                             })
                           }
-                          placeholder="e.g. Photographer of the Week, Artist in Focus"
+                          placeholder="e.g. Featured Photographer, Editorial Pick"
                           className="w-full rounded-xl border border-[#ececec] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#1e4a3f]"
                         />
                       </div>
@@ -3210,8 +3209,7 @@ export function Admin() {
 
                       <div className="rounded-2xl border border-[#e5e7e2] bg-[#f8f9f7] p-5">
                         <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#1e4a3f] font-semibold mb-2">
-                          {siteSettingsState.featuredSpotlightHeadline ||
-                            "Photographer of the Week"}
+                          {siteSettingsState.featuredSpotlightHeadline || "Featured Photographer"}
                         </div>
                         <div className="flex flex-col sm:flex-row gap-4 items-start">
                           {siteSettingsState.featuredPhotoId &&

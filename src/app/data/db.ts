@@ -1147,7 +1147,7 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     featuredSpotlightActive: true,
     featuredPhotographerId: "junghoon-sung-e85d599d",
     featuredPhotoId: "upload-1787495107835",
-    featuredSpotlightHeadline: "Photographer of the Week",
+    featuredSpotlightHeadline: "Featured Photographer",
     featuredSpotlightTitle: "Workshop After Hours — Nocturnal Seoul",
     featuredPhotoStory:
       "Captured at 2:00 AM in a quiet industrial alleyway of Euljiro, Seoul. The late night mist mixed with incandescent tungsten light, illuminating decades of metalcraft machinery and quiet dedication long after the city went to sleep.",
@@ -1215,7 +1215,7 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
     featured_spotlight_active: settings.featuredSpotlightActive ?? true,
     featured_photographer_id: settings.featuredPhotographerId || null,
     featured_photo_id: settings.featuredPhotoId || null,
-    featured_spotlight_headline: settings.featuredSpotlightHeadline || "Photographer of the Week",
+    featured_spotlight_headline: settings.featuredSpotlightHeadline || "Featured Photographer",
     featured_spotlight_title: settings.featuredSpotlightTitle || null,
     featured_photo_story: settings.featuredPhotoStory || null,
     featured_photographer_quote: settings.featuredPhotographerQuote || null,
@@ -1307,7 +1307,7 @@ export async function fetchEditorialSpotlight(): Promise<EditorialSpotlightData 
 
     return {
       active: true,
-      headline: settings.featuredSpotlightHeadline || "Photographer of the Week",
+      headline: settings.featuredSpotlightHeadline || "Featured Photographer",
       title: settings.featuredSpotlightTitle || photo.title,
       story:
         settings.featuredPhotoStory ||

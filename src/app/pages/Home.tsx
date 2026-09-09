@@ -259,7 +259,7 @@ export function Home() {
         </section>
       )}
 
-      {/* Editorial Spotlight — Photographer of the Week */}
+      {/* Editorial Spotlight */}
       <EditorialSpotlight data={spotlight} />
 
       {/* Contributors */}
