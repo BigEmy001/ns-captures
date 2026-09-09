@@ -36,18 +36,25 @@ export function EditorialSpotlight({ data }: EditorialSpotlightProps) {
             </Link>
           </div>
 
-          <div className="absolute inset-x-0 bottom-[-2.5rem] px-5 sm:px-8 lg:px-10">
-            <h2 className="font-serif text-[3.2rem] leading-[0.82] tracking-[-0.06em] text-[#111111] sm:text-[5.1rem] lg:text-[7.5rem]">
-              {headline.toUpperCase().includes("PHOTOGRAPHER")
-                ? "SIGNATURE"
-                : headline.toUpperCase()}
-              <br />
-              {headline.toUpperCase().includes("PHOTOGRAPHER") ? "WORK" : "STORY"}
-            </h2>
+          <div className="absolute inset-x-0 bottom-6 px-5 sm:px-8 lg:px-10">
+            <div className="max-w-[18rem] sm:max-w-[22rem] lg:max-w-[26rem]">
+              <p className="font-mono text-[9px] uppercase tracking-[0.28em] text-[#2e2d2a]/80 sm:text-[10px]">
+                {headline}
+              </p>
+            </div>
           </div>
         </div>
 
         <div className="bg-[#f2f0ec] px-5 pb-16 pt-14 sm:px-8 lg:px-10 lg:pt-16">
+          <div className="mb-8 flex flex-col gap-3 sm:gap-4 lg:mb-10">
+            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#4f524f]">
+              # Featured Photographer & Picture Spotlight
+            </p>
+            <h2 className="max-w-[18ch] font-serif text-[2.4rem] leading-[0.9] tracking-[-0.06em] text-[#111111] sm:text-[3.3rem] lg:text-[4.9rem]">
+              {title}
+            </h2>
+          </div>
+
           <div className="grid gap-8 lg:grid-cols-[0.9fr_1.3fr] lg:gap-12">
             <div className="pt-1">
               <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-[#4f524f]">
@@ -66,19 +73,27 @@ export function EditorialSpotlight({ data }: EditorialSpotlightProps) {
                 {story}
               </p>
 
-              <div className="flex flex-col gap-5 border-t border-[#d8d2cb] pt-5 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex flex-col gap-5 border-t border-[#d8d2cb] pt-5">
                 <p className="max-w-[38rem] text-sm leading-relaxed text-[#4f524f]">
                   {quote
                     ? `“${quote}”`
                     : `“${photographer.name} brings a rare sensitivity to the frame — quiet, intimate, and alive with atmosphere.”`}
                 </p>
 
-                <Link
-                  to={`/photo/${photo.id}`}
-                  className="inline-flex items-center justify-center border border-[#1d1d1d] bg-transparent px-6 py-3 text-[10px] font-medium uppercase tracking-[0.28em] text-[#141414] transition hover:bg-[#141414] hover:text-white"
-                >
-                  Inquire now
-                </Link>
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                  <Link
+                    to={`/photo/${photo.id}`}
+                    className="inline-flex items-center justify-center border border-[#1d1d1d] bg-[#1d1d1d] px-6 py-3 text-[10px] font-medium uppercase tracking-[0.28em] text-white transition hover:bg-[#111111]"
+                  >
+                    Inquire now
+                  </Link>
+                  <Link
+                    to={`/photographer/${photographer.id}`}
+                    className="inline-flex items-center justify-center border border-[#1d1d1d] bg-transparent px-6 py-3 text-[10px] font-medium uppercase tracking-[0.28em] text-[#141414] transition hover:bg-[#141414] hover:text-white"
+                  >
+                    Visit photographer profile
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

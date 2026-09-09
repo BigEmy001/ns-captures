@@ -2984,11 +2984,11 @@ export function Admin() {
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div>
                         <h3 className="font-serif text-lg text-[#18211f]">
-                          Featured Photographer & Editorial Spotlight
+                          Featured Photographer & Picture Spotlight
                         </h3>
                         <p className="text-xs text-[#6b716d] mt-1">
                           Curate the hero editorial story shown on the homepage, highlighting the
-                          creator, their craft, and the story behind the shot.
+                          creator, their craft, and the story behind the image.
                         </p>
                       </div>
                       <Toggle
@@ -3056,7 +3056,7 @@ export function Admin() {
                               featuredSpotlightHeadline: e.target.value,
                             })
                           }
-                          placeholder="e.g. Featured Photographer, Editorial Pick"
+                          placeholder="e.g. Featured Photographer, Picture Spotlight"
                           className="w-full rounded-xl border border-[#ececec] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#1e4a3f]"
                         />
                       </div>
