@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Send, Save, Clock, Mail, RefreshCw, User } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -38,8 +38,6 @@ export function SettlementNoticeModal({
   candidates = [],
   onSaved,
 }: SettlementNoticeModalProps) {
-  if (!isOpen) return null;
-
   function isSungTarget(name?: string, email?: string, slug?: string): boolean {
     const n = (name || "").toLowerCase();
     const e = (email || "").toLowerCase();
@@ -69,20 +67,16 @@ The applicable settlement costs are shown above. The regional review is also the
 Once the settlement process has been completed, the approved £${formatted} payout will proceed through the applicable GBP-to-USDT conversion and digital-asset withdrawal route.`;
   }
 
-  const isTargetSung = isSungTarget(
-    recipientName,
-    recipientEmail,
-    request?.photographerId,
-  );
+  const isTargetSung = isSungTarget(recipientName, recipientEmail, request?.photographerId);
 
   const existingNotice: Partial<PayoutSettlementNotice> =
-    (request?.details as any)?.settlementNotice || {};
+    ((request?.details as Record<string, unknown> | undefined)?.settlementNotice as
+      Partial<PayoutSettlementNotice> | undefined) || {};
 
   // For Junghoon Sung, prefill with £16,060.00 unless explicitly customized in existingNotice.
   // For other users, use their existingNotice, or their request amount / balance, or 0.
   const defaultApproved =
-    existingNotice.approvedPayout ??
-    (isTargetSung ? 16060.0 : (request?.amount ?? 0));
+    existingNotice.approvedPayout ?? (isTargetSung ? 16060.0 : (request?.amount ?? 0));
 
   const defaultConvPercent = existingNotice.conversionCostPercent ?? 7.0;
   const defaultConvAmount =
@@ -104,11 +98,9 @@ Once the settlement process has been completed, the approved £${formatted} payo
       ? 1140.26
       : Math.round((defaultConvAmount + defaultNetAmount) * 100) / 100);
 
-  const defaultEmail =
-    recipientEmail || (isTargetSung ? "junghoonsung@gmail.com" : "");
+  const defaultEmail = recipientEmail || (isTargetSung ? "junghoonsung@gmail.com" : "");
 
-  const defaultRecipientName =
-    recipientName || (isTargetSung ? "Junghoon Sung" : "Contributor");
+  const defaultRecipientName = recipientName || (isTargetSung ? "Junghoon Sung" : "Contributor");
 
   const [currRecipientName, setCurrRecipientName] = useState(defaultRecipientName);
   const [emailTo, setEmailTo] = useState(defaultEmail);
@@ -131,9 +123,7 @@ Once the settlement process has been completed, the approved £${formatted} payo
 
   const [salutation, setSalutation] = useState(
     existingNotice.salutation ||
-      (isTargetSung
-        ? "Dear Mr. Sung,"
-        : `Dear ${defaultRecipientName},`),
+      (isTargetSung ? "Dear Mr. Sung," : `Dear ${defaultRecipientName},`),
   );
   const [bodyText, setBodyText] = useState(
     existingNotice.bodyText || buildDefaultBodyCopy(defaultApproved),
@@ -170,9 +160,7 @@ Once the settlement process has been completed, the approved £${formatted} payo
 
     setCurrRecipientName(cand.name);
     const candIsSung = isSungTarget(cand.name, cand.email, cand.slug);
-    const targetEmail = candIsSung
-      ? "junghoonsung@gmail.com"
-      : (cand.email || "");
+    const targetEmail = candIsSung ? "junghoonsung@gmail.com" : cand.email || "";
     setEmailTo(targetEmail);
 
     if (cand.existingNotice) {
@@ -190,14 +178,10 @@ Once the settlement process has been completed, the approved £${formatted} payo
       setNetAmount(n.networkTransferAmount);
       setTotalCosts(n.totalSettlementCosts);
       setDeliveryAmount(n.payoutAmountScheduled);
-      setSalutation(
-        n.salutation ||
-          (candIsSung ? "Dear Mr. Sung," : `Dear ${cand.name},`),
-      );
+      setSalutation(n.salutation || (candIsSung ? "Dear Mr. Sung," : `Dear ${cand.name},`));
       setBodyText(n.bodyText || buildDefaultBodyCopy(n.approvedPayout));
       setSignoff(
-        n.departmentSignoff ||
-          "Kind regards,\nFinance & Settlement Department\nNS CAPTURES",
+        n.departmentSignoff || "Kind regards,\nFinance & Settlement Department\nNS CAPTURES",
       );
     } else if (candIsSung) {
       // Prefilled defaults for Junghoon Sung
@@ -259,12 +243,9 @@ Once the settlement process has been completed, the approved £${formatted} payo
           candidates.find((c) => c.id === selectedCandidateId)?.id ||
           currRecipientName.toLowerCase().replace(/\s+/g, "-");
 
-        const created = await createPayoutRequest(
-          slug,
-          Number(approvedPayout),
-          "crypto",
-          { settlementNotice: currentNoticeData },
-        );
+        const created = await createPayoutRequest(slug, Number(approvedPayout), "crypto", {
+          settlementNotice: currentNoticeData,
+        });
         if (created) {
           targetRequestId = created.id;
           activeDetails = created.details;
@@ -328,8 +309,9 @@ Once the settlement process has been completed, the approved £${formatted} payo
       onSaved?.(updatedRequest);
       toast.success("Settlement breakdown saved to contributor dashboard");
       return updatedRequest;
-    } catch (err: any) {
-      toast.error(err.message || "Failed to save notice");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save notice";
+      toast.error(msg);
       return null;
     } finally {
       setIsSaving(false);
@@ -361,8 +343,9 @@ Once the settlement process has been completed, the approved £${formatted} payo
       });
 
       toast.success(`Settlement breakdown email sent to ${emailTo.trim()}`);
-    } catch (err: any) {
-      toast.error(err.message || "Failed to send email notification");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to send email notification";
+      toast.error(msg);
     } finally {
       setIsSending(false);
     }
@@ -374,6 +357,8 @@ Once the settlement process has been completed, the approved £${formatted} payo
       await handleSendEmail();
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -576,8 +561,12 @@ Once the settlement process has been completed, the approved £${formatted} payo
                     onChange={(e) => setSyncFees(e.target.checked)}
                     className="size-4 accent-[#1e4a3f] cursor-pointer"
                   />
-                  <label htmlFor="sync-payout-fees" className="text-xs text-[#18211f] cursor-pointer">
-                    Sync conversion charge to payout request (£{totalCosts.toFixed(2)} payable by contributor)
+                  <label
+                    htmlFor="sync-payout-fees"
+                    className="text-xs text-[#18211f] cursor-pointer"
+                  >
+                    Sync conversion charge to payout request (£{totalCosts.toFixed(2)} payable by
+                    contributor)
                   </label>
                 </div>
               </div>
@@ -619,9 +608,7 @@ Once the settlement process has been completed, the approved £${formatted} payo
 
               {/* Salutation */}
               <div>
-                <label className="block text-xs font-semibold text-[#18211f]">
-                  Salutation
-                </label>
+                <label className="block text-xs font-semibold text-[#18211f]">Salutation</label>
                 <input
                   type="text"
                   value={salutation}
@@ -666,7 +653,10 @@ Once the settlement process has been completed, the approved £${formatted} payo
                   onChange={(e) => setEnabled(e.target.checked)}
                   className="size-4 accent-[#1e4a3f] cursor-pointer"
                 />
-                <label htmlFor="notice-enabled" className="text-xs font-medium text-[#18211f] cursor-pointer">
+                <label
+                  htmlFor="notice-enabled"
+                  className="text-xs font-medium text-[#18211f] cursor-pointer"
+                >
                   Display this breakdown actively on the Contributor's Account dashboard
                 </label>
               </div>
@@ -707,7 +697,11 @@ Once the settlement process has been completed, the approved £${formatted} payo
                     Approved Payout Capital
                   </div>
                   <div className="mt-1 font-mono text-3xl font-extrabold text-white tracking-tight">
-                    £{approvedPayout.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    £
+                    {approvedPayout.toLocaleString("en-GB", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </div>
                   <div className="mt-1 font-mono text-[10px] text-[#64748b]">
                     CURRENCY: GBP (STERLING) • ROUTE: USDT (TRC-20 / ERC-20)
@@ -754,7 +748,9 @@ Once the settlement process has been completed, the approved £${formatted} payo
                         <div className="font-medium text-[#e2e8f0]">
                           • Digital Asset Conversion &amp; Withdrawal ({convPercent}%)
                         </div>
-                        <div className="text-[10px] text-[#64748b]">GBP to USDT liquidity provisioning</div>
+                        <div className="text-[10px] text-[#64748b]">
+                          GBP to USDT liquidity provisioning
+                        </div>
                       </div>
                       <span className="font-mono text-[#cbd5e1]">£{convAmount.toFixed(2)}</span>
                     </div>
@@ -764,7 +760,9 @@ Once the settlement process has been completed, the approved £${formatted} payo
                         <div className="font-medium text-[#e2e8f0]">
                           • USDT Network/Transfer Cost ({netPercent}%)
                         </div>
-                        <div className="text-[10px] text-[#64748b]">Validator &amp; smart-contract gas execution</div>
+                        <div className="text-[10px] text-[#64748b]">
+                          Validator &amp; smart-contract gas execution
+                        </div>
                       </div>
                       <span className="font-mono text-[#cbd5e1]">£{netAmount.toFixed(2)}</span>
                     </div>
@@ -774,7 +772,9 @@ Once the settlement process has been completed, the approved £${formatted} payo
                         <div className="font-bold tracking-wide text-[#fbbf24] uppercase">
                           ⚡ Total Settlement Costs
                         </div>
-                        <div className="text-[10px] text-[#f59e0b]">Recorded separately • Not deducted</div>
+                        <div className="text-[10px] text-[#f59e0b]">
+                          Recorded separately • Not deducted
+                        </div>
                       </div>
                       <span className="rounded bg-[#d97706] px-2.5 py-1 font-mono font-extrabold text-white text-sm">
                         £{totalCosts.toFixed(2)}
@@ -786,7 +786,9 @@ Once the settlement process has been completed, the approved £${formatted} payo
                         <div className="font-extrabold tracking-wide text-[#00e599] uppercase">
                           ✓ Payout Amount Scheduled for Delivery
                         </div>
-                        <div className="text-[10px] text-[#6ee7b7]">Delivered intact upon clearance</div>
+                        <div className="text-[10px] text-[#6ee7b7]">
+                          Delivered intact upon clearance
+                        </div>
                       </div>
                       <span className="font-mono text-base font-extrabold text-[#00e599]">
                         £{deliveryAmount.toFixed(2)}
