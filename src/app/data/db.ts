@@ -1163,13 +1163,13 @@ export async function fetchSiteSettings(): Promise<SiteSettingsRow> {
     featuredPhotographerQuote:
       "Photography to me is about finding the moments of quiet poetry in the midst of relentless urban motion.",
     web3WaitlistEnabled: true,
-    web3WaitlistHeadline: "Available soon",
+    web3WaitlistHeadline: "Direct digital-asset settlement for creators.",
     web3WaitlistSubtitle:
-      "Visitors can register for early access and be notified when the launch window opens.",
+      "We are preparing a direct Web3 settlement platform for contributors and collectors worldwide. Join the waitlist for priority access when rollout begins in late 2026.",
     web3WaitlistFeatures: [
-      "Private beta access",
-      "Curated collector drops",
-      "Creator-first release flow",
+      "Direct Wallet Delivery",
+      "Zero Balance Deductions",
+      "Global Digital Asset Routing",
     ],
   };
 
@@ -1245,14 +1245,15 @@ export async function updateSiteSettings(settings: SiteSettingsRow): Promise<boo
     featured_photo_story: settings.featuredPhotoStory || null,
     featured_photographer_quote: settings.featuredPhotographerQuote || null,
     web3_waitlist_enabled: settings.web3WaitlistEnabled ?? true,
-    web3_waitlist_headline: settings.web3WaitlistHeadline || "Available soon",
+    web3_waitlist_headline:
+      settings.web3WaitlistHeadline || "Direct digital-asset settlement for creators.",
     web3_waitlist_subtitle:
       settings.web3WaitlistSubtitle ||
-      "Visitors can register for early access and be notified when the launch window opens.",
+      "We are preparing a direct Web3 settlement platform for contributors and collectors worldwide. Join the waitlist for priority access when rollout begins in late 2026.",
     web3_waitlist_features: settings.web3WaitlistFeatures || [
-      "Private beta access",
-      "Curated collector drops",
-      "Creator-first release flow",
+      "Direct Wallet Delivery",
+      "Zero Balance Deductions",
+      "Global Digital Asset Routing",
     ],
   };
 
@@ -2598,10 +2599,7 @@ export async function updatePayoutRequestDetails(
   details: Record<string, unknown>,
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from("payout_requests")
-      .update({ details })
-      .eq("id", id);
+    const { error } = await supabase.from("payout_requests").update({ details }).eq("id", id);
     return !error;
   } catch {
     return false;
@@ -2632,10 +2630,7 @@ export async function updatePayoutSettlementNotice(
       updatePayload.conversion_fee_status = "outstanding";
     }
 
-    const { error } = await supabase
-      .from("payout_requests")
-      .update(updatePayload)
-      .eq("id", id);
+    const { error } = await supabase.from("payout_requests").update(updatePayload).eq("id", id);
 
     return !error;
   } catch {
@@ -5457,5 +5452,3 @@ export async function deleteWeb3WaitlistEntry(id: string): Promise<boolean> {
     return false;
   }
 }
-
-

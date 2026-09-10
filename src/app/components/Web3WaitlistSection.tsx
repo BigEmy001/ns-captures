@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { ArrowRight, CheckCircle2, Lock, Mail, Play, Sparkles, Wallet } from "lucide-react";
-import confetti from "canvas-confetti";
+import { ArrowRight, CheckCircle2, Mail, Wallet, ShieldCheck, Globe } from "lucide-react";
 import { fetchSiteSettings, joinWeb3Waitlist } from "../data/db";
 import { sendWeb3WaitlistConfirmation } from "../../lib/email";
 import { toast } from "sonner";
+import { Eyebrow } from "./ui";
 
 interface Web3WaitlistSectionProps {
   headline?: string;
@@ -11,15 +11,37 @@ interface Web3WaitlistSectionProps {
 }
 
 const ROLES = [
-  { id: "photographer", label: "Photographer" },
+  { id: "photographer", label: "Creator" },
   { id: "collector", label: "Collector" },
-  { id: "enthusiast", label: "Enthusiast" },
-  { id: "builder", label: "Builder" },
+  { id: "agency", label: "Agency / Partner" },
+];
+
+const CREATOR_AVATARS = [
+  {
+    src: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=120",
+    name: "Elena",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=120",
+    name: "Mateo",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1517841905240-472988babdf9?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=120",
+    name: "Chloe",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=120",
+    name: "David",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=120",
+    name: "Jessica",
+  },
 ];
 
 export const Web3WaitlistSection: React.FC<Web3WaitlistSectionProps> = ({
-  headline = "Available soon",
-  subtitle = "Visitors can register for early access and be notified when the launch window opens.",
+  headline = "Direct digital-asset settlement for creators.",
+  subtitle = "We are preparing a direct Web3 settlement platform for contributors and collectors worldwide. Join the waitlist for priority access when rollout begins in late 2026.",
 }) => {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -30,11 +52,6 @@ export const Web3WaitlistSection: React.FC<Web3WaitlistSectionProps> = ({
   const [alreadyExisted, setAlreadyExisted] = useState(false);
   const [launchHeadline, setLaunchHeadline] = useState(headline);
   const [launchSubtitle, setLaunchSubtitle] = useState(subtitle);
-  const [features, setFeatures] = useState<string[]>([
-    "Private beta access",
-    "Curated collector drops",
-    "Creator-first release flow",
-  ]);
 
   useEffect(() => {
     let active = true;
@@ -43,11 +60,6 @@ export const Web3WaitlistSection: React.FC<Web3WaitlistSectionProps> = ({
         if (!active) return;
         setLaunchHeadline(settings.web3WaitlistHeadline || headline);
         setLaunchSubtitle(settings.web3WaitlistSubtitle || subtitle);
-        setFeatures(
-          settings.web3WaitlistFeatures && settings.web3WaitlistFeatures.length
-            ? settings.web3WaitlistFeatures
-            : ["Private beta access", "Curated collector drops", "Creator-first release flow"],
-        );
       })
       .catch(() => undefined);
 
@@ -83,17 +95,6 @@ export const Web3WaitlistSection: React.FC<Web3WaitlistSectionProps> = ({
       setSubmitted(true);
       setAlreadyExisted(Boolean(res.alreadyExists));
 
-      try {
-        confetti({
-          particleCount: 75,
-          spread: 70,
-          origin: { y: 0.65 },
-          colors: ["#d9ff32", "#0f172a", "#ffffff", "#99ff00", "#b6ff2f"],
-        });
-      } catch {
-        // Decorative only
-      }
-
       sendWeb3WaitlistConfirmation(cleanEmail, name.trim() || undefined, role).catch((err) => {
         console.warn("Waitlist confirmation email dispatch failed:", err);
       });
@@ -110,52 +111,52 @@ export const Web3WaitlistSection: React.FC<Web3WaitlistSectionProps> = ({
     }
   };
 
-  const stats = [
-    { value: "527", label: "days" },
-    { value: "1", label: "hour" },
-    { value: "39", label: "minutes" },
-    { value: "20", label: "seconds" },
-  ];
-
-  const avatars = ["A", "M", "S", "J", "K"];
-
   return (
-    <section id="web3-waitlist" className="relative overflow-hidden bg-[#f6f4ef] py-12 sm:py-16">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(217,255,50,0.12),transparent_26%),radial-gradient(circle_at_bottom,rgba(0,0,0,0.03),transparent_32%)]" />
+    <section id="web3-waitlist" className="border-t border-[#ececec] bg-[#FAF9F5] py-20 sm:py-24">
+      <div className="mx-auto max-w-[1100px] px-5 sm:px-8">
+        <div className="mx-auto max-w-[720px] text-center">
+          <Eyebrow>ON-CHAIN SETTLEMENT · LATE 2026</Eyebrow>
 
-      <div className="relative mx-auto max-w-[1080px] px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-[760px] text-center">
-          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#0a0d12] text-[#d9ff32] shadow-[0_0_30px_rgba(217,255,50,0.2)]">
-            <div className="flex flex-col gap-[3px]">
-              <span className="h-[2px] w-4 rounded-full bg-[#d9ff32]" />
-              <span className="h-[2px] w-4 rounded-full bg-[#d9ff32]" />
-              <span className="h-[2px] w-4 rounded-full bg-[#d9ff32]" />
-            </div>
-          </div>
-
-          <p className="mb-4 font-mono text-[10px] font-semibold uppercase tracking-[0.32em] text-[#49514d]">
-            Available in early 2025
-          </p>
-
-          <h2 className="font-serif text-[2.5rem] leading-none tracking-[-0.06em] text-[#111111] sm:text-[4rem]">
+          <h2 className="mt-3 font-serif text-3xl sm:text-4xl lg:text-5xl tracking-tight text-[#18211f]">
             {launchHeadline}
           </h2>
 
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#4b544f] sm:text-base">
+          <p className="mx-auto mt-4 max-w-2xl text-base sm:text-lg text-[#59645f] leading-relaxed">
             {launchSubtitle}
           </p>
 
+          {/* Role selector */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+            <span className="text-xs text-[#758078] font-medium mr-1">I am a:</span>
+            {ROLES.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setRole(r.id)}
+                className={`rounded-full px-4 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                  role === r.id
+                    ? "bg-[#1e4a3f] text-white shadow-xs"
+                    : "bg-white border border-[#ececec] text-[#59645f] hover:border-[#1e4a3f] hover:text-[#18211f]"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Form / Submitted state */}
           {submitted ? (
-            <div className="mx-auto mt-8 max-w-[540px] rounded-[1.5rem] border border-[#e5e4df] bg-white p-8 text-center shadow-[0_20px_50px_rgba(17,17,17,0.05)]">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#d9ff32]/15 text-[#0a0d12]">
-                <CheckCircle2 className="h-7 w-7" />
+            <div className="mx-auto mt-8 max-w-[540px] rounded-2xl border border-[#ececec] bg-white p-8 text-center ns-shadow-sm">
+              <div className="mx-auto mb-3.5 flex size-12 items-center justify-center rounded-full bg-[#1e4a3f]/10 text-[#1e4a3f]">
+                <CheckCircle2 className="size-6" />
               </div>
-              <h3 className="font-serif text-3xl leading-none text-[#111111]">
-                {alreadyExisted ? "Status refreshed" : "You’re on the list"}
+              <h3 className="font-serif text-2xl text-[#18211f]">
+                {alreadyExisted ? "Details updated" : "You're on the waitlist"}
               </h3>
-              <p className="mt-3 text-sm text-[#4b544f]">
-                A confirmation email has been sent to{" "}
-                <span className="font-mono text-[#0a0d12]">{email}</span>.
+              <p className="mt-2 text-sm text-[#59645f] leading-relaxed">
+                A confirmation has been sent to{" "}
+                <strong className="font-medium text-[#18211f]">{email}</strong>. We will notify you
+                as soon as early access opens.
               </p>
               <button
                 type="button"
@@ -165,186 +166,91 @@ export const Web3WaitlistSection: React.FC<Web3WaitlistSectionProps> = ({
                   setWalletAddress("");
                   setName("");
                 }}
-                className="mt-6 text-xs font-medium text-[#4b544f] underline underline-offset-4 transition hover:text-[#111111]"
+                className="mt-5 inline-block text-xs font-semibold text-[#1e4a3f] underline underline-offset-4 hover:text-[#123b31] cursor-pointer"
               >
                 Register another email
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="mx-auto mt-8 max-w-[640px]">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email"
-                  className="h-12 w-full rounded-xl border border-[#e5e4df] bg-white px-4 text-sm text-[#111111] placeholder:text-[#757d79] focus:border-[#0a0d12] focus:outline-none focus:ring-2 focus:ring-[#d9ff32]/25"
-                />
+            <form onSubmit={handleSubmit} className="mx-auto mt-6 max-w-[540px]">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Mail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[#758078]" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                    required
+                    className="h-12 w-full rounded-full border border-[#ececec] bg-white pl-11 pr-4 text-sm text-[#18211f] placeholder:text-[#8a8f89] focus:border-[#1e4a3f] focus:outline-none focus:ring-1 focus:ring-[#1e4a3f]"
+                  />
+                </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#d9ff32] px-5 text-sm font-semibold text-[#0a0d12] transition hover:brightness-95 disabled:opacity-60"
+                  className="h-12 shrink-0 rounded-full bg-[#1e4a3f] px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-[#123b31] disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                 >
                   {loading ? "Joining..." : "Join waitlist"}
-                  {!loading && <ArrowRight className="h-4 w-4" />}
+                  {!loading && <ArrowRight className="size-4" />}
                 </button>
               </div>
+              <p className="mt-3 text-center text-xs text-[#758078]">
+                Rolling out in late 2026. No spam, ever. Unsubscribe anytime.
+              </p>
             </form>
           )}
 
-          <div className="mt-6 flex items-center justify-center gap-3 text-xs text-[#3f4946]">
-            <div className="flex -space-x-2">
-              {avatars.map((initial, index) => (
-                <div
-                  key={initial + index}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-[#f5f3ee] text-[9px] font-semibold text-[#111]"
-                  style={{
-                    background:
-                      index % 2 === 0
-                        ? "linear-gradient(135deg,#f5f5f0,#d1d1d1)"
-                        : "linear-gradient(135deg,#b6ff2f,#d9ff32)",
-                  }}
-                >
-                  {initial}
-                </div>
-              ))}
-            </div>
-            <span className="text-[#49514d]">Join 12,500+ others on the waitlist</span>
-          </div>
-
-          <div className="mt-7 flex items-center justify-center gap-6 text-center">
-            {stats.map((stat) => (
-              <div key={stat.label}>
-                <div className="font-mono text-[1.7rem] font-semibold leading-none tracking-[-0.06em] text-[#111111]">
-                  {stat.value}
-                </div>
-                <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.2em] text-[#6b716d]">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-center">
-            {features.map((feature) => (
-              <span
-                key={feature}
-                className="inline-flex items-center rounded-full border border-[#e6e2dc] bg-white px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-[#2d362f]"
-              >
-                {feature}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-10 overflow-hidden rounded-[2rem] border border-[#e5e4df] bg-white p-3 shadow-[0_25px_60px_rgba(17,17,17,0.08)]">
-          <div className="relative mx-auto aspect-[16/8] overflow-hidden rounded-[1.5rem] bg-[#f5f5f0]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.9),rgba(255,255,255,0.5)_20%,transparent_70%)]" />
-            <div className="absolute inset-0 opacity-80 [background-image:linear-gradient(135deg,rgba(0,0,0,0.04)_0%,rgba(255,255,255,0)_30%,rgba(0,0,0,0.04)_50%,rgba(255,255,255,0)_74%,rgba(0,0,0,0.04)_100%)]" />
-            <div className="absolute inset-x-[12%] top-[10%] bottom-[8%] rounded-[50%] border border-black/5" />
-            <div className="absolute inset-x-[18%] top-[18%] bottom-[16%] rounded-[50%] border border-black/5" />
-            <div className="absolute inset-x-[25%] top-[26%] bottom-[24%] rounded-[50%] border border-black/5" />
-            <div className="absolute left-1/2 top-1/2 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#d9ff32] shadow-[0_0_30px_rgba(217,255,50,0.7)]">
-              <Play className="ml-1 h-7 w-7 fill-[#0a0d12] text-[#0a0d12]" />
-            </div>
-            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.2em] text-black/55">
-              see how it works
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-12 bg-[#f3f2ee] py-10 sm:py-12">
-        <div className="mx-auto max-w-[1080px] px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-[760px] rounded-[2rem] border border-[#e5e4df] bg-[#f8f8f6] p-6 text-center shadow-[0_25px_60px_rgba(17,17,17,0.06)] sm:p-8">
-            <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#0a0d12] text-[#d9ff32]">
-              <div className="flex flex-col gap-[3px]">
-                <span className="h-[2px] w-4 rounded-full bg-[#d9ff32]" />
-                <span className="h-[2px] w-4 rounded-full bg-[#d9ff32]" />
-                <span className="h-[2px] w-4 rounded-full bg-[#d9ff32]" />
-              </div>
-            </div>
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.3em] text-[#49514d]">
-              Available in early 2025
-            </p>
-            <h3 className="mt-4 font-serif text-[2.2rem] leading-none tracking-[-0.06em] text-[#111111] sm:text-[3.2rem]">
-              Get early access
-            </h3>
-            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-[#4b544f] sm:text-base">
-              Be amongst the first to experience the next chapter of NS Captures. Join the waitlist
-              and be notified when we launch.
-            </p>
-
-            <div className="mx-auto mt-7 flex max-w-[640px] flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative w-full">
-                <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7a817d]" />
-                <input
-                  type="email"
-                  readOnly
-                  value=""
-                  placeholder="Email"
-                  className="h-12 w-full rounded-xl border border-[#e5e4df] bg-white px-10 text-sm text-[#111111] placeholder:text-[#757d79] focus:border-[#0a0d12] focus:outline-none"
+          {/* Clean creator community avatars */}
+          <div className="mt-8 flex items-center justify-center gap-3">
+            <div className="flex -space-x-2 overflow-hidden">
+              {CREATOR_AVATARS.map((person, idx) => (
+                <img
+                  key={idx}
+                  src={person.src}
+                  alt={person.name}
+                  className="inline-block size-7 rounded-full ring-2 ring-[#FAF9F5] object-cover shadow-xs"
+                  loading="lazy"
                 />
-              </div>
-              <button className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#d9ff32] px-5 text-sm font-semibold text-[#0a0d12] transition hover:brightness-95">
-                Join waitlist
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="mt-6 flex items-center justify-center gap-3 text-xs text-[#4b544f]">
-              <div className="flex -space-x-2">
-                {avatars.map((initial, index) => (
-                  <div
-                    key={initial + index + "-light"}
-                    className="flex h-7 w-7 items-center justify-center rounded-full border border-[#f2f2ef] text-[9px] font-semibold text-[#111]"
-                    style={{
-                      background:
-                        index % 2 === 0
-                          ? "linear-gradient(135deg,#f5f5f0,#d1d1d1)"
-                          : "linear-gradient(135deg,#b6ff2f,#d9ff32)",
-                    }}
-                  >
-                    {initial}
-                  </div>
-                ))}
-              </div>
-              <span className="text-[#49514d]">Join 12,500+ others on the waitlist</span>
-            </div>
-
-            <div className="mt-7 flex items-center justify-center gap-6 text-center">
-              {stats.map((stat) => (
-                <div key={stat.label + "-light"}>
-                  <div className="font-mono text-[1.7rem] font-semibold leading-none tracking-[-0.06em] text-[#111111]">
-                    {stat.value}
-                  </div>
-                  <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.2em] text-[#6b716d]">
-                    {stat.label}
-                  </div>
-                </div>
               ))}
             </div>
+            <p className="text-xs text-[#59645f] font-medium">
+              Joined by <span className="font-semibold text-[#18211f]">2,400+</span> creators &amp;
+              collectors
+            </p>
+          </div>
+        </div>
 
-            <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#e5e4df] bg-white/80 px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-[#3d463f]">
-              <Lock className="h-3.5 w-3.5 text-[#0a0d12]" />
-              Left until full release
+        {/* 3 Refined Value Points */}
+        <div className="mt-16 grid gap-8 sm:grid-cols-3 border-t border-[#ececec] pt-12 text-left">
+          <div>
+            <div className="flex size-9 items-center justify-center rounded-lg bg-white border border-[#ececec] text-[#1e4a3f]">
+              <Wallet className="size-4" />
             </div>
-
-            <div className="mt-8 overflow-hidden rounded-[1.6rem] border border-[#e5e4df] bg-[#eff0ed] p-2">
-              <div className="relative mx-auto aspect-[16/8] overflow-hidden rounded-[1.2rem] bg-[#f5f5f0]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.9),rgba(255,255,255,0.45)_22%,transparent_70%)]" />
-                <div className="absolute inset-0 opacity-80 [background-image:linear-gradient(135deg,rgba(0,0,0,0.04)_0%,rgba(255,255,255,0)_30%,rgba(0,0,0,0.04)_50%,rgba(255,255,255,0)_74%,rgba(0,0,0,0.04)_100%)]" />
-                <div className="absolute inset-x-[12%] top-[10%] bottom-[8%] rounded-[50%] border border-black/5" />
-                <div className="absolute inset-x-[18%] top-[18%] bottom-[16%] rounded-[50%] border border-black/5" />
-                <div className="absolute inset-x-[25%] top-[26%] bottom-[24%] rounded-[50%] border border-black/5" />
-                <div className="absolute left-1/2 top-1/2 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#d9ff32] shadow-[0_0_30px_rgba(217,255,50,0.7)]">
-                  <Play className="ml-1 h-7 w-7 fill-[#0a0d12] text-[#0a0d12]" />
-                </div>
-                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 font-mono text-[10px] uppercase tracking-[0.2em] text-black/55">
-                  see how it works
-                </div>
-              </div>
+            <h3 className="mt-4 font-serif text-lg text-[#18211f]">Direct Wallet Delivery</h3>
+            <p className="mt-2 text-xs sm:text-sm text-[#59645f] leading-relaxed">
+              Payouts delivered straight to personal crypto wallets in USDT, bypassing traditional
+              intermediary delays.
+            </p>
+          </div>
+          <div>
+            <div className="flex size-9 items-center justify-center rounded-lg bg-white border border-[#ececec] text-[#1e4a3f]">
+              <ShieldCheck className="size-4" />
             </div>
+            <h3 className="mt-4 font-serif text-lg text-[#18211f]">Full Principal Delivery</h3>
+            <p className="mt-2 text-xs sm:text-sm text-[#59645f] leading-relaxed">
+              Approved earnings delivered 100% in full. Conversion and network transfer costs are
+              recorded separately.
+            </p>
+          </div>
+          <div>
+            <div className="flex size-9 items-center justify-center rounded-lg bg-white border border-[#ececec] text-[#1e4a3f]">
+              <Globe className="size-4" />
+            </div>
+            <h3 className="mt-4 font-serif text-lg text-[#18211f]">Global Clearance</h3>
+            <p className="mt-2 text-xs sm:text-sm text-[#59645f] leading-relaxed">
+              Seamless routing for international contributors and agencies awaiting local banking
+              rail connectivity.
+            </p>
           </div>
         </div>
       </div>
