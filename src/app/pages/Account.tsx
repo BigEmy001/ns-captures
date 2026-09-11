@@ -108,7 +108,7 @@ const photographerNav: NavEntry[] = [
   { id: "licensed", label: "Licensed Photos", icon: KeyRound },
   { id: "earnings", label: "Earnings", icon: Coins },
   { id: "payouts", label: "Payouts", icon: Wallet },
-  { id: "vault", label: "Settlement Vault", icon: ShieldCheck },
+  { id: "vault", label: "Web3", icon: ShieldCheck },
 
   { id: "h-account", label: "", heading: "Account" },
   { id: "security", label: "My Profile", icon: Settings },
@@ -137,7 +137,7 @@ const contributorNav: NavEntry[] = [
   { id: "acquisitions", label: "Direct Acquisitions", icon: Handshake },
   { id: "earnings", label: "Earnings", icon: Coins },
   { id: "payouts", label: "Payouts", icon: Wallet },
-  { id: "vault", label: "Settlement Vault", icon: ShieldCheck },
+  { id: "vault", label: "Web3", icon: ShieldCheck },
 
   { id: "h-opportunities", label: "", heading: "Opportunities" },
   { id: "bonuses", label: "Bonuses & Awards", icon: Award },

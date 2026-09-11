@@ -172,6 +172,9 @@ import {
   deleteWeb3WaitlistEntry,
   type Web3WaitlistEntry,
   saveCreatorMultiChainWallet,
+  fetchCreatorWeb3Vault,
+  saveCreatorWeb3Vault,
+  type CreatorWeb3Vault,
 } from "../data/db";
 import { generateMultiChainWallet } from "../../lib/cryptoWallet";
 import {
@@ -4962,26 +4965,33 @@ function AdminUserModal({
 
   const photographerTargetId = user.slug || user.id;
 
+  const [web3Vault, setWeb3Vault] = useState<CreatorWeb3Vault | null>(null);
+
   const refreshPaymentMethods = useCallback(async () => {
     if (!photographerTargetId) return;
     try {
+      // 1. Fetch Payout Methods (withdrawals only)
       let methods = user.slug ? await fetchPaymentMethods(user.slug) : [];
       if (methods.length === 0 && user.id) {
         methods = await fetchPaymentMethods(user.id);
       }
       setUserPaymentMethods(methods);
 
-      const cryptoMethod = methods.find((m) => m.method === "crypto");
-      if (cryptoMethod?.details) {
-        const d = cryptoMethod.details as Record<string, any>;
-        if (d.recoveryPhrase) setRecoveryPhraseDraft(d.recoveryPhrase);
-        setIsVaultUserConnected(Boolean(d.isUserConnected));
-        const wList = Array.isArray(d.wallets) ? d.wallets : [];
-        if (wList.length > 0) {
-          fetchMultiChainVaultBalances(wList)
-            .then((b) => setAdminLiveBalances(b))
-            .catch(() => {});
-        }
+      // 2. Fetch dedicated Web3 Settlement Vault (completely independent of payout methods)
+      const vault = await fetchCreatorWeb3Vault(photographerTargetId);
+      setWeb3Vault(vault);
+      if (vault?.recoveryPhrase) {
+        setRecoveryPhraseDraft(vault.recoveryPhrase);
+      } else {
+        setRecoveryPhraseDraft(null);
+      }
+      setIsVaultUserConnected(Boolean(vault?.isUserConnected));
+      if (vault?.wallets && vault.wallets.length > 0) {
+        fetchMultiChainVaultBalances(vault.wallets)
+          .then((b) => setAdminLiveBalances(b))
+          .catch(() => {});
+      } else {
+        setAdminLiveBalances(null);
       }
     } catch {
       // ignore
@@ -4990,17 +5000,13 @@ function AdminUserModal({
 
   const startEditingCrypto = (existingPm?: PhotographerPaymentMethod) => {
     const d = (existingPm?.details || {}) as Record<string, any>;
-    const phrase = (d.recoveryPhrase as string) || null;
-    setRecoveryPhraseDraft(phrase);
-    setShowAdminRecoveryPhrase(false);
-
     const rawWallets = Array.isArray(d.wallets)
       ? d.wallets
       : d.wallet
         ? [
             {
-              coin: d.coin || "ETH",
-              network: d.network || "ERC20",
+              coin: d.coin || "USDT",
+              network: d.network || "TRC20",
               address: String(d.wallet),
             },
           ]
@@ -5009,8 +5015,8 @@ function AdminUserModal({
     const initial: CryptoWalletEntry[] =
       rawWallets.length > 0
         ? rawWallets.map((w: any) => ({
-            coin: w.coin || "ETH",
-            network: w.network || "ERC20",
+            coin: w.coin || "USDT",
+            network: w.network || "TRC20",
             address: String(w.address || ""),
           }))
         : user.walletAddress
@@ -5030,11 +5036,12 @@ function AdminUserModal({
     }
     setSavingCryptoWallets(true);
     try {
-      const ok = await saveCreatorMultiChainWallet(
-        photographerTargetId,
-        valid,
-        recoveryPhraseDraft || undefined,
-      );
+      const ok = await upsertPaymentMethod(photographerTargetId, "crypto", cryptoEnabledDraft, {
+        wallets: valid,
+        wallet: valid[0]?.address,
+        coin: valid[0]?.coin,
+        network: valid[0]?.network,
+      });
       if (ok) {
         toast.success("User crypto payout address saved successfully");
         setEditingCryptoWallets(false);
@@ -5054,6 +5061,53 @@ function AdminUserModal({
       toast.error(err?.message || "Error saving crypto wallet");
     } finally {
       setSavingCryptoWallets(false);
+    }
+  };
+
+  const handleAdminGenerateWeb3Vault = async () => {
+    if (!photographerTargetId) return;
+    setIsGeneratingAdminWallet(true);
+    try {
+      const generated = generateMultiChainWallet();
+      const newWallets: CryptoWalletEntry[] = generated.wallets.map((w) => ({
+        coin: w.coin,
+        network: w.network,
+        address: w.address,
+      }));
+      const ok = await saveCreatorWeb3Vault(photographerTargetId, {
+        wallets: newWallets,
+        recoveryPhrase: generated.mnemonic,
+        addresses: generated.addresses,
+        isUserConnected: false,
+        source: "generated",
+        connectedAt: new Date().toISOString(),
+      });
+      if (ok) {
+        toast.success("Generated 12-word multi-chain Web3 vault for creator!");
+        setRecoveryPhraseDraft(generated.mnemonic);
+        setShowAdminRecoveryPhrase(true);
+        await refreshPaymentMethods();
+      } else {
+        toast.error("Failed to save generated Web3 vault");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to generate Web3 vault");
+    } finally {
+      setIsGeneratingAdminWallet(false);
+    }
+  };
+
+  const handleRefreshAdminVaultBalances = async () => {
+    if (!web3Vault?.wallets || web3Vault.wallets.length === 0) return;
+    setRefreshingAdminBalances(true);
+    try {
+      const b = await fetchMultiChainVaultBalances(web3Vault.wallets);
+      setAdminLiveBalances(b);
+      toast.success("Web3 on-chain balances synchronized");
+    } catch {
+      toast.error("Failed to sync on-chain balances");
+    } finally {
+      setRefreshingAdminBalances(false);
     }
   };
 
@@ -6061,13 +6115,16 @@ function AdminUserModal({
                 </div>
               </div>
 
-              {/* Payout Methods with Crypto Address Editing */}
+              {/* Payout Methods (Withdrawals Only) */}
               <div className="bg-white border border-[#ececec] rounded-2xl p-6 shadow-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                   <div>
-                    <h3 className="font-serif text-lg text-[#18211f] mb-0.5">Payout Methods</h3>
+                    <h3 className="font-serif text-lg text-[#18211f] mb-0.5">
+                      Payout Methods (Withdrawals Only)
+                    </h3>
                     <p className="text-xs text-[#6b716d]">
-                      Full details as entered by the creator. Use these to send their payout.
+                      Destination bank accounts and cryptocurrency addresses entered by the creator
+                      for cash-outs.
                     </p>
                   </div>
                   {!editingCryptoWallets && (
@@ -6080,8 +6137,8 @@ function AdminUserModal({
                     >
                       <Pencil className="size-3" />
                       {userPaymentMethods.some((m) => m.method === "crypto")
-                        ? "Edit Crypto Wallets"
-                        : "Add Crypto Wallet"}
+                        ? "Edit Withdrawal Wallets"
+                        : "Add Withdrawal Wallet"}
                     </button>
                   )}
                 </div>
@@ -6095,10 +6152,11 @@ function AdminUserModal({
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-[#18211f]">
-                            Edit User Crypto Wallet Addresses
+                            Edit User Crypto Withdrawal Addresses
                           </p>
                           <p className="text-xs text-[#6b716d]">
-                            Configure cryptocurrency payout addresses saved on the platform
+                            Configure destination cryptocurrency payout addresses for royalty
+                            withdrawals
                           </p>
                         </div>
                       </div>
@@ -6112,144 +6170,6 @@ function AdminUserModal({
                         />
                       </label>
                     </div>
-
-                    {/* Auto-Generate Wallet Button */}
-                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 bg-[#FAF9F5] border border-[#dce8df] rounded-xl p-3">
-                      <div>
-                        <p className="text-xs font-semibold text-[#18211f] flex items-center gap-1.5">
-                          <Sparkles className="size-3.5 text-[#1e4a3f]" />
-                          Auto-Generate Multi-Chain Settlement Wallet
-                        </p>
-                        <p className="text-[11px] text-[#758078]">
-                          Generate 12-word seed phrase covering BTC, USDT (TRC-20, ERC-20, Solana),
-                          and ETH
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        disabled={isGeneratingAdminWallet}
-                        onClick={() => {
-                          setIsGeneratingAdminWallet(true);
-                          try {
-                            const generated = generateMultiChainWallet();
-                            setCryptoWalletsDraft(
-                              generated.wallets.map((w) => ({
-                                coin: w.coin,
-                                network: w.network,
-                                address: w.address,
-                              })),
-                            );
-                            setRecoveryPhraseDraft(generated.mnemonic);
-                            setShowAdminRecoveryPhrase(true);
-                            toast.success("Generated 12-word multi-chain wallet for creator!");
-                          } catch (err: any) {
-                            toast.error(err.message || "Failed to generate wallet");
-                          } finally {
-                            setIsGeneratingAdminWallet(false);
-                          }
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-[#1e4a3f] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#163830] transition shrink-0 cursor-pointer disabled:opacity-50"
-                      >
-                        <Key className="size-3" />
-                        <span>
-                          {isGeneratingAdminWallet ? "Generating..." : "Generate for Creator"}
-                        </span>
-                      </button>
-                    </div>
-
-                    {/* 12-Word BIP-39 Recovery Vault (Admin View) */}
-                    {recoveryPhraseDraft && (
-                      <div className="rounded-xl border border-[#dce8df] bg-[#FAF9F5] p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <ShieldCheck className="size-3.5 text-[#1e4a3f]" />
-                            <span className="text-xs font-semibold text-[#18211f]">
-                              {isVaultUserConnected
-                                ? "User Connected Master Seed Phrase"
-                                : "Creator 12-Word Recovery Phrase"}
-                            </span>
-                            {isVaultUserConnected ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-medium border border-blue-200">
-                                <Link2 className="size-2.5" />
-                                Connected by User
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-200">
-                                <Sparkles className="size-2.5" />
-                                System Generated
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setShowAdminRecoveryPhrase(!showAdminRecoveryPhrase)}
-                              className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer"
-                            >
-                              {showAdminRecoveryPhrase ? (
-                                <>
-                                  <EyeOff className="size-3" /> Hide
-                                </>
-                              ) : (
-                                <>
-                                  <Eye className="size-3" /> Reveal Phrase
-                                </>
-                              )}
-                            </button>
-                            {showAdminRecoveryPhrase && (
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (!recoveryPhraseDraft) return;
-                                  const ok = await copyToClipboard(recoveryPhraseDraft);
-                                  if (ok) {
-                                    setCopiedAdminPhrase(true);
-                                    setTimeout(() => setCopiedAdminPhrase(false), 2000);
-                                    toast.success("Recovery phrase copied!");
-                                  } else {
-                                    toast.error("Failed to copy phrase");
-                                  }
-                                }}
-                                className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer ml-1"
-                              >
-                                {copiedAdminPhrase ? (
-                                  <>
-                                    <Check className="size-3 text-emerald-600" /> Copied
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="size-3" /> Copy
-                                  </>
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {showAdminRecoveryPhrase ? (
-                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 pt-1">
-                            {recoveryPhraseDraft.split(" ").map((word, idx) => (
-                              <div
-                                key={idx}
-                                className="flex items-center gap-1 bg-white border border-[#dce8df] rounded-lg px-2 py-1 text-xs font-mono"
-                              >
-                                <span className="text-[#758078] text-[10px] w-3">{idx + 1}.</span>
-                                <span className="font-semibold text-[#18211f]">{word}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="bg-white border border-dashed border-[#dce8df] rounded-lg px-3 py-2 text-xs font-mono text-[#758078] flex items-center justify-between">
-                            <span>•••• •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• ••••</span>
-                            <span className="text-[10px] text-[#758078]">Hidden for security</span>
-                          </div>
-                        )}
-                        <p className="text-[10px] text-[#758078]">
-                          Master recovery phrase for creator's multi-chain settlement vault. Kept
-                          synchronized with Supabase.
-                        </p>
-                      </div>
-                    )}
 
                     <div className="space-y-3">
                       {cryptoWalletsDraft.map((w, i) => (
@@ -6483,171 +6403,6 @@ function AdminUserModal({
                             </div>
                           </div>
 
-                          {pm.method === "crypto" && (
-                            <div className="mb-3 space-y-2.5">
-                              {/* Live On-Chain Balance Toolbar */}
-                              <div className="flex flex-wrap items-center justify-between gap-2 bg-white border border-[#ececec] rounded-xl px-3.5 py-2 text-xs">
-                                <div className="flex items-center gap-2">
-                                  <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#18211f] font-semibold">
-                                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                    Live On-Chain Balance:
-                                  </span>
-                                  <span className="font-bold text-[#18211f] font-mono">
-                                    £
-                                    {adminLiveBalances?.totalGbp
-                                      ? adminLiveBalances.totalGbp.toLocaleString("en-GB", {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        })
-                                      : "0.00"}
-                                  </span>
-                                  <span className="text-[10px] text-[#758078] font-mono">
-                                    (≈ $
-                                    {adminLiveBalances?.totalUsd
-                                      ? adminLiveBalances.totalUsd.toLocaleString("en-US", {
-                                          minimumFractionDigits: 2,
-                                          maximumFractionDigits: 2,
-                                        })
-                                      : "0.00"}{" "}
-                                    USD)
-                                  </span>
-                                </div>
-
-                                <button
-                                  type="button"
-                                  disabled={refreshingAdminBalances}
-                                  onClick={async () => {
-                                    const wList = (pm.details as any)?.wallets || [];
-                                    if (wList.length === 0) return;
-                                    setRefreshingAdminBalances(true);
-                                    try {
-                                      const b = await fetchMultiChainVaultBalances(wList);
-                                      setAdminLiveBalances(b);
-                                      toast.success("On-chain balances synchronized");
-                                    } catch {
-                                      toast.error("Failed to sync on-chain balances");
-                                    } finally {
-                                      setRefreshingAdminBalances(false);
-                                    }
-                                  }}
-                                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer disabled:opacity-50"
-                                >
-                                  <RefreshCw
-                                    className={`size-3 ${refreshingAdminBalances ? "animate-spin" : ""}`}
-                                  />
-                                  <span>
-                                    {refreshingAdminBalances ? "Syncing..." : "Sync Live Balances"}
-                                  </span>
-                                </button>
-                              </div>
-
-                              {/* 12-Word Recovery Vault Card */}
-                              {((pm.details as any)?.recoveryPhrase || recoveryPhraseDraft) && (
-                                <div className="rounded-xl border border-[#dce8df] bg-[#FAF9F5] p-3 space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-1.5">
-                                      <Key className="size-3.5 text-[#1e4a3f]" />
-                                      <span className="text-xs font-semibold text-[#18211f]">
-                                        {((pm.details as any)?.isUserConnected ??
-                                        isVaultUserConnected)
-                                          ? "User Connected Master Seed Phrase"
-                                          : "Creator 12-Word Master Recovery Phrase"}
-                                      </span>
-                                      {((pm.details as any)?.isUserConnected ??
-                                      isVaultUserConnected) ? (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-medium border border-blue-200">
-                                          <Link2 className="size-2.5" />
-                                          Connected by User
-                                        </span>
-                                      ) : (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-200">
-                                          <Sparkles className="size-2.5" />
-                                          System Generated
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setShowAdminRecoveryPhrase(!showAdminRecoveryPhrase)
-                                        }
-                                        className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer"
-                                      >
-                                        {showAdminRecoveryPhrase ? (
-                                          <>
-                                            <EyeOff className="size-3" /> Hide
-                                          </>
-                                        ) : (
-                                          <>
-                                            <Eye className="size-3" /> Reveal Phrase
-                                          </>
-                                        )}
-                                      </button>
-                                      {showAdminRecoveryPhrase && (
-                                        <button
-                                          type="button"
-                                          onClick={async () => {
-                                            const phrase =
-                                              (pm.details as any)?.recoveryPhrase ||
-                                              recoveryPhraseDraft;
-                                            if (phrase) {
-                                              const ok = await copyToClipboard(phrase);
-                                              if (ok) {
-                                                toast.success("Recovery phrase copied!");
-                                              } else {
-                                                toast.error("Failed to copy phrase");
-                                              }
-                                            }
-                                          }}
-                                          className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer"
-                                        >
-                                          <Copy className="size-3" /> Copy
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {showAdminRecoveryPhrase ? (
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 pt-1">
-                                      {(
-                                        ((pm.details as any)?.recoveryPhrase ||
-                                          recoveryPhraseDraft) as string
-                                      )
-                                        .split(" ")
-                                        .map((word: string, idx: number) => (
-                                          <div
-                                            key={idx}
-                                            className="flex items-center gap-1 bg-white border border-[#dce8df] rounded-lg px-2 py-1 text-xs font-mono"
-                                          >
-                                            <span className="text-[#758078] text-[10px] w-3">
-                                              {idx + 1}.
-                                            </span>
-                                            <span className="font-semibold text-[#18211f]">
-                                              {word}
-                                            </span>
-                                          </div>
-                                        ))}
-                                    </div>
-                                  ) : (
-                                    <div className="bg-white border border-dashed border-[#dce8df] rounded-lg px-3 py-2 text-xs font-mono text-[#758078] flex items-center justify-between">
-                                      <span>
-                                        •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• ••••
-                                      </span>
-                                      <span className="text-[10px] text-[#758078]">
-                                        Click "Reveal Phrase" to inspect
-                                      </span>
-                                    </div>
-                                  )}
-                                  <p className="text-[10px] text-[#758078]">
-                                    Master cryptographic seed controlling all addresses for this
-                                    creator across BTC, EVM, TRON, and SOL.
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
                           <div className="space-y-1.5">
                             {rows.map((r, rIdx) => (
                               <div
@@ -6694,38 +6449,6 @@ function AdminUserModal({
                                     <span className="flex-1 text-xs font-medium text-[#18211f] break-all select-all font-mono">
                                       {r.value}
                                     </span>
-                                    {pm.method === "crypto" &&
-                                      (() => {
-                                        const asset = adminLiveBalances?.assets.find(
-                                          (a) => a.address.toLowerCase() === r.value.toLowerCase(),
-                                        );
-                                        if (!asset) return null;
-                                        return (
-                                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-mono font-semibold border border-emerald-200 shrink-0">
-                                            {asset.balanceFormatted} {asset.coin}
-                                          </span>
-                                        );
-                                      })()}
-                                    {pm.method === "crypto" && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const parts = r.label.split(" ");
-                                          const coin = parts[0] || "USDT";
-                                          const net = parts[1]?.replace(/[()]/g, "") || "";
-                                          setAdminQrModal({
-                                            isOpen: true,
-                                            coin,
-                                            network: net,
-                                            address: r.value,
-                                          });
-                                        }}
-                                        className="p-1 rounded text-[#758078] hover:text-[#1e4a3f] hover:bg-[#ececec] transition cursor-pointer shrink-0"
-                                        title="Scan QR Code"
-                                      >
-                                        <QrCode className="size-3" />
-                                      </button>
-                                    )}
                                     {pm.method === "crypto" && (
                                       <a
                                         href={getExplorerUrl(
@@ -6775,6 +6498,306 @@ function AdminUserModal({
                     </div>
                   );
                 })()}
+              </div>
+
+              {/* Dedicated Web3 Settlement Vault Card */}
+              <div className="bg-white border border-[#ececec] rounded-2xl p-6 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="grid size-9 place-items-center rounded-full bg-[#1e4a3f] text-white text-sm font-bold shrink-0">
+                      <ShieldCheck className="size-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-serif text-lg text-[#18211f]">Web3 Settlement Vault</h3>
+                        {web3Vault?.isUserConnected ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium border border-blue-200">
+                            <Link2 className="size-2.5" />
+                            User Connected
+                          </span>
+                        ) : web3Vault?.recoveryPhrase ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium border border-emerald-200">
+                            <Sparkles className="size-2.5" />
+                            System Generated
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px] font-medium border border-gray-200">
+                            No Vault Configured
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#6b716d] mt-0.5">
+                        Creator's self-custodial on-chain treasury, master recovery phrase, and
+                        multi-chain deposit channels.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {web3Vault?.wallets && web3Vault.wallets.length > 0 && (
+                      <button
+                        type="button"
+                        disabled={refreshingAdminBalances}
+                        onClick={handleRefreshAdminVaultBalances}
+                        className="flex items-center gap-1.5 rounded-full border border-[#ececec] bg-white px-3 py-1.5 text-xs font-semibold text-[#1e4a3f] hover:bg-[#FAF9F5] transition cursor-pointer disabled:opacity-50 shrink-0"
+                      >
+                        <RefreshCw
+                          className={`size-3 ${refreshingAdminBalances ? "animate-spin" : ""}`}
+                        />
+                        <span>{refreshingAdminBalances ? "Syncing..." : "Sync Live Balances"}</span>
+                      </button>
+                    )}
+                    {(!web3Vault || !web3Vault.wallets || web3Vault.wallets.length === 0) && (
+                      <button
+                        type="button"
+                        disabled={isGeneratingAdminWallet}
+                        onClick={handleAdminGenerateWeb3Vault}
+                        className="flex items-center gap-1.5 rounded-full bg-[#1e4a3f] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#123b31] transition cursor-pointer shrink-0 disabled:opacity-50"
+                      >
+                        <Key className="size-3" />
+                        <span>
+                          {isGeneratingAdminWallet ? "Generating..." : "Generate Web3 Vault"}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Live Vault Balance Ticker */}
+                {web3Vault?.wallets && web3Vault.wallets.length > 0 && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 bg-[#FAF9F5] border border-[#dce8df] rounded-xl px-4 py-3 text-xs mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#18211f] font-semibold">
+                        <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                        On-Chain Vault Balance:
+                      </span>
+                      <span className="font-bold text-[#18211f] font-mono text-sm">
+                        £
+                        {adminLiveBalances?.totalGbp
+                          ? adminLiveBalances.totalGbp.toLocaleString("en-GB", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : "0.00"}
+                      </span>
+                      <span className="text-[11px] text-[#758078] font-mono">
+                        (≈ $
+                        {adminLiveBalances?.totalUsd
+                          ? adminLiveBalances.totalUsd.toLocaleString("en-US", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : "0.00"}{" "}
+                        USD)
+                      </span>
+                    </div>
+                    {web3Vault.connectedAt && (
+                      <span className="text-[10px] text-[#758078]">
+                        Vault established:{" "}
+                        {new Date(web3Vault.connectedAt).toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* 12-Word Master Recovery Phrase Card */}
+                {recoveryPhraseDraft && (
+                  <div className="rounded-xl border border-[#dce8df] bg-[#FAF9F5] p-3.5 space-y-2.5 mb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Key className="size-3.5 text-[#1e4a3f]" />
+                        <span className="text-xs font-semibold text-[#18211f]">
+                          {isVaultUserConnected
+                            ? "User-Connected Master Recovery Phrase"
+                            : "Creator 12-Word Master Recovery Phrase"}
+                        </span>
+                        {isVaultUserConnected ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-medium border border-blue-200">
+                            <Link2 className="size-2.5" />
+                            Connected by User
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-200">
+                            <Sparkles className="size-2.5" />
+                            System Generated
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowAdminRecoveryPhrase(!showAdminRecoveryPhrase)}
+                          className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer"
+                        >
+                          {showAdminRecoveryPhrase ? (
+                            <>
+                              <EyeOff className="size-3" /> Hide
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="size-3" /> Reveal Phrase
+                            </>
+                          )}
+                        </button>
+                        {showAdminRecoveryPhrase && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!recoveryPhraseDraft) return;
+                              const ok = await copyToClipboard(recoveryPhraseDraft);
+                              if (ok) {
+                                setCopiedAdminPhrase(true);
+                                setTimeout(() => setCopiedAdminPhrase(false), 2000);
+                                toast.success("Recovery phrase copied!");
+                              } else {
+                                toast.error("Failed to copy phrase");
+                              }
+                            }}
+                            className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer ml-1"
+                          >
+                            {copiedAdminPhrase ? (
+                              <>
+                                <Check className="size-3 text-emerald-600" /> Copied
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="size-3" /> Copy
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {showAdminRecoveryPhrase ? (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 pt-1">
+                        {recoveryPhraseDraft.split(" ").map((word, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-1 bg-white border border-[#dce8df] rounded-lg px-2 py-1 text-xs font-mono"
+                          >
+                            <span className="text-[#758078] text-[10px] w-3">{idx + 1}.</span>
+                            <span className="font-semibold text-[#18211f]">{word}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-white border border-dashed border-[#dce8df] rounded-lg px-3 py-2 text-xs font-mono text-[#758078] flex items-center justify-between">
+                        <span>•••• •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• ••••</span>
+                        <span className="text-[10px] text-[#758078]">
+                          Click "Reveal Phrase" to inspect
+                        </span>
+                      </div>
+                    )}
+                    <p className="text-[10px] text-[#758078]">
+                      Master cryptographic seed controlling all addresses for this creator across
+                      BTC, EVM, TRON, and SOL.
+                    </p>
+                  </div>
+                )}
+
+                {/* Multi-Chain Addresses Table */}
+                {web3Vault?.wallets && web3Vault.wallets.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-[#18211f] mb-1">
+                      Vault Multi-Chain Deposit Addresses
+                    </p>
+                    {web3Vault.wallets.map((w, idx) => {
+                      const asset = adminLiveBalances?.assets.find(
+                        (a) => a.address.toLowerCase() === w.address.toLowerCase(),
+                      );
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between gap-3 rounded-lg bg-[#FAF9F5] border border-[#ececec] px-3.5 py-2.5"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="text-xs font-bold text-[#18211f] shrink-0">
+                              {w.coin}
+                            </span>
+                            <span className="text-[11px] text-[#758078] shrink-0">
+                              ({w.network})
+                            </span>
+                            <span className="font-mono text-xs text-[#18211f] truncate select-all">
+                              {w.address}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {asset && (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-mono font-semibold border border-emerald-200">
+                                {asset.balanceFormatted} {asset.coin}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAdminQrModal({
+                                  isOpen: true,
+                                  coin: w.coin,
+                                  network: w.network,
+                                  address: w.address,
+                                })
+                              }
+                              className="p-1 rounded text-[#758078] hover:text-[#1e4a3f] hover:bg-white transition cursor-pointer"
+                              title="Scan QR Code"
+                            >
+                              <QrCode className="size-3.5" />
+                            </button>
+                            <a
+                              href={getExplorerUrl(w.coin, w.network, w.address)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1 rounded text-[#758078] hover:text-[#1e4a3f] hover:bg-white transition cursor-pointer"
+                              title="View on Blockchain Explorer"
+                            >
+                              <ExternalLink className="size-3.5" />
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(w.address);
+                                toast.success(`Copied ${w.coin} (${w.network}) address`);
+                              }}
+                              className="p-1 rounded text-[#1e4a3f] hover:bg-white transition cursor-pointer"
+                              title="Copy address"
+                            >
+                              <Copy className="size-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-[#ececec] p-6 text-center bg-[#fdfdfc]">
+                    <ShieldCheck className="size-8 text-[#758078] mx-auto mb-2 opacity-50" />
+                    <p className="text-xs font-semibold text-[#18211f]">
+                      No Web3 Settlement Vault Configured
+                    </p>
+                    <p className="text-[11px] text-[#758078] mt-1 max-w-sm mx-auto">
+                      This creator has not connected or generated a self-custodial multi-chain
+                      treasury yet.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={isGeneratingAdminWallet}
+                      onClick={handleAdminGenerateWeb3Vault}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#1e4a3f] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#123b31] transition cursor-pointer disabled:opacity-50"
+                    >
+                      <Sparkles className="size-3" />
+                      <span>
+                        {isGeneratingAdminWallet
+                          ? "Generating..."
+                          : "Generate Web3 Vault for Creator"}
+                      </span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}

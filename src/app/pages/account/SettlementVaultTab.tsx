@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
 import {
-  fetchPaymentMethods,
+  fetchCreatorWeb3Vault,
   saveCreatorMultiChainWallet,
   fetchPayoutRequests,
   type CryptoWalletEntry,
@@ -79,23 +79,21 @@ export function SettlementVaultTab() {
     try {
       setLoading(true);
 
-      // 1. Fetch payment methods
-      const methods = await fetchPaymentMethods(photographerTargetId);
-      const cryptoMethod = methods.find((m) => m.method === "crypto");
+      // 1. Fetch dedicated Web3 vault (completely independent of payout withdrawal methods)
+      const vault = await fetchCreatorWeb3Vault(photographerTargetId);
 
       let existingWallets: CryptoWalletEntry[] = [];
       let phrase: string | null = null;
 
-      if (cryptoMethod?.details) {
-        const details = cryptoMethod.details as any;
-        if (Array.isArray(details.wallets) && details.wallets.length > 0) {
-          existingWallets = details.wallets;
+      if (vault) {
+        if (Array.isArray(vault.wallets) && vault.wallets.length > 0) {
+          existingWallets = vault.wallets;
         }
-        if (typeof details.recoveryPhrase === "string") {
-          phrase = details.recoveryPhrase;
+        if (typeof vault.recoveryPhrase === "string") {
+          phrase = vault.recoveryPhrase;
         }
-        setIsUserConnected(Boolean(details.isUserConnected));
-        setConnectedAt(details.connectedAt || details.generatedAt || null);
+        setIsUserConnected(Boolean(vault.isUserConnected));
+        setConnectedAt(vault.connectedAt || vault.updatedAt || null);
       }
 
       // Check payout requests for settlement notices
@@ -266,12 +264,10 @@ export function SettlementVaultTab() {
               Mainnet Verified
             </span>
           </div>
-          <h1 className="text-2xl font-serif text-[#18211f] font-normal tracking-tight">
-            Settlement Vault
-          </h1>
+          <h1 className="text-2xl font-serif text-[#18211f] font-normal tracking-tight">Web3</h1>
           <p className="text-xs text-[#758078] mt-1 max-w-xl">
-            Institutional multi-chain deposit and digital-asset settlement accounts. Derived
-            directly from your master BIP-39 cryptographic seed with 100% on-chain custody.
+            Multi-chain digital asset treasury with self-custody wallet infrastructure, direct
+            settlement routes, and cryptographic seed-based recovery.
           </p>
         </div>
 
@@ -327,9 +323,7 @@ export function SettlementVaultTab() {
             <Wallet className="size-6" />
           </div>
           <div className="space-y-1.5">
-            <h3 className="text-2xl font-serif font-light text-[#18211f]">
-              Initialize Settlement Vault
-            </h3>
+            <h3 className="text-2xl font-serif font-light text-[#18211f]">Initialize Web3 Vault</h3>
             <p className="text-xs text-[#758078] leading-relaxed max-w-md mx-auto">
               Link your self-custody wallet using your recovery phrase, or provision a fresh master
               multi-chain treasury covering Bitcoin, TRON, Ethereum, and Solana.
@@ -360,7 +354,7 @@ export function SettlementVaultTab() {
               ) : (
                 <>
                   <Key className="size-3.5 text-[#758078]" />
-                  <span>Create Master Vault</span>
+                  <span>Create Web3 Vault</span>
                 </>
               )}
             </button>
@@ -372,14 +366,15 @@ export function SettlementVaultTab() {
         <>
           {/* Portfolio Overview Card */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2 rounded-2xl bg-[#18211f] text-white p-6 shadow-md relative overflow-hidden flex flex-col justify-between min-h-[160px]">
-              <div className="relative z-10 flex items-start justify-between">
+            <div className="md:col-span-2 rounded-2xl border border-[#dce8df] bg-gradient-to-br from-white via-[#fcfdfc] to-[#f2f7f3] p-6 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(30,74,63,0.08),_transparent_45%)]" />
+              <div className="relative z-10 flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[11px] uppercase font-mono tracking-wider text-[#dce8df]/70">
+                  <p className="text-[11px] uppercase font-mono tracking-wider text-[#758078]">
                     Total Vault Valuation
                   </p>
-                  <div className="flex items-baseline gap-3 mt-1">
-                    <h2 className="text-3xl sm:text-4xl font-serif font-light text-white">
+                  <div className="mt-1 flex flex-wrap items-baseline gap-3">
+                    <h2 className="text-3xl sm:text-4xl font-serif font-light text-[#18211f]">
                       £
                       {vaultBalance?.totalGbp
                         ? vaultBalance.totalGbp.toLocaleString("en-GB", {
@@ -388,7 +383,7 @@ export function SettlementVaultTab() {
                           })
                         : "0.00"}
                     </h2>
-                    <span className="text-sm font-mono text-emerald-400">
+                    <span className="text-sm font-mono text-[#1e4a3f]">
                       ≈ $
                       {vaultBalance?.totalUsd
                         ? vaultBalance.totalUsd.toLocaleString("en-US", {
@@ -400,18 +395,18 @@ export function SettlementVaultTab() {
                     </span>
                   </div>
                 </div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-xs font-mono text-white/90 backdrop-blur-sm border border-white/10">
-                  <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dce8df] bg-[#eaf3ee] px-3 py-1 text-xs font-medium text-[#1e4a3f]">
+                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
                   On-Chain Verified
                 </span>
               </div>
 
-              <div className="relative z-10 pt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 text-xs text-white/70">
+              <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 border-t border-[#ececec] pt-4 text-xs text-[#5f6762]">
                 <div className="flex items-center gap-2">
-                  <Coins className="size-3.5 text-emerald-400" />
+                  <Coins className="size-3.5 text-[#1e4a3f]" />
                   <span>{wallets.length} Active Deposit Channels</span>
                 </div>
-                <span className="text-[11px] font-mono text-white/50">
+                <span className="text-[11px] font-mono text-[#758078]">
                   Last sync:{" "}
                   {vaultBalance?.lastUpdated
                     ? new Date(vaultBalance.lastUpdated).toLocaleTimeString()
@@ -421,7 +416,7 @@ export function SettlementVaultTab() {
             </div>
 
             {/* Quick Status Card */}
-            <div className="rounded-2xl border border-[#dce8df] bg-[#FAF9F5] p-6 flex flex-col justify-between">
+            <div className="rounded-2xl border border-[#ececec] bg-gradient-to-br from-[#fafaf7] to-[#f3f6f2] p-6 shadow-sm flex flex-col justify-between">
               <div>
                 <p className="text-[11px] uppercase font-mono tracking-wider text-[#758078]">
                   Digital Asset Routing
@@ -447,7 +442,7 @@ export function SettlementVaultTab() {
 
           {/* Master 12-Word Recovery Phrase Card */}
           {recoveryPhrase && (
-            <div className="rounded-2xl border border-[#dce8df] bg-[#FAF9F5] p-5 space-y-3 shadow-sm">
+            <div className="rounded-2xl border border-[#dce8df] bg-white p-5 shadow-sm space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <div className="size-7 rounded-lg bg-[#1e4a3f]/10 text-[#1e4a3f] flex items-center justify-center">

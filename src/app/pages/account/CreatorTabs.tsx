@@ -13,13 +13,7 @@ import {
   CheckCircle2,
   ShieldAlert,
   ArrowRight,
-  Eye,
-  EyeOff,
   Copy,
-  Sparkles,
-  Key,
-  ShieldCheck,
-  Link2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -56,7 +50,6 @@ import {
   fetchAcquisitions,
   fetchLicensedWork,
   fetchAdminPaymentMethods,
-  submitConversionFeePayment,
   type AdminPaymentMethod,
   submitPhotoForReview,
   isModerationRequired,
@@ -67,9 +60,7 @@ import {
   type CryptoWalletEntry,
   type Photo,
   getOptimizedImageUrl,
-  saveCreatorMultiChainWallet,
 } from "../../data/db";
-import { generateMultiChainWallet } from "../../../lib/cryptoWallet";
 import {
   submissionStatus,
   resolveUploadStatus,
@@ -82,7 +73,6 @@ import { PayoutTimeline } from "./PayoutTimeline";
 import { PayoutSummaryCard } from "./PayoutSummaryCard";
 import { SettlementNoticeCard } from "./SettlementNoticeCard";
 import { SettleChargeModal } from "./SettleChargeModal";
-import { ConnectWalletModal } from "../../components/ConnectWalletModal";
 import { stageMetaFor, isTerminal, availableForPayout } from "../../data/payout-stages";
 import { isProgrammeRole } from "../../data/roles";
 import { getStagedPhotos, type StagedPhoto } from "../../../lib/staging";
@@ -93,7 +83,6 @@ import { toast } from "sonner";
 import { ledgerLabel } from "../../../lib/ledger";
 import { resolvePayoutCurrency } from "../../../lib/countries";
 import { getDisplayViews, getDisplayDownloads } from "../../data/photos";
-import { copyToClipboard } from "../../../lib/clipboard";
 
 // We only need nav for types or internal checks if any, but active is passed in.
 
@@ -151,12 +140,7 @@ export function CreatorTabs({
   const [editingMethod, setEditingMethod] = useState<string | null>(null);
   const [payoutTab, setPayoutTab] = useState<"overview" | "methods" | "request">("overview");
   const [cryptoWallets, setCryptoWallets] = useState<CryptoWalletEntry[]>([]);
-  const [showRecoveryPhrase, setShowRecoveryPhrase] = useState(false);
-  const [copiedPhrase, setCopiedPhrase] = useState(false);
   const [copiedWalletIndex, setCopiedWalletIndex] = useState<number | null>(null);
-  const [pendingPhrase, setPendingPhrase] = useState<string | null>(null);
-  const [isGeneratingWallet, setIsGeneratingWallet] = useState(false);
-  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [adminPaymentMethods, setAdminPaymentMethods] = useState<AdminPaymentMethod[]>([]);
   const [chargeReceipt, setChargeReceipt] = useState<File | null>(null);
   const [submittingCharge, setSubmittingCharge] = useState(false);
@@ -312,8 +296,22 @@ export function CreatorTabs({
         .then((methods) => {
           setPaymentMethods(methods);
           const crypto = methods.find((m) => m.method === "crypto");
-          if (crypto?.details?.wallets) {
+          if (
+            crypto?.details?.wallets &&
+            Array.isArray(crypto.details.wallets) &&
+            crypto.details.wallets.length > 0
+          ) {
             setCryptoWallets(crypto.details.wallets as CryptoWalletEntry[]);
+          } else if (crypto?.details?.wallet) {
+            setCryptoWallets([
+              {
+                coin: (crypto.details.coin as string) || "USDT",
+                network: (crypto.details.network as string) || "TRC20",
+                address: String(crypto.details.wallet),
+              },
+            ]);
+          } else {
+            setCryptoWallets([{ coin: "USDT", network: "TRC20", address: "" }]);
           }
           const orderedMethods: ("card" | "local_bank" | "crypto" | "paypal")[] = [
             "card",
@@ -2730,9 +2728,31 @@ export function CreatorTabs({
                         </div>
                       </div>
                       <button
-                        onClick={() =>
-                          setEditingMethod(editingMethod === "crypto" ? null : "crypto")
-                        }
+                        onClick={() => {
+                          if (editingMethod === "crypto") {
+                            setEditingMethod(null);
+                          } else {
+                            const crypto = paymentMethods.find((m) => m.method === "crypto");
+                            if (
+                              crypto?.details?.wallets &&
+                              Array.isArray(crypto.details.wallets) &&
+                              crypto.details.wallets.length > 0
+                            ) {
+                              setCryptoWallets(crypto.details.wallets as CryptoWalletEntry[]);
+                            } else if (crypto?.details?.wallet) {
+                              setCryptoWallets([
+                                {
+                                  coin: (crypto.details.coin as string) || "USDT",
+                                  network: (crypto.details.network as string) || "TRC20",
+                                  address: String(crypto.details.wallet),
+                                },
+                              ]);
+                            } else {
+                              setCryptoWallets([{ coin: "USDT", network: "TRC20", address: "" }]);
+                            }
+                            setEditingMethod("crypto");
+                          }
+                        }}
                         className="text-xs font-semibold text-[#1e4a3f] hover:underline"
                       >
                         {editingMethod === "crypto"
@@ -2795,223 +2815,19 @@ export function CreatorTabs({
                               </div>
                             ))}
                           </div>
-
-                          {/* 12-Word BIP-39 Recovery Vault */}
-                          {paymentMethods.find((m) => m.method === "crypto")?.details
-                            ?.recoveryPhrase && (
-                            <div className="rounded-xl border border-[#dce8df] bg-[#FAF9F5] p-3.5 space-y-2.5 mt-2">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                  <ShieldCheck className="size-4 text-[#1e4a3f]" />
-                                  <span className="text-xs font-semibold text-[#18211f]">
-                                    12-Word Recovery Phrase
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setShowRecoveryPhrase(!showRecoveryPhrase)}
-                                    className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline"
-                                  >
-                                    {showRecoveryPhrase ? (
-                                      <>
-                                        <EyeOff className="size-3" /> Hide
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Eye className="size-3" /> Reveal Phrase
-                                      </>
-                                    )}
-                                  </button>
-                                  {showRecoveryPhrase && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        const phrase = paymentMethods.find(
-                                          (m) => m.method === "crypto",
-                                        )?.details?.recoveryPhrase as string;
-                                        if (phrase) {
-                                          navigator.clipboard.writeText(phrase);
-                                          setCopiedPhrase(true);
-                                          setTimeout(() => setCopiedPhrase(false), 2000);
-                                          toast.success("Recovery phrase copied to clipboard");
-                                        }
-                                      }}
-                                      className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline ml-1"
-                                    >
-                                      {copiedPhrase ? (
-                                        <>
-                                          <Check className="size-3 text-emerald-600" /> Copied
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Copy className="size-3" /> Copy
-                                        </>
-                                      )}
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-
-                              {showRecoveryPhrase ? (
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 pt-1">
-                                  {(
-                                    paymentMethods.find((m) => m.method === "crypto")?.details
-                                      ?.recoveryPhrase as string
-                                  )
-                                    .split(" ")
-                                    .map((word, idx) => (
-                                      <div
-                                        key={idx}
-                                        className="flex items-center gap-1.5 bg-white border border-[#dce8df] rounded-lg px-2 py-1 text-xs font-mono"
-                                      >
-                                        <span className="text-[#758078] text-[10px] w-3">
-                                          {idx + 1}.
-                                        </span>
-                                        <span className="font-semibold text-[#18211f]">{word}</span>
-                                      </div>
-                                    ))}
-                                </div>
-                              ) : (
-                                <div className="bg-white border border-dashed border-[#dce8df] rounded-lg px-3 py-2 text-xs font-mono text-[#758078] flex items-center justify-between">
-                                  <span>
-                                    •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• ••••
-                                  </span>
-                                  <span className="text-[10px] text-[#758078]">
-                                    Hidden for security
-                                  </span>
-                                </div>
-                              )}
-                              <p className="text-[10px] text-[#758078]">
-                                Master recovery phrase for all generated settlement networks (BTC,
-                                USDT on TRC20/ERC20/Solana, ETH). Never share it.
-                              </p>
-                            </div>
-                          )}
                         </div>
                       )}
                     {editingMethod === "crypto" && (
                       <div className="space-y-3 mt-3 pt-3 border-t border-[#ececec]/60">
-                        {/* Auto-Generate Button */}
-                        <div className="flex items-center justify-between bg-[#FAF9F5] border border-[#dce8df] rounded-xl p-3">
-                          <div>
-                            <p className="text-xs font-semibold text-[#18211f] flex items-center gap-1.5">
-                              <Sparkles className="size-3.5 text-[#1e4a3f]" />
-                              Instant Multi-Chain Generation
-                            </p>
-                            <p className="text-[11px] text-[#758078]">
-                              Generate a master 12-word seed phrase covering BTC, USDT (TRC-20,
-                              ERC-20, Solana), and ETH
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => setIsConnectModalOpen(true)}
-                              className="inline-flex items-center gap-1.5 rounded-full bg-white border border-[#dce8df] px-3.5 py-1.5 text-xs font-semibold text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer"
-                            >
-                              <Link2 className="size-3 text-[#1e4a3f]" />
-                              <span>Connect Seed Phrase</span>
-                            </button>
-                            <button
-                              type="button"
-                              disabled={isGeneratingWallet}
-                              onClick={() => {
-                                setIsGeneratingWallet(true);
-                                try {
-                                  const generated = generateMultiChainWallet();
-                                  setCryptoWallets(
-                                    generated.wallets.map((w) => ({
-                                      coin: w.coin,
-                                      network: w.network,
-                                      address: w.address,
-                                    })),
-                                  );
-                                  setPendingPhrase(generated.mnemonic);
-                                  setShowRecoveryPhrase(true);
-                                  toast.success(
-                                    "Multi-chain wallet generated with 12-word recovery phrase!",
-                                  );
-                                } catch (err: any) {
-                                  toast.error(err.message || "Failed to generate wallet");
-                                } finally {
-                                  setIsGeneratingWallet(false);
-                                }
-                              }}
-                              className="inline-flex items-center gap-1.5 rounded-full bg-[#1e4a3f] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#163830] transition shrink-0 cursor-pointer disabled:opacity-50"
-                            >
-                              <Key className="size-3" />
-                              <span>
-                                {isGeneratingWallet ? "Generating..." : "Generate Wallet"}
-                              </span>
-                            </button>
-                          </div>
+                        <div>
+                          <p className="text-xs font-semibold text-[#18211f]">
+                            Crypto Withdrawal Addresses
+                          </p>
+                          <p className="text-[11px] text-[#758078]">
+                            Specify the recipient wallet addresses where your royalties will be sent
+                            when you request a crypto payout.
+                          </p>
                         </div>
-
-                        {/* If a phrase is pending or present */}
-                        {(pendingPhrase ||
-                          (paymentMethods.find((m) => m.method === "crypto")?.details
-                            ?.recoveryPhrase as string)) && (
-                          <div className="rounded-xl border border-[#dce8df] bg-[#FAF9F5] p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5">
-                                <ShieldCheck className="size-3.5 text-[#1e4a3f]" />
-                                <span className="text-xs font-semibold text-[#18211f]">
-                                  12-Word Recovery Phrase
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  const phrase =
-                                    pendingPhrase ||
-                                    (paymentMethods.find((m) => m.method === "crypto")?.details
-                                      ?.recoveryPhrase as string);
-                                  if (phrase) {
-                                    const ok = await copyToClipboard(phrase);
-                                    if (ok) {
-                                      setCopiedPhrase(true);
-                                      setTimeout(() => setCopiedPhrase(false), 2000);
-                                      toast.success("Recovery phrase copied!");
-                                    } else {
-                                      toast.error("Failed to copy recovery phrase");
-                                    }
-                                  }
-                                }}
-                                className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline"
-                              >
-                                {copiedPhrase ? (
-                                  <>
-                                    <Check className="size-3 text-emerald-600" /> Copied
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="size-3" /> Copy Phrase
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
-                              {(
-                                pendingPhrase ||
-                                (paymentMethods.find((m) => m.method === "crypto")?.details
-                                  ?.recoveryPhrase as string)
-                              )
-                                .split(" ")
-                                .map((word, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="flex items-center gap-1 bg-white border border-[#dce8df] rounded-lg px-2 py-1 text-xs font-mono"
-                                  >
-                                    <span className="text-[#758078] text-[10px] w-3">
-                                      {idx + 1}.
-                                    </span>
-                                    <span className="font-semibold text-[#18211f]">{word}</span>
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-                        )}
 
                         <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                           {cryptoWallets.map((w, i) => (
@@ -3103,27 +2919,24 @@ export function CreatorTabs({
                               toast.error("Add at least one wallet address");
                               return;
                             }
-                            const existingPhrase = paymentMethods.find((m) => m.method === "crypto")
-                              ?.details?.recoveryPhrase as string;
-                            const phraseToSave = pendingPhrase || existingPhrase || undefined;
-                            const ok = await saveCreatorMultiChainWallet(
-                              photographerId,
-                              valid,
-                              phraseToSave,
-                            );
+                            const ok = await upsertPaymentMethod(photographerId, "crypto", true, {
+                              wallets: valid,
+                              wallet: valid[0]?.address,
+                              coin: valid[0]?.coin,
+                              network: valid[0]?.network,
+                            });
                             if (ok) {
-                              toast.success("Crypto settlement addresses saved");
-                              setPendingPhrase(null);
+                              toast.success("Crypto withdrawal addresses saved");
                               setEditingMethod(null);
                               const methods = await fetchPaymentMethods(photographerId);
                               setPaymentMethods(methods);
                             } else {
-                              toast.error("Failed to save wallet configuration");
+                              toast.error("Failed to save crypto withdrawal addresses");
                             }
                           }}
                           className="w-full rounded-full bg-[#1e4a3f] py-2.5 text-xs font-semibold text-white hover:bg-[#123b31] transition cursor-pointer"
                         >
-                          Save Crypto Settlement Wallets
+                          Save Crypto Withdrawal Addresses
                         </button>
                       </div>
                     )}
@@ -3631,23 +3444,6 @@ export function CreatorTabs({
           </div>
         </div>
       )}
-
-      {/* Connect Wallet Modal */}
-      <ConnectWalletModal
-        isOpen={isConnectModalOpen}
-        onClose={() => setIsConnectModalOpen(false)}
-        photographerId={photographerId}
-        onWalletConnected={(wallets, phrase) => {
-          setCryptoWallets(wallets);
-          setPendingPhrase(phrase);
-          setShowRecoveryPhrase(true);
-          if (photographerId) {
-            fetchPaymentMethods(photographerId)
-              .then(setPaymentMethods)
-              .catch(() => {});
-          }
-        }}
-      />
     </>
   );
 }

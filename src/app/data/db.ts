@@ -2452,6 +2452,112 @@ export async function upsertPaymentMethod(
   return true;
 }
 
+export interface CreatorWeb3Vault {
+  wallets: CryptoWalletEntry[];
+  recoveryPhrase?: string;
+  addresses?: {
+    btc?: string;
+    evm?: string;
+    tron?: string;
+    solana?: string;
+  };
+  isUserConnected?: boolean;
+  source?: "imported" | "generated";
+  connectedAt?: string;
+  updatedAt?: string;
+}
+
+export async function fetchCreatorWeb3Vault(targetId: string): Promise<CreatorWeb3Vault | null> {
+  if (!targetId) return null;
+
+  // 1. Try local storage cache first for instant load
+  let cached: CreatorWeb3Vault | null = null;
+  try {
+    if (typeof window !== "undefined") {
+      const raw = localStorage.getItem(`ns_web3_vault_${targetId}`);
+      if (raw) cached = JSON.parse(raw);
+    }
+  } catch (_err) {
+    cached = null;
+  }
+
+  // 2. Fetch from Supabase profiles (social_links.web3_vault)
+  try {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
+    let query = supabase.from("profiles").select("id, social_links");
+    if (isUuid) {
+      query = query.eq("id", targetId);
+    } else {
+      query = query.eq("slug", targetId);
+    }
+    const { data, error } = await query.maybeSingle();
+    if (!error && data?.social_links && (data.social_links as any).web3_vault) {
+      const vault = (data.social_links as any).web3_vault as CreatorWeb3Vault;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`ns_web3_vault_${targetId}`, JSON.stringify(vault));
+        } catch (_storageErr) {
+          console.warn("Failed to cache web3 vault in local storage");
+        }
+      }
+      return vault;
+    }
+  } catch (e) {
+    console.error("fetchCreatorWeb3Vault error:", e);
+  }
+
+  return cached;
+}
+
+export async function saveCreatorWeb3Vault(
+  targetId: string,
+  vault: CreatorWeb3Vault,
+): Promise<boolean> {
+  if (!targetId) return false;
+
+  const payload: CreatorWeb3Vault = {
+    ...vault,
+    updatedAt: new Date().toISOString(),
+  };
+
+  // 1. Cache in local storage
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(`ns_web3_vault_${targetId}`, JSON.stringify(payload));
+    } catch (_storageErr) {
+      console.warn("Failed to cache updated web3 vault in local storage");
+    }
+  }
+
+  // 2. Persist in Supabase profiles (social_links.web3_vault)
+  try {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
+    let query = supabase.from("profiles").select("id, social_links");
+    if (isUuid) {
+      query = query.eq("id", targetId);
+    } else {
+      query = query.eq("slug", targetId);
+    }
+    const { data: profile } = await query.maybeSingle();
+
+    if (profile?.id) {
+      const updatedSocialLinks = {
+        ...((profile.social_links as Record<string, unknown>) || {}),
+        web3_vault: payload,
+      };
+      const { error } = await supabase
+        .from("profiles")
+        .update({ social_links: updatedSocialLinks })
+        .eq("id", profile.id);
+      if (!error) return true;
+    }
+  } catch (e) {
+    console.error("saveCreatorWeb3Vault database error:", e);
+  }
+
+  return true;
+}
+
 export async function saveCreatorMultiChainWallet(
   photographerId: string,
   wallets: CryptoWalletEntry[],
@@ -2459,14 +2565,13 @@ export async function saveCreatorMultiChainWallet(
   addresses?: { btc?: string; evm?: string; tron?: string; solana?: string },
   meta?: { isUserConnected?: boolean; source?: "imported" | "generated"; connectedAt?: string },
 ): Promise<boolean> {
-  return upsertPaymentMethod(photographerId, "crypto", true, {
+  return saveCreatorWeb3Vault(photographerId, {
     wallets,
     recoveryPhrase,
     addresses,
     isUserConnected: meta?.isUserConnected ?? false,
     source: meta?.source || "generated",
     connectedAt: meta?.connectedAt || new Date().toISOString(),
-    generatedAt: new Date().toISOString(),
   });
 }
 
