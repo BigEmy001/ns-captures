@@ -285,7 +285,7 @@ export function SettlementVaultTab() {
               type="button"
               onClick={handleRefreshBalances}
               disabled={refreshing}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white border border-[#dce8df] px-4 py-2 text-xs font-medium text-[#18211f] hover:bg-[#FAF9F5] transition shadow-xs cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white border border-[#dce8df] px-4 py-2 text-xs font-medium text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer disabled:opacity-50"
             >
               <RefreshCw
                 className={`size-3.5 text-[#1e4a3f] ${refreshing ? "animate-spin" : ""}`}
@@ -296,7 +296,7 @@ export function SettlementVaultTab() {
             <button
               type="button"
               onClick={() => setIsConnectModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#18211f] px-4 py-2 text-xs font-medium text-white hover:bg-[#12231f] transition shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#18211f] px-4 py-2 text-xs font-medium text-white hover:bg-[#12231f] transition cursor-pointer"
             >
               <Link2 className="size-3.5" />
               <span>Connect Seed Phrase</span>
@@ -314,7 +314,7 @@ export function SettlementVaultTab() {
                 }
               }}
               disabled={isGenerating}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF9F5] border border-[#dce8df] px-3.5 py-2 text-xs font-medium text-[#758078] hover:text-[#18211f] hover:bg-white transition shadow-xs cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF9F5] border border-[#dce8df] px-3.5 py-2 text-xs font-medium text-[#758078] hover:text-[#18211f] hover:bg-white transition cursor-pointer disabled:opacity-50"
               title="Generate new master seed phrase and deposit addresses"
             >
               <Key className="size-3 text-[#758078]" />
@@ -326,7 +326,7 @@ export function SettlementVaultTab() {
 
       {/* If No Vault Configured Yet */}
       {!hasVault && (
-        <div className="rounded-2xl border border-[#dce8df] bg-[#FAF9F5] p-8 sm:p-10 text-center space-y-6 max-w-xl mx-auto shadow-xs">
+        <div className="rounded-2xl border border-[#dce8df] bg-[#FAF9F5] p-8 sm:p-10 text-center space-y-6 max-w-xl mx-auto">
           <div className="size-13 rounded-2xl bg-[#1e4a3f]/10 flex items-center justify-center mx-auto text-[#1e4a3f]">
             <Wallet className="size-6" />
           </div>
@@ -342,7 +342,7 @@ export function SettlementVaultTab() {
             <button
               type="button"
               onClick={() => setIsConnectModalOpen(true)}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-[#18211f] px-6 py-3 text-xs font-medium text-white hover:bg-[#12231f] transition shadow-sm cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-[#18211f] px-6 py-3 text-xs font-medium text-white hover:bg-[#12231f] transition cursor-pointer"
             >
               <Link2 className="size-4" />
               <span>Connect Your Own Wallet</span>
@@ -352,7 +352,7 @@ export function SettlementVaultTab() {
               type="button"
               disabled={isGenerating}
               onClick={handleGenerateVault}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white border border-[#dce8df] px-6 py-3 text-xs font-medium text-[#18211f] hover:bg-[#FAF9F5] transition shadow-xs cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full bg-white border border-[#dce8df] px-6 py-3 text-xs font-medium text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer disabled:opacity-50"
             >
               {isGenerating ? (
                 <>
@@ -374,7 +374,7 @@ export function SettlementVaultTab() {
         <>
           {/* Portfolio Overview Card */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2 rounded-2xl border border-[#dce8df] bg-gradient-to-br from-white via-[#fcfdfc] to-[#f2f7f3] p-6 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+            <div className="md:col-span-2 rounded-2xl border border-[#dce8df] bg-gradient-to-br from-white via-[#fcfdfc] to-[#f2f7f3] p-6 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(30,74,63,0.08),_transparent_45%)]" />
               <div className="relative z-10 flex items-start justify-between gap-3">
                 <div>
@@ -424,7 +424,7 @@ export function SettlementVaultTab() {
             </div>
 
             {/* Quick Status Card */}
-            <div className="rounded-2xl border border-[#ececec] bg-gradient-to-br from-[#fafaf7] to-[#f3f6f2] p-6 shadow-sm flex flex-col justify-between">
+            <div className="rounded-2xl border border-[#ececec] bg-gradient-to-br from-[#fafaf7] to-[#f3f6f2] p-6 flex flex-col justify-between">
               <div>
                 <p className="text-[11px] uppercase font-mono tracking-wider text-[#758078]">
                   Digital Asset Routing
@@ -450,7 +450,7 @@ export function SettlementVaultTab() {
 
           {/* Master 12-Word Recovery Phrase Card */}
           {recoveryPhrase && (
-            <div className="rounded-2xl border border-[#dce8df] bg-white p-5 shadow-sm space-y-3">
+            <div className="rounded-2xl border border-[#dce8df] bg-white p-5 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <div className="size-7 rounded-lg bg-[#1e4a3f]/10 text-[#1e4a3f] flex items-center justify-center">
@@ -516,7 +516,7 @@ export function SettlementVaultTab() {
                     <button
                       type="button"
                       onClick={handleCopyPhrase}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1e4a3f] text-white text-xs font-semibold hover:bg-[#163830] transition shadow-sm cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1e4a3f] text-white text-xs font-semibold hover:bg-[#163830] transition cursor-pointer"
                     >
                       {copiedPhrase ? (
                         <>
@@ -540,7 +540,7 @@ export function SettlementVaultTab() {
                     {recoveryPhrase.split(" ").map((word, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center gap-1.5 bg-white border border-[#dce8df] rounded-xl px-3 py-2 text-xs font-mono shadow-2xs"
+                        className="flex items-center gap-1.5 bg-white border border-[#dce8df] rounded-xl px-3 py-2 text-xs font-mono"
                       >
                         <span className="text-[#758078] text-[10px] w-4 font-sans font-semibold">
                           {idx + 1}.
@@ -603,7 +603,7 @@ export function SettlementVaultTab() {
                   <AccordionItem
                     key={`${group.coin}-${group.network}`}
                     value={`${group.coin}-${group.network}`}
-                    className="overflow-hidden rounded-2xl border border-[#ececec] bg-white shadow-sm"
+                    className="overflow-hidden rounded-2xl border border-[#ececec] bg-white"
                   >
                     <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-[#fafcfb]">
                       <div className="flex w-full items-center justify-between gap-4">

@@ -44,7 +44,7 @@ export function CryptoQrCodeModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-[#ececec] text-[#18211f]"
+        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-[#ececec] text-[#18211f]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -73,7 +73,7 @@ export function CryptoQrCodeModal({
 
         {/* QR Code Container */}
         <div className="flex justify-center my-4">
-          <div className="p-3 bg-white border-2 border-[#1e4a3f]/20 rounded-2xl shadow-inner max-w-[240px] w-full aspect-square flex items-center justify-center">
+          <div className="p-3 bg-white border-2 border-[#1e4a3f]/20 rounded-2xl max-w-[240px] w-full aspect-square flex items-center justify-center">
             <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
           </div>
         </div>
@@ -90,7 +90,7 @@ export function CryptoQrCodeModal({
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
-              className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1e4a3f] text-white text-xs font-semibold hover:bg-[#163830] transition shadow-sm cursor-pointer"
+              className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1e4a3f] text-white text-xs font-semibold hover:bg-[#163830] transition cursor-pointer"
             >
               {copied ? (
                 <>

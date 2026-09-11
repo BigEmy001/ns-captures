@@ -137,7 +137,7 @@ export function ConnectWalletModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg rounded-2xl bg-white p-6 sm:p-7 shadow-2xl border border-[#ececec] text-[#18211f] max-h-[92vh] overflow-y-auto"
+        className="relative w-full max-w-lg rounded-2xl bg-white p-6 sm:p-7 shadow-xl border border-[#ececec] text-[#18211f] max-h-[92vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -346,7 +346,7 @@ export function ConnectWalletModal({
             type="button"
             onClick={handleConnect}
             disabled={!validation.valid || isConnecting}
-            className="inline-flex items-center gap-2 rounded-full bg-[#18211f] px-6 py-2.5 text-xs font-medium text-white hover:bg-[#12231f] transition shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 rounded-full bg-[#18211f] px-6 py-2.5 text-xs font-medium text-white hover:bg-[#12231f] transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isConnecting ? (
               <>
