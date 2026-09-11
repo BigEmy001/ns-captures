@@ -1,23 +1,25 @@
-import { defineConfig } from 'vite'
-import path from 'path'
-import tailwindcss from '@tailwindcss/vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import path from "path";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
 
+import wasm from "vite-plugin-wasm";
 
 function figmaAssetResolver() {
   return {
-    name: 'figma-asset-resolver',
+    name: "figma-asset-resolver",
     resolveId(id) {
-      if (id.startsWith('figma:asset/')) {
-        const filename = id.replace('figma:asset/', '')
-        return path.resolve(__dirname, 'src/assets', filename)
+      if (id.startsWith("figma:asset/")) {
+        const filename = id.replace("figma:asset/", "");
+        return path.resolve(__dirname, "src/assets", filename);
       }
     },
-  }
+  };
 }
 
 export default defineConfig({
   plugins: [
+    wasm(),
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if
     // Tailwind is not being actively used – do not remove them
@@ -27,25 +29,30 @@ export default defineConfig({
   resolve: {
     alias: {
       // Alias @ to the src directory
-      '@': path.resolve(__dirname, './src'),
+      "@": path.resolve(__dirname, "./src"),
     },
   },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
-  assetsInclude: ['**/*.svg', '**/*.csv'],
+  assetsInclude: ["**/*.svg", "**/*.csv"],
 
   build: {
-    target: 'esnext',
-    minify: 'esbuild',
+    target: "esnext",
+    minify: "esbuild",
     rollupOptions: {
       output: {
         manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-popover', 'lucide-react', 'framer-motion'],
-          'db-vendor': ['@supabase/supabase-js'],
-          'chart-vendor': ['recharts']
-        }
-      }
-    }
-  }
-})
+          "react-vendor": ["react", "react-dom", "react-router"],
+          "ui-vendor": [
+            "@radix-ui/react-dialog",
+            "@radix-ui/react-popover",
+            "lucide-react",
+            "framer-motion",
+          ],
+          "db-vendor": ["@supabase/supabase-js"],
+          "chart-vendor": ["recharts"],
+        },
+      },
+    },
+  },
+});

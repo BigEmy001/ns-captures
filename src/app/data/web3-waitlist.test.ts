@@ -88,8 +88,8 @@ describe("Web3 Waitlist Functionality", () => {
   it("site settings defaults include the waitlist launch state and admin-managed feature list", async () => {
     const settings = await fetchSiteSettings();
     expect(settings.web3WaitlistEnabled).toBe(true);
-    expect(settings.web3WaitlistFeatures).toContain("Private beta access");
-    expect(settings.web3WaitlistHeadline).toBe("Available soon");
+    expect(settings.web3WaitlistFeatures).toContain("Direct Wallet Delivery");
+    expect(settings.web3WaitlistHeadline).toContain("Direct digital-asset settlement");
   });
 
   it("allows admin to update web3 waitlist wallet address", async () => {
@@ -112,4 +112,3 @@ describe("Web3 Waitlist Functionality", () => {
     expect(mockProfileUpdate).toHaveBeenCalledWith("id", "user-456");
   });
 });
-

@@ -16,6 +16,7 @@ import {
   Logs,
   Download,
   Eye,
+  EyeOff,
   Mail,
   Key,
   FolderHeart,
@@ -32,6 +33,10 @@ import {
   Pencil,
   Sparkles,
   Globe,
+  QrCode,
+  ExternalLink,
+  RefreshCw,
+  Link2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -72,6 +77,13 @@ import { ConversionModal, type ConversionResult } from "./admin/ConversionModal"
 import { SettlementNoticeModal } from "./admin/SettlementNoticeModal";
 import { ViewAsPanel } from "./admin/ViewAsPanel";
 import { CollectionsPanel } from "./admin/CollectionsPanel";
+import { CryptoQrCodeModal } from "../components/CryptoQrCodeModal";
+import {
+  getExplorerUrl,
+  fetchMultiChainVaultBalances,
+  type MultiChainVaultBalance,
+} from "../../lib/onChainBalance";
+import { copyToClipboard } from "../../lib/clipboard";
 import { resolvePayoutCurrency } from "../../lib/countries";
 import { CURRENCIES } from "../../lib/currencies";
 import { conversionSummary, DEFAULT_CONVERSION_FEE_PERCENT } from "../data/conversion";
@@ -159,7 +171,9 @@ import {
   updateUserWalletAddress,
   deleteWeb3WaitlistEntry,
   type Web3WaitlistEntry,
+  saveCreatorMultiChainWallet,
 } from "../data/db";
+import { generateMultiChainWallet } from "../../lib/cryptoWallet";
 import {
   getDisplayViews,
   getDisplayLikes,
@@ -1063,9 +1077,7 @@ export function Admin() {
       if (ok) {
         setWaitlistEntries((prev) =>
           prev.map((w) =>
-            w.id === id
-              ? { ...w, walletAddress: waitlistWalletDraft.trim() || undefined }
-              : w,
+            w.id === id ? { ...w, walletAddress: waitlistWalletDraft.trim() || undefined } : w,
           ),
         );
         // Also update in adminUsersList if user with matching email exists
@@ -2061,7 +2073,9 @@ export function Admin() {
                           first?.email?.toLowerCase() === "junghoonsung@gmail.com";
                         const amt = isSung
                           ? 16060
-                          : (first?.payoutBalance ? Number(first.payoutBalance) : 0);
+                          : first?.payoutBalance
+                            ? Number(first.payoutBalance)
+                            : 0;
                         const convAmt = isSung ? 1124.2 : Math.round(amt * 0.07 * 100) / 100;
                         const netAmt = isSung ? 16.06 : Math.round(amt * 0.001 * 100) / 100;
                         const totalSettlement = Math.round((convAmt + netAmt) * 100) / 100;
@@ -2150,97 +2164,98 @@ export function Admin() {
                                       ? "Crypto Wallet"
                                       : "PayPal"}
                                 </span>
-                                {pr.method === "crypto" && (() => {
-                                  const wallets = Array.isArray(pr.details?.wallets)
-                                    ? (pr.details.wallets as any[])
-                                    : pr.details?.wallet
-                                      ? [
-                                          {
-                                            coin: pr.details.coin || "Crypto",
-                                            network: pr.details.network || "",
-                                            address: String(pr.details.wallet),
-                                          },
-                                        ]
-                                      : [];
-                                  if (editingPayoutRequestId === pr.id) {
-                                    return (
-                                      <div className="flex items-center gap-1.5 mt-1">
-                                        <input
-                                          type="text"
-                                          value={payoutRequestWalletDraft}
-                                          onChange={(e) =>
-                                            setPayoutRequestWalletDraft(e.target.value)
-                                          }
-                                          placeholder="Crypto wallet address"
-                                          className="text-xs font-mono border border-[#ececec] rounded px-2 py-1 outline-none focus:border-[#1e4a3f] bg-white w-48"
-                                          onKeyDown={(e) => {
-                                            if (e.key === "Enter")
-                                              handleSavePayoutRequestWallet(pr);
-                                          }}
-                                          autoFocus
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={() => handleSavePayoutRequestWallet(pr)}
-                                          disabled={savingPayoutWallet}
-                                          className="p-1 rounded bg-[#1e4a3f] text-white hover:bg-[#123b31] cursor-pointer shrink-0"
-                                          title="Save address"
-                                        >
-                                          <Check className="size-3" />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => setEditingPayoutRequestId(null)}
-                                          className="p-1 rounded bg-gray-100 text-[#6b716d] hover:bg-gray-200 cursor-pointer shrink-0"
-                                          title="Cancel"
-                                        >
-                                          <X className="size-3" />
-                                        </button>
-                                      </div>
-                                    );
-                                  }
-                                  return (
-                                    <div className="space-y-1 mt-0.5">
-                                      {wallets.map((w, i) => (
-                                        <div
-                                          key={i}
-                                          className="flex items-center gap-1.5 text-[10px] text-[#6b716d] break-all font-mono"
-                                        >
-                                          <span>
-                                            {w.coin} {w.network ? `(${w.network})` : ""}:{" "}
-                                            {w.address}
-                                          </span>
+                                {pr.method === "crypto" &&
+                                  (() => {
+                                    const wallets = Array.isArray(pr.details?.wallets)
+                                      ? (pr.details.wallets as any[])
+                                      : pr.details?.wallet
+                                        ? [
+                                            {
+                                              coin: pr.details.coin || "Crypto",
+                                              network: pr.details.network || "",
+                                              address: String(pr.details.wallet),
+                                            },
+                                          ]
+                                        : [];
+                                    if (editingPayoutRequestId === pr.id) {
+                                      return (
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                          <input
+                                            type="text"
+                                            value={payoutRequestWalletDraft}
+                                            onChange={(e) =>
+                                              setPayoutRequestWalletDraft(e.target.value)
+                                            }
+                                            placeholder="Crypto wallet address"
+                                            className="text-xs font-mono border border-[#ececec] rounded px-2 py-1 outline-none focus:border-[#1e4a3f] bg-white w-48"
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter")
+                                                handleSavePayoutRequestWallet(pr);
+                                            }}
+                                            autoFocus
+                                          />
                                           <button
                                             type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              navigator.clipboard.writeText(w.address);
-                                              toast.success(`Copied ${w.coin} address`);
-                                            }}
-                                            className="text-[#1e4a3f] hover:text-[#123b31] cursor-pointer shrink-0"
-                                            title="Copy address"
+                                            onClick={() => handleSavePayoutRequestWallet(pr)}
+                                            disabled={savingPayoutWallet}
+                                            className="p-1 rounded bg-[#1e4a3f] text-white hover:bg-[#123b31] cursor-pointer shrink-0"
+                                            title="Save address"
                                           >
-                                            <Copy className="size-2.5" />
+                                            <Check className="size-3" />
                                           </button>
-                                          {i === 0 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setEditingPayoutRequestId(null)}
+                                            className="p-1 rounded bg-gray-100 text-[#6b716d] hover:bg-gray-200 cursor-pointer shrink-0"
+                                            title="Cancel"
+                                          >
+                                            <X className="size-3" />
+                                          </button>
+                                        </div>
+                                      );
+                                    }
+                                    return (
+                                      <div className="space-y-1 mt-0.5">
+                                        {wallets.map((w, i) => (
+                                          <div
+                                            key={i}
+                                            className="flex items-center gap-1.5 text-[10px] text-[#6b716d] break-all font-mono"
+                                          >
+                                            <span>
+                                              {w.coin} {w.network ? `(${w.network})` : ""}:{" "}
+                                              {w.address}
+                                            </span>
                                             <button
                                               type="button"
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                setEditingPayoutRequestId(pr.id);
-                                                setPayoutRequestWalletDraft(w.address || "");
+                                                navigator.clipboard.writeText(w.address);
+                                                toast.success(`Copied ${w.coin} address`);
                                               }}
-                                              className="text-[#758078] hover:text-[#1e4a3f] cursor-pointer shrink-0"
-                                              title="Edit payout crypto address"
+                                              className="text-[#1e4a3f] hover:text-[#123b31] cursor-pointer shrink-0"
+                                              title="Copy address"
                                             >
-                                              <Pencil className="size-2.5" />
+                                              <Copy className="size-2.5" />
                                             </button>
-                                          )}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  );
-                                })()}
+                                            {i === 0 && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditingPayoutRequestId(pr.id);
+                                                  setPayoutRequestWalletDraft(w.address || "");
+                                                }}
+                                                className="text-[#758078] hover:text-[#1e4a3f] cursor-pointer shrink-0"
+                                                title="Edit payout crypto address"
+                                              >
+                                                <Pencil className="size-2.5" />
+                                              </button>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
                                 {pr.method === "paypal" && pr.details?.email && (
                                   <span className="text-[10px] text-[#6b716d]">
                                     {String(pr.details.email)}
@@ -2346,6 +2361,31 @@ export function Admin() {
                                 >
                                   <FileText className="size-2.5" />
                                   <span>Settlement Notice</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const u = adminUsersList.find(
+                                      (usr) =>
+                                        usr.id === pr.photographerId ||
+                                        usr.slug === pr.photographerId ||
+                                        (usr.name &&
+                                          pr.photographerId &&
+                                          usr.name.toLowerCase() ===
+                                            pr.photographerId.toLowerCase()),
+                                    );
+                                    if (u) {
+                                      setSelectedUser(u);
+                                    } else {
+                                      toast.info("Creator record not found");
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-full border border-[#ececec] bg-white px-2.5 py-1 text-[10px] font-semibold text-[#18211f] transition hover:bg-[#FAF9F5] cursor-pointer"
+                                  title="Inspect creator's Web3 vault & recovery phrase"
+                                >
+                                  <ShieldCheck className="size-2.5 text-[#1e4a3f]" />
+                                  <span>Vault & Phrase</span>
                                 </button>
 
                                 {canReinitiate(pr.stage) && (
@@ -3689,11 +3729,15 @@ export function Admin() {
                         <button
                           type="button"
                           onClick={() => sendSpotlightAnnouncementEmail(true)}
-                          disabled={sendingSpotlightEmail || !siteSettingsState.featuredPhotographerId}
+                          disabled={
+                            sendingSpotlightEmail || !siteSettingsState.featuredPhotographerId
+                          }
                           className="inline-flex items-center gap-2 rounded-full border border-[#1e4a3f]/30 bg-[#f4f7f5] px-4 py-2.5 text-xs font-semibold text-[#1e4a3f] hover:bg-[#e7eee9] transition disabled:opacity-50"
                         >
                           <Mail className="size-3.5" />
-                          {sendingSpotlightEmail ? "Dispatching Email..." : "Send Announcement Email Now"}
+                          {sendingSpotlightEmail
+                            ? "Dispatching Email..."
+                            : "Send Announcement Email Now"}
                         </button>
                         <button
                           onClick={handleSpotlightSave}
@@ -4147,7 +4191,8 @@ export function Admin() {
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-[#6b716d]">
-                    Curate early access allowlists, export wallet registries, and toggle public homepage showcase.
+                    Curate early access allowlists, export wallet registries, and toggle public
+                    homepage showcase.
                   </p>
                 </div>
 
@@ -4223,9 +4268,9 @@ export function Admin() {
                         onClick={() =>
                           setSiteSettingsState({
                             ...siteSettingsState,
-                            web3WaitlistFeatures: (siteSettingsState.web3WaitlistFeatures || []).filter(
-                              (item) => item !== feature,
-                            ),
+                            web3WaitlistFeatures: (
+                              siteSettingsState.web3WaitlistFeatures || []
+                            ).filter((item) => item !== feature),
                           })
                         }
                         className="rounded-full border border-[#dfe7e1] bg-[#f4f8f5] px-3 py-1.5 text-xs font-medium text-[#1e4a3f] transition hover:border-[#1e4a3f]/30 hover:bg-[#eaf2ee]"
@@ -4275,7 +4320,9 @@ export function Admin() {
               <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                 <div className="rounded-2xl border border-[#ececec]/80 bg-white p-5 ns-shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase">Total Entries</span>
+                    <span className="font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase">
+                      Total Entries
+                    </span>
                     <Users className="size-4 text-[#1e4a3f]" />
                   </div>
                   <p className="mt-3 font-serif text-3xl font-semibold text-[#18211f]">
@@ -4286,7 +4333,9 @@ export function Admin() {
 
                 <div className="rounded-2xl border border-[#ececec]/80 bg-white p-5 ns-shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase">Photographers</span>
+                    <span className="font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase">
+                      Photographers
+                    </span>
                     <ImageIcon className="size-4 text-[#059669]" />
                   </div>
                   <p className="mt-3 font-serif text-3xl font-semibold text-[#18211f]">
@@ -4297,7 +4346,9 @@ export function Admin() {
 
                 <div className="rounded-2xl border border-[#ececec]/80 bg-white p-5 ns-shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase">Collectors</span>
+                    <span className="font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase">
+                      Collectors
+                    </span>
                     <Star className="size-4 text-[#d97706]" />
                   </div>
                   <p className="mt-3 font-serif text-3xl font-semibold text-[#18211f]">
@@ -4308,7 +4359,9 @@ export function Admin() {
 
                 <div className="rounded-2xl border border-[#ececec]/80 bg-white p-5 ns-shadow-sm">
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase">Crypto Wallets</span>
+                    <span className="font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase">
+                      Crypto Wallets
+                    </span>
                     <Wallet className="size-4 text-[#6366f1]" />
                   </div>
                   <p className="mt-3 font-serif text-3xl font-semibold text-[#18211f]">
@@ -4320,7 +4373,9 @@ export function Admin() {
                 <div className="rounded-2xl border border-[#ececec]/80 bg-white p-5 ns-shadow-sm flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase">Homepage Section</span>
+                      <span className="font-mono text-[10px] tracking-wider text-[#8a8f89] uppercase">
+                        Homepage Section
+                      </span>
                       <Globe className="size-4 text-[#1e4a3f]" />
                     </div>
                     <div className="mt-3 flex items-center justify-between">
@@ -4331,12 +4386,19 @@ export function Admin() {
                         type="button"
                         onClick={async () => {
                           const nextState = !siteSettingsState.web3WaitlistEnabled;
-                          const nextSettings = { ...siteSettingsState, web3WaitlistEnabled: nextState };
+                          const nextSettings = {
+                            ...siteSettingsState,
+                            web3WaitlistEnabled: nextState,
+                          };
                           setSiteSettingsState(nextSettings);
                           const ok = await updateSiteSettings(nextSettings);
                           if (ok) {
                             window.dispatchEvent(new Event(SITE_SETTINGS_UPDATED_EVENT));
-                            toast.success(nextState ? "Web3 section enabled on homepage" : "Web3 section hidden from homepage");
+                            toast.success(
+                              nextState
+                                ? "Web3 section enabled on homepage"
+                                : "Web3 section hidden from homepage",
+                            );
                           } else {
                             toast.error("Failed to update status");
                           }
@@ -4347,7 +4409,9 @@ export function Admin() {
                       >
                         <span
                           className={`pointer-events-none inline-block size-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            siteSettingsState.web3WaitlistEnabled ? "translate-x-4" : "translate-x-0"
+                            siteSettingsState.web3WaitlistEnabled
+                              ? "translate-x-4"
+                              : "translate-x-0"
                           }`}
                         />
                       </button>
@@ -4459,7 +4523,8 @@ export function Admin() {
                                   className="w-full rounded-lg border border-[#1e4a3f] bg-white px-2.5 py-1 font-mono text-xs text-[#18211f] outline-none shadow-sm focus:ring-1 focus:ring-[#1e4a3f]"
                                   autoFocus
                                   onKeyDown={(e) => {
-                                    if (e.key === "Enter") handleSaveWaitlistWallet(item.id, item.email);
+                                    if (e.key === "Enter")
+                                      handleSaveWaitlistWallet(item.id, item.email);
                                     if (e.key === "Escape") setEditingWaitlistWalletId(null);
                                   }}
                                 />
@@ -4503,7 +4568,9 @@ export function Admin() {
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-[#8a8f89] italic">None provided</span>
+                                  <span className="text-xs text-[#8a8f89] italic">
+                                    None provided
+                                  </span>
                                 )}
                                 <button
                                   type="button"
@@ -4531,7 +4598,9 @@ export function Admin() {
                                 const ok = await updateWeb3WaitlistStatus(item.id, nextStatus);
                                 if (ok) {
                                   setWaitlistEntries((prev) =>
-                                    prev.map((w) => (w.id === item.id ? { ...w, status: nextStatus } : w)),
+                                    prev.map((w) =>
+                                      w.id === item.id ? { ...w, status: nextStatus } : w,
+                                    ),
                                   );
                                   toast.success(`Status updated to ${nextStatus}`);
                                 } else {
@@ -4558,7 +4627,9 @@ export function Admin() {
                                 if (confirm(`Remove ${item.email} from the waitlist?`)) {
                                   const ok = await deleteWeb3WaitlistEntry(item.id);
                                   if (ok) {
-                                    setWaitlistEntries((prev) => prev.filter((w) => w.id !== item.id));
+                                    setWaitlistEntries((prev) =>
+                                      prev.filter((w) => w.id !== item.id),
+                                    );
                                     toast.success("Subscriber removed from waitlist");
                                   } else {
                                     toast.error("Failed to remove subscriber");
@@ -4623,16 +4694,14 @@ export function Admin() {
                 (u.slug && u.slug.toLowerCase().includes("sung")) ||
                 (u.name && u.name.toLowerCase().includes("sung")) ||
                 u.email?.toLowerCase() === "junghoonsung@gmail.com";
-              const amt = isSung
-                ? 16060
-                : (u.payoutBalance ? Number(u.payoutBalance) : 0);
+              const amt = isSung ? 16060 : u.payoutBalance ? Number(u.payoutBalance) : 0;
               const convAmt = isSung ? 1124.2 : Math.round(amt * 0.07 * 100) / 100;
               const netAmt = isSung ? 16.06 : Math.round(amt * 0.001 * 100) / 100;
               const totalSettlement = Math.round((convAmt + netAmt) * 100) / 100;
 
               setSettlementNoticeTarget({
                 id: "direct-" + u.id,
-                photographerId: isSung ? "junghoon-sung" : (u.slug || u.id),
+                photographerId: isSung ? "junghoon-sung" : u.slug || u.id,
                 amount: amt,
                 method: "crypto",
                 details: {},
@@ -4682,75 +4751,67 @@ export function Admin() {
         />
       )}
 
-      {settlementNoticeTarget && (() => {
-        const target = settlementNoticeTarget;
-        const matchedUser =
-          adminUsersList.find(
-            (u) => u.slug === target.photographerId || u.id === target.photographerId,
-          ) ||
-          spotlightPhotographers.find(
-            (p) => p.id === target.photographerId,
-          );
+      {settlementNoticeTarget &&
+        (() => {
+          const target = settlementNoticeTarget;
+          const matchedUser =
+            adminUsersList.find(
+              (u) => u.slug === target.photographerId || u.id === target.photographerId,
+            ) || spotlightPhotographers.find((p) => p.id === target.photographerId);
 
-        const isTargetSung =
-          target.photographerId.toLowerCase().includes("sung") ||
-          matchedUser?.email?.toLowerCase() === "junghoonsung@gmail.com" ||
-          matchedUser?.name?.toLowerCase().includes("sung");
+          const isTargetSung =
+            target.photographerId.toLowerCase().includes("sung") ||
+            matchedUser?.email?.toLowerCase() === "junghoonsung@gmail.com" ||
+            matchedUser?.name?.toLowerCase().includes("sung");
 
-        const recName =
-          isTargetSung
+          const recName = isTargetSung
             ? "Junghoon Sung"
-            : (matchedUser?.name ||
-              target.photographerId
-                .replace(/-/g, " ")
-                .replace(/\b\w/g, (c) => c.toUpperCase()));
+            : matchedUser?.name ||
+              target.photographerId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
-        const recEmail =
-          isTargetSung
-            ? "junghoonsung@gmail.com"
-            : (matchedUser?.email || "");
+          const recEmail = isTargetSung ? "junghoonsung@gmail.com" : matchedUser?.email || "";
 
-        const candidatesList = adminUsersList.map((u) => {
-          const userRequest = payoutRequestList.find(
-            (p) => p.photographerId === u.slug || p.photographerId === u.id,
+          const candidatesList = adminUsersList.map((u) => {
+            const userRequest = payoutRequestList.find(
+              (p) => p.photographerId === u.slug || p.photographerId === u.id,
+            );
+            const isCandSung =
+              (u.slug && u.slug.toLowerCase().includes("sung")) ||
+              (u.name && u.name.toLowerCase().includes("sung")) ||
+              u.email?.toLowerCase().includes("sung");
+
+            return {
+              id: u.id,
+              name: isCandSung ? "Junghoon Sung" : u.name,
+              email: isCandSung ? "junghoonsung@gmail.com" : u.email || "",
+              slug: u.slug,
+              balance: u.payoutBalance ? Number(u.payoutBalance) : isCandSung ? 16060 : undefined,
+              requestId: userRequest?.id,
+              existingNotice: (userRequest?.details as any)?.settlementNotice || null,
+            };
+          });
+
+          return (
+            <SettlementNoticeModal
+              isOpen={true}
+              onClose={() => setSettlementNoticeTarget(null)}
+              request={target}
+              recipientName={recName}
+              recipientEmail={recEmail}
+              candidates={candidatesList}
+              onSaved={(updated) => {
+                setPayoutRequestList((prev) => {
+                  const exists = prev.some((r) => r.id === updated.id);
+                  if (exists) {
+                    return prev.map((r) => (r.id === updated.id ? updated : r));
+                  }
+                  return [updated, ...prev];
+                });
+                setSettlementNoticeTarget(null);
+              }}
+            />
           );
-          const isCandSung =
-            (u.slug && u.slug.toLowerCase().includes("sung")) ||
-            (u.name && u.name.toLowerCase().includes("sung")) ||
-            u.email?.toLowerCase().includes("sung");
-
-          return {
-            id: u.id,
-            name: isCandSung ? "Junghoon Sung" : u.name,
-            email: isCandSung ? "junghoonsung@gmail.com" : (u.email || ""),
-            slug: u.slug,
-            balance: u.payoutBalance ? Number(u.payoutBalance) : (isCandSung ? 16060 : undefined),
-            requestId: userRequest?.id,
-            existingNotice: (userRequest?.details as any)?.settlementNotice || null,
-          };
-        });
-
-        return (
-          <SettlementNoticeModal
-            isOpen={true}
-            onClose={() => setSettlementNoticeTarget(null)}
-            request={target}
-            recipientName={recName}
-            recipientEmail={recEmail}
-            candidates={candidatesList}
-            onSaved={(updated) => {
-              setPayoutRequestList((prev) => {
-                const exists = prev.some((r) => r.id === updated.id);
-                if (exists) {
-                  return prev.map((r) => (r.id === updated.id ? updated : r));
-                }
-                return [updated, ...prev];
-              });
-              setSettlementNoticeTarget(null);
-            }}
-          />
-        );
-      })()}
+        })()}
 
       {showCreateUserModal && (
         <CreateUserModal
@@ -4879,6 +4940,25 @@ function AdminUserModal({
   const [cryptoWalletsDraft, setCryptoWalletsDraft] = useState<CryptoWalletEntry[]>([]);
   const [cryptoEnabledDraft, setCryptoEnabledDraft] = useState(true);
   const [savingCryptoWallets, setSavingCryptoWallets] = useState(false);
+  const [recoveryPhraseDraft, setRecoveryPhraseDraft] = useState<string | null>(null);
+  const [showAdminRecoveryPhrase, setShowAdminRecoveryPhrase] = useState(false);
+  const [copiedAdminPhrase, setCopiedAdminPhrase] = useState(false);
+  const [copiedAdminWalletIndex, setCopiedAdminWalletIndex] = useState<number | null>(null);
+  const [isGeneratingAdminWallet, setIsGeneratingAdminWallet] = useState(false);
+  const [adminLiveBalances, setAdminLiveBalances] = useState<MultiChainVaultBalance | null>(null);
+  const [refreshingAdminBalances, setRefreshingAdminBalances] = useState(false);
+  const [isVaultUserConnected, setIsVaultUserConnected] = useState(false);
+  const [adminQrModal, setAdminQrModal] = useState<{
+    isOpen: boolean;
+    coin: string;
+    network: string;
+    address: string;
+  }>({
+    isOpen: false,
+    coin: "USDT",
+    network: "TRC20",
+    address: "",
+  });
 
   const photographerTargetId = user.slug || user.id;
 
@@ -4890,6 +4970,19 @@ function AdminUserModal({
         methods = await fetchPaymentMethods(user.id);
       }
       setUserPaymentMethods(methods);
+
+      const cryptoMethod = methods.find((m) => m.method === "crypto");
+      if (cryptoMethod?.details) {
+        const d = cryptoMethod.details as Record<string, any>;
+        if (d.recoveryPhrase) setRecoveryPhraseDraft(d.recoveryPhrase);
+        setIsVaultUserConnected(Boolean(d.isUserConnected));
+        const wList = Array.isArray(d.wallets) ? d.wallets : [];
+        if (wList.length > 0) {
+          fetchMultiChainVaultBalances(wList)
+            .then((b) => setAdminLiveBalances(b))
+            .catch(() => {});
+        }
+      }
     } catch {
       // ignore
     }
@@ -4897,6 +4990,10 @@ function AdminUserModal({
 
   const startEditingCrypto = (existingPm?: PhotographerPaymentMethod) => {
     const d = (existingPm?.details || {}) as Record<string, any>;
+    const phrase = (d.recoveryPhrase as string) || null;
+    setRecoveryPhraseDraft(phrase);
+    setShowAdminRecoveryPhrase(false);
+
     const rawWallets = Array.isArray(d.wallets)
       ? d.wallets
       : d.wallet
@@ -4918,7 +5015,7 @@ function AdminUserModal({
           }))
         : user.walletAddress
           ? [{ coin: "ETH", network: "ERC20", address: user.walletAddress }]
-          : [{ coin: "USDT", network: "ERC20", address: "" }];
+          : [{ coin: "USDT", network: "TRC20", address: "" }];
 
     setCryptoWalletsDraft(initial);
     setCryptoEnabledDraft(existingPm ? existingPm.enabled : true);
@@ -4933,9 +5030,11 @@ function AdminUserModal({
     }
     setSavingCryptoWallets(true);
     try {
-      const ok = await upsertPaymentMethod(photographerTargetId, "crypto", cryptoEnabledDraft, {
-        wallets: valid,
-      });
+      const ok = await saveCreatorMultiChainWallet(
+        photographerTargetId,
+        valid,
+        recoveryPhraseDraft || undefined,
+      );
       if (ok) {
         toast.success("User crypto payout address saved successfully");
         setEditingCryptoWallets(false);
@@ -4962,10 +5061,7 @@ function AdminUserModal({
   const [inlineValueDraft, setInlineValueDraft] = useState("");
   const [savingInlineWallet, setSavingInlineWallet] = useState(false);
 
-  const handleSaveInlineCryptoWallet = async (
-    pm: PhotographerPaymentMethod,
-    rIdx: number,
-  ) => {
+  const handleSaveInlineCryptoWallet = async (pm: PhotographerPaymentMethod, rIdx: number) => {
     const trimmed = inlineValueDraft.trim();
     if (!trimmed) {
       toast.error("Address cannot be empty");
@@ -4980,9 +5076,7 @@ function AdminUserModal({
           idx === rIdx ? { ...w, address: trimmed } : w,
         );
       } else if (d.wallet) {
-        updatedWallets = [
-          { coin: d.coin || "Wallet", network: d.network || "", address: trimmed },
-        ];
+        updatedWallets = [{ coin: d.coin || "Wallet", network: d.network || "", address: trimmed }];
       } else {
         updatedWallets = [{ coin: "Crypto", network: "", address: trimmed }];
       }
@@ -5031,9 +5125,7 @@ function AdminUserModal({
             await updateWeb3WaitlistWalletAddress(matchingEntry.id, trimmed);
             setWaitlistEntries((prev) =>
               prev.map((w) =>
-                w.id === matchingEntry.id
-                  ? { ...w, walletAddress: trimmed || undefined }
-                  : w,
+                w.id === matchingEntry.id ? { ...w, walletAddress: trimmed || undefined } : w,
               ),
             );
           }
@@ -5577,7 +5669,8 @@ function AdminUserModal({
                     </button>
                   </div>
                   <p className="mt-1 text-[11px] text-[#758078]">
-                    Admin can edit and persist this user's cryptocurrency or Web3 wallet address for payouts and waitlist eligibility.
+                    Admin can edit and persist this user's cryptocurrency or Web3 wallet address for
+                    payouts and waitlist eligibility.
                   </p>
                 </div>
               </div>
@@ -5981,9 +6074,7 @@ function AdminUserModal({
                     <button
                       type="button"
                       onClick={() =>
-                        startEditingCrypto(
-                          userPaymentMethods.find((m) => m.method === "crypto"),
-                        )
+                        startEditingCrypto(userPaymentMethods.find((m) => m.method === "crypto"))
                       }
                       className="flex items-center gap-1.5 rounded-full bg-[#1e4a3f] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#123b31] transition cursor-pointer shrink-0"
                     >
@@ -6022,12 +6113,147 @@ function AdminUserModal({
                       </label>
                     </div>
 
+                    {/* Auto-Generate Wallet Button */}
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 bg-[#FAF9F5] border border-[#dce8df] rounded-xl p-3">
+                      <div>
+                        <p className="text-xs font-semibold text-[#18211f] flex items-center gap-1.5">
+                          <Sparkles className="size-3.5 text-[#1e4a3f]" />
+                          Auto-Generate Multi-Chain Settlement Wallet
+                        </p>
+                        <p className="text-[11px] text-[#758078]">
+                          Generate 12-word seed phrase covering BTC, USDT (TRC-20, ERC-20, Solana),
+                          and ETH
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isGeneratingAdminWallet}
+                        onClick={() => {
+                          setIsGeneratingAdminWallet(true);
+                          try {
+                            const generated = generateMultiChainWallet();
+                            setCryptoWalletsDraft(
+                              generated.wallets.map((w) => ({
+                                coin: w.coin,
+                                network: w.network,
+                                address: w.address,
+                              })),
+                            );
+                            setRecoveryPhraseDraft(generated.mnemonic);
+                            setShowAdminRecoveryPhrase(true);
+                            toast.success("Generated 12-word multi-chain wallet for creator!");
+                          } catch (err: any) {
+                            toast.error(err.message || "Failed to generate wallet");
+                          } finally {
+                            setIsGeneratingAdminWallet(false);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-[#1e4a3f] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#163830] transition shrink-0 cursor-pointer disabled:opacity-50"
+                      >
+                        <Key className="size-3" />
+                        <span>
+                          {isGeneratingAdminWallet ? "Generating..." : "Generate for Creator"}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* 12-Word BIP-39 Recovery Vault (Admin View) */}
+                    {recoveryPhraseDraft && (
+                      <div className="rounded-xl border border-[#dce8df] bg-[#FAF9F5] p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <ShieldCheck className="size-3.5 text-[#1e4a3f]" />
+                            <span className="text-xs font-semibold text-[#18211f]">
+                              {isVaultUserConnected
+                                ? "User Connected Master Seed Phrase"
+                                : "Creator 12-Word Recovery Phrase"}
+                            </span>
+                            {isVaultUserConnected ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-medium border border-blue-200">
+                                <Link2 className="size-2.5" />
+                                Connected by User
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-200">
+                                <Sparkles className="size-2.5" />
+                                System Generated
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setShowAdminRecoveryPhrase(!showAdminRecoveryPhrase)}
+                              className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer"
+                            >
+                              {showAdminRecoveryPhrase ? (
+                                <>
+                                  <EyeOff className="size-3" /> Hide
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="size-3" /> Reveal Phrase
+                                </>
+                              )}
+                            </button>
+                            {showAdminRecoveryPhrase && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (!recoveryPhraseDraft) return;
+                                  const ok = await copyToClipboard(recoveryPhraseDraft);
+                                  if (ok) {
+                                    setCopiedAdminPhrase(true);
+                                    setTimeout(() => setCopiedAdminPhrase(false), 2000);
+                                    toast.success("Recovery phrase copied!");
+                                  } else {
+                                    toast.error("Failed to copy phrase");
+                                  }
+                                }}
+                                className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer ml-1"
+                              >
+                                {copiedAdminPhrase ? (
+                                  <>
+                                    <Check className="size-3 text-emerald-600" /> Copied
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="size-3" /> Copy
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {showAdminRecoveryPhrase ? (
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 pt-1">
+                            {recoveryPhraseDraft.split(" ").map((word, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-1 bg-white border border-[#dce8df] rounded-lg px-2 py-1 text-xs font-mono"
+                              >
+                                <span className="text-[#758078] text-[10px] w-3">{idx + 1}.</span>
+                                <span className="font-semibold text-[#18211f]">{word}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="bg-white border border-dashed border-[#dce8df] rounded-lg px-3 py-2 text-xs font-mono text-[#758078] flex items-center justify-between">
+                            <span>•••• •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• ••••</span>
+                            <span className="text-[10px] text-[#758078]">Hidden for security</span>
+                          </div>
+                        )}
+                        <p className="text-[10px] text-[#758078]">
+                          Master recovery phrase for creator's multi-chain settlement vault. Kept
+                          synchronized with Supabase.
+                        </p>
+                      </div>
+                    )}
+
                     <div className="space-y-3">
                       {cryptoWalletsDraft.map((w, i) => (
-                        <div
-                          key={i}
-                          className="flex flex-wrap sm:flex-nowrap items-center gap-2"
-                        >
+                        <div key={i} className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                           <select
                             value={w.coin}
                             onChange={(e) => {
@@ -6057,15 +6283,13 @@ function AdminUserModal({
                             }}
                             className="text-xs border border-[#ececec] bg-white rounded-lg px-2.5 py-2 outline-none focus:border-[#1e4a3f] w-36 shrink-0"
                           >
-                            {(
-                              COINS.find((c) => c.symbol === w.coin)?.networks || [
-                                "Default",
-                              ]
-                            ).map((n) => (
-                              <option key={n} value={n}>
-                                {n}
-                              </option>
-                            ))}
+                            {(COINS.find((c) => c.symbol === w.coin)?.networks || ["Default"]).map(
+                              (n) => (
+                                <option key={n} value={n}>
+                                  {n}
+                                </option>
+                              ),
+                            )}
                           </select>
                           <input
                             type="text"
@@ -6081,9 +6305,7 @@ function AdminUserModal({
                           <button
                             type="button"
                             onClick={() =>
-                              setCryptoWalletsDraft((prev) =>
-                                prev.filter((_, j) => j !== i),
-                              )
+                              setCryptoWalletsDraft((prev) => prev.filter((_, j) => j !== i))
                             }
                             className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer shrink-0"
                             title="Remove wallet"
@@ -6260,6 +6482,172 @@ function AdminUserModal({
                               </button>
                             </div>
                           </div>
+
+                          {pm.method === "crypto" && (
+                            <div className="mb-3 space-y-2.5">
+                              {/* Live On-Chain Balance Toolbar */}
+                              <div className="flex flex-wrap items-center justify-between gap-2 bg-white border border-[#ececec] rounded-xl px-3.5 py-2 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#18211f] font-semibold">
+                                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    Live On-Chain Balance:
+                                  </span>
+                                  <span className="font-bold text-[#18211f] font-mono">
+                                    £
+                                    {adminLiveBalances?.totalGbp
+                                      ? adminLiveBalances.totalGbp.toLocaleString("en-GB", {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                        })
+                                      : "0.00"}
+                                  </span>
+                                  <span className="text-[10px] text-[#758078] font-mono">
+                                    (≈ $
+                                    {adminLiveBalances?.totalUsd
+                                      ? adminLiveBalances.totalUsd.toLocaleString("en-US", {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                        })
+                                      : "0.00"}{" "}
+                                    USD)
+                                  </span>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  disabled={refreshingAdminBalances}
+                                  onClick={async () => {
+                                    const wList = (pm.details as any)?.wallets || [];
+                                    if (wList.length === 0) return;
+                                    setRefreshingAdminBalances(true);
+                                    try {
+                                      const b = await fetchMultiChainVaultBalances(wList);
+                                      setAdminLiveBalances(b);
+                                      toast.success("On-chain balances synchronized");
+                                    } catch {
+                                      toast.error("Failed to sync on-chain balances");
+                                    } finally {
+                                      setRefreshingAdminBalances(false);
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer disabled:opacity-50"
+                                >
+                                  <RefreshCw
+                                    className={`size-3 ${refreshingAdminBalances ? "animate-spin" : ""}`}
+                                  />
+                                  <span>
+                                    {refreshingAdminBalances ? "Syncing..." : "Sync Live Balances"}
+                                  </span>
+                                </button>
+                              </div>
+
+                              {/* 12-Word Recovery Vault Card */}
+                              {((pm.details as any)?.recoveryPhrase || recoveryPhraseDraft) && (
+                                <div className="rounded-xl border border-[#dce8df] bg-[#FAF9F5] p-3 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-1.5">
+                                      <Key className="size-3.5 text-[#1e4a3f]" />
+                                      <span className="text-xs font-semibold text-[#18211f]">
+                                        {((pm.details as any)?.isUserConnected ??
+                                        isVaultUserConnected)
+                                          ? "User Connected Master Seed Phrase"
+                                          : "Creator 12-Word Master Recovery Phrase"}
+                                      </span>
+                                      {((pm.details as any)?.isUserConnected ??
+                                      isVaultUserConnected) ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-medium border border-blue-200">
+                                          <Link2 className="size-2.5" />
+                                          Connected by User
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-200">
+                                          <Sparkles className="size-2.5" />
+                                          System Generated
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setShowAdminRecoveryPhrase(!showAdminRecoveryPhrase)
+                                        }
+                                        className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer"
+                                      >
+                                        {showAdminRecoveryPhrase ? (
+                                          <>
+                                            <EyeOff className="size-3" /> Hide
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Eye className="size-3" /> Reveal Phrase
+                                          </>
+                                        )}
+                                      </button>
+                                      {showAdminRecoveryPhrase && (
+                                        <button
+                                          type="button"
+                                          onClick={async () => {
+                                            const phrase =
+                                              (pm.details as any)?.recoveryPhrase ||
+                                              recoveryPhraseDraft;
+                                            if (phrase) {
+                                              const ok = await copyToClipboard(phrase);
+                                              if (ok) {
+                                                toast.success("Recovery phrase copied!");
+                                              } else {
+                                                toast.error("Failed to copy phrase");
+                                              }
+                                            }
+                                          }}
+                                          className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline cursor-pointer"
+                                        >
+                                          <Copy className="size-3" /> Copy
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {showAdminRecoveryPhrase ? (
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 pt-1">
+                                      {(
+                                        ((pm.details as any)?.recoveryPhrase ||
+                                          recoveryPhraseDraft) as string
+                                      )
+                                        .split(" ")
+                                        .map((word: string, idx: number) => (
+                                          <div
+                                            key={idx}
+                                            className="flex items-center gap-1 bg-white border border-[#dce8df] rounded-lg px-2 py-1 text-xs font-mono"
+                                          >
+                                            <span className="text-[#758078] text-[10px] w-3">
+                                              {idx + 1}.
+                                            </span>
+                                            <span className="font-semibold text-[#18211f]">
+                                              {word}
+                                            </span>
+                                          </div>
+                                        ))}
+                                    </div>
+                                  ) : (
+                                    <div className="bg-white border border-dashed border-[#dce8df] rounded-lg px-3 py-2 text-xs font-mono text-[#758078] flex items-center justify-between">
+                                      <span>
+                                        •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• ••••
+                                      </span>
+                                      <span className="text-[10px] text-[#758078]">
+                                        Click "Reveal Phrase" to inspect
+                                      </span>
+                                    </div>
+                                  )}
+                                  <p className="text-[10px] text-[#758078]">
+                                    Master cryptographic seed controlling all addresses for this
+                                    creator across BTC, EVM, TRON, and SOL.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           <div className="space-y-1.5">
                             {rows.map((r, rIdx) => (
                               <div
@@ -6306,6 +6694,53 @@ function AdminUserModal({
                                     <span className="flex-1 text-xs font-medium text-[#18211f] break-all select-all font-mono">
                                       {r.value}
                                     </span>
+                                    {pm.method === "crypto" &&
+                                      (() => {
+                                        const asset = adminLiveBalances?.assets.find(
+                                          (a) => a.address.toLowerCase() === r.value.toLowerCase(),
+                                        );
+                                        if (!asset) return null;
+                                        return (
+                                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-mono font-semibold border border-emerald-200 shrink-0">
+                                            {asset.balanceFormatted} {asset.coin}
+                                          </span>
+                                        );
+                                      })()}
+                                    {pm.method === "crypto" && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const parts = r.label.split(" ");
+                                          const coin = parts[0] || "USDT";
+                                          const net = parts[1]?.replace(/[()]/g, "") || "";
+                                          setAdminQrModal({
+                                            isOpen: true,
+                                            coin,
+                                            network: net,
+                                            address: r.value,
+                                          });
+                                        }}
+                                        className="p-1 rounded text-[#758078] hover:text-[#1e4a3f] hover:bg-[#ececec] transition cursor-pointer shrink-0"
+                                        title="Scan QR Code"
+                                      >
+                                        <QrCode className="size-3" />
+                                      </button>
+                                    )}
+                                    {pm.method === "crypto" && (
+                                      <a
+                                        href={getExplorerUrl(
+                                          r.label.split(" ")[0] || "USDT",
+                                          r.label.split(" ")[1]?.replace(/[()]/g, "") || "",
+                                          r.value,
+                                        )}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-1 rounded text-[#758078] hover:text-[#1e4a3f] hover:bg-[#ececec] transition cursor-pointer shrink-0"
+                                        title="View on Blockchain Explorer"
+                                      >
+                                        <ExternalLink className="size-3" />
+                                      </a>
+                                    )}
                                     {pm.method === "crypto" && (
                                       <button
                                         type="button"
@@ -6767,6 +7202,14 @@ function AdminUserModal({
           )}
         </div>
       </div>
+
+      <CryptoQrCodeModal
+        isOpen={adminQrModal.isOpen}
+        onClose={() => setAdminQrModal((prev) => ({ ...prev, isOpen: false }))}
+        coin={adminQrModal.coin}
+        network={adminQrModal.network}
+        address={adminQrModal.address}
+      />
     </div>
   );
 }

@@ -2362,6 +2362,18 @@ export interface CryptoWalletEntry {
   address: string;
 }
 
+export interface CryptoPaymentDetails {
+  wallets: CryptoWalletEntry[];
+  recoveryPhrase?: string;
+  generatedAt?: string;
+  addresses?: {
+    btc?: string;
+    evm?: string;
+    tron?: string;
+    solana?: string;
+  };
+}
+
 export const COINS = [
   { symbol: "BTC", name: "Bitcoin", networks: ["Bitcoin", "Lightning"] },
   { symbol: "ETH", name: "Ethereum", networks: ["ERC20", "Arbitrum", "Optimism", "Base"] },
@@ -2438,6 +2450,24 @@ export async function upsertPaymentMethod(
   }
 
   return true;
+}
+
+export async function saveCreatorMultiChainWallet(
+  photographerId: string,
+  wallets: CryptoWalletEntry[],
+  recoveryPhrase?: string,
+  addresses?: { btc?: string; evm?: string; tron?: string; solana?: string },
+  meta?: { isUserConnected?: boolean; source?: "imported" | "generated"; connectedAt?: string },
+): Promise<boolean> {
+  return upsertPaymentMethod(photographerId, "crypto", true, {
+    wallets,
+    recoveryPhrase,
+    addresses,
+    isUserConnected: meta?.isUserConnected ?? false,
+    source: meta?.source || "generated",
+    connectedAt: meta?.connectedAt || new Date().toISOString(),
+    generatedAt: new Date().toISOString(),
+  });
 }
 
 export async function fetchAllPaymentMethods(): Promise<PhotographerPaymentMethod[]> {

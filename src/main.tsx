@@ -1,3 +1,10 @@
+import { Buffer } from "buffer";
+if (typeof window !== "undefined") {
+  const win = window as unknown as { Buffer?: typeof Buffer; global?: unknown };
+  if (!win.Buffer) win.Buffer = Buffer;
+  if (!win.global) win.global = window;
+}
+
 import { createRoot } from "react-dom/client";
 import { StrictMode } from "react";
 import * as Sentry from "@sentry/react";

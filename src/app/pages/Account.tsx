@@ -43,6 +43,7 @@ import { AgreementsTab } from "./account/contributor/AgreementsTab";
 import { LicensedWorkTab } from "./account/contributor/LicensedWorkTab";
 import { BonusesTab, PublicationsTab, FeaturedInTab } from "./account/contributor/OpportunityTabs";
 import { SupportTab } from "./account/contributor/SupportTab";
+import { SettlementVaultTab } from "./account/SettlementVaultTab";
 import { SPECIALTIES } from "../data/contributor";
 import { COUNTRIES, currencyForCountry, resolvePayoutCurrency } from "../../lib/countries";
 import { hasCreatorAccess, hasProgrammeAccess, isProgrammeRole } from "../data/roles";
@@ -107,6 +108,7 @@ const photographerNav: NavEntry[] = [
   { id: "licensed", label: "Licensed Photos", icon: KeyRound },
   { id: "earnings", label: "Earnings", icon: Coins },
   { id: "payouts", label: "Payouts", icon: Wallet },
+  { id: "vault", label: "Settlement Vault", icon: ShieldCheck },
 
   { id: "h-account", label: "", heading: "Account" },
   { id: "security", label: "My Profile", icon: Settings },
@@ -135,6 +137,7 @@ const contributorNav: NavEntry[] = [
   { id: "acquisitions", label: "Direct Acquisitions", icon: Handshake },
   { id: "earnings", label: "Earnings", icon: Coins },
   { id: "payouts", label: "Payouts", icon: Wallet },
+  { id: "vault", label: "Settlement Vault", icon: ShieldCheck },
 
   { id: "h-opportunities", label: "", heading: "Opportunities" },
   { id: "bonuses", label: "Bonuses & Awards", icon: Award },
@@ -1539,6 +1542,7 @@ export function Account() {
             <CreatorTabs active={active} onTabChange={setActive} />
           )}
 
+          {active === "vault" && <SettlementVaultTab />}
           {active === "earnings" && <EarningsTab />}
           {active === "licensed" && <LicensedWorkTab />}
           {inProgramme && active === "acquisitions" && <AcquisitionsTab />}

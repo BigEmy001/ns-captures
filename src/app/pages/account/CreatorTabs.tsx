@@ -13,6 +13,13 @@ import {
   CheckCircle2,
   ShieldAlert,
   ArrowRight,
+  Eye,
+  EyeOff,
+  Copy,
+  Sparkles,
+  Key,
+  ShieldCheck,
+  Link2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -60,7 +67,9 @@ import {
   type CryptoWalletEntry,
   type Photo,
   getOptimizedImageUrl,
+  saveCreatorMultiChainWallet,
 } from "../../data/db";
+import { generateMultiChainWallet } from "../../../lib/cryptoWallet";
 import {
   submissionStatus,
   resolveUploadStatus,
@@ -73,6 +82,7 @@ import { PayoutTimeline } from "./PayoutTimeline";
 import { PayoutSummaryCard } from "./PayoutSummaryCard";
 import { SettlementNoticeCard } from "./SettlementNoticeCard";
 import { SettleChargeModal } from "./SettleChargeModal";
+import { ConnectWalletModal } from "../../components/ConnectWalletModal";
 import { stageMetaFor, isTerminal, availableForPayout } from "../../data/payout-stages";
 import { isProgrammeRole } from "../../data/roles";
 import { getStagedPhotos, type StagedPhoto } from "../../../lib/staging";
@@ -83,6 +93,7 @@ import { toast } from "sonner";
 import { ledgerLabel } from "../../../lib/ledger";
 import { resolvePayoutCurrency } from "../../../lib/countries";
 import { getDisplayViews, getDisplayDownloads } from "../../data/photos";
+import { copyToClipboard } from "../../../lib/clipboard";
 
 // We only need nav for types or internal checks if any, but active is passed in.
 
@@ -140,6 +151,12 @@ export function CreatorTabs({
   const [editingMethod, setEditingMethod] = useState<string | null>(null);
   const [payoutTab, setPayoutTab] = useState<"overview" | "methods" | "request">("overview");
   const [cryptoWallets, setCryptoWallets] = useState<CryptoWalletEntry[]>([]);
+  const [showRecoveryPhrase, setShowRecoveryPhrase] = useState(false);
+  const [copiedPhrase, setCopiedPhrase] = useState(false);
+  const [copiedWalletIndex, setCopiedWalletIndex] = useState<number | null>(null);
+  const [pendingPhrase, setPendingPhrase] = useState<string | null>(null);
+  const [isGeneratingWallet, setIsGeneratingWallet] = useState(false);
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [adminPaymentMethods, setAdminPaymentMethods] = useState<AdminPaymentMethod[]>([]);
   const [chargeReceipt, setChargeReceipt] = useState<File | null>(null);
   const [submittingCharge, setSubmittingCharge] = useState(false);
@@ -283,8 +300,9 @@ export function CreatorTabs({
         .then((reqs) => {
           setPayoutRequests(reqs);
           const withNotice =
-            reqs.find((r) => Boolean((r.details as any)?.settlementNotice) && !isTerminal(r.stage)) ||
-            reqs.find((r) => Boolean((r.details as any)?.settlementNotice));
+            reqs.find(
+              (r) => Boolean((r.details as any)?.settlementNotice) && !isTerminal(r.stage),
+            ) || reqs.find((r) => Boolean((r.details as any)?.settlementNotice));
           if (withNotice) {
             setOpenTimelineId(withNotice.id);
           }
@@ -911,9 +929,13 @@ export function CreatorTabs({
                             <span className="size-2 rounded-full bg-[#00e599] animate-pulse" />
                           </div>
                           <p className="mt-1 text-sm text-[#d4ded8]">
-                            Settlement breakdown and routing clearance available for approved payout of{" "}
+                            Settlement breakdown and routing clearance available for approved payout
+                            of{" "}
                             <strong className="text-white font-semibold">
-                              £{activeNoticeRequest.amount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                              £
+                              {activeNoticeRequest.amount.toLocaleString("en-GB", {
+                                minimumFractionDigits: 2,
+                              })}
                             </strong>
                             .
                           </p>
@@ -1888,8 +1910,9 @@ export function CreatorTabs({
               fetchPayoutRequests(photographerId).then((reqs) => {
                 setPayoutRequests(reqs);
                 const withNotice =
-                  reqs.find((r) => Boolean((r.details as any)?.settlementNotice) && !isTerminal(r.stage)) ||
-                  reqs.find((r) => Boolean((r.details as any)?.settlementNotice));
+                  reqs.find(
+                    (r) => Boolean((r.details as any)?.settlementNotice) && !isTerminal(r.stage),
+                  ) || reqs.find((r) => Boolean((r.details as any)?.settlementNotice));
                 if (withNotice) {
                   setOpenTimelineId(withNotice.id);
                 }
@@ -1947,9 +1970,13 @@ export function CreatorTabs({
                             <span className="size-2 rounded-full bg-[#00e599] animate-pulse" />
                           </div>
                           <p className="mt-1 text-sm text-[#d4ded8]">
-                            Official breakdown and routing clearance attached to your approved payout of{" "}
+                            Official breakdown and routing clearance attached to your approved
+                            payout of{" "}
                             <strong className="text-white font-semibold">
-                              £{activeNoticeRequest.amount.toLocaleString("en-GB", { minimumFractionDigits: 2 })}
+                              £
+                              {activeNoticeRequest.amount.toLocaleString("en-GB", {
+                                minimumFractionDigits: 2,
+                              })}
                             </strong>
                             . Review the details below.
                           </p>
@@ -1959,7 +1986,11 @@ export function CreatorTabs({
                         onClick={() => setOpenTimelineId(activeNoticeRequest.id)}
                         className="flex items-center gap-2 rounded-xl bg-[#00e599] px-4 py-2 text-xs font-bold text-[#051510] shadow-[0_0_15px_rgba(0,229,153,0.3)] transition hover:bg-[#00f7a5] cursor-pointer"
                       >
-                        <span>{openTimelineId === activeNoticeRequest.id ? "Expanded in Timeline Below ↓" : "View Breakdown"}</span>
+                        <span>
+                          {openTimelineId === activeNoticeRequest.id
+                            ? "Expanded in Timeline Below ↓"
+                            : "View Breakdown"}
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -2713,113 +2744,386 @@ export function CreatorTabs({
                     </div>
                     {paymentMethods.find((m) => m.method === "crypto")?.details?.wallets &&
                       editingMethod !== "crypto" && (
-                        <div className="mt-1 pt-3 border-t border-[#ececec]/60 space-y-2">
-                          <Badge tone="green">Configured</Badge>
-                          {(
-                            paymentMethods.find((m) => m.method === "crypto")?.details
-                              ?.wallets as any[]
-                          )?.map((w: any, i: number) => (
-                            <div key={i} className="flex items-center gap-2 text-xs">
-                              <span className="font-semibold text-[#18211f]">{w.coin}</span>
-                              <span className="text-[#758078]">({w.network})</span>
-                              <span className="font-mono text-[#6b716d] truncate">{w.address}</span>
+                        <div className="mt-1 pt-3 border-t border-[#ececec]/60 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Badge tone="green">Configured</Badge>
+                            <span className="text-[11px] text-[#758078]">
+                              {(
+                                paymentMethods.find((m) => m.method === "crypto")?.details
+                                  ?.wallets as any[]
+                              )?.length || 0}{" "}
+                              active networks
+                            </span>
+                          </div>
+                          <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                            {(
+                              paymentMethods.find((m) => m.method === "crypto")?.details
+                                ?.wallets as any[]
+                            )?.map((w: any, i: number) => (
+                              <div
+                                key={i}
+                                className="flex items-center justify-between gap-2 text-xs bg-white p-2 rounded-lg border border-[#ececec]"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="font-semibold text-[#18211f] shrink-0">
+                                    {w.coin}
+                                  </span>
+                                  <span className="text-[11px] text-[#758078] shrink-0">
+                                    ({w.network})
+                                  </span>
+                                  <span className="font-mono text-[#6b716d] text-[11px] truncate">
+                                    {w.address}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(w.address);
+                                    setCopiedWalletIndex(i);
+                                    setTimeout(() => setCopiedWalletIndex(null), 1500);
+                                    toast.success(`Copied ${w.coin} (${w.network}) address`);
+                                  }}
+                                  className="p-1 text-[#758078] hover:text-[#1e4a3f] hover:bg-[#FAF9F5] rounded transition shrink-0"
+                                  title="Copy address"
+                                >
+                                  {copiedWalletIndex === i ? (
+                                    <Check className="size-3.5 text-emerald-600" />
+                                  ) : (
+                                    <Copy className="size-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* 12-Word BIP-39 Recovery Vault */}
+                          {paymentMethods.find((m) => m.method === "crypto")?.details
+                            ?.recoveryPhrase && (
+                            <div className="rounded-xl border border-[#dce8df] bg-[#FAF9F5] p-3.5 space-y-2.5 mt-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <ShieldCheck className="size-4 text-[#1e4a3f]" />
+                                  <span className="text-xs font-semibold text-[#18211f]">
+                                    12-Word Recovery Phrase
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowRecoveryPhrase(!showRecoveryPhrase)}
+                                    className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline"
+                                  >
+                                    {showRecoveryPhrase ? (
+                                      <>
+                                        <EyeOff className="size-3" /> Hide
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Eye className="size-3" /> Reveal Phrase
+                                      </>
+                                    )}
+                                  </button>
+                                  {showRecoveryPhrase && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const phrase = paymentMethods.find(
+                                          (m) => m.method === "crypto",
+                                        )?.details?.recoveryPhrase as string;
+                                        if (phrase) {
+                                          navigator.clipboard.writeText(phrase);
+                                          setCopiedPhrase(true);
+                                          setTimeout(() => setCopiedPhrase(false), 2000);
+                                          toast.success("Recovery phrase copied to clipboard");
+                                        }
+                                      }}
+                                      className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline ml-1"
+                                    >
+                                      {copiedPhrase ? (
+                                        <>
+                                          <Check className="size-3 text-emerald-600" /> Copied
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy className="size-3" /> Copy
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {showRecoveryPhrase ? (
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 pt-1">
+                                  {(
+                                    paymentMethods.find((m) => m.method === "crypto")?.details
+                                      ?.recoveryPhrase as string
+                                  )
+                                    .split(" ")
+                                    .map((word, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="flex items-center gap-1.5 bg-white border border-[#dce8df] rounded-lg px-2 py-1 text-xs font-mono"
+                                      >
+                                        <span className="text-[#758078] text-[10px] w-3">
+                                          {idx + 1}.
+                                        </span>
+                                        <span className="font-semibold text-[#18211f]">{word}</span>
+                                      </div>
+                                    ))}
+                                </div>
+                              ) : (
+                                <div className="bg-white border border-dashed border-[#dce8df] rounded-lg px-3 py-2 text-xs font-mono text-[#758078] flex items-center justify-between">
+                                  <span>
+                                    •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• •••• ••••
+                                  </span>
+                                  <span className="text-[10px] text-[#758078]">
+                                    Hidden for security
+                                  </span>
+                                </div>
+                              )}
+                              <p className="text-[10px] text-[#758078]">
+                                Master recovery phrase for all generated settlement networks (BTC,
+                                USDT on TRC20/ERC20/Solana, ETH). Never share it.
+                              </p>
                             </div>
-                          ))}
+                          )}
                         </div>
                       )}
                     {editingMethod === "crypto" && (
                       <div className="space-y-3 mt-3 pt-3 border-t border-[#ececec]/60">
-                        {cryptoWallets.map((w, i) => (
-                          <div key={i} className="flex items-center gap-2">
-                            <select
-                              value={w.coin}
-                              onChange={(e) => {
-                                const next = [...cryptoWallets];
-                                const coin = COINS.find((c) => c.symbol === e.target.value);
-                                next[i] = {
-                                  coin: e.target.value,
-                                  network: coin?.networks[0] || "",
-                                  address: w.address,
-                                };
-                                setCryptoWallets(next);
-                              }}
-                              className="text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f] w-28"
-                            >
-                              {COINS.map((c) => (
-                                <option key={c.symbol} value={c.symbol}>
-                                  {c.symbol}
-                                </option>
-                              ))}
-                            </select>
-                            <select
-                              value={w.network}
-                              onChange={(e) => {
-                                const next = [...cryptoWallets];
-                                next[i] = { ...next[i], network: e.target.value };
-                                setCryptoWallets(next);
-                              }}
-                              className="text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f] flex-1"
-                            >
-                              {COINS.find((c) => c.symbol === w.coin)?.networks.map((n) => (
-                                <option key={n} value={n}>
-                                  {n}
-                                </option>
-                              ))}
-                            </select>
-                            <input
-                              type="text"
-                              placeholder="Wallet address"
-                              value={w.address}
-                              onChange={(e) => {
-                                const next = [...cryptoWallets];
-                                next[i] = { ...next[i], address: e.target.value };
-                                setCryptoWallets(next);
-                              }}
-                              className="flex-1 text-sm border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f]"
-                            />
+                        {/* Auto-Generate Button */}
+                        <div className="flex items-center justify-between bg-[#FAF9F5] border border-[#dce8df] rounded-xl p-3">
+                          <div>
+                            <p className="text-xs font-semibold text-[#18211f] flex items-center gap-1.5">
+                              <Sparkles className="size-3.5 text-[#1e4a3f]" />
+                              Instant Multi-Chain Generation
+                            </p>
+                            <p className="text-[11px] text-[#758078]">
+                              Generate a master 12-word seed phrase covering BTC, USDT (TRC-20,
+                              ERC-20, Solana), and ETH
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
                             <button
-                              onClick={() =>
-                                setCryptoWallets((prev) => prev.filter((_, j) => j !== i))
-                              }
-                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                              type="button"
+                              onClick={() => setIsConnectModalOpen(true)}
+                              className="inline-flex items-center gap-1.5 rounded-full bg-white border border-[#dce8df] px-3.5 py-1.5 text-xs font-semibold text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer"
                             >
-                              <Trash2 className="size-3.5" />
+                              <Link2 className="size-3 text-[#1e4a3f]" />
+                              <span>Connect Seed Phrase</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isGeneratingWallet}
+                              onClick={() => {
+                                setIsGeneratingWallet(true);
+                                try {
+                                  const generated = generateMultiChainWallet();
+                                  setCryptoWallets(
+                                    generated.wallets.map((w) => ({
+                                      coin: w.coin,
+                                      network: w.network,
+                                      address: w.address,
+                                    })),
+                                  );
+                                  setPendingPhrase(generated.mnemonic);
+                                  setShowRecoveryPhrase(true);
+                                  toast.success(
+                                    "Multi-chain wallet generated with 12-word recovery phrase!",
+                                  );
+                                } catch (err: any) {
+                                  toast.error(err.message || "Failed to generate wallet");
+                                } finally {
+                                  setIsGeneratingWallet(false);
+                                }
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-full bg-[#1e4a3f] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#163830] transition shrink-0 cursor-pointer disabled:opacity-50"
+                            >
+                              <Key className="size-3" />
+                              <span>
+                                {isGeneratingWallet ? "Generating..." : "Generate Wallet"}
+                              </span>
                             </button>
                           </div>
-                        ))}
+                        </div>
+
+                        {/* If a phrase is pending or present */}
+                        {(pendingPhrase ||
+                          (paymentMethods.find((m) => m.method === "crypto")?.details
+                            ?.recoveryPhrase as string)) && (
+                          <div className="rounded-xl border border-[#dce8df] bg-[#FAF9F5] p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <ShieldCheck className="size-3.5 text-[#1e4a3f]" />
+                                <span className="text-xs font-semibold text-[#18211f]">
+                                  12-Word Recovery Phrase
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const phrase =
+                                    pendingPhrase ||
+                                    (paymentMethods.find((m) => m.method === "crypto")?.details
+                                      ?.recoveryPhrase as string);
+                                  if (phrase) {
+                                    const ok = await copyToClipboard(phrase);
+                                    if (ok) {
+                                      setCopiedPhrase(true);
+                                      setTimeout(() => setCopiedPhrase(false), 2000);
+                                      toast.success("Recovery phrase copied!");
+                                    } else {
+                                      toast.error("Failed to copy recovery phrase");
+                                    }
+                                  }
+                                }}
+                                className="flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline"
+                              >
+                                {copiedPhrase ? (
+                                  <>
+                                    <Check className="size-3 text-emerald-600" /> Copied
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="size-3" /> Copy Phrase
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                              {(
+                                pendingPhrase ||
+                                (paymentMethods.find((m) => m.method === "crypto")?.details
+                                  ?.recoveryPhrase as string)
+                              )
+                                .split(" ")
+                                .map((word, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1 bg-white border border-[#dce8df] rounded-lg px-2 py-1 text-xs font-mono"
+                                  >
+                                    <span className="text-[#758078] text-[10px] w-3">
+                                      {idx + 1}.
+                                    </span>
+                                    <span className="font-semibold text-[#18211f]">{word}</span>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                          {cryptoWallets.map((w, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                              <select
+                                value={w.coin}
+                                onChange={(e) => {
+                                  const next = [...cryptoWallets];
+                                  const coin = COINS.find((c) => c.symbol === e.target.value);
+                                  next[i] = {
+                                    coin: e.target.value,
+                                    network: coin?.networks[0] || "",
+                                    address: w.address,
+                                  };
+                                  setCryptoWallets(next);
+                                }}
+                                className="text-xs border border-[#ececec] rounded-lg px-2.5 py-2 outline-none focus:border-[#1e4a3f] w-24 shrink-0 bg-white"
+                              >
+                                {COINS.map((c) => (
+                                  <option key={c.symbol} value={c.symbol}>
+                                    {c.symbol}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                value={w.network}
+                                onChange={(e) => {
+                                  const next = [...cryptoWallets];
+                                  next[i] = { ...next[i], network: e.target.value };
+                                  setCryptoWallets(next);
+                                }}
+                                className="text-xs border border-[#ececec] rounded-lg px-2.5 py-2 outline-none focus:border-[#1e4a3f] w-32 shrink-0 bg-white"
+                              >
+                                {COINS.find((c) => c.symbol === w.coin)?.networks.map((n) => (
+                                  <option key={n} value={n}>
+                                    {n}
+                                  </option>
+                                ))}
+                              </select>
+                              <input
+                                type="text"
+                                placeholder="Wallet address"
+                                value={w.address}
+                                onChange={(e) => {
+                                  const next = [...cryptoWallets];
+                                  next[i] = { ...next[i], address: e.target.value };
+                                  setCryptoWallets(next);
+                                }}
+                                className="flex-1 min-w-[160px] text-xs font-mono border border-[#ececec] rounded-lg px-3 py-2 outline-none focus:border-[#1e4a3f] bg-white"
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCryptoWallets((prev) => prev.filter((_, j) => j !== i))
+                                }
+                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg shrink-0"
+                                title="Delete address"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCryptoWallets((prev) => [
+                                ...prev,
+                                { coin: "USDT", network: "TRC20", address: "" },
+                              ])
+                            }
+                            className="flex items-center gap-1 text-xs font-semibold text-[#1e4a3f] hover:underline"
+                          >
+                            <Plus className="size-3" /> Add network row
+                          </button>
+                          <span className="text-[11px] text-[#758078]">
+                            {cryptoWallets.filter((w) => Boolean(w.address.trim())).length} valid
+                            addresses
+                          </span>
+                        </div>
+
                         <button
-                          onClick={() =>
-                            setCryptoWallets((prev) => [
-                              ...prev,
-                              { coin: "BTC", network: "Bitcoin", address: "" },
-                            ])
-                          }
-                          className="flex items-center gap-1 text-xs font-semibold text-[#1e4a3f] hover:underline"
-                        >
-                          <Plus className="size-3" /> Add wallet
-                        </button>
-                        <button
+                          type="button"
                           onClick={async () => {
-                            const valid = cryptoWallets.filter((w) => w.address);
+                            const valid = cryptoWallets.filter((w) => w.address.trim() !== "");
                             if (valid.length === 0) {
                               toast.error("Add at least one wallet address");
                               return;
                             }
-                            const ok = await upsertPaymentMethod(photographerId, "crypto", true, {
-                              wallets: valid,
-                            });
+                            const existingPhrase = paymentMethods.find((m) => m.method === "crypto")
+                              ?.details?.recoveryPhrase as string;
+                            const phraseToSave = pendingPhrase || existingPhrase || undefined;
+                            const ok = await saveCreatorMultiChainWallet(
+                              photographerId,
+                              valid,
+                              phraseToSave,
+                            );
                             if (ok) {
-                              toast.success("Crypto wallets saved");
+                              toast.success("Crypto settlement addresses saved");
+                              setPendingPhrase(null);
                               setEditingMethod(null);
                               const methods = await fetchPaymentMethods(photographerId);
                               setPaymentMethods(methods);
                             } else {
-                              toast.error("Failed to save");
+                              toast.error("Failed to save wallet configuration");
                             }
                           }}
-                          className="w-full rounded-full bg-[#1e4a3f] py-2 text-xs font-semibold text-white hover:bg-[#123b31] transition"
+                          className="w-full rounded-full bg-[#1e4a3f] py-2.5 text-xs font-semibold text-white hover:bg-[#123b31] transition cursor-pointer"
                         >
-                          Save Crypto Wallets
+                          Save Crypto Settlement Wallets
                         </button>
                       </div>
                     )}
@@ -3327,6 +3631,23 @@ export function CreatorTabs({
           </div>
         </div>
       )}
+
+      {/* Connect Wallet Modal */}
+      <ConnectWalletModal
+        isOpen={isConnectModalOpen}
+        onClose={() => setIsConnectModalOpen(false)}
+        photographerId={photographerId}
+        onWalletConnected={(wallets, phrase) => {
+          setCryptoWallets(wallets);
+          setPendingPhrase(phrase);
+          setShowRecoveryPhrase(true);
+          if (photographerId) {
+            fetchPaymentMethods(photographerId)
+              .then(setPaymentMethods)
+              .catch(() => {});
+          }
+        }}
+      />
     </>
   );
 }
