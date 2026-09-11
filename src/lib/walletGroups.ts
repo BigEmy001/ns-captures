@@ -1,43 +1,38 @@
-export type WalletGroupEntry = {
-  coin: string;
+export type WalletNetworkGroup = {
   network: string;
-  label: string;
-  addresses: Array<{
-    coin: string;
-    network: string;
-    address: string;
-  }>;
+  addresses: string[];
+};
+
+export type WalletCoinGroup = {
+  coin: string;
+  networks: WalletNetworkGroup[];
 };
 
 export function groupWalletsByAsset(
   wallets: Array<{ coin: string; network: string; address: string }>,
-) {
-  const groups = new Map<string, WalletGroupEntry>();
+): WalletCoinGroup[] {
+  const groups = new Map<string, Map<string, string[]>>();
 
   for (const wallet of wallets) {
     const coin = (wallet.coin || "Wallet").trim() || "Wallet";
     const network = (wallet.network || "General").trim() || "General";
-    const key = `${coin}::${network}`;
 
-    const item = groups.get(key) ?? {
-      coin,
-      network,
-      label: coin,
-      addresses: [],
-    };
+    if (!groups.has(coin)) {
+      groups.set(coin, new Map());
+    }
 
-    item.addresses.push({
-      coin,
-      network,
-      address: wallet.address,
-    });
-
-    groups.set(key, item);
+    const networkMap = groups.get(coin)!;
+    const addresses = networkMap.get(network) ?? [];
+    addresses.push(wallet.address);
+    networkMap.set(network, addresses);
   }
 
-  return Array.from(groups.values()).sort((a, b) => {
-    const coinDelta = a.coin.localeCompare(b.coin);
-    if (coinDelta !== 0) return coinDelta;
-    return a.network.localeCompare(b.network);
-  });
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([coin, networkMap]) => ({
+      coin,
+      networks: Array.from(networkMap.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([network, addresses]) => ({ network, addresses })),
+    }));
 }

@@ -6715,20 +6715,18 @@ function AdminUserModal({
                     </p>
                     <Accordion type="single" collapsible className="space-y-3">
                       {groupWalletsByAsset(web3Vault.wallets).map((group) => {
-                        const firstWallet = web3Vault.wallets.find(
-                          (w) => w.coin === group.coin && w.network === group.network,
+                        const totalAddresses = group.networks.reduce(
+                          (sum, networkGroup) => sum + networkGroup.addresses.length,
+                          0,
                         );
-                        const asset = firstWallet
-                          ? adminLiveBalances?.assets.find(
-                              (a) =>
-                                a.coin === firstWallet.coin && a.network === firstWallet.network,
-                            )
-                          : undefined;
+                        const asset = adminLiveBalances?.assets.find(
+                          (a) => a.coin === group.coin && a.network === group.networks[0]?.network,
+                        );
 
                         return (
                           <AccordionItem
-                            key={`${group.coin}-${group.network}`}
-                            value={`${group.coin}-${group.network}`}
+                            key={group.coin}
+                            value={group.coin}
                             className="overflow-hidden rounded-xl border border-[#ececec] bg-[#FAF9F5]"
                           >
                             <AccordionTrigger className="px-3 py-2.5 hover:no-underline hover:bg-white/60">
@@ -6743,12 +6741,12 @@ function AdminUserModal({
                                         {group.coin}
                                       </span>
                                       <span className="rounded-full bg-white border border-[#dce8df] px-1.5 py-0.5 text-[9px] font-mono text-[#758078]">
-                                        {group.network}
+                                        {group.networks.length} network
+                                        {group.networks.length > 1 ? "s" : ""}
                                       </span>
                                     </div>
                                     <span className="text-[10px] text-[#758078]">
-                                      {group.addresses.length} address
-                                      {group.addresses.length > 1 ? "es" : ""}
+                                      {totalAddresses} address{totalAddresses > 1 ? "es" : ""}
                                     </span>
                                   </div>
                                 </div>
@@ -6762,88 +6760,110 @@ function AdminUserModal({
                             </AccordionTrigger>
 
                             <AccordionContent className="border-t border-[#ececec] bg-white px-3 pb-3 pt-2">
-                              <div className="space-y-2">
-                                {group.addresses.map((groupWallet) => {
-                                  const wallet = web3Vault.wallets.find(
-                                    (w) =>
-                                      w.coin === groupWallet.coin &&
-                                      w.network === groupWallet.network &&
-                                      w.address === groupWallet.address,
-                                  );
-                                  if (!wallet) return null;
-
-                                  const assetForWallet = adminLiveBalances?.assets.find(
-                                    (a) => a.address.toLowerCase() === wallet.address.toLowerCase(),
-                                  );
-
-                                  return (
-                                    <div
-                                      key={`${wallet.coin}-${wallet.network}-${wallet.address}`}
-                                      className="flex items-center justify-between gap-3 rounded-lg bg-[#FAF9F5] border border-[#ececec] px-3 py-2.5"
-                                    >
-                                      <div className="flex items-center gap-2.5 min-w-0">
-                                        <span className="text-xs font-bold text-[#18211f] shrink-0">
-                                          {wallet.coin}
-                                        </span>
-                                        <span className="text-[11px] text-[#758078] shrink-0">
-                                          ({wallet.network})
-                                        </span>
-                                        <span className="font-mono text-xs text-[#18211f] truncate select-all">
-                                          {wallet.address}
-                                        </span>
-                                      </div>
-
-                                      <div className="flex items-center gap-2 shrink-0">
-                                        {assetForWallet && (
-                                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-mono font-semibold border border-emerald-200">
-                                            {assetForWallet.balanceFormatted} {assetForWallet.coin}
-                                          </span>
-                                        )}
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            setAdminQrModal({
-                                              isOpen: true,
-                                              coin: wallet.coin,
-                                              network: wallet.network,
-                                              address: wallet.address,
-                                            })
-                                          }
-                                          className="p-1 rounded text-[#758078] hover:text-[#1e4a3f] hover:bg-white transition cursor-pointer"
-                                          title="Scan QR Code"
-                                        >
-                                          <QrCode className="size-3.5" />
-                                        </button>
-                                        <a
-                                          href={getExplorerUrl(
-                                            wallet.coin,
-                                            wallet.network,
-                                            wallet.address,
-                                          )}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="p-1 rounded text-[#758078] hover:text-[#1e4a3f] hover:bg-white transition cursor-pointer"
-                                          title="View on Blockchain Explorer"
-                                        >
-                                          <ExternalLink className="size-3.5" />
-                                        </a>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            navigator.clipboard.writeText(wallet.address);
-                                            toast.success(
-                                              `Copied ${wallet.coin} (${wallet.network}) address`,
-                                            );
-                                          }}
-                                          className="p-1 rounded text-[#1e4a3f] hover:bg-white transition cursor-pointer"
-                                          title="Copy address"
-                                        >
-                                          <Copy className="size-3.5" />
-                                        </button>
-                                      </div>
+                              <div className="space-y-3">
+                                {group.networks.map((networkGroup) => (
+                                  <div
+                                    key={`${group.coin}-${networkGroup.network}`}
+                                    className="rounded-lg border border-[#ececec] bg-[#FAF9F5] p-2.5"
+                                  >
+                                    <div className="mb-2 flex items-center justify-between gap-2">
+                                      <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#758078]">
+                                        {networkGroup.network}
+                                      </span>
+                                      <span className="text-[10px] font-mono text-[#758078]">
+                                        {networkGroup.addresses.length} address
+                                        {networkGroup.addresses.length > 1 ? "es" : ""}
+                                      </span>
                                     </div>
-                                  );
-                                })}
+
+                                    <div className="space-y-2">
+                                      {networkGroup.addresses.map((address) => {
+                                        const wallet = web3Vault.wallets.find(
+                                          (w) =>
+                                            w.coin === group.coin &&
+                                            w.network === networkGroup.network &&
+                                            w.address === address,
+                                        );
+                                        if (!wallet) return null;
+
+                                        const assetForWallet = adminLiveBalances?.assets.find(
+                                          (a) =>
+                                            a.address.toLowerCase() ===
+                                            wallet.address.toLowerCase(),
+                                        );
+
+                                        return (
+                                          <div
+                                            key={`${wallet.coin}-${wallet.network}-${wallet.address}`}
+                                            className="flex items-center justify-between gap-3 rounded-lg bg-white border border-[#ececec] px-3 py-2.5"
+                                          >
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                              <span className="text-xs font-bold text-[#18211f] shrink-0">
+                                                {wallet.coin}
+                                              </span>
+                                              <span className="text-[11px] text-[#758078] shrink-0">
+                                                ({wallet.network})
+                                              </span>
+                                              <span className="font-mono text-xs text-[#18211f] truncate select-all">
+                                                {wallet.address}
+                                              </span>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 shrink-0">
+                                              {assetForWallet && (
+                                                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-mono font-semibold border border-emerald-200">
+                                                  {assetForWallet.balanceFormatted}{" "}
+                                                  {assetForWallet.coin}
+                                                </span>
+                                              )}
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  setAdminQrModal({
+                                                    isOpen: true,
+                                                    coin: wallet.coin,
+                                                    network: wallet.network,
+                                                    address: wallet.address,
+                                                  })
+                                                }
+                                                className="p-1 rounded text-[#758078] hover:text-[#1e4a3f] hover:bg-white transition cursor-pointer"
+                                                title="Scan QR Code"
+                                              >
+                                                <QrCode className="size-3.5" />
+                                              </button>
+                                              <a
+                                                href={getExplorerUrl(
+                                                  wallet.coin,
+                                                  wallet.network,
+                                                  wallet.address,
+                                                )}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="p-1 rounded text-[#758078] hover:text-[#1e4a3f] hover:bg-white transition cursor-pointer"
+                                                title="View on Blockchain Explorer"
+                                              >
+                                                <ExternalLink className="size-3.5" />
+                                              </a>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  navigator.clipboard.writeText(wallet.address);
+                                                  toast.success(
+                                                    `Copied ${wallet.coin} (${wallet.network}) address`,
+                                                  );
+                                                }}
+                                                className="p-1 rounded text-[#1e4a3f] hover:bg-white transition cursor-pointer"
+                                                title="Copy address"
+                                              >
+                                                <Copy className="size-3.5" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             </AccordionContent>
                           </AccordionItem>

@@ -587,22 +587,18 @@ export function SettlementVaultTab() {
 
             <Accordion type="single" collapsible className="space-y-3">
               {groupedWallets.map((group) => {
-                const firstWallet = wallets.find(
-                  (w) => w.coin === group.coin && w.network === group.network,
+                const totalAddresses = group.networks.reduce(
+                  (sum, networkGroup) => sum + networkGroup.addresses.length,
+                  0,
                 );
-                const assetData = firstWallet
-                  ? vaultBalance?.assets.find(
-                      (a) => a.coin === firstWallet.coin && a.network === firstWallet.network,
-                    )
-                  : undefined;
-                const isRecommended =
-                  group.network.toUpperCase() === "TRC20" ||
-                  group.network.toUpperCase() === "NATIVE SEGWIT";
+                const assetData = vaultBalance?.assets.find(
+                  (a) => a.coin === group.coin && a.network === group.networks[0]?.network,
+                );
 
                 return (
                   <AccordionItem
-                    key={`${group.coin}-${group.network}`}
-                    value={`${group.coin}-${group.network}`}
+                    key={group.coin}
+                    value={group.coin}
                     className="overflow-hidden rounded-2xl border border-[#ececec] bg-white"
                   >
                     <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-[#fafcfb]">
@@ -615,17 +611,13 @@ export function SettlementVaultTab() {
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-xs font-bold text-[#18211f]">{group.coin}</span>
                               <span className="rounded-full border border-[#dce8df] bg-[#FAF9F5] px-2 py-0.5 text-[10px] font-mono font-semibold text-[#18211f]">
-                                {group.network}
+                                {group.networks.length} network
+                                {group.networks.length > 1 ? "s" : ""}
                               </span>
-                              {isRecommended && (
-                                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">
-                                  Recommended
-                                </span>
-                              )}
                             </div>
                             <p className="text-[11px] text-[#758078] mt-0.5">
-                              {group.addresses.length} address
-                              {group.addresses.length > 1 ? "es" : ""}
+                              {totalAddresses} address{totalAddresses > 1 ? "es" : ""} across
+                              supported networks
                             </p>
                           </div>
                         </div>
@@ -649,90 +641,104 @@ export function SettlementVaultTab() {
 
                     <AccordionContent className="border-t border-[#ececec] bg-[#fafcfb] px-4 pb-4 pt-3">
                       <div className="space-y-3">
-                        {group.addresses.map((groupWallet) => {
-                          const wallet = wallets.find(
-                            (w) =>
-                              w.coin === groupWallet.coin &&
-                              w.network === groupWallet.network &&
-                              w.address === groupWallet.address,
-                          );
-                          if (!wallet) return null;
-
-                          const explorerUrl = getExplorerUrl(
-                            wallet.coin,
-                            wallet.network,
-                            wallet.address,
-                          );
-                          const assetDataForWallet = vaultBalance?.assets.find(
-                            (a) => a.coin === wallet.coin && a.network === wallet.network,
-                          );
-                          const walletIndex = wallets.findIndex(
-                            (w) =>
-                              w.coin === wallet.coin &&
-                              w.network === wallet.network &&
-                              w.address === wallet.address,
-                          );
-
-                          return (
-                            <div
-                              key={`${wallet.coin}-${wallet.network}-${wallet.address}`}
-                              className="rounded-xl border border-[#dce8df] bg-white p-3"
-                            >
-                              <div className="mb-2 flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#758078]">
-                                  {wallet.network}
-                                </span>
-                                <span className="text-[10px] font-mono text-[#758078]">
-                                  {assetDataForWallet?.balanceFormatted || "0.00"} {wallet.coin}
-                                </span>
-                              </div>
-
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="min-w-0 flex-1 truncate font-mono text-xs text-[#18211f] select-all">
-                                  {wallet.address}
-                                </span>
-                                <div className="flex shrink-0 items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setQrModal({
-                                        isOpen: true,
-                                        coin: wallet.coin,
-                                        network: wallet.network,
-                                        address: wallet.address,
-                                      })
-                                    }
-                                    className="rounded-lg border border-[#dce8df] bg-[#FAF9F5] p-1.5 text-[#18211f] transition hover:bg-white"
-                                    title="Scan QR"
-                                  >
-                                    <QrCode className="size-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleCopyAddress(wallet.address, walletIndex)}
-                                    className="rounded-lg border border-[#dce8df] bg-[#FAF9F5] p-1.5 text-[#18211f] transition hover:bg-white"
-                                    title="Copy address"
-                                  >
-                                    {copiedIndex === walletIndex ? (
-                                      <Check className="size-3.5 text-emerald-600" />
-                                    ) : (
-                                      <Copy className="size-3.5" />
-                                    )}
-                                  </button>
-                                  <a
-                                    href={explorerUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="rounded-lg border border-[#dce8df] bg-[#FAF9F5] p-1.5 text-[#18211f] transition hover:bg-white"
-                                    title="View on explorer"
-                                  >
-                                    <ExternalLink className="size-3.5" />
-                                  </a>
-                                </div>
-                              </div>
+                        {group.networks.map((networkGroup) => (
+                          <div
+                            key={`${group.coin}-${networkGroup.network}`}
+                            className="rounded-xl border border-[#dce8df] bg-white p-3"
+                          >
+                            <div className="mb-2 flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#758078]">
+                                {networkGroup.network}
+                              </span>
+                              <span className="text-[10px] font-mono text-[#758078]">
+                                {networkGroup.addresses.length} address
+                                {networkGroup.addresses.length > 1 ? "es" : ""}
+                              </span>
                             </div>
-                          );
-                        })}
+
+                            <div className="space-y-2">
+                              {networkGroup.addresses.map((address, networkIndex) => {
+                                const wallet = wallets.find(
+                                  (w) =>
+                                    w.coin === group.coin &&
+                                    w.network === networkGroup.network &&
+                                    w.address === address,
+                                );
+                                if (!wallet) return null;
+
+                                const explorerUrl = getExplorerUrl(
+                                  wallet.coin,
+                                  wallet.network,
+                                  wallet.address,
+                                );
+                                const assetDataForWallet = vaultBalance?.assets.find(
+                                  (a) => a.coin === wallet.coin && a.network === wallet.network,
+                                );
+                                const walletIndex = wallets.findIndex(
+                                  (w) =>
+                                    w.coin === wallet.coin &&
+                                    w.network === wallet.network &&
+                                    w.address === wallet.address,
+                                );
+
+                                return (
+                                  <div
+                                    key={`${wallet.coin}-${wallet.network}-${wallet.address}`}
+                                    className="flex items-center justify-between gap-2 rounded-lg border border-[#ececec] bg-[#FAF9F5] px-2.5 py-2"
+                                  >
+                                    <span className="min-w-0 flex-1 truncate font-mono text-xs text-[#18211f] select-all">
+                                      {address}
+                                    </span>
+                                    <div className="flex shrink-0 items-center gap-1.5">
+                                      <span className="hidden text-[10px] font-mono text-[#758078] md:inline-block">
+                                        {assetDataForWallet?.balanceFormatted || "0.00"}{" "}
+                                        {wallet.coin}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setQrModal({
+                                            isOpen: true,
+                                            coin: wallet.coin,
+                                            network: wallet.network,
+                                            address: wallet.address,
+                                          })
+                                        }
+                                        className="rounded-lg border border-[#dce8df] bg-white p-1.5 text-[#18211f] transition hover:bg-[#f8f8f8]"
+                                        title="Scan QR"
+                                      >
+                                        <QrCode className="size-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleCopyAddress(wallet.address, walletIndex)
+                                        }
+                                        className="rounded-lg border border-[#dce8df] bg-white p-1.5 text-[#18211f] transition hover:bg-[#f8f8f8]"
+                                        title="Copy address"
+                                      >
+                                        {copiedIndex === walletIndex ? (
+                                          <Check className="size-3.5 text-emerald-600" />
+                                        ) : (
+                                          <Copy className="size-3.5" />
+                                        )}
+                                      </button>
+                                      <a
+                                        href={explorerUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="rounded-lg border border-[#dce8df] bg-white p-1.5 text-[#18211f] transition hover:bg-[#f8f8f8]"
+                                        title="View on explorer"
+                                      >
+                                        <ExternalLink className="size-3.5" />
+                                      </a>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </AccordionContent>
                   </AccordionItem>
