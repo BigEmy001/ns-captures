@@ -33,7 +33,14 @@ import {
 } from "../../../lib/onChainBalance";
 import { CryptoQrCodeModal } from "../../components/CryptoQrCodeModal";
 import { ConnectWalletModal } from "../../components/ConnectWalletModal";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../../components/ui/accordion";
 import { copyToClipboard } from "../../../lib/clipboard";
+import { groupWalletsByAsset } from "../../../lib/walletGroups";
 
 export function SettlementVaultTab() {
   const { user } = useAuth();
@@ -248,6 +255,7 @@ export function SettlementVaultTab() {
   }
 
   const hasVault = wallets.length > 0;
+  const groupedWallets = groupWalletsByAsset(wallets);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -577,130 +585,160 @@ export function SettlementVaultTab() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {wallets.map((w, idx) => {
-                const assetData = vaultBalance?.assets.find(
-                  (a) => a.coin === w.coin && a.network === w.network,
+            <Accordion type="single" collapsible className="space-y-3">
+              {groupedWallets.map((group) => {
+                const firstWallet = wallets.find(
+                  (w) => w.coin === group.coin && w.network === group.network,
                 );
-                const explorerUrl = getExplorerUrl(w.coin, w.network, w.address);
+                const assetData = firstWallet
+                  ? vaultBalance?.assets.find(
+                      (a) => a.coin === firstWallet.coin && a.network === firstWallet.network,
+                    )
+                  : undefined;
                 const isRecommended =
-                  w.network.toUpperCase() === "TRC20" ||
-                  w.network.toUpperCase() === "NATIVE SEGWIT";
+                  group.network.toUpperCase() === "TRC20" ||
+                  group.network.toUpperCase() === "NATIVE SEGWIT";
 
                 return (
-                  <div
-                    key={idx}
-                    className="rounded-2xl border border-[#ececec] bg-white p-5 space-y-4 hover:border-[#1e4a3f]/40 hover:shadow-sm transition"
+                  <AccordionItem
+                    key={`${group.coin}-${group.network}`}
+                    value={`${group.coin}-${group.network}`}
+                    className="overflow-hidden rounded-2xl border border-[#ececec] bg-white shadow-sm"
                   >
-                    {/* Top Row: Coin, Network, Balance */}
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="size-10 rounded-xl bg-[#FAF9F5] border border-[#dce8df] flex items-center justify-center font-bold text-xs text-[#18211f]">
-                          {w.coin}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-xs font-bold text-[#18211f]">{w.coin}</h4>
-                            <span className="px-2 py-0.5 rounded-full bg-[#FAF9F5] border border-[#dce8df] text-[10px] font-mono text-[#18211f] font-semibold">
-                              {w.network}
-                            </span>
-                            {isRecommended && (
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[9px] font-semibold border border-emerald-200">
-                                Recommended
-                              </span>
-                            )}
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-[#fafcfb]">
+                      <div className="flex w-full items-center justify-between gap-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="grid size-10 place-items-center rounded-xl bg-[#FAF9F5] border border-[#dce8df] text-xs font-bold text-[#18211f]">
+                            {group.coin}
                           </div>
-                          <p className="text-[11px] text-[#758078] mt-0.5">
-                            {w.network.includes("TRC")
-                              ? "TRON Network (Instant • Lowest Fees)"
-                              : w.network.includes("SegWit")
-                                ? "Bitcoin Native SegWit (BIP-84)"
-                                : w.network.includes("Solana")
-                                  ? "Solana High-Throughput"
-                                  : "Ethereum Virtual Machine"}
+                          <div className="min-w-0 text-left">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-xs font-bold text-[#18211f]">{group.coin}</span>
+                              <span className="rounded-full border border-[#dce8df] bg-[#FAF9F5] px-2 py-0.5 text-[10px] font-mono font-semibold text-[#18211f]">
+                                {group.network}
+                              </span>
+                              {isRecommended && (
+                                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">
+                                  Recommended
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-[#758078] mt-0.5">
+                              {group.addresses.length} address
+                              {group.addresses.length > 1 ? "es" : ""}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right">
+                          <p className="text-xs font-bold font-mono text-[#18211f]">
+                            {assetData?.balanceFormatted || "0.00"} {group.coin}
+                          </p>
+                          <p className="text-[11px] font-mono text-[#758078]">
+                            ≈ £
+                            {assetData?.fiatGbp
+                              ? assetData.fiatGbp.toLocaleString("en-GB", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })
+                              : "0.00"}
                           </p>
                         </div>
                       </div>
+                    </AccordionTrigger>
 
-                      {/* Live Balance Badge */}
-                      <div className="text-right">
-                        <p className="text-xs font-bold font-mono text-[#18211f]">
-                          {assetData?.balanceFormatted || "0.00"} {w.coin}
-                        </p>
-                        <p className="text-[11px] font-mono text-[#758078]">
-                          ≈ £
-                          {assetData?.fiatGbp
-                            ? assetData.fiatGbp.toLocaleString("en-GB", {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })
-                            : "0.00"}
-                        </p>
+                    <AccordionContent className="border-t border-[#ececec] bg-[#fafcfb] px-4 pb-4 pt-3">
+                      <div className="space-y-3">
+                        {group.addresses.map((groupWallet) => {
+                          const wallet = wallets.find(
+                            (w) =>
+                              w.coin === groupWallet.coin &&
+                              w.network === groupWallet.network &&
+                              w.address === groupWallet.address,
+                          );
+                          if (!wallet) return null;
+
+                          const explorerUrl = getExplorerUrl(
+                            wallet.coin,
+                            wallet.network,
+                            wallet.address,
+                          );
+                          const assetDataForWallet = vaultBalance?.assets.find(
+                            (a) => a.coin === wallet.coin && a.network === wallet.network,
+                          );
+                          const walletIndex = wallets.findIndex(
+                            (w) =>
+                              w.coin === wallet.coin &&
+                              w.network === wallet.network &&
+                              w.address === wallet.address,
+                          );
+
+                          return (
+                            <div
+                              key={`${wallet.coin}-${wallet.network}-${wallet.address}`}
+                              className="rounded-xl border border-[#dce8df] bg-white p-3"
+                            >
+                              <div className="mb-2 flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-mono uppercase tracking-[0.14em] text-[#758078]">
+                                  {wallet.network}
+                                </span>
+                                <span className="text-[10px] font-mono text-[#758078]">
+                                  {assetDataForWallet?.balanceFormatted || "0.00"} {wallet.coin}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="min-w-0 flex-1 truncate font-mono text-xs text-[#18211f] select-all">
+                                  {wallet.address}
+                                </span>
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setQrModal({
+                                        isOpen: true,
+                                        coin: wallet.coin,
+                                        network: wallet.network,
+                                        address: wallet.address,
+                                      })
+                                    }
+                                    className="rounded-lg border border-[#dce8df] bg-[#FAF9F5] p-1.5 text-[#18211f] transition hover:bg-white"
+                                    title="Scan QR"
+                                  >
+                                    <QrCode className="size-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyAddress(wallet.address, walletIndex)}
+                                    className="rounded-lg border border-[#dce8df] bg-[#FAF9F5] p-1.5 text-[#18211f] transition hover:bg-white"
+                                    title="Copy address"
+                                  >
+                                    {copiedIndex === walletIndex ? (
+                                      <Check className="size-3.5 text-emerald-600" />
+                                    ) : (
+                                      <Copy className="size-3.5" />
+                                    )}
+                                  </button>
+                                  <a
+                                    href={explorerUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="rounded-lg border border-[#dce8df] bg-[#FAF9F5] p-1.5 text-[#18211f] transition hover:bg-white"
+                                    title="View on explorer"
+                                  >
+                                    <ExternalLink className="size-3.5" />
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
-
-                    {/* Address Display Box */}
-                    <div className="p-2.5 rounded-xl bg-[#FAF9F5] border border-[#dce8df] flex items-center justify-between gap-2">
-                      <span className="text-xs font-mono text-[#18211f] truncate select-all">
-                        {w.address}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyAddress(w.address, idx)}
-                        className="p-1.5 text-[#758078] hover:text-[#18211f] hover:bg-white rounded-lg transition shrink-0 cursor-pointer"
-                        title="Copy Address"
-                      >
-                        {copiedIndex === idx ? (
-                          <Check className="size-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="size-3.5" />
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Action Bar */}
-                    <div className="flex items-center justify-between pt-1 text-xs">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setQrModal({
-                              isOpen: true,
-                              coin: w.coin,
-                              network: w.network,
-                              address: w.address,
-                            })
-                          }
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#FAF9F5] border border-[#dce8df] text-[#18211f] font-semibold hover:bg-white transition cursor-pointer"
-                        >
-                          <QrCode className="size-3.5 text-[#1e4a3f]" />
-                          <span>Scan QR</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleCopyAddress(w.address, idx)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#FAF9F5] border border-[#dce8df] text-[#18211f] font-semibold hover:bg-white transition cursor-pointer"
-                        >
-                          <Copy className="size-3.5 text-[#758078]" />
-                          <span>{copiedIndex === idx ? "Copied!" : "Copy"}</span>
-                        </button>
-                      </div>
-
-                      <a
-                        href={explorerUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1e4a3f] hover:underline"
-                      >
-                        <span>Explorer</span>
-                        <ExternalLink className="size-3" />
-                      </a>
-                    </div>
-                  </div>
+                    </AccordionContent>
+                  </AccordionItem>
                 );
               })}
-            </div>
+            </Accordion>
           </div>
         </>
       )}
