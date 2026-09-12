@@ -36,15 +36,17 @@ interface TransferCryptoModalProps {
   }) => void;
 }
 
-/** Standard estimated network transfer fees */
+/** Standard estimated network transfer fees paid to blockchain validators */
 const NETWORK_FEES: Record<string, { fee: number; feeCoin: string }> = {
   TRC20: { fee: 1.0, feeCoin: "USDT" },
   ERC20: { fee: 0.001, feeCoin: "ETH" },
   "NATIVE SEGWIT": { fee: 0.00005, feeCoin: "BTC" },
   BITCOIN: { fee: 0.00005, feeCoin: "BTC" },
   SOLANA: { fee: 0.00001, feeCoin: "SOL" },
-  BASE: { fee: 0.1, feeCoin: "NSC" },
-  POLYGON: { fee: 0.1, feeCoin: "NSC" },
+  BASE: { fee: 0.0001, feeCoin: "ETH" },
+  POLYGON: { fee: 0.01, feeCoin: "POL" },
+  ARBITRUM: { fee: 0.0001, feeCoin: "ETH" },
+  BEP20: { fee: 0.0005, feeCoin: "BNB" },
 };
 
 export function TransferCryptoModal({
@@ -475,7 +477,7 @@ export function TransferCryptoModal({
             {/* Fee & Network Notice */}
             <div className="rounded-xl border border-[#ececec] bg-[#FAF9F5] p-3 space-y-1 text-xs text-[#758078]">
               <div className="flex justify-between items-center">
-                <span>Estimated Network Gas:</span>
+                <span>Estimated Blockchain Network Gas:</span>
                 <span className="font-mono font-semibold text-[#18211f]">
                   ~{networkFee.fee} {networkFee.feeCoin}
                 </span>
