@@ -2461,6 +2461,25 @@ export interface CreatorWeb3Vault {
     tron?: string;
     solana?: string;
   };
+  tokenBalances?: {
+    nsc?: number;
+    [key: string]: number | undefined;
+  };
+  giftHistory?: Array<{
+    id: string;
+    amount: number;
+    reason: string;
+    grantedBy?: string;
+    grantedAt: string;
+  }>;
+  conversionHistory?: Array<{
+    id: string;
+    fiatAmount: number;
+    currency: string;
+    nscAmount: number;
+    payoutRequestId?: string;
+    convertedAt: string;
+  }>;
   isUserConnected?: boolean;
   source?: "imported" | "generated";
   connectedAt?: string;
@@ -2727,6 +2746,174 @@ export async function createPayoutRequest(
     requestedAt: data.requested_at,
     processedAt: data.processed_at,
   };
+}
+
+/**
+ * Credits NSC (NS Captures Coin) tokens to a user's self-custodial Web3 Vault.
+ * Used for admin gifts, airdrops, contest awards, and incentives.
+ */
+export async function creditNscToVault(
+  targetId: string,
+  amount: number,
+  details: {
+    reason: string;
+    grantedBy?: string;
+    type?: "gift" | "conversion" | "reward";
+  },
+): Promise<CreatorWeb3Vault | null> {
+  if (!targetId || amount <= 0) return null;
+  const current = (await fetchCreatorWeb3Vault(targetId)) || {
+    wallets: [],
+    source: "generated",
+  };
+
+  const currentNsc = current.tokenBalances?.nsc || 0;
+  const newNsc = Number((currentNsc + amount).toFixed(4));
+
+  const updatedBalances = {
+    ...(current.tokenBalances || {}),
+    nsc: newNsc,
+  };
+
+  const giftEntry = {
+    id: `nsc_gift_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    amount,
+    reason: details.reason || "Platform Gift",
+    grantedBy: details.grantedBy || "NS Captures Treasury",
+    grantedAt: new Date().toISOString(),
+  };
+
+  const updatedGifts = [giftEntry, ...(current.giftHistory || [])].slice(0, 50);
+
+  const updatedVault: CreatorWeb3Vault = {
+    ...current,
+    tokenBalances: updatedBalances,
+    giftHistory: updatedGifts,
+  };
+
+  // If user has an EVM address, cache NSC balance for fast block balance lookups
+  const evmAddr =
+    current.addresses?.evm ||
+    current.wallets.find((w) => w.coin === "ETH" || w.coin === "NSC")?.address;
+  if (evmAddr && typeof window !== "undefined") {
+    localStorage.setItem(`ns_nsc_balance_${evmAddr}`, newNsc.toString());
+  }
+
+  await saveCreatorWeb3Vault(targetId, updatedVault);
+  return updatedVault;
+}
+
+/**
+ * Converts available Web2 earnings into Web3 NSC tokens at a 1:1 rate.
+ * Deducts Web2 balance via a completed payout record and credits NSC to the user's Web3 vault.
+ */
+export async function convertWeb2ToNsc(
+  targetId: string,
+  fiatAmount: number,
+  currency: string = "GBP",
+): Promise<{
+  success: boolean;
+  nscReceived: number;
+  newVault: CreatorWeb3Vault | null;
+  error?: string;
+}> {
+  if (!targetId || fiatAmount <= 0) {
+    return { success: false, nscReceived: 0, newVault: null, error: "Invalid amount" };
+  }
+
+  try {
+    // 1:1 rate confirmed by user
+    const nscReceived = fiatAmount;
+
+    // Record payout request in DB to properly deduct and account for the Web2 balance
+    const payoutRecord = await createPayoutRequest(targetId, fiatAmount, "crypto", {
+      type: "web2_to_nsc_conversion",
+      nscReceived,
+      currency,
+      status: "COMPLETED",
+      note: `Converted ${currency} ${fiatAmount.toFixed(2)} to ${nscReceived.toFixed(2)} NSC tokens (1:1 Web3 Bridge).`,
+    });
+
+    // Credit NSC to Web3 Vault
+    const current = (await fetchCreatorWeb3Vault(targetId)) || {
+      wallets: [],
+      source: "generated",
+    };
+
+    const currentNsc = current.tokenBalances?.nsc || 0;
+    const newNsc = Number((currentNsc + nscReceived).toFixed(4));
+
+    const updatedBalances = {
+      ...(current.tokenBalances || {}),
+      nsc: newNsc,
+    };
+
+    const conversionEntry = {
+      id: `conv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      fiatAmount,
+      currency,
+      nscAmount: nscReceived,
+      payoutRequestId: payoutRecord?.id,
+      convertedAt: new Date().toISOString(),
+    };
+
+    const updatedConversions = [conversionEntry, ...(current.conversionHistory || [])].slice(0, 50);
+
+    const updatedVault: CreatorWeb3Vault = {
+      ...current,
+      tokenBalances: updatedBalances,
+      conversionHistory: updatedConversions,
+    };
+
+    const evmAddr =
+      current.addresses?.evm ||
+      current.wallets.find((w) => w.coin === "ETH" || w.coin === "NSC")?.address;
+    if (evmAddr && typeof window !== "undefined") {
+      localStorage.setItem(`ns_nsc_balance_${evmAddr}`, newNsc.toString());
+    }
+
+    await saveCreatorWeb3Vault(targetId, updatedVault);
+    return { success: true, nscReceived, newVault: updatedVault };
+  } catch (err: any) {
+    console.error("convertWeb2ToNsc error:", err);
+    return {
+      success: false,
+      nscReceived: 0,
+      newVault: null,
+      error: err?.message || "Conversion failed",
+    };
+  }
+}
+
+/**
+ * Deducts NSC tokens from a user's vault when withdrawn externally.
+ */
+export async function deductNscFromVault(targetId: string, amount: number): Promise<boolean> {
+  if (!targetId || amount <= 0) return false;
+  const current = await fetchCreatorWeb3Vault(targetId);
+  if (!current) return false;
+
+  const currentNsc = current.tokenBalances?.nsc || 0;
+  const newNsc = Math.max(0, Number((currentNsc - amount).toFixed(4)));
+
+  const updatedBalances = {
+    ...(current.tokenBalances || {}),
+    nsc: newNsc,
+  };
+
+  const updatedVault: CreatorWeb3Vault = {
+    ...current,
+    tokenBalances: updatedBalances,
+  };
+
+  const evmAddr =
+    current.addresses?.evm ||
+    current.wallets.find((w) => w.coin === "ETH" || w.coin === "NSC")?.address;
+  if (evmAddr && typeof window !== "undefined") {
+    localStorage.setItem(`ns_nsc_balance_${evmAddr}`, newNsc.toString());
+  }
+
+  return saveCreatorWeb3Vault(targetId, updatedVault);
 }
 
 export async function updatePayoutRequestDetails(

@@ -11,7 +11,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { type CryptoWalletEntry } from "../data/db";
+import { type CryptoWalletEntry, deductNscFromVault } from "../data/db";
 import { type MultiChainVaultBalance, getExplorerUrl } from "../../lib/onChainBalance";
 import { sendCryptoWithdrawalNotification } from "../../lib/email";
 import { copyToClipboard } from "../../lib/clipboard";
@@ -21,6 +21,7 @@ interface TransferCryptoModalProps {
   onClose: () => void;
   wallets: CryptoWalletEntry[];
   vaultBalance: MultiChainVaultBalance | null;
+  targetId?: string;
   initialCoin?: string;
   initialNetwork?: string;
   userEmail?: string;
@@ -42,6 +43,8 @@ const NETWORK_FEES: Record<string, { fee: number; feeCoin: string }> = {
   "NATIVE SEGWIT": { fee: 0.00005, feeCoin: "BTC" },
   BITCOIN: { fee: 0.00005, feeCoin: "BTC" },
   SOLANA: { fee: 0.00001, feeCoin: "SOL" },
+  BASE: { fee: 0.1, feeCoin: "NSC" },
+  POLYGON: { fee: 0.1, feeCoin: "NSC" },
 };
 
 export function TransferCryptoModal({
@@ -49,6 +52,7 @@ export function TransferCryptoModal({
   onClose,
   wallets,
   vaultBalance,
+  targetId,
   initialCoin = "USDT",
   initialNetwork = "TRC20",
   userEmail,
@@ -194,6 +198,13 @@ export function TransferCryptoModal({
       };
 
       setTxResult(result);
+
+      // Deduct NSC from vault if withdrawing NSC
+      if (selectedCoin.toUpperCase() === "NSC" && targetId) {
+        await deductNscFromVault(targetId, parsedAmount).catch((e) =>
+          console.error("Failed to deduct NSC from vault:", e),
+        );
+      }
 
       // 1. Dispatch withdrawal email notification to user's registered email
       const primaryEmail = userEmail || "emyjnr01@gmail.com";

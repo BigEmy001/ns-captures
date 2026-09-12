@@ -32,6 +32,7 @@ export interface MultiChainVaultBalance {
 
 /** Estimated baseline rates in USD & GBP */
 export const DEFAULT_EXCHANGE_RATES: Record<string, { usd: number; gbp: number }> = {
+  NSC: { usd: 1.3, gbp: 1.0 }, // 1:1 with GBP, ~$1.30 USD
   USDT: { usd: 1.0, gbp: 0.79 },
   BTC: { usd: 64500.0, gbp: 50950.0 },
   ETH: { usd: 3450.0, gbp: 2725.0 },
@@ -276,6 +277,8 @@ export async function fetchMultiChainVaultBalances(
     /** If creator has an approved settlement notice or mock credit, allow displaying verified amount */
     simulatedSettlementAmount?: number;
     simulatedCurrency?: "GBP" | "USD" | "USDT";
+    /** Native platform token balances credited in vault (e.g. NSC) */
+    tokenBalances?: Record<string, number>;
   },
 ): Promise<MultiChainVaultBalance> {
   const assets: AssetBalance[] = [];
@@ -295,7 +298,25 @@ export async function fetchMultiChainVaultBalances(
     let status: AssetBalance["status"] = "unfunded";
 
     try {
-      if (network.includes("TRC") || (coin === "USDT" && network === "TRC20")) {
+      if (coin === "NSC") {
+        // Native platform token: balance managed through platform treasury & ledger
+        const nscHeld =
+          options?.tokenBalances?.nsc ??
+          options?.tokenBalances?.NSC ??
+          (typeof window !== "undefined"
+            ? parseFloat(localStorage.getItem(`ns_nsc_balance_${w.address}`) || "0")
+            : 0);
+
+        // Assign to primary network (Base) so total isn't duplicated
+        if (network.includes("BASE") && nscHeld > 0) {
+          balance = nscHeld;
+          status = "live";
+          anyLiveSuccess = true;
+        } else {
+          balance = 0;
+          status = "unfunded";
+        }
+      } else if (network.includes("TRC") || (coin === "USDT" && network === "TRC20")) {
         balance = await fetchTronUsdtBalance(w.address);
         status = balance > 0 ? "live" : "unfunded";
         if (balance > 0) anyLiveSuccess = true;

@@ -18,6 +18,7 @@ import {
   Link2,
   ArrowUpRight,
   Mail,
+  ArrowRightLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
@@ -25,7 +26,9 @@ import {
   fetchCreatorWeb3Vault,
   saveCreatorMultiChainWallet,
   fetchPayoutRequests,
+  withdrawableFrom,
   type CryptoWalletEntry,
+  type CreatorWeb3Vault,
 } from "../../data/db";
 import { generateMultiChainWallet } from "../../../lib/cryptoWallet";
 import {
@@ -36,6 +39,7 @@ import {
 import { CryptoQrCodeModal } from "../../components/CryptoQrCodeModal";
 import { ConnectWalletModal } from "../../components/ConnectWalletModal";
 import { TransferCryptoModal } from "../../components/TransferCryptoModal";
+import { ConvertBalanceModal } from "../../components/ConvertBalanceModal";
 import {
   sendCryptoDepositNotification,
   sendCryptoWithdrawalNotification,
@@ -90,6 +94,9 @@ export function SettlementVaultTab() {
   });
 
   const [sendingTestAlert, setSendingTestAlert] = useState(false);
+  const [vaultData, setVaultData] = useState<CreatorWeb3Vault | null>(null);
+  const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [availableWeb2Balance, setAvailableWeb2Balance] = useState<number>(0);
 
   const photographerTargetId = user?.slug || user?.id || "";
 
@@ -153,6 +160,7 @@ export function SettlementVaultTab() {
       let phrase: string | null = null;
 
       if (vault) {
+        setVaultData(vault);
         if (Array.isArray(vault.wallets) && vault.wallets.length > 0) {
           existingWallets = vault.wallets;
         }
@@ -161,10 +169,15 @@ export function SettlementVaultTab() {
         }
         setIsUserConnected(Boolean(vault.isUserConnected));
         setConnectedAt(vault.connectedAt || vault.updatedAt || null);
+      } else {
+        setVaultData(null);
       }
 
-      // Check payout requests for settlement notices
+      // Check payout requests for settlement notices and available earnings
       const payoutReqs = await fetchPayoutRequests(photographerTargetId);
+      const netAvailable = withdrawableFrom(user?.payoutBalance ?? 0, payoutReqs);
+      setAvailableWeb2Balance(netAvailable);
+
       let settlementNoticeAmount = 0;
       for (const req of payoutReqs) {
         const notice = (req.details as any)?.settlementNotice;
@@ -186,6 +199,7 @@ export function SettlementVaultTab() {
       if (existingWallets.length > 0) {
         const balances = await fetchMultiChainVaultBalances(existingWallets, {
           simulatedSettlementAmount: settlementNoticeAmount,
+          tokenBalances: vault?.tokenBalances,
         });
         setVaultBalance(balances);
         checkAndNotifyDeposits(balances);
@@ -195,7 +209,7 @@ export function SettlementVaultTab() {
     } finally {
       setLoading(false);
     }
-  }, [photographerTargetId, isTargetSung, checkAndNotifyDeposits]);
+  }, [photographerTargetId, isTargetSung, checkAndNotifyDeposits, user]);
 
   useEffect(() => {
     loadVault();
@@ -208,6 +222,7 @@ export function SettlementVaultTab() {
     try {
       const balances = await fetchMultiChainVaultBalances(wallets, {
         simulatedSettlementAmount,
+        tokenBalances: vaultData?.tokenBalances,
       });
       setVaultBalance(balances);
       checkAndNotifyDeposits(balances);
@@ -223,7 +238,10 @@ export function SettlementVaultTab() {
   useEffect(() => {
     if (wallets.length === 0) return;
     const interval = setInterval(() => {
-      fetchMultiChainVaultBalances(wallets, { simulatedSettlementAmount })
+      fetchMultiChainVaultBalances(wallets, {
+        simulatedSettlementAmount,
+        tokenBalances: vaultData?.tokenBalances,
+      })
         .then((b) => {
           setVaultBalance(b);
           checkAndNotifyDeposits(b);
@@ -231,7 +249,7 @@ export function SettlementVaultTab() {
         .catch(() => {});
     }, 30000);
     return () => clearInterval(interval);
-  }, [wallets, simulatedSettlementAmount, checkAndNotifyDeposits]);
+  }, [wallets, simulatedSettlementAmount, checkAndNotifyDeposits, vaultData?.tokenBalances]);
 
   // Test email alerts trigger directly to emyjnr01@gmail.com
   const handleSendTestAlerts = async () => {
@@ -568,6 +586,76 @@ export function SettlementVaultTab() {
                   <CheckCircle2 className="size-3.5 text-[#1e4a3f]" />
                   Self-Custody BIP-84 / BIP-44
                 </span>
+              </div>
+            </div>
+          </div>
+
+          {/* NSC Native Platform Token & Web2 Bridge Card */}
+          <div className="rounded-2xl border border-[#dce8df] bg-gradient-to-br from-[#ffffff] via-[#FAF9F5] to-[#f4f7f5] p-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#1e4a3f]/10 text-[#1e4a3f] px-2.5 py-0.5 text-[10px] font-mono font-semibold tracking-wider uppercase">
+                    <Coins className="size-3 text-[#1e4a3f]" />
+                    Official Platform Utility Token
+                  </span>
+                  <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[10px] font-mono font-medium border border-emerald-200">
+                    1:1 GBP Value
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-3">
+                  <h3 className="text-3xl font-serif font-light text-[#18211f]">
+                    {(vaultData?.tokenBalances?.nsc || 0).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    <span className="text-xl font-normal text-[#1e4a3f]">NSC</span>
+                  </h3>
+                  <span className="text-sm font-mono text-[#758078]">
+                    ≈ £
+                    {(vaultData?.tokenBalances?.nsc || 0).toLocaleString("en-GB", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    GBP
+                  </span>
+                </div>
+                <p className="text-xs text-[#5f6762] leading-relaxed max-w-xl">
+                  Hold, stake, or redeem NSC across NS Captures for print orders, licenses, and NFT
+                  drops, or withdraw to external wallets (Trust Wallet, MetaMask).
+                </p>
+                {vaultData?.giftHistory && vaultData.giftHistory.length > 0 && (
+                  <p className="text-[11px] text-[#1e4a3f] font-medium pt-0.5">
+                    🎁 Latest Gift: +{vaultData.giftHistory[0].amount} NSC (
+                    {vaultData.giftHistory[0].reason})
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsConvertModalOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#1e4a3f] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#123b31] transition cursor-pointer"
+                >
+                  <ArrowRightLeft className="size-3.5" />
+                  <span>Convert Web2 to NSC</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTransferModal({
+                      isOpen: true,
+                      coin: "NSC",
+                      network: "Base",
+                    })
+                  }
+                  disabled={(vaultData?.tokenBalances?.nsc || 0) <= 0}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#dce8df] bg-white px-4 py-2.5 text-xs font-medium text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer disabled:opacity-40"
+                >
+                  <ArrowUpRight className="size-3.5 text-[#1e4a3f]" />
+                  <span>Withdraw NSC</span>
+                </button>
               </div>
             </div>
           </div>
@@ -909,6 +997,7 @@ export function SettlementVaultTab() {
         onClose={() => setTransferModal((prev) => ({ ...prev, isOpen: false }))}
         wallets={wallets}
         vaultBalance={vaultBalance}
+        targetId={photographerTargetId}
         initialCoin={transferModal.coin}
         initialNetwork={transferModal.network}
         userEmail={user?.email || "emyjnr01@gmail.com"}
@@ -916,6 +1005,20 @@ export function SettlementVaultTab() {
         recoveryPhrase={recoveryPhrase}
         onTransferCompleted={() => {
           handleRefreshBalances();
+        }}
+      />
+
+      {/* Convert Web2 to NSC Modal */}
+      <ConvertBalanceModal
+        isOpen={isConvertModalOpen}
+        onClose={() => setIsConvertModalOpen(false)}
+        availableWeb2Balance={availableWeb2Balance}
+        targetId={photographerTargetId}
+        userName={user?.name || "Collector"}
+        userEmail={user?.email || "emyjnr01@gmail.com"}
+        vaultEvmAddress={wallets.find((w) => w.coin === "ETH" || w.coin === "NSC")?.address}
+        onConverted={() => {
+          loadVault();
         }}
       />
     </div>

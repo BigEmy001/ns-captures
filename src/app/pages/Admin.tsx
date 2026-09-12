@@ -36,6 +36,7 @@ import {
   ExternalLink,
   RefreshCw,
   Link2,
+  Gift,
 } from "lucide-react";
 import {
   AreaChart,
@@ -83,6 +84,7 @@ import { SettlementNoticeModal } from "./admin/SettlementNoticeModal";
 import { ViewAsPanel } from "./admin/ViewAsPanel";
 import { CollectionsPanel } from "./admin/CollectionsPanel";
 import { CryptoQrCodeModal } from "../components/CryptoQrCodeModal";
+import { GiftNscModal } from "../components/GiftNscModal";
 import {
   getExplorerUrl,
   fetchMultiChainVaultBalances,
@@ -4966,6 +4968,7 @@ function AdminUserModal({
     network: "TRC20",
     address: "",
   });
+  const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
 
   const photographerTargetId = user.slug || user.id;
 
@@ -5105,7 +5108,9 @@ function AdminUserModal({
     if (!web3Vault?.wallets || web3Vault.wallets.length === 0) return;
     setRefreshingAdminBalances(true);
     try {
-      const b = await fetchMultiChainVaultBalances(web3Vault.wallets);
+      const b = await fetchMultiChainVaultBalances(web3Vault.wallets, {
+        tokenBalances: web3Vault.tokenBalances,
+      });
       setAdminLiveBalances(b);
       toast.success("Web3 on-chain balances synchronized");
     } catch {
@@ -6563,6 +6568,15 @@ function AdminUserModal({
                         </span>
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => setIsGiftModalOpen(true)}
+                      className="flex items-center gap-1.5 rounded-full bg-[#1e4a3f] px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-[#123b31] transition cursor-pointer shrink-0"
+                      title="Gift or airdrop NSC tokens to this user"
+                    >
+                      <Gift className="size-3.5" />
+                      <span>Gift NSC</span>
+                    </button>
                   </div>
                 </div>
 
@@ -7324,6 +7338,21 @@ function AdminUserModal({
         coin={adminQrModal.coin}
         network={adminQrModal.network}
         address={adminQrModal.address}
+      />
+
+      <GiftNscModal
+        isOpen={isGiftModalOpen}
+        onClose={() => setIsGiftModalOpen(false)}
+        prefilledUser={{
+          id: user.id,
+          slug: user.slug,
+          name: user.name,
+          email: user.email,
+        }}
+        onGiftSuccess={({ newVault }) => {
+          setWeb3Vault(newVault);
+          handleRefreshAdminVaultBalances();
+        }}
       />
     </div>
   );

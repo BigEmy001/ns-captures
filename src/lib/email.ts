@@ -1001,3 +1001,96 @@ export async function sendCryptoWithdrawalNotification({
 
   return send(to, subject, html);
 }
+
+/**
+ * Notifies a user when an administrator has gifted / airdropped NSC tokens to their Web3 Vault.
+ */
+export async function sendNscGiftNotification({
+  to,
+  userName,
+  amount,
+  reason,
+  fiatValue,
+  newNscBalance,
+}: {
+  to: string;
+  userName?: string;
+  amount: number | string;
+  reason?: string;
+  fiatValue?: string;
+  newNscBalance?: number | string;
+}) {
+  const safeName = escapeHtml(userName || "Collector");
+  const safeReason = escapeHtml(reason || "Platform Contributor Gift");
+  const safeFiat = fiatValue ? escapeHtml(fiatValue) : `£${Number(amount).toFixed(2)}`;
+
+  const subject = `🎁 You Received ${amount} NSC Tokens from NS CAPTURES`;
+  const html = `
+<h1 style="${H1}">You Received a Token Gift!</h1>
+<p style="${P}">Hi ${safeName},</p>
+<p style="${P}">Congratulations! NS CAPTURES has credited your <strong>Web3 Settlement Vault</strong> with native <strong>NSC (NS Captures Coin)</strong> tokens.</p>
+<div style="${CARD}">
+  <p style="margin:0;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:#1e4a3f;">Gift Summary</p>
+  <p style="margin:8px 0 0 0;font-size:28px;font-weight:600;color:#18211f;">+${amount} NSC</p>
+  <p style="margin:4px 0 0 0;font-size:14px;color:#1e4a3f;font-weight:500;">≈ ${safeFiat} (1:1 Value)</p>
+  <hr style="border:none;border-top:1px solid #dce8df;margin:16px 0;"/>
+  <p style="margin:0;font-size:13px;color:#555555;"><strong>Reason / Note:</strong> ${safeReason}</p>
+  ${
+    newNscBalance !== undefined
+      ? `<p style="margin:8px 0 0 0;font-size:13px;color:#555555;"><strong>Updated Total NSC Balance:</strong> ${newNscBalance} NSC</p>`
+      : ""
+  }
+</div>
+<p style="${P}">Your tokens are immediately available in your self-custodial vault. You can use your NSC tokens across NS CAPTURES for exclusive print releases, platform licensing, or withdraw them to your external wallet (Trust Wallet, MetaMask).</p>
+<p style="margin:24px 0 0;">${btn("https://www.nscaptures.com/account?tab=web3", "Open Web3 Vault")}</p>
+<p style="margin:20px 0 0;font-size:13px;line-height:19px;color:#888888;font-family:inherit;">Thank you for being an essential part of the NS CAPTURES community.</p>`;
+
+  return send(to, subject, html);
+}
+
+/**
+ * Notifies a user when they convert Web2 earnings to Web3 NSC tokens.
+ */
+export async function sendNscConversionNotification({
+  to,
+  userName,
+  fiatAmount,
+  currency = "GBP",
+  nscAmount,
+  vaultAddress,
+}: {
+  to: string;
+  userName?: string;
+  fiatAmount: number | string;
+  currency?: string;
+  nscAmount: number | string;
+  vaultAddress?: string;
+}) {
+  const safeName = escapeHtml(userName || "Collector");
+  const safeCurrency = escapeHtml(currency);
+  const safeAddress = vaultAddress ? escapeHtml(vaultAddress) : "";
+
+  const subject = `Web2 to Web3 Conversion: ${nscAmount} NSC Credited — NS CAPTURES`;
+  const html = `
+<h1 style="${H1}">Conversion Confirmed</h1>
+<p style="${P}">Hi ${safeName},</p>
+<p style="${P}">Your Web2 platform earnings have been successfully converted into <strong>NSC (NS Captures Coin)</strong> tokens in your Web3 Vault.</p>
+<div style="${CARD}">
+  <p style="margin:0;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:#1e4a3f;">Conversion Breakdown</p>
+  <p style="margin:8px 0 0 0;font-size:26px;font-weight:600;color:#18211f;">${nscAmount} NSC Credited</p>
+  <p style="margin:4px 0 0 0;font-size:13px;color:#758078;">Deducted from Web2 Balance: ${safeCurrency} ${fiatAmount}</p>
+  <hr style="border:none;border-top:1px solid #dce8df;margin:16px 0;"/>
+  <p style="margin:0;font-size:13px;color:#555555;"><strong>Exchange Rate:</strong> 1.00 ${safeCurrency} = 1.00 NSC (1:1 Web3 Bridge)</p>
+  ${
+    safeAddress
+      ? `<p style="margin:8px 0 0 0;font-size:13px;color:#555555;"><strong>Vault EVM Address:</strong></p>
+  <p style="margin:4px 0 0 0;font-size:12px;font-family:monospace;color:#18211f;word-break:break-all;background:#ffffff;padding:8px 12px;border-radius:6px;border:1px solid #dce8df;">${safeAddress}</p>`
+      : ""
+  }
+</div>
+<p style="${P}">Your live Web3 vault balance is updated and ready to be used or transferred.</p>
+<p style="margin:24px 0 0;">${btn("https://www.nscaptures.com/account?tab=web3", "View Web3 Vault")}</p>
+<p style="margin:20px 0 0;font-size:13px;line-height:19px;color:#888888;font-family:inherit;">This is an automated transaction receipt from NS CAPTURES Web3 Infrastructure.</p>`;
+
+  return send(to, subject, html);
+}

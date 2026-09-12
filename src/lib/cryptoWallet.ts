@@ -209,6 +209,22 @@ export function deriveMultiChainWalletFromMnemonic(mnemonic: string): MultiChain
 
   // Build complete wallet list matching all app coins and networks
   const wallets: DerivedChainWallet[] = [
+    // NS Captures Coin (NSC) - Official Native Platform Utility & Rewards Token
+    {
+      coin: "NSC",
+      network: "Base",
+      name: "NS Captures Coin (Base)",
+      address: evmAddress,
+      derivationPath: evmPath,
+    },
+    {
+      coin: "NSC",
+      network: "Polygon",
+      name: "NS Captures Coin (Polygon)",
+      address: evmAddress,
+      derivationPath: evmPath,
+    },
+
     // Tether (USDT) - The primary settlement asset
     {
       coin: "USDT",
