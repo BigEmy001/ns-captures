@@ -4994,7 +4994,9 @@ function AdminUserModal({
       }
       setIsVaultUserConnected(Boolean(vault?.isUserConnected));
       if (vault?.wallets && vault.wallets.length > 0) {
-        fetchMultiChainVaultBalances(vault.wallets)
+        fetchMultiChainVaultBalances(vault.wallets, {
+          tokenBalances: vault.tokenBalances,
+        })
           .then((b) => setAdminLiveBalances(b))
           .catch(() => {});
       } else {
@@ -6616,6 +6618,32 @@ function AdminUserModal({
                           month: "short",
                           year: "numeric",
                         })}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* NSC Token Balance Ticker */}
+                {web3Vault?.tokenBalances?.nsc !== undefined && web3Vault.tokenBalances.nsc > 0 && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-50/80 border border-emerald-200 rounded-xl px-4 py-2.5 text-xs mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-emerald-900 font-mono text-xs">
+                        Native NSC Tokens:
+                      </span>
+                      <span className="font-bold text-emerald-950 font-mono text-sm">
+                        {web3Vault.tokenBalances.nsc.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                        })}{" "}
+                        NSC
+                      </span>
+                      <span className="text-[11px] text-emerald-700 font-mono">
+                        (≈ £{web3Vault.tokenBalances.nsc.toFixed(2)} GBP)
+                      </span>
+                    </div>
+                    {web3Vault.giftHistory && web3Vault.giftHistory.length > 0 && (
+                      <span className="text-[10px] text-emerald-700">
+                        Last Gift: +{web3Vault.giftHistory[0].amount} NSC (
+                        {web3Vault.giftHistory[0].reason})
                       </span>
                     )}
                   </div>

@@ -7,6 +7,7 @@ import { AcquisitionsTab } from "../account/contributor/AcquisitionsTab";
 import { AgreementsTab } from "../account/contributor/AgreementsTab";
 import { LicensedWorkTab } from "../account/contributor/LicensedWorkTab";
 import { BonusesTab, PublicationsTab, FeaturedInTab } from "../account/contributor/OpportunityTabs";
+import { SettlementVaultTab } from "../account/SettlementVaultTab";
 import type { AdminUser } from "../../data/db";
 import { isCreatorRole, isProgrammeRole } from "../../data/roles";
 
@@ -17,6 +18,7 @@ type TabId =
   | "licensed"
   | "earnings"
   | "payouts"
+  | "vault"
   | "acquisitions"
   | "bonuses"
   | "publications"
@@ -25,7 +27,10 @@ type TabId =
   | "profile";
 
 /** What someone who only buys photographs actually has. */
-const BUYER_TABS: { id: TabId; label: string }[] = [{ id: "profile", label: "Profile" }];
+const BUYER_TABS: { id: TabId; label: string }[] = [
+  { id: "profile", label: "Profile" },
+  { id: "vault", label: "Web3" },
+];
 
 /** A photographer's own screens. */
 const CREATOR_TABS: { id: TabId; label: string }[] = [
@@ -35,6 +40,7 @@ const CREATOR_TABS: { id: TabId; label: string }[] = [
   { id: "licensed", label: "Licensed" },
   { id: "earnings", label: "Earnings" },
   { id: "payouts", label: "Payouts" },
+  { id: "vault", label: "Web3" },
 ];
 
 /** Everything a contributor has on top of that. */
@@ -150,6 +156,11 @@ export function ViewAsPanel({ admin, onClose }: { admin: AdminUser; onClose: () 
           {tab === "bonuses" && <BonusesTab />}
           {tab === "publications" && <PublicationsTab />}
           {tab === "featured" && <FeaturedInTab />}
+          {tab === "vault" && (
+            <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8">
+              <SettlementVaultTab />
+            </div>
+          )}
           {tab === "profile" && (
             <div className="mx-auto max-w-2xl px-5 py-12 sm:px-8">
               <p className="font-mono text-[10px] tracking-[0.18em] text-[#49685d] uppercase">

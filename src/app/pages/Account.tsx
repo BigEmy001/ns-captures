@@ -87,6 +87,7 @@ const buyerNav: NavEntry[] = [
   { id: "collections", label: "Collections", icon: FolderHeart },
   { id: "downloads", label: "Downloads", icon: Download },
   { id: "licenses", label: "Licenses", icon: FileText },
+  { id: "vault", label: "Web3", icon: ShieldCheck },
   { id: "security", label: "Settings", icon: Settings },
   { id: "billing", label: "Billing", icon: CreditCard },
 ];
@@ -189,17 +190,20 @@ export function Account() {
     ? defaultTab
     : navItems.find((n) => !n.heading)?.id || "security";
 
+  const normalizedRequestedTab =
+    requestedTab === "web3" || requestedTab === "vault" ? "vault" : requestedTab;
+
   const active = (() => {
-    if (!requestedTab) return safeDefault;
-    if (!NAV_IDS.includes(requestedTab)) return safeDefault;
+    if (!normalizedRequestedTab) return safeDefault;
+    if (!NAV_IDS.includes(normalizedRequestedTab)) return safeDefault;
     // A destination that is not in this person's own navigation is not theirs.
-    if (!navItems.some((n) => !n.heading && n.id === requestedTab)) return safeDefault;
-    return requestedTab;
+    if (!navItems.some((n) => !n.heading && n.id === normalizedRequestedTab)) return safeDefault;
+    return normalizedRequestedTab;
   })();
   const setActive = (id: string) => {
     const next = new URLSearchParams(params);
     if (id === safeDefault) next.delete("tab");
-    else next.set("tab", id);
+    else next.set("tab", id === "vault" ? "web3" : id);
     setParams(next);
   };
 
