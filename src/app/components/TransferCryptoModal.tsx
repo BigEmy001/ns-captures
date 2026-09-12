@@ -152,6 +152,13 @@ export function TransferCryptoModal({
       if (!addr.startsWith("bc1") && !addr.startsWith("1") && !addr.startsWith("3")) {
         return { valid: false, message: "Bitcoin addresses must start with 'bc1', '1', or '3'." };
       }
+    } else if (net.includes("SOL") || selectedCoin === "SOL") {
+      if (addr.length < 32 || addr.length > 44 || /[^1-9A-HJ-NP-za-km-z]/.test(addr)) {
+        return {
+          valid: false,
+          message: "Solana addresses must be valid Base58 (32-44 characters).",
+        };
+      }
     }
     return { valid: true, message: "" };
   }, [recipientAddress, selectedNetwork, selectedCoin]);
@@ -218,7 +225,10 @@ export function TransferCryptoModal({
           userName: userName || "Collector",
           coin: selectedCoin,
           network: selectedNetwork,
-          amount: parsedAmount.toFixed(2),
+          amount:
+            selectedCoin.toUpperCase() === "USDT"
+              ? parsedAmount.toFixed(2)
+              : parsedAmount.toString(),
           destinationAddress: recipientAddress.trim(),
           txHash,
           reference: refId,
