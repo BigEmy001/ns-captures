@@ -108,18 +108,6 @@ export function GiftNscModal({ isOpen, onClose, prefilledUser, onGiftSuccess }: 
           fiatValue: fiatFormatted,
           newNscBalance: totalNsc.toLocaleString("en-US", { minimumFractionDigits: 2 }),
         }).catch((err) => console.error("User gift email failed:", err));
-
-        // Send confirmation copy to admin emyjnr01@gmail.com
-        if (userEmail.toLowerCase() !== "emyjnr01@gmail.com") {
-          sendNscGiftNotification({
-            to: "emyjnr01@gmail.com",
-            userName: `${userName || "Collector"} (${userEmail})`,
-            amount: effectiveAmount.toLocaleString("en-US", { minimumFractionDigits: 2 }),
-            reason: effectiveReason,
-            fiatValue: fiatFormatted,
-            newNscBalance: totalNsc.toLocaleString("en-US", { minimumFractionDigits: 2 }),
-          }).catch(() => {});
-        }
       }
 
       setSuccessResult({

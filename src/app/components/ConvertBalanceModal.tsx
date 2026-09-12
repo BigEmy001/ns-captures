@@ -66,7 +66,7 @@ export function ConvertBalanceModal({
         throw new Error(convRes.error || "Failed to convert balance");
       }
 
-      // Send email notification to user & admin
+      // Send email notification to user
       if (userEmail) {
         await sendNscConversionNotification({
           to: userEmail,
@@ -76,17 +76,6 @@ export function ConvertBalanceModal({
           nscAmount: convRes.nscReceived.toFixed(2),
           vaultAddress: vaultEvmAddress,
         }).catch((e) => console.error("Conversion email failed:", e));
-
-        if (userEmail.toLowerCase() !== "emyjnr01@gmail.com") {
-          sendNscConversionNotification({
-            to: "emyjnr01@gmail.com",
-            userName: `${userName} (${userEmail})`,
-            fiatAmount: parsedAmount.toFixed(2),
-            currency: "GBP",
-            nscAmount: convRes.nscReceived.toFixed(2),
-            vaultAddress: vaultEvmAddress,
-          }).catch(() => {});
-        }
       }
 
       setResult({

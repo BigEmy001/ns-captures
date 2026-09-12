@@ -74,9 +74,11 @@ export function TransferCryptoModal({
   } | null>(null);
   const [copiedTx, setCopiedTx] = useState(false);
 
-  // Available unique coins from user's vault
+  // Available unique coins from user's vault (hiding unlaunched NSC token for now)
   const availableCoins = useMemo(() => {
-    const list = Array.from(new Set(wallets.map((w) => w.coin)));
+    const list = Array.from(new Set(wallets.map((w) => w.coin))).filter(
+      (c) => c.toUpperCase() !== "NSC",
+    );
     return list.length > 0 ? list : ["USDT", "BTC", "ETH", "SOL"];
   }, [wallets]);
 
@@ -207,23 +209,11 @@ export function TransferCryptoModal({
       }
 
       // 1. Dispatch withdrawal email notification to user's registered email
-      const primaryEmail = userEmail || "emyjnr01@gmail.com";
-      await sendCryptoWithdrawalNotification({
-        to: primaryEmail,
-        userName: userName || "Collector",
-        coin: selectedCoin,
-        network: selectedNetwork,
-        amount: parsedAmount.toFixed(2),
-        destinationAddress: recipientAddress.trim(),
-        txHash,
-        reference: refId,
-      });
-
-      // 2. Also dispatch to emyjnr01@gmail.com if different for monitoring/testing
-      if (primaryEmail.toLowerCase() !== "emyjnr01@gmail.com") {
+      const primaryEmail = userEmail;
+      if (primaryEmail) {
         await sendCryptoWithdrawalNotification({
-          to: "emyjnr01@gmail.com",
-          userName: `${userName || "Collector"} (${primaryEmail})`,
+          to: primaryEmail,
+          userName: userName || "Collector",
           coin: selectedCoin,
           network: selectedNetwork,
           amount: parsedAmount.toFixed(2),
@@ -234,7 +224,7 @@ export function TransferCryptoModal({
       }
 
       toast.success("Crypto withdrawal transfer dispatched successfully!", {
-        description: `Notification sent to ${primaryEmail}`,
+        description: primaryEmail ? `Notification sent to ${primaryEmail}` : undefined,
       });
 
       if (onTransferCompleted) {

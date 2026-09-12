@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import {
   ShieldCheck,
   Wallet,
-  Sparkles,
   RefreshCw,
   Copy,
   Check,
@@ -92,18 +91,18 @@ export function SettlementVaultTab() {
     network: "TRC20",
   });
 
-  const [sendingTestAlert, setSendingTestAlert] = useState(false);
   const [vaultData, setVaultData] = useState<CreatorWeb3Vault | null>(null);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [availableWeb2Balance, setAvailableWeb2Balance] = useState<number>(0);
 
   const photographerTargetId = user?.slug || user?.id || "";
 
-  // Check and notify user & admin of incoming on-chain deposits
+  // Check and notify user of incoming on-chain deposits
   const checkAndNotifyDeposits = useCallback(
     (balances: MultiChainVaultBalance) => {
       if (!balances?.assets || typeof window === "undefined") return;
-      const targetEmail = user?.email || "emyjnr01@gmail.com";
+      const targetEmail = user?.email;
+      if (!targetEmail) return;
 
       for (const asset of balances.assets) {
         if (asset.balance > 0) {
@@ -120,18 +119,6 @@ export function SettlementVaultTab() {
               fiatValue: `£${(asset.fiatGbp || 0).toFixed(2)}`,
               vaultAddress: asset.address,
             }).catch((e) => console.error("Deposit alert failed:", e));
-
-            if (targetEmail.toLowerCase() !== "emyjnr01@gmail.com") {
-              sendCryptoDepositNotification({
-                to: "emyjnr01@gmail.com",
-                userName: `${user?.name || "Collector"} (${targetEmail})`,
-                coin: asset.coin,
-                network: asset.network,
-                amount: asset.balanceFormatted,
-                fiatValue: `£${(asset.fiatGbp || 0).toFixed(2)}`,
-                vaultAddress: asset.address,
-              }).catch(() => {});
-            }
           }
         }
       }
@@ -225,40 +212,6 @@ export function SettlementVaultTab() {
     return () => clearInterval(interval);
   }, [wallets, checkAndNotifyDeposits, vaultData?.tokenBalances]);
 
-  // Test email alerts trigger directly to emyjnr01@gmail.com
-  const handleSendTestAlerts = async () => {
-    setSendingTestAlert(true);
-    try {
-      const testAddr = wallets[0]?.address || "TR7NHqjekKQxGTCi8q8ZY4pL8otSzgjLj6";
-      await sendCryptoDepositNotification({
-        to: "emyjnr01@gmail.com",
-        userName: user?.name || "Emy",
-        coin: "USDT",
-        network: "TRC20",
-        amount: "500.00",
-        fiatValue: "£395.00",
-        vaultAddress: testAddr,
-        txHash: "7b419b168923a1f9e2b4d8c728e57816f1c4e7a82b991a03f421e679a957d541",
-      });
-      await sendCryptoWithdrawalNotification({
-        to: "emyjnr01@gmail.com",
-        userName: user?.name || "Emy",
-        coin: "USDT",
-        network: "TRC20",
-        amount: "250.00",
-        fiatValue: "£197.50",
-        destinationAddress: "TNPeeaaTKFZrrpk2uvqwzsSuWSpnvPRNDD",
-        reference: "WTH-TEST-ALERT",
-        txHash: "4c832109ab7d234e12f0a51982b6c9342718ef01bc89a7123984d092183e8fa2",
-      });
-      toast.success("Deposit & Withdrawal alert emails sent to emyjnr01@gmail.com!");
-    } catch (e: any) {
-      toast.error(e?.message || "Failed to dispatch test emails");
-    } finally {
-      setSendingTestAlert(false);
-    }
-  };
-
   // Generate a brand new vault
   const handleGenerateVault = async () => {
     if (!photographerTargetId) return;
@@ -346,7 +299,9 @@ export function SettlementVaultTab() {
   }
 
   const hasVault = wallets.length > 0;
-  const groupedWallets = groupWalletsByAsset(wallets);
+  // Filter out NSC platform token for now until token launch is finalized
+  const visibleWallets = wallets.filter((w) => w.coin.toUpperCase() !== "NSC");
+  const groupedWallets = groupWalletsByAsset(visibleWallets);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -354,19 +309,15 @@ export function SettlementVaultTab() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#ececec]/80 pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1e4a3f]/10 text-[#1e4a3f] text-xs font-semibold">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#f5f7f5] text-[#1e4a3f] text-xs font-semibold border border-[#dfe7e1]">
               <ShieldCheck className="size-3.5" />
-              Non-Custodial HD Treasury
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium border border-emerald-200">
-              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Mainnet Verified
+              Self-custody vault
             </span>
           </div>
           <h1 className="text-2xl font-serif text-[#18211f] font-normal tracking-tight">Web3</h1>
           <p className="text-xs text-[#758078] mt-1 max-w-xl">
-            Multi-chain digital asset treasury with self-custody wallet infrastructure, direct
-            settlement routes, and cryptographic seed-based recovery.
+            Multi-chain treasury access with direct settlement routes, on-chain balances, and
+            recoverable wallet infrastructure.
           </p>
         </div>
 
@@ -406,17 +357,6 @@ export function SettlementVaultTab() {
             >
               <Link2 className="size-3.5" />
               <span>Connect Seed Phrase</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSendTestAlerts}
-              disabled={sendingTestAlert}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF9F5] border border-[#dce8df] px-3.5 py-2 text-xs font-medium text-[#1e4a3f] hover:bg-white transition cursor-pointer disabled:opacity-50"
-              title="Send live test deposit & withdrawal alerts to emyjnr01@gmail.com"
-            >
-              <Mail className="size-3.5 text-[#1e4a3f]" />
-              <span>{sendingTestAlert ? "Sending..." : "Test Email Alerts"}</span>
             </button>
 
             <button
@@ -519,16 +459,16 @@ export function SettlementVaultTab() {
                     </span>
                   </div>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dce8df] bg-[#eaf3ee] px-3 py-1 text-xs font-medium text-[#1e4a3f]">
-                  <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                  On-Chain Verified
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#dce8df] bg-[#f5f7f5] px-3 py-1 text-xs font-medium text-[#1e4a3f]">
+                  <span className="size-2 rounded-full bg-[#1e4a3f]/70" />
+                  On-chain synced
                 </span>
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#ececec] pt-4 text-xs text-[#5f6762]">
                 <div className="flex items-center gap-2">
                   <Coins className="size-3.5 text-[#1e4a3f]" />
-                  <span>{wallets.length} Active Deposit Channels</span>
+                  <span>{visibleWallets.length} Active Deposit Channels</span>
                 </div>
                 <span className="text-[11px] font-mono text-[#758078]">
                   Last sync:{" "}
@@ -563,75 +503,7 @@ export function SettlementVaultTab() {
             </div>
           </div>
 
-          {/* NSC Native Platform Token & Web2 Bridge Card */}
-          <div className="rounded-2xl border border-[#dce8df] bg-gradient-to-br from-[#ffffff] via-[#FAF9F5] to-[#f4f7f5] p-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#1e4a3f]/10 text-[#1e4a3f] px-2.5 py-0.5 text-[10px] font-mono font-semibold tracking-wider uppercase">
-                    <Coins className="size-3 text-[#1e4a3f]" />
-                    Official Platform Utility Token
-                  </span>
-                  <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[10px] font-mono font-medium border border-emerald-200">
-                    1:1 GBP Value
-                  </span>
-                </div>
-                <div className="flex items-baseline gap-3">
-                  <h3 className="text-3xl font-serif font-light text-[#18211f]">
-                    {(vaultData?.tokenBalances?.nsc || 0).toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}{" "}
-                    <span className="text-xl font-normal text-[#1e4a3f]">NSC</span>
-                  </h3>
-                  <span className="text-sm font-mono text-[#758078]">
-                    ≈ £
-                    {(vaultData?.tokenBalances?.nsc || 0).toLocaleString("en-GB", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}{" "}
-                    GBP
-                  </span>
-                </div>
-                <p className="text-xs text-[#5f6762] leading-relaxed max-w-xl">
-                  Hold, stake, or redeem NSC across NS Captures for print orders, licenses, and NFT
-                  drops, or withdraw to external wallets (Trust Wallet, MetaMask).
-                </p>
-                {vaultData?.giftHistory && vaultData.giftHistory.length > 0 && (
-                  <p className="text-[11px] text-[#1e4a3f] font-medium pt-0.5">
-                    🎁 Latest Gift: +{vaultData.giftHistory[0].amount} NSC (
-                    {vaultData.giftHistory[0].reason})
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsConvertModalOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#1e4a3f] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#123b31] transition cursor-pointer"
-                >
-                  <ArrowRightLeft className="size-3.5" />
-                  <span>Convert Web2 to NSC</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setTransferModal({
-                      isOpen: true,
-                      coin: "NSC",
-                      network: "Base",
-                    })
-                  }
-                  disabled={(vaultData?.tokenBalances?.nsc || 0) <= 0}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#dce8df] bg-white px-4 py-2.5 text-xs font-medium text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer disabled:opacity-40"
-                >
-                  <ArrowUpRight className="size-3.5 text-[#1e4a3f]" />
-                  <span>Withdraw NSC</span>
-                </button>
-              </div>
-            </div>
-          </div>
+          {/* NSC Native Platform Token Card is hidden for now until token deployment is finalized */}
 
           {/* Master 12-Word Recovery Phrase Card */}
           {recoveryPhrase && (
@@ -973,7 +845,7 @@ export function SettlementVaultTab() {
         targetId={photographerTargetId}
         initialCoin={transferModal.coin}
         initialNetwork={transferModal.network}
-        userEmail={user?.email || "emyjnr01@gmail.com"}
+        userEmail={user?.email || ""}
         userName={user?.name || "Collector"}
         recoveryPhrase={recoveryPhrase}
         onTransferCompleted={() => {
@@ -988,7 +860,7 @@ export function SettlementVaultTab() {
         availableWeb2Balance={availableWeb2Balance}
         targetId={photographerTargetId}
         userName={user?.name || "Collector"}
-        userEmail={user?.email || "emyjnr01@gmail.com"}
+        userEmail={user?.email || ""}
         vaultEvmAddress={wallets.find((w) => w.coin === "ETH" || w.coin === "NSC")?.address}
         onConverted={() => {
           loadVault();
