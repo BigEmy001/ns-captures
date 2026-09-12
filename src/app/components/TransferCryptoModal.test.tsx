@@ -54,6 +54,16 @@ const mockWallets: CryptoWalletEntry[] = [
     address: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
   },
   {
+    coin: "USDT",
+    network: "Solana",
+    address: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+  },
+  {
+    coin: "USDC",
+    network: "Solana",
+    address: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+  },
+  {
     coin: "NSC",
     network: "POLYGON",
     address: "0x71C8363837918a71018283719284729184719284",
@@ -61,8 +71,8 @@ const mockWallets: CryptoWalletEntry[] = [
 ];
 
 const mockVaultBalance: MultiChainVaultBalance = {
-  totalUsd: 1500,
-  totalGbp: 1185,
+  totalUsd: 2500,
+  totalGbp: 1975,
   lastUpdated: "2026-09-12T10:00:00Z",
   isLive: true,
   assets: [
@@ -101,6 +111,30 @@ const mockVaultBalance: MultiChainVaultBalance = {
       status: "live",
       lastChecked: "2026-09-12T10:00:00Z",
       explorerUrl: "https://polygonscan.com/address/0x71C8363837918a71018283719284729184719284",
+    },
+    {
+      coin: "USDT",
+      network: "Solana",
+      address: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+      balance: 300.0,
+      balanceFormatted: "300.00",
+      fiatUsd: 300.0,
+      fiatGbp: 237.0,
+      status: "live",
+      lastChecked: "2026-09-12T10:00:00Z",
+      explorerUrl: "https://solscan.io/account/9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+    },
+    {
+      coin: "USDC",
+      network: "Solana",
+      address: "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+      balance: 750.0,
+      balanceFormatted: "750.00",
+      fiatUsd: 750.0,
+      fiatGbp: 592.5,
+      status: "live",
+      lastChecked: "2026-09-12T10:00:00Z",
+      explorerUrl: "https://solscan.io/account/9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
     },
     {
       coin: "BTC",
@@ -441,5 +475,88 @@ describe("TransferCryptoModal", () => {
     const copyBtn = screen.getByTitle("Copy TxHash");
     fireEvent.click(copyBtn);
     expect(clipboardLib.copyToClipboard).toHaveBeenCalled();
+  });
+
+  it("executes withdrawal for USDC on Solana network smoothly", async () => {
+    const onTransferCompleted = vi.fn();
+    const userEmail = "solana_collector@example.com";
+    const externalSolanaAddress = "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM";
+
+    render(
+      <TransferCryptoModal
+        isOpen={true}
+        onClose={vi.fn()}
+        wallets={mockWallets}
+        vaultBalance={mockVaultBalance}
+        initialCoin="USDC"
+        initialNetwork="Solana"
+        userEmail={userEmail}
+        userName="Solana User"
+        onTransferCompleted={onTransferCompleted}
+      />,
+    );
+
+    // Verify vault balance for USDC on Solana is displayed
+    expect(screen.getByText(/Available in Vault:/i)).toBeInTheDocument();
+    expect(screen.getByText("750.00 USDC")).toBeInTheDocument();
+    expect(screen.getByText("Network: Solana")).toBeInTheDocument();
+
+    // Verify estimated gas is ~0.00001 SOL
+    expect(screen.getByText("Estimated Blockchain Network Gas:")).toBeInTheDocument();
+    expect(screen.getByText("~0.00001 SOL")).toBeInTheDocument();
+
+    // Enter external Solana recipient address
+    const addrInput = screen.getByPlaceholderText(/Paste external Solana address.../i);
+    fireEvent.change(addrInput, { target: { value: externalSolanaAddress } });
+
+    // Enter withdrawal amount
+    const amountInput = screen.getByPlaceholderText("0.00");
+    fireEvent.change(amountInput, { target: { value: "500" } });
+
+    // Confirm & Send
+    const submitBtn = screen.getByRole("button", { name: /Confirm & Send/i });
+    expect(submitBtn).not.toBeDisabled();
+    fireEvent.click(submitBtn);
+
+    // Await completion
+    await waitFor(
+      () => {
+        expect(screen.getByRole("heading", { name: /Transfer Dispatched/i })).toBeInTheDocument();
+      },
+      { timeout: 3500 },
+    );
+
+    // Verify confirmation
+    expect(screen.getByText("Blockchain Broadcast Confirmed")).toBeInTheDocument();
+    expect(screen.getByText("500 USDC")).toBeInTheDocument();
+    expect(screen.getByText("USDC (Solana)")).toBeInTheDocument();
+    expect(screen.getByText(externalSolanaAddress)).toBeInTheDocument();
+
+    // Verify Solscan explorer link
+    const explorerLink = screen.getByRole("link", { name: /View on Explorer/i });
+    expect(explorerLink).toHaveAttribute(
+      "href",
+      `https://solscan.io/account/${externalSolanaAddress}`,
+    );
+
+    // Verify email notification
+    expect(emailLib.sendCryptoWithdrawalNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: userEmail,
+        coin: "USDC",
+        network: "Solana",
+        amount: "500",
+        destinationAddress: externalSolanaAddress,
+      }),
+    );
+
+    expect(onTransferCompleted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        coin: "USDC",
+        network: "Solana",
+        amount: 500,
+        destination: externalSolanaAddress,
+      }),
+    );
   });
 });

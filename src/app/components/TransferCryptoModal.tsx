@@ -81,7 +81,7 @@ export function TransferCryptoModal({
     const list = Array.from(new Set(wallets.map((w) => w.coin))).filter(
       (c) => c.toUpperCase() !== "NSC",
     );
-    return list.length > 0 ? list : ["USDT", "BTC", "ETH", "SOL"];
+    return list.length > 0 ? list : ["USDT", "USDC", "BTC", "ETH", "SOL"];
   }, [wallets]);
 
   // Available networks for currently selected coin

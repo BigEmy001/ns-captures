@@ -34,6 +34,7 @@ export interface MultiChainVaultBalance {
 export const DEFAULT_EXCHANGE_RATES: Record<string, { usd: number; gbp: number }> = {
   NSC: { usd: 1.3, gbp: 1.0 }, // 1:1 with GBP, ~$1.30 USD
   USDT: { usd: 1.0, gbp: 0.79 },
+  USDC: { usd: 1.0, gbp: 0.79 },
   BTC: { usd: 64500.0, gbp: 50950.0 },
   ETH: { usd: 3450.0, gbp: 2725.0 },
   SOL: { usd: 145.0, gbp: 114.5 },
@@ -230,41 +231,87 @@ export async function fetchEthereumBalances(
 }
 
 /**
- * Fetch Solana balance via public Solana RPC.
+ * Fetch Solana balance via public Solana RPC (native SOL, USDT SPL, and USDC SPL).
  */
-export async function fetchSolanaBalance(address: string): Promise<{ sol: number; usdt: number }> {
+export async function fetchSolanaBalance(
+  address: string,
+): Promise<{ sol: number; usdt: number; usdc: number }> {
   if (!address || address.startsWith("0x") || address.startsWith("T")) {
-    return { sol: 0, usdt: 0 };
+    return { sol: 0, usdt: 0, usdc: 0 };
   }
 
   let sol = 0;
-  const usdt = 0;
+  let usdt = 0;
+  let usdc = 0;
 
   const { signal, cleanup } = createTimeoutSignal(5000);
   try {
-    const rpcRes = await fetch("https://api.mainnet-beta.solana.com", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "getBalance",
-        params: [address],
-      }),
-      signal,
-    });
-    cleanup();
-    if (rpcRes.ok) {
-      const data = await rpcRes.json();
-      if (typeof data?.result?.value === "number") {
-        sol = data.result.value / 1e9;
+    // 1. Fetch native SOL balance
+    try {
+      const rpcRes = await fetch("https://api.mainnet-beta.solana.com", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "getBalance",
+          params: [address],
+        }),
+        signal,
+      });
+      if (rpcRes.ok) {
+        const data = await rpcRes.json();
+        if (typeof data?.result?.value === "number") {
+          sol = data.result.value / 1e9;
+        }
       }
+    } catch {
+      // ignore individual RPC error
+    }
+
+    // 2. Fetch SPL token accounts (USDC & USDT on Solana)
+    try {
+      const tokenRes = await fetch("https://api.mainnet-beta.solana.com", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 2,
+          method: "getTokenAccountsByOwner",
+          params: [
+            address,
+            { programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+            { encoding: "jsonParsed" },
+          ],
+        }),
+        signal,
+      });
+      if (tokenRes.ok) {
+        const tokenData = await tokenRes.json();
+        const accounts = tokenData?.result?.value || [];
+        for (const item of accounts) {
+          const info = item?.account?.data?.parsed?.info;
+          const mint = info?.mint;
+          const uiAmount = info?.tokenAmount?.uiAmount;
+          if (typeof uiAmount === "number") {
+            if (mint === "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v") {
+              usdc += uiAmount;
+            } else if (mint === "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB") {
+              usdt += uiAmount;
+            }
+          }
+        }
+      }
+    } catch {
+      // ignore token RPC error
     }
   } catch {
+    // network fallback
+  } finally {
     cleanup();
   }
 
-  return { sol, usdt };
+  return { sol, usdt, usdc };
 }
 
 /**
@@ -329,7 +376,7 @@ export async function fetchMultiChainVaultBalances(
         if (balance > 0) anyLiveSuccess = true;
       } else if (network.includes("SOL") || coin === "SOL") {
         const solData = await fetchSolanaBalance(w.address);
-        balance = coin === "SOL" ? solData.sol : solData.usdt;
+        balance = coin === "SOL" ? solData.sol : coin === "USDC" ? solData.usdc : solData.usdt;
         status = balance > 0 ? "live" : "unfunded";
         if (balance > 0) anyLiveSuccess = true;
       }
