@@ -421,8 +421,7 @@ export async function sendPayoutSettlementNotificationEmail({
   );
   const safeSalutation = escapeHtml(salutation || `Dear ${safeName},`);
   const safeSignoff = escapeHtml(
-    departmentSignoff ||
-      "Kind regards,\nFinance & Settlement Department\nNS CAPTURES",
+    departmentSignoff || "Kind regards,\nFinance & Settlement Department\nNS CAPTURES",
   ).replace(/\n/g, "<br/>");
 
   const defaultParagraphs = [
@@ -434,9 +433,7 @@ export async function sendPayoutSettlementNotificationEmail({
   ];
 
   const paragraphsHtml = (
-    bodyText
-      ? bodyText.split("\n\n").map((p) => escapeHtml(p.trim()))
-      : defaultParagraphs
+    bodyText ? bodyText.split("\n\n").map((p) => escapeHtml(p.trim())) : defaultParagraphs
   )
     .map(
       (p) =>
@@ -859,11 +856,7 @@ export async function sendFeaturedSpotlightNotification(
 /**
  * Notifies a user when they join the Web3 Early Access Waitlist.
  */
-export async function sendWeb3WaitlistConfirmation(
-  to: string,
-  name?: string,
-  role?: string,
-) {
+export async function sendWeb3WaitlistConfirmation(to: string, name?: string, role?: string) {
   const safeName = name ? escapeHtml(name) : "Creator";
   const roleLabel = role
     ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()
@@ -893,3 +886,118 @@ export async function sendWeb3WaitlistConfirmation(
   );
 }
 
+/**
+ * Notifies a user and the platform when an on-chain crypto deposit arrives in their Web3 vault.
+ */
+export async function sendCryptoDepositNotification({
+  to,
+  userName,
+  coin,
+  network,
+  amount,
+  fiatValue,
+  vaultAddress,
+  txHash,
+}: {
+  to: string;
+  userName?: string;
+  coin: string;
+  network: string;
+  amount: number | string;
+  fiatValue?: string;
+  vaultAddress: string;
+  txHash?: string;
+}) {
+  const safeName = escapeHtml(userName || "Collector");
+  const safeCoin = escapeHtml(coin.toUpperCase());
+  const safeNetwork = escapeHtml(network.toUpperCase());
+  const safeAddress = escapeHtml(vaultAddress);
+  const safeTx = txHash ? escapeHtml(txHash) : "";
+
+  const subject = `Deposit Confirmed: ${amount} ${safeCoin} (${safeNetwork}) — NS CAPTURES`;
+  const html = `
+<h1 style="${H1}">Crypto Deposit Confirmed</h1>
+<p style="${P}">Hi ${safeName},</p>
+<p style="${P}">Your on-chain deposit has been confirmed and credited to your <strong>NS CAPTURES Web3 Vault</strong>.</p>
+<div style="${CARD}">
+  <p style="margin:0;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:#1e4a3f;">Deposit Summary</p>
+  <p style="margin:8px 0 0 0;font-size:26px;font-weight:600;color:#18211f;">${amount} ${safeCoin}</p>
+  ${fiatValue ? `<p style="margin:4px 0 0 0;font-size:14px;color:#1e4a3f;font-weight:500;">≈ ${escapeHtml(fiatValue)}</p>` : ""}
+  <hr style="border:none;border-top:1px solid #dce8df;margin:16px 0;"/>
+  <p style="margin:0;font-size:13px;color:#555555;"><strong>Network:</strong> ${safeNetwork}</p>
+  <p style="margin:6px 0 0 0;font-size:13px;color:#555555;"><strong>Destination Vault Address:</strong></p>
+  <p style="margin:4px 0 0 0;font-size:12px;font-family:monospace;color:#18211f;word-break:break-all;background:#ffffff;padding:8px 12px;border-radius:6px;border:1px solid #dce8df;">${safeAddress}</p>
+  ${
+    safeTx
+      ? `
+  <p style="margin:10px 0 0 0;font-size:13px;color:#555555;"><strong>Blockchain Transaction ID (TxHash):</strong></p>
+  <p style="margin:4px 0 0 0;font-size:12px;font-family:monospace;color:#18211f;word-break:break-all;">${safeTx}</p>`
+      : ""
+  }
+</div>
+<p style="${P}">Your live vault balance is updated and ready to be used for platform settlements, photo licensing, and digital acquisitions.</p>
+<p style="margin:24px 0 0;">${btn("https://www.nscaptures.com/account?tab=web3", "View Web3 Vault")}</p>
+<p style="margin:20px 0 0;font-size:13px;line-height:19px;color:#888888;font-family:inherit;">This is an automated on-chain deposit notification from NS CAPTURES Non-Custodial Infrastructure.</p>`;
+
+  return send(to, subject, html);
+}
+
+/**
+ * Notifies a user when a crypto withdrawal / transfer has been executed from their Web3 vault.
+ */
+export async function sendCryptoWithdrawalNotification({
+  to,
+  userName,
+  coin,
+  network,
+  amount,
+  fiatValue,
+  destinationAddress,
+  txHash,
+  reference,
+}: {
+  to: string;
+  userName?: string;
+  coin: string;
+  network: string;
+  amount: number | string;
+  fiatValue?: string;
+  destinationAddress: string;
+  txHash?: string;
+  reference?: string;
+}) {
+  const safeName = escapeHtml(userName || "Collector");
+  const safeCoin = escapeHtml(coin.toUpperCase());
+  const safeNetwork = escapeHtml(network.toUpperCase());
+  const safeAddress = escapeHtml(destinationAddress);
+  const safeTx = txHash ? escapeHtml(txHash) : "";
+  const safeRef = reference ? escapeHtml(reference) : "";
+
+  const subject = `Withdrawal Dispatched: ${amount} ${safeCoin} (${safeNetwork}) — NS CAPTURES`;
+  const html = `
+<h1 style="${H1}">Crypto Withdrawal Dispatched</h1>
+<p style="${P}">Hi ${safeName},</p>
+<p style="${P}">A crypto transfer has been executed from your <strong>NS CAPTURES Web3 Vault</strong> to an external wallet address.</p>
+<div style="${CARD}">
+  <p style="margin:0;font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:#1e4a3f;">Transfer Details</p>
+  <p style="margin:8px 0 0 0;font-size:26px;font-weight:600;color:#18211f;">${amount} ${safeCoin}</p>
+  ${fiatValue ? `<p style="margin:4px 0 0 0;font-size:14px;color:#1e4a3f;font-weight:500;">≈ ${escapeHtml(fiatValue)}</p>` : ""}
+  <hr style="border:none;border-top:1px solid #dce8df;margin:16px 0;"/>
+  <p style="margin:0;font-size:13px;color:#555555;"><strong>Network:</strong> ${safeNetwork}</p>
+  <p style="margin:6px 0 0 0;font-size:13px;color:#555555;"><strong>Recipient External Address:</strong></p>
+  <p style="margin:4px 0 0 0;font-size:12px;font-family:monospace;color:#18211f;word-break:break-all;background:#ffffff;padding:8px 12px;border-radius:6px;border:1px solid #dce8df;">${safeAddress}</p>
+  ${safeRef ? `<p style="margin:10px 0 0 0;font-size:13px;color:#555555;"><strong>Reference ID:</strong> ${safeRef}</p>` : ""}
+  ${
+    safeTx
+      ? `
+  <p style="margin:10px 0 0 0;font-size:13px;color:#555555;"><strong>Blockchain Transaction ID:</strong></p>
+  <p style="margin:4px 0 0 0;font-size:12px;font-family:monospace;color:#18211f;word-break:break-all;">${safeTx}</p>`
+      : ""
+  }
+</div>
+<p style="${P}">The transaction has been submitted to the blockchain network and will confirm within minutes.</p>
+<p style="margin:24px 0 0;">${btn("https://www.nscaptures.com/account?tab=web3", "View Web3 Vault")}</p>
+<p style="margin:20px 0 0;font-size:13px;line-height:19px;color:#888888;font-family:inherit;">If you did not authorize this withdrawal, please contact security immediately.</p>`;
+
+  return send(to, subject, html);
+}

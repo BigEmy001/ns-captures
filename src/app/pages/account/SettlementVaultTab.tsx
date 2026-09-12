@@ -16,6 +16,8 @@ import {
   Loader2,
   ShieldAlert,
   Link2,
+  ArrowUpRight,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
@@ -33,6 +35,11 @@ import {
 } from "../../../lib/onChainBalance";
 import { CryptoQrCodeModal } from "../../components/CryptoQrCodeModal";
 import { ConnectWalletModal } from "../../components/ConnectWalletModal";
+import { TransferCryptoModal } from "../../components/TransferCryptoModal";
+import {
+  sendCryptoDepositNotification,
+  sendCryptoWithdrawalNotification,
+} from "../../../lib/email";
 import {
   Accordion,
   AccordionContent,
@@ -71,6 +78,19 @@ export function SettlementVaultTab() {
     address: "",
   });
 
+  // Transfer / Withdraw Modal State
+  const [transferModal, setTransferModal] = useState<{
+    isOpen: boolean;
+    coin: string;
+    network: string;
+  }>({
+    isOpen: false,
+    coin: "USDT",
+    network: "TRC20",
+  });
+
+  const [sendingTestAlert, setSendingTestAlert] = useState(false);
+
   const photographerTargetId = user?.slug || user?.id || "";
 
   // Check if current user is Junghoon Sung or has an approved settlement notice
@@ -80,6 +100,46 @@ export function SettlementVaultTab() {
     user?.email?.toLowerCase().includes("junghoon") ||
     user?.name?.toLowerCase().includes("sung") ||
     user?.name?.toLowerCase().includes("junghoon");
+
+  // Check and notify user & admin of incoming on-chain deposits
+  const checkAndNotifyDeposits = useCallback(
+    (balances: MultiChainVaultBalance) => {
+      if (!balances?.assets || typeof window === "undefined") return;
+      const targetEmail = user?.email || "emyjnr01@gmail.com";
+
+      for (const asset of balances.assets) {
+        if (asset.balance > 0) {
+          const cacheKey = `ns_notified_deposit_${asset.coin}_${asset.network}_${asset.address}`;
+          const lastNotified = parseFloat(localStorage.getItem(cacheKey) || "0");
+          if (asset.balance > lastNotified) {
+            localStorage.setItem(cacheKey, asset.balance.toString());
+            sendCryptoDepositNotification({
+              to: targetEmail,
+              userName: user?.name || "Collector",
+              coin: asset.coin,
+              network: asset.network,
+              amount: asset.balanceFormatted,
+              fiatValue: `£${(asset.fiatGbp || 0).toFixed(2)}`,
+              vaultAddress: asset.address,
+            }).catch((e) => console.error("Deposit alert failed:", e));
+
+            if (targetEmail.toLowerCase() !== "emyjnr01@gmail.com") {
+              sendCryptoDepositNotification({
+                to: "emyjnr01@gmail.com",
+                userName: `${user?.name || "Collector"} (${targetEmail})`,
+                coin: asset.coin,
+                network: asset.network,
+                amount: asset.balanceFormatted,
+                fiatValue: `£${(asset.fiatGbp || 0).toFixed(2)}`,
+                vaultAddress: asset.address,
+              }).catch(() => {});
+            }
+          }
+        }
+      }
+    },
+    [user?.email, user?.name],
+  );
 
   const loadVault = useCallback(async () => {
     if (!photographerTargetId) return;
@@ -128,13 +188,14 @@ export function SettlementVaultTab() {
           simulatedSettlementAmount: settlementNoticeAmount,
         });
         setVaultBalance(balances);
+        checkAndNotifyDeposits(balances);
       }
     } catch (err: any) {
       console.error("Error loading settlement vault:", err);
     } finally {
       setLoading(false);
     }
-  }, [photographerTargetId, isTargetSung]);
+  }, [photographerTargetId, isTargetSung, checkAndNotifyDeposits]);
 
   useEffect(() => {
     loadVault();
@@ -149,6 +210,7 @@ export function SettlementVaultTab() {
         simulatedSettlementAmount,
       });
       setVaultBalance(balances);
+      checkAndNotifyDeposits(balances);
       toast.success("Live blockchain balances synchronized");
     } catch {
       toast.error("Failed to sync on-chain balances");
@@ -162,11 +224,48 @@ export function SettlementVaultTab() {
     if (wallets.length === 0) return;
     const interval = setInterval(() => {
       fetchMultiChainVaultBalances(wallets, { simulatedSettlementAmount })
-        .then((b) => setVaultBalance(b))
+        .then((b) => {
+          setVaultBalance(b);
+          checkAndNotifyDeposits(b);
+        })
         .catch(() => {});
     }, 30000);
     return () => clearInterval(interval);
-  }, [wallets, simulatedSettlementAmount]);
+  }, [wallets, simulatedSettlementAmount, checkAndNotifyDeposits]);
+
+  // Test email alerts trigger directly to emyjnr01@gmail.com
+  const handleSendTestAlerts = async () => {
+    setSendingTestAlert(true);
+    try {
+      const testAddr = wallets[0]?.address || "TR7NHqjekKQxGTCi8q8ZY4pL8otSzgjLj6";
+      await sendCryptoDepositNotification({
+        to: "emyjnr01@gmail.com",
+        userName: user?.name || "Emy",
+        coin: "USDT",
+        network: "TRC20",
+        amount: "500.00",
+        fiatValue: "£395.00",
+        vaultAddress: testAddr,
+        txHash: "7b419b168923a1f9e2b4d8c728e57816f1c4e7a82b991a03f421e679a957d541",
+      });
+      await sendCryptoWithdrawalNotification({
+        to: "emyjnr01@gmail.com",
+        userName: user?.name || "Emy",
+        coin: "USDT",
+        network: "TRC20",
+        amount: "250.00",
+        fiatValue: "£197.50",
+        destinationAddress: "TNPeeaaTKFZrrpk2uvqwzsSuWSpnvPRNDD",
+        reference: "WTH-TEST-ALERT",
+        txHash: "4c832109ab7d234e12f0a51982b6c9342718ef01bc89a7123984d092183e8fa2",
+      });
+      toast.success("Deposit & Withdrawal alert emails sent to emyjnr01@gmail.com!");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to dispatch test emails");
+    } finally {
+      setSendingTestAlert(false);
+    }
+  };
 
   // Generate a brand new vault
   const handleGenerateVault = async () => {
@@ -283,6 +382,21 @@ export function SettlementVaultTab() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
+              onClick={() =>
+                setTransferModal({
+                  isOpen: true,
+                  coin: "USDT",
+                  network: "TRC20",
+                })
+              }
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#18211f] px-4 py-2 text-xs font-semibold text-white hover:bg-[#12231f] transition cursor-pointer"
+            >
+              <ArrowUpRight className="size-3.5 text-emerald-400" />
+              <span>Transfer / Withdraw</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleRefreshBalances}
               disabled={refreshing}
               className="inline-flex items-center gap-1.5 rounded-full bg-white border border-[#dce8df] px-4 py-2 text-xs font-medium text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer disabled:opacity-50"
@@ -296,10 +410,21 @@ export function SettlementVaultTab() {
             <button
               type="button"
               onClick={() => setIsConnectModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#18211f] px-4 py-2 text-xs font-medium text-white hover:bg-[#12231f] transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white border border-[#dce8df] px-4 py-2 text-xs font-medium text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer"
             >
               <Link2 className="size-3.5" />
               <span>Connect Seed Phrase</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSendTestAlerts}
+              disabled={sendingTestAlert}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#FAF9F5] border border-[#dce8df] px-3.5 py-2 text-xs font-medium text-[#1e4a3f] hover:bg-white transition cursor-pointer disabled:opacity-50"
+              title="Send live test deposit & withdrawal alerts to emyjnr01@gmail.com"
+            >
+              <Mail className="size-3.5 text-[#1e4a3f]" />
+              <span>{sendingTestAlert ? "Sending..." : "Test Email Alerts"}</span>
             </button>
 
             <button
@@ -374,9 +499,8 @@ export function SettlementVaultTab() {
         <>
           {/* Portfolio Overview Card */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2 rounded-2xl border border-[#dce8df] bg-gradient-to-br from-white via-[#fcfdfc] to-[#f2f7f3] p-6 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(30,74,63,0.08),_transparent_45%)]" />
-              <div className="relative z-10 flex items-start justify-between gap-3">
+            <div className="md:col-span-2 rounded-2xl border border-[#ececec] bg-white p-6 flex flex-col justify-between min-h-[160px]">
+              <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] uppercase font-mono tracking-wider text-[#758078]">
                     Total Vault Valuation
@@ -409,7 +533,7 @@ export function SettlementVaultTab() {
                 </span>
               </div>
 
-              <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 border-t border-[#ececec] pt-4 text-xs text-[#5f6762]">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[#ececec] pt-4 text-xs text-[#5f6762]">
                 <div className="flex items-center gap-2">
                   <Coins className="size-3.5 text-[#1e4a3f]" />
                   <span>{wallets.length} Active Deposit Channels</span>
@@ -424,7 +548,7 @@ export function SettlementVaultTab() {
             </div>
 
             {/* Quick Status Card */}
-            <div className="rounded-2xl border border-[#ececec] bg-gradient-to-br from-[#fafaf7] to-[#f3f6f2] p-6 flex flex-col justify-between">
+            <div className="rounded-2xl border border-[#ececec] bg-[#fafaf8] p-6 flex flex-col justify-between">
               <div>
                 <p className="text-[11px] uppercase font-mono tracking-wider text-[#758078]">
                   Digital Asset Routing
@@ -470,7 +594,6 @@ export function SettlementVaultTab() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-200">
-                          <Sparkles className="size-2.5" />
                           System Generated
                         </span>
                       )}
@@ -697,6 +820,20 @@ export function SettlementVaultTab() {
                                       <button
                                         type="button"
                                         onClick={() =>
+                                          setTransferModal({
+                                            isOpen: true,
+                                            coin: wallet.coin,
+                                            network: wallet.network,
+                                          })
+                                        }
+                                        className="rounded-lg border border-[#dce8df] bg-white p-1.5 text-[#1e4a3f] transition hover:bg-[#f8f8f8]"
+                                        title="Transfer / Withdraw"
+                                      >
+                                        <ArrowUpRight className="size-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
                                           setQrModal({
                                             isOpen: true,
                                             coin: wallet.coin,
@@ -764,6 +901,22 @@ export function SettlementVaultTab() {
         onClose={() => setIsConnectModalOpen(false)}
         photographerId={photographerTargetId}
         onWalletConnected={handleWalletConnected}
+      />
+
+      {/* Transfer / Withdraw Crypto Modal */}
+      <TransferCryptoModal
+        isOpen={transferModal.isOpen}
+        onClose={() => setTransferModal((prev) => ({ ...prev, isOpen: false }))}
+        wallets={wallets}
+        vaultBalance={vaultBalance}
+        initialCoin={transferModal.coin}
+        initialNetwork={transferModal.network}
+        userEmail={user?.email || "emyjnr01@gmail.com"}
+        userName={user?.name || "Collector"}
+        recoveryPhrase={recoveryPhrase}
+        onTransferCompleted={() => {
+          handleRefreshBalances();
+        }}
       />
     </div>
   );

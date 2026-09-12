@@ -31,7 +31,6 @@ import {
   FileText,
   Copy,
   Pencil,
-  Sparkles,
   Globe,
   QrCode,
   ExternalLink,
@@ -202,7 +201,7 @@ const nav = [
   { id: "programme", label: "Programme", icon: Handshake },
   { id: "collections", label: "Collections", icon: FolderHeart },
   { id: "submissions", label: "Submissions", icon: Mail },
-  { id: "waitlist", label: "Web3 Waitlist", icon: Sparkles },
+  { id: "waitlist", label: "Web3 Waitlist", icon: Wallet },
   { id: "reports", label: "Reports", icon: FileBarChart },
   { id: "logs", label: "System Logs", icon: Logs },
   { id: "settings", label: "Settings", icon: Settings },
@@ -4195,8 +4194,7 @@ export function Admin() {
                 <div>
                   <div className="flex items-center gap-2">
                     <Eyebrow>WEB3 EARLY ACCESS WAITLIST</Eyebrow>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#10b981]/15 px-2.5 py-0.5 font-mono text-[10px] font-semibold text-[#059669]">
-                      <Sparkles className="size-3" />
+                    <span className="inline-flex items-center rounded-full bg-[#10b981]/15 px-2.5 py-0.5 font-mono text-[10px] font-semibold text-[#059669]">
                       {waitlistEntries.length} Total Subscriptions
                     </span>
                   </div>
@@ -4494,7 +4492,6 @@ export function Admin() {
                     {filteredWaitlist.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-12 text-center text-sm text-[#8a8f89]">
-                          <Sparkles className="size-6 mx-auto mb-2 text-[#9aa09b]" />
                           No waitlist entries found matching your criteria.
                         </td>
                       </tr>
@@ -6524,7 +6521,6 @@ function AdminUserModal({
                           </span>
                         ) : web3Vault?.recoveryPhrase ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium border border-emerald-200">
-                            <Sparkles className="size-2.5" />
                             System Generated
                           </span>
                         ) : (
@@ -6629,7 +6625,6 @@ function AdminUserModal({
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-200">
-                            <Sparkles className="size-2.5" />
                             System Generated
                           </span>
                         )}
@@ -6887,7 +6882,6 @@ function AdminUserModal({
                       onClick={handleAdminGenerateWeb3Vault}
                       className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#1e4a3f] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#123b31] transition cursor-pointer disabled:opacity-50"
                     >
-                      <Sparkles className="size-3" />
                       <span>
                         {isGeneratingAdminWallet
                           ? "Generating..."
