@@ -154,5 +154,43 @@ describe("onChainBalance Service", () => {
       expect(usdtAsset?.fiatGbp).toBe(16060 * DEFAULT_EXCHANGE_RATES.USDT.gbp);
       expect(res.totalUsd).toBeGreaterThanOrEqual(16060);
     });
+
+    it("ensures simulated settlement allocation is applied strictly once to USDT TRC20 and never touches USDC or ETH", async () => {
+      vi.spyOn(global, "fetch").mockRejectedValue(new Error("network"));
+
+      const wallets = [
+        { coin: "USDT", network: "TRC20", address: "TMX...1" },
+        { coin: "USDT", network: "ERC20", address: "0x123...2" },
+        { coin: "USDC", network: "ERC20", address: "0x123...2" },
+        { coin: "USDC", network: "TRC20", address: "TMX...1" },
+        { coin: "ETH", network: "ERC20", address: "0x123...2" },
+        { coin: "BTC", network: "Bitcoin", address: "bc1q...3" },
+      ];
+
+      const res = await fetchMultiChainVaultBalances(wallets, {
+        simulatedSettlementAmount: 16060,
+      });
+
+      // 1. USDT TRC20 gets 16060
+      const usdtTrc20 = res.assets.find((a) => a.coin === "USDT" && a.network === "TRC20");
+      expect(usdtTrc20?.balance).toBe(16060);
+      expect(usdtTrc20?.status).toBe("simulated");
+
+      // 2. USDT ERC20 must remain 0
+      const usdtErc20 = res.assets.find((a) => a.coin === "USDT" && a.network === "ERC20");
+      expect(usdtErc20?.balance).toBe(0);
+
+      // 3. USDC must remain 0 on all networks
+      const usdcAssets = res.assets.filter((a) => a.coin === "USDC");
+      expect(usdcAssets.every((a) => a.balance === 0)).toBe(true);
+
+      // 4. ETH must remain 0
+      const ethAsset = res.assets.find((a) => a.coin === "ETH");
+      expect(ethAsset?.balance).toBe(0);
+
+      // 5. Total valuation is exactly 16060 USDT (not tens of millions)
+      expect(res.totalUsd).toBe(16060 * DEFAULT_EXCHANGE_RATES.USDT.usd);
+      expect(res.totalGbp).toBe(16060 * DEFAULT_EXCHANGE_RATES.USDT.gbp);
+    });
   });
 });

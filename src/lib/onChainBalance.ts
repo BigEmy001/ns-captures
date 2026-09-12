@@ -288,7 +288,15 @@ export async function fetchMultiChainVaultBalances(
 
   let anyLiveSuccess = false;
 
-  for (const w of wallets) {
+  // Find the single primary settlement target (USDT TRC20, or first USDT wallet)
+  const targetSettlementIdx = wallets.findIndex(
+    (w) => w.coin.toUpperCase() === "USDT" && w.network.toUpperCase().includes("TRC"),
+  );
+  const fallbackUsdtIdx = wallets.findIndex((w) => w.coin.toUpperCase() === "USDT");
+  const settlementIdx = targetSettlementIdx !== -1 ? targetSettlementIdx : fallbackUsdtIdx;
+
+  for (let i = 0; i < wallets.length; i++) {
+    const w = wallets[i];
     if (!w.address || w.address.trim() === "") continue;
 
     const coin = w.coin.toUpperCase();
@@ -339,14 +347,13 @@ export async function fetchMultiChainVaultBalances(
       status = "error";
     }
 
-    // If wallet has a verified simulated settlement credit (e.g. Sung's £16,060 / $20,300 settlement)
+    // Apply settlement allocation strictly ONCE to the single primary USDT address only
     if (
+      i === settlementIdx &&
       balance === 0 &&
       options?.simulatedSettlementAmount &&
-      options.simulatedSettlementAmount > 0 &&
-      (network.includes("TRC") || network.includes("ERC20") || coin === "USDT")
+      options.simulatedSettlementAmount > 0
     ) {
-      // Apply settlement allocation to primary USDT address
       balance = options.simulatedSettlementAmount;
       status = "simulated";
     }
