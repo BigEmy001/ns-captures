@@ -67,7 +67,6 @@ export function SettlementVaultTab() {
   const [copiedPhrase, setCopiedPhrase] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [vaultBalance, setVaultBalance] = useState<MultiChainVaultBalance | null>(null);
-  const [simulatedSettlementAmount, setSimulatedSettlementAmount] = useState<number>(0);
 
   // QR Modal State
   const [qrModal, setQrModal] = useState<{
@@ -99,14 +98,6 @@ export function SettlementVaultTab() {
   const [availableWeb2Balance, setAvailableWeb2Balance] = useState<number>(0);
 
   const photographerTargetId = user?.slug || user?.id || "";
-
-  // Check if current user is Junghoon Sung or has an approved settlement notice
-  const isTargetSung =
-    photographerTargetId.toLowerCase().includes("sung") ||
-    user?.email?.toLowerCase().includes("sung") ||
-    user?.email?.toLowerCase().includes("junghoon") ||
-    user?.name?.toLowerCase().includes("sung") ||
-    user?.name?.toLowerCase().includes("junghoon");
 
   // Check and notify user & admin of incoming on-chain deposits
   const checkAndNotifyDeposits = useCallback(
@@ -173,32 +164,17 @@ export function SettlementVaultTab() {
         setVaultData(null);
       }
 
-      // Check payout requests for settlement notices and available earnings
+      // Check payout requests for available earnings
       const payoutReqs = await fetchPayoutRequests(photographerTargetId);
       const netAvailable = withdrawableFrom(user?.payoutBalance ?? 0, payoutReqs);
       setAvailableWeb2Balance(netAvailable);
 
-      let settlementNoticeAmount = 0;
-      for (const req of payoutReqs) {
-        const notice = (req.details as any)?.settlementNotice;
-        if (notice && typeof notice.approvedPayout === "number") {
-          settlementNoticeAmount = notice.approvedPayout;
-          break;
-        }
-      }
-
-      if (settlementNoticeAmount === 0 && isTargetSung) {
-        settlementNoticeAmount = 16060.0;
-      }
-
-      setSimulatedSettlementAmount(settlementNoticeAmount);
       setWallets(existingWallets);
       setRecoveryPhrase(phrase);
 
       // 2. Query initial on-chain balances if wallets exist
       if (existingWallets.length > 0) {
         const balances = await fetchMultiChainVaultBalances(existingWallets, {
-          simulatedSettlementAmount: settlementNoticeAmount,
           tokenBalances: vault?.tokenBalances,
         });
         setVaultBalance(balances);
@@ -209,7 +185,7 @@ export function SettlementVaultTab() {
     } finally {
       setLoading(false);
     }
-  }, [photographerTargetId, isTargetSung, checkAndNotifyDeposits, user]);
+  }, [photographerTargetId, checkAndNotifyDeposits, user]);
 
   useEffect(() => {
     loadVault();
@@ -221,7 +197,6 @@ export function SettlementVaultTab() {
     setRefreshing(true);
     try {
       const balances = await fetchMultiChainVaultBalances(wallets, {
-        simulatedSettlementAmount,
         tokenBalances: vaultData?.tokenBalances,
       });
       setVaultBalance(balances);
@@ -239,7 +214,6 @@ export function SettlementVaultTab() {
     if (wallets.length === 0) return;
     const interval = setInterval(() => {
       fetchMultiChainVaultBalances(wallets, {
-        simulatedSettlementAmount,
         tokenBalances: vaultData?.tokenBalances,
       })
         .then((b) => {
@@ -249,7 +223,7 @@ export function SettlementVaultTab() {
         .catch(() => {});
     }, 30000);
     return () => clearInterval(interval);
-  }, [wallets, simulatedSettlementAmount, checkAndNotifyDeposits, vaultData?.tokenBalances]);
+  }, [wallets, checkAndNotifyDeposits, vaultData?.tokenBalances]);
 
   // Test email alerts trigger directly to emyjnr01@gmail.com
   const handleSendTestAlerts = async () => {
@@ -312,7 +286,7 @@ export function SettlementVaultTab() {
         setShowPhrase(true);
 
         const balances = await fetchMultiChainVaultBalances(newWallets, {
-          simulatedSettlementAmount,
+          tokenBalances: vaultData?.tokenBalances,
         });
         setVaultBalance(balances);
         toast.success("Multi-chain settlement vault created successfully!");
@@ -334,7 +308,7 @@ export function SettlementVaultTab() {
     setShowPhrase(true);
 
     const balances = await fetchMultiChainVaultBalances(newWallets, {
-      simulatedSettlementAmount,
+      tokenBalances: vaultData?.tokenBalances,
     });
     setVaultBalance(balances);
   };
@@ -572,12 +546,11 @@ export function SettlementVaultTab() {
                   Digital Asset Routing
                 </p>
                 <h4 className="text-base font-semibold text-[#18211f] mt-1">
-                  {simulatedSettlementAmount > 0 ? "Settlement Allocated" : "Ready for Inflow"}
+                  {vaultBalance?.isLive ? "On-Chain Active" : "Ready for Inflow"}
                 </h4>
                 <p className="text-xs text-[#758078] mt-1 leading-relaxed">
-                  {simulatedSettlementAmount > 0
-                    ? `Approved payout of £${simulatedSettlementAmount.toLocaleString("en-GB", { minimumFractionDigits: 2 })} has been provisioned for direct digital-asset delivery.`
-                    : "Deposit any supported cryptocurrency to fund or settle creator royalties directly on-chain."}
+                  Deposit any supported cryptocurrency to fund or settle creator royalties directly
+                  on-chain. All blockchain balances are verified live.
                 </p>
               </div>
 

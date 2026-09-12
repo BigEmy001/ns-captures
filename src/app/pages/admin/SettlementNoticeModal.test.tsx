@@ -168,7 +168,9 @@ describe("SettlementNoticeModal", () => {
     expect(screen.getByDisplayValue("elena@example.com")).toBeInTheDocument();
     expect(screen.getByDisplayValue("4200")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Dear Elena Rostova,")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Custom unique settlement notice for Elena.")).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue("Custom unique settlement notice for Elena."),
+    ).toBeInTheDocument();
 
     // Now switch to Junghoon Sung: should prefill £16,060 breakdown
     fireEvent.change(select, { target: { value: "cand-sung" } });
@@ -185,6 +187,7 @@ describe("SettlementNoticeModal", () => {
       <SettlementNoticeModal
         isOpen={true}
         onClose={vi.fn()}
+        request={mockRequest}
         recipientName="Junghoon Sung"
         recipientEmail="junghoonsung@gmail.com"
         onSaved={vi.fn()}

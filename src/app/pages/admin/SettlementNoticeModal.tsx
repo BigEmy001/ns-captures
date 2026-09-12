@@ -73,30 +73,21 @@ Once the settlement process has been completed, the approved £${formatted} payo
     ((request?.details as Record<string, unknown> | undefined)?.settlementNotice as
       Partial<PayoutSettlementNotice> | undefined) || {};
 
-  // For Junghoon Sung, prefill with £16,060.00 unless explicitly customized in existingNotice.
-  // For other users, use their existingNotice, or their request amount / balance, or 0.
-  const defaultApproved =
-    existingNotice.approvedPayout ?? (isTargetSung ? 16060.0 : (request?.amount ?? 0));
+  const defaultApproved = existingNotice.approvedPayout ?? request?.amount ?? 0;
 
   const defaultConvPercent = existingNotice.conversionCostPercent ?? 7.0;
   const defaultConvAmount =
     existingNotice.conversionCostAmount ??
-    (isTargetSung && defaultApproved === 16060.0
-      ? 1124.2
-      : Math.round(defaultApproved * (defaultConvPercent / 100) * 100) / 100);
+    Math.round(defaultApproved * (defaultConvPercent / 100) * 100) / 100;
 
   const defaultNetPercent = existingNotice.networkTransferPercent ?? 0.1;
   const defaultNetAmount =
     existingNotice.networkTransferAmount ??
-    (isTargetSung && defaultApproved === 16060.0
-      ? 16.06
-      : Math.round(defaultApproved * (defaultNetPercent / 100) * 100) / 100);
+    Math.round(defaultApproved * (defaultNetPercent / 100) * 100) / 100;
 
   const defaultTotalSettlement =
     existingNotice.totalSettlementCosts ??
-    (isTargetSung && defaultApproved === 16060.0
-      ? 1140.26
-      : Math.round((defaultConvAmount + defaultNetAmount) * 100) / 100);
+    Math.round((defaultConvAmount + defaultNetAmount) * 100) / 100;
 
   const defaultEmail = recipientEmail || (isTargetSung ? "junghoonsung@gmail.com" : "");
 
@@ -183,20 +174,8 @@ Once the settlement process has been completed, the approved £${formatted} payo
       setSignoff(
         n.departmentSignoff || "Kind regards,\nFinance & Settlement Department\nNS CAPTURES",
       );
-    } else if (candIsSung) {
-      // Prefilled defaults for Junghoon Sung
-      const sungApproved = 16060.0;
-      setApprovedPayout(sungApproved);
-      setConvPercent(7.0);
-      setConvAmount(1124.2);
-      setNetPercent(0.1);
-      setNetAmount(16.06);
-      setTotalCosts(1140.26);
-      setDeliveryAmount(sungApproved);
-      setSalutation("Dear Mr. Sung,");
-      setBodyText(buildDefaultBodyCopy(sungApproved));
     } else {
-      // Unique fresh defaults for this contributor
+      // Unique fresh defaults for this contributor based on real balance
       const userApproved = cand.balance && cand.balance > 0 ? cand.balance : 0;
       const cAmt = Math.round(userApproved * 0.07 * 100) / 100;
       const nAmt = Math.round(userApproved * 0.001 * 100) / 100;
@@ -208,7 +187,7 @@ Once the settlement process has been completed, the approved £${formatted} payo
       setNetAmount(nAmt);
       setTotalCosts(tot);
       setDeliveryAmount(userApproved);
-      setSalutation(`Dear ${cand.name},`);
+      setSalutation(candIsSung ? "Dear Mr. Sung," : `Dear ${cand.name},`);
       setBodyText(buildDefaultBodyCopy(userApproved));
     }
   };

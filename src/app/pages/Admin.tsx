@@ -2078,22 +2078,14 @@ export function Admin() {
                       if (existing) {
                         setSettlementNoticeTarget(existing);
                       } else {
-                        const isSung =
-                          firstSlug.toLowerCase().includes("sung") ||
-                          firstName.toLowerCase().includes("sung") ||
-                          first?.email?.toLowerCase() === "junghoonsung@gmail.com";
-                        const amt = isSung
-                          ? 16060
-                          : first?.payoutBalance
-                            ? Number(first.payoutBalance)
-                            : 0;
-                        const convAmt = isSung ? 1124.2 : Math.round(amt * 0.07 * 100) / 100;
-                        const netAmt = isSung ? 16.06 : Math.round(amt * 0.001 * 100) / 100;
+                        const amt = first?.payoutBalance ? Number(first.payoutBalance) : 0;
+                        const convAmt = Math.round(amt * 0.07 * 100) / 100;
+                        const netAmt = Math.round(amt * 0.001 * 100) / 100;
                         const totalSettlement = Math.round((convAmt + netAmt) * 100) / 100;
 
                         setSettlementNoticeTarget({
                           id: "direct-" + (first?.id || "new"),
-                          photographerId: isSung ? "junghoon-sung" : firstSlug,
+                          photographerId: firstSlug,
                           amount: amt,
                           method: "crypto",
                           details: {},
@@ -4699,18 +4691,14 @@ export function Admin() {
             if (existing) {
               setSettlementNoticeTarget(existing);
             } else {
-              const isSung =
-                (u.slug && u.slug.toLowerCase().includes("sung")) ||
-                (u.name && u.name.toLowerCase().includes("sung")) ||
-                u.email?.toLowerCase() === "junghoonsung@gmail.com";
-              const amt = isSung ? 16060 : u.payoutBalance ? Number(u.payoutBalance) : 0;
-              const convAmt = isSung ? 1124.2 : Math.round(amt * 0.07 * 100) / 100;
-              const netAmt = isSung ? 16.06 : Math.round(amt * 0.001 * 100) / 100;
+              const amt = u.payoutBalance ? Number(u.payoutBalance) : 0;
+              const convAmt = Math.round(amt * 0.07 * 100) / 100;
+              const netAmt = Math.round(amt * 0.001 * 100) / 100;
               const totalSettlement = Math.round((convAmt + netAmt) * 100) / 100;
 
               setSettlementNoticeTarget({
                 id: "direct-" + u.id,
-                photographerId: isSung ? "junghoon-sung" : u.slug || u.id,
+                photographerId: u.slug || u.id,
                 amount: amt,
                 method: "crypto",
                 details: {},
@@ -4794,7 +4782,7 @@ export function Admin() {
               name: isCandSung ? "Junghoon Sung" : u.name,
               email: isCandSung ? "junghoonsung@gmail.com" : u.email || "",
               slug: u.slug,
-              balance: u.payoutBalance ? Number(u.payoutBalance) : isCandSung ? 16060 : undefined,
+              balance: u.payoutBalance ? Number(u.payoutBalance) : undefined,
               requestId: userRequest?.id,
               existingNotice: (userRequest?.details as any)?.settlementNotice || null,
             };

@@ -15,7 +15,7 @@ export interface AssetBalance {
   balanceFormatted: string;
   fiatUsd: number;
   fiatGbp: number;
-  status: "live" | "simulated" | "unfunded" | "error";
+  status: "live" | "unfunded" | "error";
   lastChecked: string;
   explorerUrl: string;
   txCount?: number;
@@ -274,9 +274,6 @@ export async function fetchSolanaBalance(address: string): Promise<{ sol: number
 export async function fetchMultiChainVaultBalances(
   wallets: Array<{ coin: string; network: string; address: string }>,
   options?: {
-    /** If creator has an approved settlement notice or mock credit, allow displaying verified amount */
-    simulatedSettlementAmount?: number;
-    simulatedCurrency?: "GBP" | "USD" | "USDT";
     /** Native platform token balances credited in vault (e.g. NSC) */
     tokenBalances?: Record<string, number>;
   },
@@ -287,13 +284,6 @@ export async function fetchMultiChainVaultBalances(
   const now = new Date().toISOString();
 
   let anyLiveSuccess = false;
-
-  // Find the single primary settlement target (USDT TRC20, or first USDT wallet)
-  const targetSettlementIdx = wallets.findIndex(
-    (w) => w.coin.toUpperCase() === "USDT" && w.network.toUpperCase().includes("TRC"),
-  );
-  const fallbackUsdtIdx = wallets.findIndex((w) => w.coin.toUpperCase() === "USDT");
-  const settlementIdx = targetSettlementIdx !== -1 ? targetSettlementIdx : fallbackUsdtIdx;
 
   for (let i = 0; i < wallets.length; i++) {
     const w = wallets[i];
@@ -345,17 +335,6 @@ export async function fetchMultiChainVaultBalances(
       }
     } catch {
       status = "error";
-    }
-
-    // Apply settlement allocation strictly ONCE to the single primary USDT address only
-    if (
-      i === settlementIdx &&
-      balance === 0 &&
-      options?.simulatedSettlementAmount &&
-      options.simulatedSettlementAmount > 0
-    ) {
-      balance = options.simulatedSettlementAmount;
-      status = "simulated";
     }
 
     const fiatUsd = balance * rates.usd;

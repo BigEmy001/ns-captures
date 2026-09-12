@@ -132,65 +132,47 @@ describe("onChainBalance Service", () => {
   });
 
   describe("fetchMultiChainVaultBalances", () => {
-    it("aggregates portfolio with simulated settlement allocation when specified", async () => {
-      // Mock fetch to simulate network offline / empty
-      vi.spyOn(global, "fetch").mockRejectedValue(new Error("network"));
+    it("reports unfunded status with zero balances when no on-chain funds exist", async () => {
+      vi.spyOn(global, "fetch").mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [] }),
+      } as Response);
 
       const wallets = [
         { coin: "USDT", network: "TRC20", address: "TMX...1" },
         { coin: "BTC", network: "Native SegWit", address: "bc1q...2" },
       ];
 
-      const res = await fetchMultiChainVaultBalances(wallets, {
-        simulatedSettlementAmount: 16060,
-      });
+      const res = await fetchMultiChainVaultBalances(wallets);
 
       expect(res.assets.length).toBe(2);
       const usdtAsset = res.assets.find((a) => a.coin === "USDT");
       expect(usdtAsset).toBeDefined();
-      expect(usdtAsset?.balance).toBe(16060);
-      expect(usdtAsset?.status).toBe("simulated");
-      expect(usdtAsset?.fiatUsd).toBe(16060 * DEFAULT_EXCHANGE_RATES.USDT.usd);
-      expect(usdtAsset?.fiatGbp).toBe(16060 * DEFAULT_EXCHANGE_RATES.USDT.gbp);
-      expect(res.totalUsd).toBeGreaterThanOrEqual(16060);
+      expect(usdtAsset?.balance).toBe(0);
+      expect(usdtAsset?.status).toBe("unfunded");
+      expect(res.totalUsd).toBe(0);
+      expect(res.totalGbp).toBe(0);
     });
 
-    it("ensures simulated settlement allocation is applied strictly once to USDT TRC20 and never touches USDC or ETH", async () => {
-      vi.spyOn(global, "fetch").mockRejectedValue(new Error("network"));
-
+    it("accurately factors live native NSC platform tokens from vault ledger", async () => {
       const wallets = [
+        { coin: "NSC", network: "Base", address: "0x123...abc" },
+        { coin: "NSC", network: "Polygon", address: "0x123...abc" },
         { coin: "USDT", network: "TRC20", address: "TMX...1" },
-        { coin: "USDT", network: "ERC20", address: "0x123...2" },
-        { coin: "USDC", network: "ERC20", address: "0x123...2" },
-        { coin: "USDC", network: "TRC20", address: "TMX...1" },
-        { coin: "ETH", network: "ERC20", address: "0x123...2" },
-        { coin: "BTC", network: "Bitcoin", address: "bc1q...3" },
       ];
 
       const res = await fetchMultiChainVaultBalances(wallets, {
-        simulatedSettlementAmount: 16060,
+        tokenBalances: { nsc: 250 },
       });
 
-      // 1. USDT TRC20 gets 16060
-      const usdtTrc20 = res.assets.find((a) => a.coin === "USDT" && a.network === "TRC20");
-      expect(usdtTrc20?.balance).toBe(16060);
-      expect(usdtTrc20?.status).toBe("simulated");
+      const nscBase = res.assets.find((a) => a.coin === "NSC" && a.network === "Base");
+      expect(nscBase?.balance).toBe(250);
+      expect(nscBase?.status).toBe("live");
+      expect(nscBase?.fiatGbp).toBe(250 * DEFAULT_EXCHANGE_RATES.NSC.gbp);
 
-      // 2. USDT ERC20 must remain 0
-      const usdtErc20 = res.assets.find((a) => a.coin === "USDT" && a.network === "ERC20");
-      expect(usdtErc20?.balance).toBe(0);
-
-      // 3. USDC must remain 0 on all networks
-      const usdcAssets = res.assets.filter((a) => a.coin === "USDC");
-      expect(usdcAssets.every((a) => a.balance === 0)).toBe(true);
-
-      // 4. ETH must remain 0
-      const ethAsset = res.assets.find((a) => a.coin === "ETH");
-      expect(ethAsset?.balance).toBe(0);
-
-      // 5. Total valuation is exactly 16060 USDT (not tens of millions)
-      expect(res.totalUsd).toBe(16060 * DEFAULT_EXCHANGE_RATES.USDT.usd);
-      expect(res.totalGbp).toBe(16060 * DEFAULT_EXCHANGE_RATES.USDT.gbp);
+      // Secondary network remains 0 to avoid balance duplication
+      const nscPolygon = res.assets.find((a) => a.coin === "NSC" && a.network === "Polygon");
+      expect(nscPolygon?.balance).toBe(0);
     });
   });
 });
