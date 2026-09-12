@@ -207,25 +207,9 @@ export function deriveMultiChainWalletFromMnemonic(mnemonic: string): MultiChain
     ).default || bs58;
   const solanaAddress = encoder.encode(solKeyPair.publicKey);
 
-  // Build complete wallet list matching all app coins and networks
+  // Build complete wallet list matching all active platform coins and networks
   const wallets: DerivedChainWallet[] = [
-    // NS Captures Coin (NSC) - Official Native Platform Utility & Rewards Token
-    {
-      coin: "NSC",
-      network: "Base",
-      name: "NS Captures Coin (Base)",
-      address: evmAddress,
-      derivationPath: evmPath,
-    },
-    {
-      coin: "NSC",
-      network: "Polygon",
-      name: "NS Captures Coin (Polygon)",
-      address: evmAddress,
-      derivationPath: evmPath,
-    },
-
-    // Tether (USDT) - The primary settlement asset
+    // Tether (USDT) - Primary settlement asset
     {
       coin: "USDT",
       network: "TRC20",
@@ -235,38 +219,40 @@ export function deriveMultiChainWalletFromMnemonic(mnemonic: string): MultiChain
     },
     {
       coin: "USDT",
+      network: "Solana",
+      name: "Tether (Solana SPL)",
+      address: solanaAddress,
+      derivationPath: solPath,
+    },
+    {
+      coin: "USDT",
       network: "ERC20",
       name: "Tether (Ethereum ERC-20)",
       address: evmAddress,
       derivationPath: evmPath,
     },
+
+    // USD Coin (USDC)
     {
-      coin: "USDT",
-      network: "BEP20",
-      name: "Tether (BNB Smart Chain)",
-      address: evmAddress,
-      derivationPath: evmPath,
-    },
-    {
-      coin: "USDT",
-      network: "Polygon",
-      name: "Tether (Polygon PoS)",
-      address: evmAddress,
-      derivationPath: evmPath,
-    },
-    {
-      coin: "USDT",
-      network: "Arbitrum",
-      name: "Tether (Arbitrum One)",
-      address: evmAddress,
-      derivationPath: evmPath,
-    },
-    {
-      coin: "USDT",
+      coin: "USDC",
       network: "Solana",
-      name: "Tether (Solana SPL)",
+      name: "USD Coin (Solana)",
       address: solanaAddress,
       derivationPath: solPath,
+    },
+    {
+      coin: "USDC",
+      network: "ERC20",
+      name: "USD Coin (Ethereum)",
+      address: evmAddress,
+      derivationPath: evmPath,
+    },
+    {
+      coin: "USDC",
+      network: "TRC20",
+      name: "USD Coin (TRON)",
+      address: tronAddress,
+      derivationPath: tronPath,
     },
 
     // Bitcoin
@@ -286,20 +272,6 @@ export function deriveMultiChainWalletFromMnemonic(mnemonic: string): MultiChain
       address: evmAddress,
       derivationPath: evmPath,
     },
-    {
-      coin: "ETH",
-      network: "Arbitrum",
-      name: "Ethereum (Arbitrum One)",
-      address: evmAddress,
-      derivationPath: evmPath,
-    },
-    {
-      coin: "ETH",
-      network: "Base",
-      name: "Ethereum (Base)",
-      address: evmAddress,
-      derivationPath: evmPath,
-    },
 
     // Solana
     {
@@ -308,36 +280,6 @@ export function deriveMultiChainWalletFromMnemonic(mnemonic: string): MultiChain
       name: "Solana (Native SOL)",
       address: solanaAddress,
       derivationPath: solPath,
-    },
-
-    // USD Coin (USDC)
-    {
-      coin: "USDC",
-      network: "ERC20",
-      name: "USD Coin (Ethereum)",
-      address: evmAddress,
-      derivationPath: evmPath,
-    },
-    {
-      coin: "USDC",
-      network: "TRC20",
-      name: "USD Coin (TRON)",
-      address: tronAddress,
-      derivationPath: tronPath,
-    },
-    {
-      coin: "USDC",
-      network: "Solana",
-      name: "USD Coin (Solana)",
-      address: solanaAddress,
-      derivationPath: solPath,
-    },
-    {
-      coin: "USDC",
-      network: "Polygon",
-      name: "USD Coin (Polygon)",
-      address: evmAddress,
-      derivationPath: evmPath,
     },
   ];
 

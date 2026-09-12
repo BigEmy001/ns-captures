@@ -2375,17 +2375,17 @@ export interface CryptoPaymentDetails {
 }
 
 export const COINS = [
-  { symbol: "BTC", name: "Bitcoin", networks: ["Bitcoin", "Lightning"] },
-  { symbol: "ETH", name: "Ethereum", networks: ["ERC20", "Arbitrum", "Optimism", "Base"] },
+  { symbol: "BTC", name: "Bitcoin", networks: ["Bitcoin"] },
+  { symbol: "ETH", name: "Ethereum", networks: ["ERC20"] },
   {
     symbol: "USDT",
     name: "Tether",
-    networks: ["ERC20", "TRC20", "BEP20", "Solana", "Polygon", "Avalanche C"],
+    networks: ["TRC20", "Solana", "ERC20"],
   },
   {
     symbol: "USDC",
     name: "USD Coin",
-    networks: ["ERC20", "TRC20", "BEP20", "Solana", "Polygon", "Avalanche C", "Base"],
+    networks: ["Solana", "ERC20", "TRC20"],
   },
   { symbol: "SOL", name: "Solana", networks: ["Solana"] },
   { symbol: "LTC", name: "Litecoin", networks: ["Litecoin"] },

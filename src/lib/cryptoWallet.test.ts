@@ -34,7 +34,7 @@ describe("cryptoWallet", () => {
     expect(wallet.addresses.solana).toMatch(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/);
 
     // Check complete wallet list
-    expect(wallet.wallets.length).toBeGreaterThanOrEqual(10);
+    expect(wallet.wallets.length).toBe(9);
     const usdtTrc20 = wallet.wallets.find((w) => w.coin === "USDT" && w.network === "TRC20");
     expect(usdtTrc20?.address).toBe(wallet.addresses.tron);
 

@@ -43,11 +43,9 @@ const NETWORK_FEES: Record<string, { fee: number; feeCoin: string }> = {
   "NATIVE SEGWIT": { fee: 0.00005, feeCoin: "BTC" },
   BITCOIN: { fee: 0.00005, feeCoin: "BTC" },
   SOLANA: { fee: 0.00001, feeCoin: "SOL" },
-  BASE: { fee: 0.0001, feeCoin: "ETH" },
-  POLYGON: { fee: 0.01, feeCoin: "POL" },
-  ARBITRUM: { fee: 0.0001, feeCoin: "ETH" },
-  BEP20: { fee: 0.0005, feeCoin: "BNB" },
 };
+
+const EXCLUDED_NETWORKS = ["ARBITRUM", "BEP20", "POLYGON", "BASE", "OPTIMISM", "AVALANCHE"];
 
 export function TransferCryptoModal({
   isOpen,
@@ -86,9 +84,13 @@ export function TransferCryptoModal({
 
   // Available networks for currently selected coin
   const availableNetworks = useMemo(() => {
-    const matching = wallets.filter((w) => w.coin.toUpperCase() === selectedCoin.toUpperCase());
+    const matching = wallets.filter(
+      (w) =>
+        w.coin.toUpperCase() === selectedCoin.toUpperCase() &&
+        !EXCLUDED_NETWORKS.includes(w.network.toUpperCase()),
+    );
     const nets = Array.from(new Set(matching.map((w) => w.network)));
-    return nets.length > 0 ? nets : ["TRC20", "ERC20"];
+    return nets.length > 0 ? nets : ["TRC20", "ERC20", "Solana"];
   }, [wallets, selectedCoin]);
 
   // Reset when initial values change
@@ -139,14 +141,12 @@ export function TransferCryptoModal({
       if (!addr.startsWith("T") || addr.length < 32 || addr.length > 36) {
         return { valid: false, message: "TRON addresses must start with 'T' (34 characters)." };
       }
-    } else if (
-      net.includes("ERC") ||
-      net.includes("BASE") ||
-      net.includes("POLYGON") ||
-      selectedCoin === "ETH"
-    ) {
+    } else if (net.includes("ERC") || selectedCoin === "ETH") {
       if (!addr.startsWith("0x") || addr.length !== 42) {
-        return { valid: false, message: "EVM addresses must start with '0x' (42 characters)." };
+        return {
+          valid: false,
+          message: "Ethereum (ERC20) addresses must start with '0x' (42 characters).",
+        };
       }
     } else if (net.includes("SEGWIT") || net.includes("BITCOIN") || selectedCoin === "BTC") {
       if (!addr.startsWith("bc1") && !addr.startsWith("1") && !addr.startsWith("3")) {

@@ -299,8 +299,11 @@ export function SettlementVaultTab() {
   }
 
   const hasVault = wallets.length > 0;
-  // Filter out NSC platform token for now until token launch is finalized
-  const visibleWallets = wallets.filter((w) => w.coin.toUpperCase() !== "NSC");
+  const EXCLUDED_NETWORKS = ["ARBITRUM", "BEP20", "POLYGON", "BASE", "OPTIMISM", "AVALANCHE"];
+  // Filter out unlaunched NSC and redundant L2/sidechain networks to focus on Bitcoin, Ethereum, TRON, and Solana
+  const visibleWallets = wallets.filter(
+    (w) => w.coin.toUpperCase() !== "NSC" && !EXCLUDED_NETWORKS.includes(w.network.toUpperCase()),
+  );
   const groupedWallets = groupWalletsByAsset(visibleWallets);
 
   return (
