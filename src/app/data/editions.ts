@@ -672,18 +672,23 @@ export function mintDigitalEdition(
 export const EDITIONS_VISIBILITY_KEY = "ns_editions_public_visibility";
 export const EDITIONS_VISIBILITY_EVENT = "ns:editions-visibility-updated";
 
+// Ensure editions room is toggled ON by default across sessions and local preview
+if (!safeGetItem("ns_editions_forced_on_v2")) {
+  safeSetItem(EDITIONS_VISIBILITY_KEY, "true");
+  safeSetItem("ns_editions_forced_on_v2", "true");
+}
+
 /**
  * Checks whether the Digital Editions room is publicly visible.
- * Defaults to false (hidden from public) unless explicitly enabled by an admin.
+ * Defaults to true (toggled ON) so users can explore editions on localhost and production.
  */
 export function isEditionsPublic(): boolean {
-  if (typeof window === "undefined") return false;
   try {
-    const val = localStorage.getItem(EDITIONS_VISIBILITY_KEY);
-    // If not explicitly set to "true", default to false (hidden from public)
-    return val === "true";
+    const val = safeGetItem(EDITIONS_VISIBILITY_KEY);
+    // Defaults to true (toggled ON) unless an administrator explicitly sets it to "false"
+    return val !== "false";
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -692,15 +697,15 @@ export function isEditionsPublic(): boolean {
  * Dispatches an event so all components update immediately.
  */
 export function setEditionsPublic(visible: boolean): void {
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(EDITIONS_VISIBILITY_KEY, visible ? "true" : "false");
+  try {
+    safeSetItem(EDITIONS_VISIBILITY_KEY, visible ? "true" : "false");
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
       window.dispatchEvent(
         new CustomEvent(EDITIONS_VISIBILITY_EVENT, { detail: { visible } }),
       );
-    } catch (e) {
-      console.error("Failed to set editions visibility:", e);
     }
+  } catch (e) {
+    console.error("Failed to set editions visibility:", e);
   }
 }
 

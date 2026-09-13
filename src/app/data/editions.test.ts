@@ -5,6 +5,8 @@ import {
   mintDigitalEdition,
   getStoredEditions,
   saveStoredEditions,
+  isEditionsPublic,
+  setEditionsPublic,
   INITIAL_EDITIONS,
 } from "./editions";
 
@@ -123,6 +125,21 @@ describe("Digital Editions Data Engine", () => {
       expect(newEdition.masterHash).toMatch(/^sha256-/);
       expect(newEdition.availableEditions).toBe(25);
       expect(newEdition.status).toBe("listed");
+    });
+  });
+
+  describe("public visibility toggle", () => {
+    it("defaults to true (toggled ON)", () => {
+      setEditionsPublic(true);
+      expect(isEditionsPublic()).toBe(true);
+    });
+
+    it("can be toggled OFF and back ON by admin", () => {
+      setEditionsPublic(false);
+      expect(isEditionsPublic()).toBe(false);
+
+      setEditionsPublic(true);
+      expect(isEditionsPublic()).toBe(true);
     });
   });
 });
