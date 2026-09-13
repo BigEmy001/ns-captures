@@ -47,6 +47,7 @@ import { CertificateOfAuthenticityModal } from "../../components/CertificateOfAu
 import {
   getStoredEditions,
   getStoredOwnerships,
+  isEditionsPublic,
   type DigitalEdition,
   type EditionOwnership,
 } from "../../data/editions";
@@ -865,10 +866,10 @@ export function SettlementVaultTab() {
                 </p>
               </div>
               <Link
-                to="/editions"
+                to={isEditionsPublic() || user?.role === "Admin" ? "/editions" : "/explore"}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#dce8df] bg-white text-xs font-semibold text-[#1e4a3f] hover:bg-[#FAF9F5] transition self-start sm:self-auto"
               >
-                <span>The Editions Room</span>
+                <span>{isEditionsPublic() || user?.role === "Admin" ? "The Editions Room" : "Explore Gallery"}</span>
                 <ArrowRight className="size-3.5" />
               </Link>
             </div>
@@ -886,10 +887,10 @@ export function SettlementVaultTab() {
                 </p>
                 <div className="pt-2">
                   <Link
-                    to="/editions"
+                    to={isEditionsPublic() || user?.role === "Admin" ? "/editions" : "/explore"}
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1e4a3f] text-white text-xs font-semibold hover:bg-[#163830] transition shadow-sm"
                   >
-                    <span>Explore Curated Editions</span>
+                    <span>{isEditionsPublic() || user?.role === "Admin" ? "Explore Curated Editions" : "Explore Stock Photography"}</span>
                     <ArrowRight className="size-3.5" />
                   </Link>
                 </div>

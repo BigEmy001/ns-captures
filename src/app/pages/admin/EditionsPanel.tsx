@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -11,6 +12,8 @@ import {
   RefreshCw,
   ExternalLink,
   TrendingUp,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import {
   getStoredEditions,
@@ -18,6 +21,8 @@ import {
   getStoredOwnerships,
   getDepositConfig,
   saveDepositConfig,
+  isEditionsPublic,
+  setEditionsPublic,
   type DigitalEdition,
   type DepositGateConfig,
 } from "../../data/editions";
@@ -28,6 +33,7 @@ export function EditionsPanel() {
   const [ownerships] = useState(() => getStoredOwnerships());
   const [depositConfig, setDepositConfig] = useState<DepositGateConfig>(() => getDepositConfig());
   const [savingConfig, setSavingConfig] = useState(false);
+  const [isPublicVisible, setIsPublicVisible] = useState(() => isEditionsPublic());
 
   // Metrics
   const stats = useMemo(() => {
@@ -81,8 +87,68 @@ export function EditionsPanel() {
     }, 300);
   };
 
+  const handleTogglePublicVisibility = () => {
+    const next = !isPublicVisible;
+    setIsPublicVisible(next);
+    setEditionsPublic(next);
+    toast.success(
+      next
+        ? "Digital Editions room is now VISIBLE to the public on /editions"
+        : "Digital Editions room is now HIDDEN from the public (Admin preview only)",
+    );
+  };
+
   return (
     <div className="space-y-6">
+      {/* Public Marketplace Visibility Control */}
+      <div className="p-5 rounded-2xl border border-[#ececec] bg-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2.5">
+            <span className="font-serif text-base font-semibold text-[#18211f]">
+              Public Marketplace Visibility (/editions)
+            </span>
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold ${
+                isPublicVisible
+                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                  : "bg-amber-100 text-amber-800 border border-amber-200"
+              }`}
+            >
+              {isPublicVisible ? "● Live to Public" : "● Hidden from Public (Admin Preview Only)"}
+            </span>
+          </div>
+          <p className="text-xs text-[#6b716d] leading-relaxed max-w-2xl">
+            Control whether the Digital Editions room and its navigation links are publicly visible to all website visitors, or hidden and restricted to private administrator preview.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-4 shrink-0">
+          <Link
+            to="/editions"
+            target="_blank"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono font-medium text-[#1e4a3f] bg-[#1e4a3f]/10 hover:bg-[#1e4a3f]/15 border border-[#1e4a3f]/20 transition"
+          >
+            <span>Preview /editions</span>
+            <ExternalLink className="size-3.5" />
+          </Link>
+
+          <button
+            type="button"
+            onClick={handleTogglePublicVisibility}
+            aria-pressed={isPublicVisible}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+              isPublicVisible ? "bg-[#1e4a3f]" : "bg-gray-300"
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                isPublicVisible ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
       {/* Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl border border-[#ececec] bg-white shadow-sm space-y-1">

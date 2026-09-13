@@ -664,3 +664,43 @@ export function mintDigitalEdition(
 
   return newEdition;
 }
+
+// ============================================================
+// PUBLIC MARKETPLACE VISIBILITY (Admin Toggle)
+// ============================================================
+
+export const EDITIONS_VISIBILITY_KEY = "ns_editions_public_visibility";
+export const EDITIONS_VISIBILITY_EVENT = "ns:editions-visibility-updated";
+
+/**
+ * Checks whether the Digital Editions room is publicly visible.
+ * Defaults to false (hidden from public) unless explicitly enabled by an admin.
+ */
+export function isEditionsPublic(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const val = localStorage.getItem(EDITIONS_VISIBILITY_KEY);
+    // If not explicitly set to "true", default to false (hidden from public)
+    return val === "true";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Updates the public visibility of the Digital Editions room.
+ * Dispatches an event so all components update immediately.
+ */
+export function setEditionsPublic(visible: boolean): void {
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(EDITIONS_VISIBILITY_KEY, visible ? "true" : "false");
+      window.dispatchEvent(
+        new CustomEvent(EDITIONS_VISIBILITY_EVENT, { detail: { visible } }),
+      );
+    } catch (e) {
+      console.error("Failed to set editions visibility:", e);
+    }
+  }
+}
+

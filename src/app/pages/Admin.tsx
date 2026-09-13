@@ -85,6 +85,11 @@ import { SettlementNoticeModal } from "./admin/SettlementNoticeModal";
 import { ViewAsPanel } from "./admin/ViewAsPanel";
 import { CollectionsPanel } from "./admin/CollectionsPanel";
 import { EditionsPanel } from "./admin/EditionsPanel";
+import {
+  isEditionsPublic,
+  setEditionsPublic,
+  EDITIONS_VISIBILITY_EVENT,
+} from "../data/editions";
 import { CryptoQrCodeModal } from "../components/CryptoQrCodeModal";
 import { GiftNscModal } from "../components/GiftNscModal";
 import {
@@ -328,6 +333,14 @@ export function Admin() {
   const [savingPayoutWallet, setSavingPayoutWallet] = useState(false);
   const [settlementNoticeTarget, setSettlementNoticeTarget] = useState<PayoutRequest | null>(null);
   const [waitlistFeatureInput, setWaitlistFeatureInput] = useState("");
+
+  // Digital Editions public visibility state
+  const [isEditionsPublicState, setIsEditionsPublicState] = useState(() => isEditionsPublic());
+  useEffect(() => {
+    const sync = () => setIsEditionsPublicState(isEditionsPublic());
+    window.addEventListener(EDITIONS_VISIBILITY_EVENT, sync);
+    return () => window.removeEventListener(EDITIONS_VISIBILITY_EVENT, sync);
+  }, []);
 
   const requestedSubTab = params.get("subtab");
   const validSubTabs = ["general", "licensing", "toggles", "payments", "spotlight"];
@@ -2766,6 +2779,20 @@ export function Admin() {
                       onChange={(v) =>
                         setSiteSettingsState({ ...siteSettingsState, web3WaitlistEnabled: v })
                       }
+                    />
+                    <Toggle
+                      label="Digital Editions Public Visibility"
+                      description="Control whether the Digital Editions room (/editions) and its navigation links are publicly visible or restricted to Admin preview"
+                      checked={isEditionsPublicState}
+                      onChange={(v) => {
+                        setIsEditionsPublicState(v);
+                        setEditionsPublic(v);
+                        toast.success(
+                          v
+                            ? "Digital Editions room is now VISIBLE to the public on /editions"
+                            : "Digital Editions room is now HIDDEN from the public (Admin preview only)",
+                        );
+                      }}
                     />
                     <Toggle
                       label="Auto Hype Engine"

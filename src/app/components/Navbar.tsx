@@ -39,14 +39,11 @@ import {
   fetchAdminPaymentMethods,
   getOptimizedImageUrl,
 } from "../data/db";
-import {
-  sendPurchaseReceipt,
-  sendLicenseConfirmation,
-  sendCreatorSaleNotification,
-} from "../../lib/email";
+import { sendPurchaseReceipt, sendLicenseConfirmation, sendCreatorSaleNotification } from "../../lib/email";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, UserRole } from "../context/AuthContext";
+import { isEditionsPublic, EDITIONS_VISIBILITY_EVENT } from "../data/editions";
 
 const publicLinks = [
   { to: "/search", label: "Discover" },
@@ -183,9 +180,23 @@ export function Navbar() {
 
   // Search Visibility State
   const { pathname } = useLocation();
-  const [showSearch, setShowSearch] = useState(false);
+  // Editions Public Visibility
+  const [isEditionsVisible, setIsEditionsVisible] = useState(() => isEditionsPublic());
 
-  const links = getLinksForRole(user?.role || "Guest");
+  useEffect(() => {
+    const syncVisibility = () => {
+      setIsEditionsVisible(isEditionsPublic());
+    };
+    window.addEventListener(EDITIONS_VISIBILITY_EVENT, syncVisibility);
+    return () => {
+      window.removeEventListener(EDITIONS_VISIBILITY_EVENT, syncVisibility);
+    };
+  }, []);
+
+  const isAdmin = user?.role === "Admin";
+  const rawLinks = getLinksForRole(user?.role || "Guest");
+  const links =
+    isEditionsVisible || isAdmin ? rawLinks : rawLinks.filter((l) => l.to !== "/editions");
   const exploreItems = getExploreItems(user?.role || "Guest");
   const moreItems = getMoreItems(user?.role || "Guest", user);
 

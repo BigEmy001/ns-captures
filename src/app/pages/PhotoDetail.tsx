@@ -31,7 +31,7 @@ import { NotFound } from "./NotFound";
 import { addToCart } from "../data/cart";
 import { useAuth } from "../context/AuthContext";
 import { toggleLike, toggleSave, hasUserLikedPhoto, hasUserSavedPhoto } from "../data/db";
-import { getStoredEditions, type DigitalEdition } from "../data/editions";
+import { getStoredEditions, isEditionsPublic, type DigitalEdition } from "../data/editions";
 import { MintEditionModal } from "../components/MintEditionModal";
 
 interface LicenseOption {
@@ -298,7 +298,8 @@ export function PhotoDetail() {
               user &&
               (photo.photographerId === user.id || (user as any).slug === photo.photographerId);
 
-            if (matchingEdition) {
+            const isEditionsVisible = isEditionsPublic() || user?.role === "Admin";
+            if (matchingEdition && isEditionsVisible) {
               return (
                 <div className="mb-6 p-5 rounded-2xl bg-[#0d1714] text-white border border-[#d4af37]/30 shadow-xl space-y-3">
                   <div className="flex items-center justify-between">
