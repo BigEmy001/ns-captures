@@ -10,6 +10,9 @@ import {
   MapPin,
   Camera,
   Aperture,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PhotoCard } from "../components/PhotoCard";
@@ -28,6 +31,8 @@ import { NotFound } from "./NotFound";
 import { addToCart } from "../data/cart";
 import { useAuth } from "../context/AuthContext";
 import { toggleLike, toggleSave, hasUserLikedPhoto, hasUserSavedPhoto } from "../data/db";
+import { getStoredEditions, type DigitalEdition } from "../data/editions";
+import { MintEditionModal } from "../components/MintEditionModal";
 
 interface LicenseOption {
   id: string;
@@ -47,6 +52,8 @@ export function PhotoDetail() {
   const [selected, setSelected] = useState("COMMERCIAL");
   const [saved, setSaved] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [showMintModal, setShowMintModal] = useState(false);
+  const [editions, setEditions] = useState<DigitalEdition[]>(() => getStoredEditions());
 
   useEffect(() => {
     if (!id) return;
@@ -282,6 +289,84 @@ export function PhotoDetail() {
 
         {/* Sticky licensing panel */}
         <div>
+          {/* Fine-Art Digital Edition Banner */}
+          {(() => {
+            const matchingEdition = editions.find(
+              (e) => e.photoId === photo.id || e.title.toLowerCase() === photo.title.toLowerCase(),
+            );
+            const isOwner =
+              user &&
+              (photo.photographerId === user.id || (user as any).slug === photo.photographerId);
+
+            if (matchingEdition) {
+              return (
+                <div className="mb-6 p-5 rounded-2xl bg-[#0d1714] text-white border border-[#d4af37]/30 shadow-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#d4af37]/15 text-[#d4af37] text-[10px] font-mono uppercase font-bold tracking-wider">
+                      <Sparkles className="size-3" />
+                      Digital Edition Available
+                    </span>
+                    <span className="text-xs font-mono text-[#d4af37]">
+                      {matchingEdition.tier === "genesis_1_of_1"
+                        ? "Genesis 1 of 1"
+                        : `${matchingEdition.availableEditions}/${matchingEdition.totalEditions} Left`}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="font-serif text-base text-white font-medium">
+                      Fine-Art Digital Masterpiece
+                    </h4>
+                    <p className="text-xs text-white/60 mt-0.5 font-serif">
+                      Numbered photographic edition with cryptographic Certificate of Authenticity
+                      (COA) & uncompressed RAW master.
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-mono text-white/50 block">
+                        EDITION VALUATION
+                      </span>
+                      <span className="font-serif text-xl font-bold text-white">
+                        £{matchingEdition.priceGbp.toLocaleString("en-GB")}
+                      </span>
+                    </div>
+                    <Link
+                      to="/editions"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#d4af37] text-[#0d1714] text-xs font-semibold hover:bg-[#e6c158] transition"
+                    >
+                      <span>Acquire Edition</span>
+                      <ArrowRight className="size-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            }
+
+            if (isOwner) {
+              return (
+                <div className="mb-6 p-4 rounded-2xl bg-[#1e4a3f]/5 border border-[#1e4a3f]/20 space-y-2">
+                  <div className="flex items-center gap-2 text-[#1e4a3f]">
+                    <Sparkles className="size-4" />
+                    <span className="text-xs font-semibold">Fine-Art Digital Edition Minting</span>
+                  </div>
+                  <p className="text-xs text-[#59645f]">
+                    Certify this photographic master as a limited digital edition on the NS CAPTURES
+                    platform.
+                  </p>
+                  <button
+                    onClick={() => setShowMintModal(true)}
+                    className="w-full mt-2 py-2 px-3 rounded-xl bg-[#1e4a3f] text-white text-xs font-semibold hover:bg-[#163830] transition flex items-center justify-center gap-1.5"
+                  >
+                    <ShieldCheck className="size-3.5" />
+                    <span>Certify as Digital Edition</span>
+                  </button>
+                </div>
+              );
+            }
+
+            return null;
+          })()}
+
           <div className="sticky top-24 border border-[#e2e2e2] bg-[#ffffff] ns-shadow p-6 rounded-2xl">
             <Eyebrow>LICENSE THIS IMAGE</Eyebrow>
             <div className="mt-4 space-y-2">
@@ -369,6 +454,17 @@ export function PhotoDetail() {
             ))}
           </div>
         </section>
+      )}
+
+      {/* Mint Edition Modal */}
+      {showMintModal && (
+        <MintEditionModal
+          photo={photo}
+          onClose={() => setShowMintModal(false)}
+          onSuccess={() => {
+            setEditions(getStoredEditions());
+          }}
+        />
       )}
     </div>
   );

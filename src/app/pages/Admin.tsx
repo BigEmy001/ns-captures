@@ -37,6 +37,7 @@ import {
   Link2,
   Gift,
   Star,
+  Sparkles,
 } from "lucide-react";
 import {
   AreaChart,
@@ -83,6 +84,7 @@ import { ConversionModal, type ConversionResult } from "./admin/ConversionModal"
 import { SettlementNoticeModal } from "./admin/SettlementNoticeModal";
 import { ViewAsPanel } from "./admin/ViewAsPanel";
 import { CollectionsPanel } from "./admin/CollectionsPanel";
+import { EditionsPanel } from "./admin/EditionsPanel";
 import { CryptoQrCodeModal } from "../components/CryptoQrCodeModal";
 import { GiftNscModal } from "../components/GiftNscModal";
 import {
@@ -202,6 +204,7 @@ const nav = [
   { id: "verification", label: "Verification", icon: ShieldCheck },
   { id: "programme", label: "Programme", icon: Handshake },
   { id: "collections", label: "Collections", icon: FolderHeart },
+  { id: "editions", label: "Editions & NFTs", icon: Sparkles },
   { id: "submissions", label: "Submissions", icon: Mail },
   { id: "waitlist", label: "Web3 Waitlist", icon: Wallet },
   { id: "reports", label: "Reports", icon: FileBarChart },
@@ -1835,6 +1838,12 @@ export function Admin() {
           {active === "collections" && (
             <div className="mt-8">
               <CollectionsPanel assets={assetsList} />
+            </div>
+          )}
+
+          {active === "editions" && (
+            <div className="mt-8">
+              <EditionsPanel />
             </div>
           )}
 

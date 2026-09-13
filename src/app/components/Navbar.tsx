@@ -51,18 +51,21 @@ import { useAuth, UserRole } from "../context/AuthContext";
 const publicLinks = [
   { to: "/search", label: "Discover" },
   { to: "/collections", label: "Collections" },
+  { to: "/editions", label: "Editions" },
   { to: "/pricing", label: "Licensing" },
 ];
 
 const photographerLinks = [
   { to: "/search", label: "Discover" },
   { to: "/account", label: "Dashboard" },
+  { to: "/editions", label: "Editions" },
   { to: "/collections", label: "Collections" },
 ];
 
 const buyerLinks = [
   { to: "/search", label: "Discover" },
   { to: "/account", label: "Dashboard" },
+  { to: "/editions", label: "Editions" },
   { to: "/collections", label: "Collections" },
   { to: "/pricing", label: "Licensing" },
 ];
@@ -71,11 +74,13 @@ const enterpriseLinks = [
   { to: "/search", label: "Discover" },
   { to: "/enterprise", label: "Enterprise" },
   { to: "/account", label: "Dashboard" },
+  { to: "/editions", label: "Editions" },
   { to: "/collections", label: "Collections" },
 ];
 
 const adminLinks = [
   { to: "/admin", label: "Admin Console" },
+  { to: "/editions", label: "Editions" },
   { to: "/search", label: "Discover" },
 ];
 

@@ -1,0 +1,128 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import {
+  checkDepositEligibility,
+  purchaseEdition,
+  mintDigitalEdition,
+  getStoredEditions,
+  saveStoredEditions,
+  INITIAL_EDITIONS,
+} from "./editions";
+
+describe("Digital Editions Data Engine", () => {
+  beforeEach(() => {
+    // Reset editions state for consistent tests
+    saveStoredEditions(JSON.parse(JSON.stringify(INITIAL_EDITIONS)));
+  });
+
+  describe("checkDepositEligibility", () => {
+    it("rejects zero or low balances when gate is enforced", () => {
+      const result = checkDepositEligibility({});
+      expect(result.eligible).toBe(false);
+      expect(result.reason).toContain("Requires an active deposit");
+    });
+
+    it("qualifies when ETH threshold is met", () => {
+      const result = checkDepositEligibility({ eth: 0.01 });
+      expect(result.eligible).toBe(true);
+      expect(result.qualifyingToken).toContain("Ethereum");
+    });
+
+    it("qualifies when SOL threshold is met", () => {
+      const result = checkDepositEligibility({ sol: 0.2 });
+      expect(result.eligible).toBe(true);
+      expect(result.qualifyingToken).toContain("Solana");
+    });
+
+    it("qualifies when USDT threshold is met", () => {
+      const result = checkDepositEligibility({ usdt: 25 });
+      expect(result.eligible).toBe(true);
+      expect(result.qualifyingToken).toContain("Tether");
+    });
+
+    it("qualifies when USDC threshold is met", () => {
+      const result = checkDepositEligibility({ usdc: 50 });
+      expect(result.eligible).toBe(true);
+      expect(result.qualifyingToken).toContain("USD Coin");
+    });
+
+    it("qualifies when BTC threshold is met", () => {
+      const result = checkDepositEligibility({ btc: 0.0005 });
+      expect(result.eligible).toBe(true);
+      expect(result.qualifyingToken).toContain("Bitcoin");
+    });
+  });
+
+  describe("purchaseEdition", () => {
+    it("purchases a numbered edition and issues a serial & certificate", () => {
+      const result = purchaseEdition(
+        "edn-numbered-02",
+        {
+          id: "buyer-01",
+          name: "Sophia Taylor",
+          email: "sophia@taylor.art",
+          walletAddress: "0x1234567890123456789012345678901234567890",
+        },
+        "GBP",
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.ownership).toBeDefined();
+      expect(result.ownership?.serialDisplay).toContain("/ 15");
+      expect(result.ownership?.certificateNumber).toMatch(/^COA-NSC-/);
+      expect(result.ownership?.ownerName).toBe("Sophia Taylor");
+
+      // Verify inventory decremented
+      const updated = getStoredEditions().find((e) => e.id === "edn-numbered-02");
+      expect(updated?.availableEditions).toBe(10); // was 11
+    });
+
+    it("handles Genesis 1 of 1 master purchase and marks sold out", () => {
+      const result = purchaseEdition(
+        "edn-genesis-01",
+        {
+          id: "buyer-02",
+          name: "Lord Hamilton",
+        },
+        "ETH",
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.ownership?.serialDisplay).toBe("1 of 1 Genesis Master");
+
+      const updated = getStoredEditions().find((e) => e.id === "edn-genesis-01");
+      expect(updated?.availableEditions).toBe(0);
+      expect(updated?.status).toBe("sold_out");
+    });
+  });
+
+  describe("mintDigitalEdition", () => {
+    it("creates a new platform digital edition with unique Token ID", () => {
+      const newEdition = mintDigitalEdition({
+        photoId: "photo-new-01",
+        title: "Winter Over Mont Blanc",
+        description: "Alps high altitude aerial photograph.",
+        photographerId: "photog-jean",
+        photographerName: "Jean-Luc Moreau",
+        image: "https://example.com/montblanc.jpg",
+        tier: "limited_series",
+        totalEditions: 25,
+        priceGbp: 320,
+        priceUsd: 410,
+        priceEth: 0.12,
+        priceSol: 2.8,
+        royaltyPercent: 10,
+        hasPhysicalTwin: false,
+        camera: "Leica SL2",
+        lens: "Vario-Elmarit-SL 24-90mm",
+        iso: 100,
+        yearCreated: 2026,
+      });
+
+      expect(newEdition.id).toMatch(/^edn-/);
+      expect(newEdition.tokenId).toMatch(/^NSC-EDN-2026-/);
+      expect(newEdition.masterHash).toMatch(/^sha256-/);
+      expect(newEdition.availableEditions).toBe(25);
+      expect(newEdition.status).toBe("listed");
+    });
+  });
+});

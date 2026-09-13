@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Link } from "react-router";
 import {
   ShieldCheck,
   Wallet,
@@ -18,6 +19,9 @@ import {
   ArrowUpRight,
   Mail,
   ArrowRightLeft,
+  Sparkles,
+  FileText,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
@@ -39,6 +43,13 @@ import { CryptoQrCodeModal } from "../../components/CryptoQrCodeModal";
 import { ConnectWalletModal } from "../../components/ConnectWalletModal";
 import { TransferCryptoModal } from "../../components/TransferCryptoModal";
 import { ConvertBalanceModal } from "../../components/ConvertBalanceModal";
+import { CertificateOfAuthenticityModal } from "../../components/CertificateOfAuthenticityModal";
+import {
+  getStoredEditions,
+  getStoredOwnerships,
+  type DigitalEdition,
+  type EditionOwnership,
+} from "../../data/editions";
 import {
   sendCryptoDepositNotification,
   sendCryptoWithdrawalNotification,
@@ -94,6 +105,22 @@ export function SettlementVaultTab() {
   const [vaultData, setVaultData] = useState<CreatorWeb3Vault | null>(null);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
   const [availableWeb2Balance, setAvailableWeb2Balance] = useState<number>(0);
+
+  // Digital Editions Collection State
+  const [selectedCert, setSelectedCert] = useState<{
+    edition: DigitalEdition;
+    ownership: EditionOwnership;
+  } | null>(null);
+  const allEditions = useMemo(() => getStoredEditions(), []);
+  const allOwnerships = useMemo(() => getStoredOwnerships(), []);
+  const userOwnerships = useMemo(() => {
+    return allOwnerships.filter(
+      (o) =>
+        (user?.id && o.ownerId === user.id) ||
+        (user?.email && o.ownerEmail === user.email) ||
+        o.ownerName === user?.name,
+    );
+  }, [allOwnerships, user]);
 
   const photographerTargetId = user?.slug || user?.id || "";
 
@@ -819,7 +846,101 @@ export function SettlementVaultTab() {
               })}
             </Accordion>
           </div>
+
+          {/* Digital Editions & Fine-Art Collection */}
+          <div className="space-y-4 pt-6 border-t border-[#ececec]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[#18211f]">
+                    Fine-Art Digital Editions & Provenance
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full bg-[#d4af37]/15 text-[#8a6b10] text-[10px] font-mono font-bold uppercase">
+                    Digital Provenance
+                  </span>
+                </div>
+                <p className="text-xs text-[#758078]">
+                  Photographic masterworks, certificates of authenticity, and verified edition
+                  ownership.
+                </p>
+              </div>
+              <Link
+                to="/editions"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#dce8df] bg-white text-xs font-semibold text-[#1e4a3f] hover:bg-[#FAF9F5] transition self-start sm:self-auto"
+              >
+                <span>The Editions Room</span>
+                <ArrowRight className="size-3.5" />
+              </Link>
+            </div>
+
+            {/* Collection Cards */}
+            {userOwnerships.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl border border-dashed border-[#dce8df] bg-[#FAF9F5] space-y-2.5">
+                <Sparkles className="size-6 text-[#8a6b10] mx-auto opacity-70" />
+                <h4 className="font-serif text-sm font-semibold text-[#18211f]">
+                  No Digital Editions Collected Yet
+                </h4>
+                <p className="text-xs text-[#758078] max-w-sm mx-auto">
+                  Acquire limited photographic editions and genesis masterworks with cryptographic
+                  Certificates of Authenticity.
+                </p>
+                <div className="pt-2">
+                  <Link
+                    to="/editions"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1e4a3f] text-white text-xs font-semibold hover:bg-[#163830] transition shadow-sm"
+                  >
+                    <span>Explore Curated Editions</span>
+                    <ArrowRight className="size-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {userOwnerships.map((own) => {
+                  const ed = allEditions.find((e) => e.id === own.editionId);
+                  if (!ed) return null;
+                  return (
+                    <div
+                      key={own.id}
+                      className="p-4 rounded-2xl border border-[#ececec] bg-white flex gap-4 items-center shadow-sm hover:border-[#1e4a3f]/40 transition"
+                    >
+                      <img
+                        src={ed.image}
+                        alt={ed.title}
+                        className="size-20 rounded-xl object-cover border border-[#ececec]"
+                      />
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#1e4a3f]/10 text-[#1e4a3f] font-semibold">
+                          {own.serialDisplay}
+                        </span>
+                        <h4 className="font-serif text-sm font-semibold text-[#18211f] truncate">
+                          {ed.title}
+                        </h4>
+                        <p className="text-xs text-[#758078]">Artist: {ed.photographerName}</p>
+                        <button
+                          onClick={() => setSelectedCert({ edition: ed, ownership: own })}
+                          className="text-xs text-[#1e4a3f] font-semibold hover:underline flex items-center gap-1 pt-0.5 cursor-pointer"
+                        >
+                          <FileText className="size-3.5" />
+                          <span>View Certificate (COA)</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </>
+      )}
+
+      {/* Certificate of Authenticity Modal */}
+      {selectedCert && (
+        <CertificateOfAuthenticityModal
+          edition={selectedCert.edition}
+          ownership={selectedCert.ownership}
+          onClose={() => setSelectedCert(null)}
+        />
       )}
 
       {/* Interactive QR Code Modal */}
