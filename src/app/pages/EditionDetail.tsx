@@ -1,57 +1,96 @@
-import { useState, useMemo, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router";
-import {
-  ArrowLeft,
-  Share2,
-  Heart,
-  ExternalLink,
-  ShieldCheck,
-  Sparkles,
-  Copy,
-  Check,
-  Award,
-  Maximize2,
-  FileText,
-  Layers,
-  ChevronDown,
-  ChevronUp,
-  ChevronRight,
-  Coins,
-  Wallet,
-  Zap,
-  Tag,
-  Clock,
-  User,
-  Info,
-  CheckCircle2,
-  X,
-} from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Coins, Copy } from "lucide-react";
 import { toast } from "sonner";
 import {
   getStoredEditions,
   getStoredOwnerships,
   getStoredActivity,
+  getEditionCollection,
   purchaseEdition,
-  checkDepositEligibility,
-  getDepositConfig,
   type DigitalEdition,
   type EditionOwnership,
   type EditionActivity,
 } from "../data/editions";
 import { CertificateOfAuthenticityModal } from "../components/CertificateOfAuthenticityModal";
-import { useAuth } from "../context/AuthContext";
-import { fetchCreatorWeb3Vault, type CryptoWalletEntry } from "../data/db";
+import { MaskIcon } from "../components/MaskIcon";
+import { ArtworkLightbox, ArtworkPreview } from "../components/editions/ArtworkViewer";
+import { EditionsShell } from "../components/editions/EditionsShell";
 import {
-  fetchMultiChainVaultBalances,
-  type MultiChainVaultBalance,
-} from "../../lib/onChainBalance";
+  ActivityTable,
+  Chip,
+  DetailSection,
+  EditionCard,
+  EditionsModal,
+  EmptyState,
+  Stat,
+  TabBar,
+  VerifiedBadge,
+} from "../components/editions/editionsUi";
+import {
+  collectionSlugFor,
+  fadeUpVariants,
+  formatDate,
+  formatEth,
+  formatGbp,
+  formatPercent,
+  initials,
+  inputClass,
+  monoLabelClass,
+  primaryButtonClass,
+  sampleOwnershipFor,
+  secondaryButtonClass,
+  shortHex,
+  tableHeadClass,
+  traitTone,
+} from "../components/editions/editionsFormat";
+import { useEditionVault } from "../components/editions/useEditionVault";
 import { copyToClipboard } from "../../lib/clipboard";
-import { generateQrSvg } from "../../lib/qrcode";
+
+// Icons exported from the Figma "photo details" frame (node 18:2)
+import languageIcon from "../../assets/edition-detail/language.svg";
+import discordIcon from "../../assets/edition-detail/discord.svg";
+import xIcon from "../../assets/edition-detail/x.svg";
+import contentCopyIcon from "../../assets/edition-detail/content-copy.svg";
+import favoriteIcon from "../../assets/edition-detail/favorite.svg";
+import moreHorizIcon from "../../assets/edition-detail/more-horiz.svg";
+import ethereumIcon from "../../assets/edition-detail/ethereum.svg";
+import traitsIcon from "../../assets/edition-detail/traits.svg";
+import gridViewIcon from "../../assets/edition-detail/grid-view.svg";
+import tableRowsIcon from "../../assets/edition-detail/table-rows.svg";
+import attachMoneyIcon from "../../assets/edition-detail/attach-money.svg";
+import editNoteIcon from "../../assets/edition-detail/edit-note.svg";
+import tileMediumIcon from "../../assets/edition-detail/tile-medium.svg";
+
+type SectionKey = "traits" | "priceHistory" | "about" | "chain" | "more";
+
+const DETAIL_TABS = [
+  { id: "details", label: "Details" },
+  { id: "orders", label: "Orders" },
+  { id: "activity", label: "Activity" },
+] as const;
+
+type DetailTab = (typeof DETAIL_TABS)[number]["id"];
+
+const headerIconClass =
+  "flex items-center text-(--ed-text) transition-colors hover:text-(--ed-text-soft)";
+
+const staggerChildren = { hidden: {}, visible: { transition: { staggerChildren: 0.06 } } };
+const traitsStagger = { hidden: {}, visible: { transition: { staggerChildren: 0.03 } } };
+
+// Quick cross-fade between tab panels (a frequent interaction, so kept short)
+const panelMotion = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.2, ease: "easeOut" } },
+  exit: { opacity: 0, transition: { duration: 0.1, ease: "easeOut" } },
+} as const;
 
 export function EditionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, walletLabel, primaryEvmAddress, depositConfig, checkPurchaseGate } =
+    useEditionVault();
 
   const [editions, setEditions] = useState<DigitalEdition[]>(() => getStoredEditions());
   const [ownerships, setOwnerships] = useState<EditionOwnership[]>(() => getStoredOwnerships());
@@ -59,91 +98,157 @@ export function EditionDetail() {
 
   // Find edition by ID or token ID
   const edition = useMemo(() => {
-    return editions.find(
-      (e) => e.id === id || e.tokenId.toLowerCase() === id?.toLowerCase(),
-    );
+    return editions.find((e) => e.id === id || e.tokenId.toLowerCase() === id?.toLowerCase());
   }, [editions, id]);
 
-  // Ownerships for this specific edition
+  const collection = useMemo(
+    () => (edition?.collectionName ? getEditionCollection(edition.collectionName) : null),
+    [edition],
+  );
+
+  // Ownerships for this specific edition (newest first)
   const editionOwnerships = useMemo(() => {
     if (!edition) return [];
     return ownerships.filter((o) => o.editionId === edition.id);
   }, [ownerships, edition]);
 
-  // Activity trail for this edition
-  const editionActivity = useMemo(() => {
+  // Activity trail for this edition, with a mint row when the registry has none
+  const editionActivity = useMemo<EditionActivity[]>(() => {
     if (!edition) return [];
-    return activities.filter((a) => a.editionId === edition.id);
+    const trail = activities.filter((a) => a.editionId === edition.id);
+    if (trail.some((a) => a.type === "minted")) return trail;
+    return [
+      ...trail,
+      {
+        id: `mint-${edition.id}`,
+        editionId: edition.id,
+        type: "minted",
+        fromUser: "Null address",
+        toUser: edition.photographerName,
+        timestamp: edition.mintedAt,
+        txHash: "",
+      },
+    ];
   }, [activities, edition]);
 
-  // Accordion state toggles
-  const [descOpen, setDescOpen] = useState(true);
-  const [artistOpen, setArtistOpen] = useState(true);
-  const [detailsOpen, setDetailsOpen] = useState(true);
-  const [traitsOpen, setTraitsOpen] = useState(true);
-  const [activityOpen, setActivityOpen] = useState(true);
+  // Tabs, sections & view toggles
+  const [activeTab, setActiveTab] = useState<DetailTab>("details");
+  const [openSections, setOpenSections] = useState<Record<SectionKey, boolean>>({
+    traits: true,
+    priceHistory: false,
+    about: false,
+    chain: false,
+    more: false,
+  });
+  const [traitsView, setTraitsView] = useState<"grid" | "table">("grid");
+  const toggleSection = (key: SectionKey) =>
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  // Modals state
+  // Modals & menus
   const [coaModalOpen, setCoaModalOpen] = useState(false);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
-  const [selectedCurrency, setSelectedCurrency] = useState<"ETH" | "GBP" | "SOL" | "USDT">("ETH");
   const [isPurchasing, setIsPurchasing] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [isFavorited, setIsFavorited] = useState(false);
-
-  // Active COA view target
   const [activeOwnershipForCoa, setActiveOwnershipForCoa] = useState<EditionOwnership | null>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const closeFullscreen = useCallback(() => setFullscreenOpen(false), []);
 
-  // Web3 Vault & Gating
-  const [userWallets, setUserWallets] = useState<CryptoWalletEntry[]>([]);
-  const [vaultBalance, setVaultBalance] = useState<MultiChainVaultBalance | null>(null);
-  const [_loadingVault, setLoadingVault] = useState(false);
-  const depositConfig = useMemo(() => getDepositConfig(), []);
-
+  // Close the "more" menu on outside click or Escape
   useEffect(() => {
-    if (!user) return;
-    let active = true;
-    setLoadingVault(true);
-
-    fetchCreatorWeb3Vault(user.id || (user as any).slug)
-      .then(async (vault) => {
-        if (!active) return;
-        const wallets = vault?.wallets || [];
-        setUserWallets(wallets);
-        if (wallets.length > 0) {
-          const balances = await fetchMultiChainVaultBalances(wallets, {
-            tokenBalances: vault?.tokenBalances,
-          });
-          if (active) setVaultBalance(balances);
-        }
-      })
-      .catch((e) => {
-        console.error("Failed to load vault balances:", e);
-      })
-      .finally(() => {
-        if (active) setLoadingVault(false);
-      });
-
-    return () => {
-      active = false;
+    if (!moreMenuOpen) return;
+    const handlePointerDown = (e: MouseEvent) => {
+      if (!moreMenuRef.current?.contains(e.target as Node)) setMoreMenuOpen(false);
     };
-  }, [user]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMoreMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [moreMenuOpen]);
 
-  const primaryEvmAddress = useMemo(() => {
-    const w = userWallets.find(
-      (w) => w.coin === "ETH" || w.network === "ERC20" || w.network === "Base",
+  // Traits derived from photographic metadata, counted across the whole registry
+  const traits = useMemo(() => {
+    if (!edition) return [];
+    const total = editions.length || 1;
+    const defs: { type: string; value: string; matches: (e: DigitalEdition) => boolean }[] = [
+      { type: "Camera", value: edition.camera, matches: (e) => e.camera === edition.camera },
+      { type: "Lens", value: edition.lens, matches: (e) => e.lens === edition.lens },
+      { type: "ISO", value: `ISO ${edition.iso}`, matches: (e) => e.iso === edition.iso },
+      {
+        type: "Aperture",
+        value: edition.aperture ?? "—",
+        matches: (e) => e.aperture === edition.aperture,
+      },
+      {
+        type: "Shutter speed",
+        value: edition.shutterSpeed ?? "—",
+        matches: (e) => e.shutterSpeed === edition.shutterSpeed,
+      },
+      {
+        type: "Location",
+        value: edition.location ?? "—",
+        matches: (e) => e.location === edition.location,
+      },
+      {
+        type: "Edition tier",
+        value:
+          edition.tier === "genesis_1_of_1"
+            ? "1 of 1 Genesis"
+            : edition.tier === "physical_twin"
+              ? "Physical twin"
+              : `Limited series of ${edition.totalEditions}`,
+        matches: (e) => e.tier === edition.tier,
+      },
+      {
+        type: "Physical twin",
+        value: edition.hasPhysicalTwin ? "Museum giclée included" : "Digital only",
+        matches: (e) => e.hasPhysicalTwin === edition.hasPhysicalTwin,
+      },
+      {
+        type: "Year created",
+        value: String(edition.yearCreated),
+        matches: (e) => e.yearCreated === edition.yearCreated,
+      },
+    ];
+
+    return defs.map(({ type, value, matches }) => {
+      const sharing = editions.filter(matches);
+      const count = Math.max(sharing.length, 1);
+      return {
+        type,
+        value,
+        count,
+        percent: (count / total) * 100,
+        floorEth: Math.min(edition.priceEth, ...sharing.map((e) => e.priceEth)),
+      };
+    });
+  }, [edition, editions]);
+
+  const relatedEditions = useMemo(() => {
+    if (!edition) return { items: [] as DigitalEdition[], fromCollection: true };
+    const others = editions.filter((e) => e.id !== edition.id);
+    const siblings = others.filter(
+      (e) =>
+        (edition.collectionName && e.collectionName === edition.collectionName) ||
+        e.photographerId === edition.photographerId,
     );
-    return w?.address || (user ? `0x${user.id.replace(/-/g, "").slice(0, 40)}` : null);
-  }, [userWallets, user]);
+    return siblings.length > 0
+      ? { items: siblings.slice(0, 6), fromCollection: true }
+      : { items: others.slice(0, 6), fromCollection: false };
+  }, [edition, editions]);
 
-  const handleCopy = (text: string, key: string, label: string) => {
+  const handleCopy = (text: string, label: string) => {
     copyToClipboard(text);
-    setCopiedKey(key);
     toast.success(`${label} copied to clipboard`);
-    setTimeout(() => setCopiedKey(null), 2200);
   };
 
   const handleShare = () => {
@@ -153,90 +258,19 @@ export function EditionDetail() {
         url: window.location.href,
       });
     } else {
-      copyToClipboard(window.location.href);
-      toast.success("Page link copied to clipboard");
+      handleCopy(window.location.href, "Page link");
     }
   };
 
-  // Trait Pill Color Generator (matches Figma colorful rarity pills)
-  const getRarityBadgeStyle = (rarity: number) => {
-    if (rarity <= 5) {
-      return "bg-blue-500/15 text-blue-400 border-blue-500/30";
-    }
-    if (rarity <= 10) {
-      return "bg-purple-500/15 text-purple-400 border-purple-500/30";
-    }
-    if (rarity <= 20) {
-      return "bg-amber-500/15 text-amber-300 border-amber-500/30";
-    }
-    return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+  const openCoa = (ownership: EditionOwnership | null) => {
+    setActiveOwnershipForCoa(ownership);
+    setCoaModalOpen(true);
   };
 
-  // Compile Traits (Derived from Photographic Metadata)
-  const traits = useMemo(() => {
-    if (!edition) return [];
-    return [
-      {
-        type: "CAMERA",
-        value: edition.camera || "Leica M11 Archival",
-        rarity: 4,
-        floorEth: "0.45 ETH",
-      },
-      {
-        type: "LENS",
-        value: edition.lens || "50mm f/0.95 Noctilux",
-        rarity: 2,
-        floorEth: "0.50 ETH",
-      },
-      {
-        type: "ISO",
-        value: `ISO ${edition.iso || 100}`,
-        rarity: 18,
-        floorEth: "0.38 ETH",
-      },
-      {
-        type: "APERTURE",
-        value: edition.aperture || "f/1.4",
-        rarity: 12,
-        floorEth: "0.42 ETH",
-      },
-      {
-        type: "SHUTTER SPEED",
-        value: edition.shutterSpeed || "1/500s",
-        rarity: 25,
-        floorEth: "0.35 ETH",
-      },
-      {
-        type: "LOCATION",
-        value: edition.location || "Kyoto, Japan",
-        rarity: 6,
-        floorEth: "0.60 ETH",
-      },
-      {
-        type: "EDITION TIER",
-        value:
-          edition.tier === "genesis_1_of_1"
-            ? "1 of 1 Genesis Master"
-            : edition.tier === "physical_twin"
-              ? "Physical Twin Edition"
-              : `Limited Series (${edition.totalEditions} Total)`,
-        rarity: edition.tier === "genesis_1_of_1" ? 1 : 8,
-        floorEth: `${edition.priceEth} ETH`,
-      },
-      {
-        type: "PHYSICAL TWIN",
-        value: edition.hasPhysicalTwin ? "Museum Giclée Included" : "Digital Masterwork Only",
-        rarity: edition.hasPhysicalTwin ? 7 : 80,
-        floorEth: edition.hasPhysicalTwin ? "0.65 ETH" : "0.30 ETH",
-      },
-      {
-        type: "YEAR CREATED",
-        value: String(edition.yearCreated || 2025),
-        rarity: 15,
-        floorEth: "0.40 ETH",
-      },
-    ];
-  }, [edition]);
+  const openActivityTab = () => {
+    setActiveTab("activity");
+    tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   // Execute Direct Purchase with Deposit Check
   const handleExecuteBuy = () => {
@@ -247,33 +281,15 @@ export function EditionDetail() {
       return;
     }
 
-    // Check deposit gate eligibility
-    if (depositConfig.enforceDepositGate) {
-      const ethAsset = vaultBalance?.assets.find((a) => a.coin === "ETH");
-      const solAsset = vaultBalance?.assets.find((a) => a.coin === "SOL");
-      const usdtAsset = vaultBalance?.assets.find((a) => a.coin === "USDT");
-      const usdcAsset = vaultBalance?.assets.find((a) => a.coin === "USDC");
-      const btcAsset = vaultBalance?.assets.find((a) => a.coin === "BTC");
-
-      const gateCheck = checkDepositEligibility({
-        eth: ethAsset?.balance || 0,
-        sol: solAsset?.balance || 0,
-        usdt: usdtAsset?.balance || 0,
-        usdc: usdcAsset?.balance || 0,
-        btc: btcAsset?.balance || 0,
-        totalUsd: vaultBalance?.totalUsd,
+    const gateCheck = checkPurchaseGate();
+    if (!gateCheck.eligible) {
+      toast.error("Deposit Verification Required", {
+        description: gateCheck.reason || "Please deposit crypto into your Web3 address first.",
       });
-
-      if (!gateCheck.eligible) {
-        toast.error("Deposit Verification Required", {
-          description: gateCheck.reason || "Please deposit crypto into your Web3 address first.",
-        });
-        setPurchaseModalOpen(true);
-        return;
-      }
+      setPurchaseModalOpen(true);
+      return;
     }
 
-    // Process purchase
     setIsPurchasing(true);
     try {
       const res = purchaseEdition(
@@ -284,7 +300,7 @@ export function EditionDetail() {
           email: user.email,
           walletAddress: primaryEvmAddress || undefined,
         },
-        selectedCurrency,
+        "ETH",
       );
 
       if (res.success && res.ownership) {
@@ -294,13 +310,12 @@ export function EditionDetail() {
         setEditions(getStoredEditions());
         setOwnerships(getStoredOwnerships());
         setActivities(getStoredActivity());
-        setActiveOwnershipForCoa(res.ownership);
-        setCoaModalOpen(true);
+        openCoa(res.ownership);
       } else {
         toast.error(res.error || "Purchase failed.");
       }
-    } catch (e: any) {
-      toast.error(e?.message || "Transaction could not be completed.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Transaction could not be completed.");
     } finally {
       setIsPurchasing(false);
     }
@@ -322,809 +337,788 @@ export function EditionDetail() {
   // If edition is not found
   if (!edition) {
     return (
-      <div className="min-h-screen bg-[#0d1117] text-[#edf4f1] flex flex-col items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full text-center space-y-4 p-8 rounded-2xl border border-[#1e293b] bg-[#161f2c]">
-          <Award className="size-12 text-[#10b981] mx-auto opacity-70" />
-          <h2 className="text-xl font-serif font-bold text-white">Digital Edition Not Found</h2>
-          <p className="text-sm text-[#94a3b8]">
-            The requested photographic edition token or masterwork could not be located in the
-            registry.
-          </p>
-          <div className="pt-2">
-            <Link
-              to="/editions"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#10b981] text-[#080B10] text-xs font-bold hover:bg-[#059669] transition"
-            >
-              <ArrowLeft className="size-4" />
-              <span>Back to Editions</span>
-            </Link>
+      <EditionsShell walletLabel={walletLabel}>
+        <main className="flex flex-1 items-center justify-center p-6">
+          <div className="w-full max-w-md">
+            <EmptyState
+              title="Digital edition not found"
+              description="The requested photographic edition token or masterwork could not be located in the registry."
+              action={
+                <Link to="/editions" className={`${primaryButtonClass} h-10 px-5 text-sm`}>
+                  Back to Editions
+                </Link>
+              }
+            />
           </div>
-        </div>
-      </div>
+        </main>
+      </EditionsShell>
     );
   }
 
   const isSoldOut = edition.availableEditions <= 0;
+  const collectionSlug = collectionSlugFor(edition);
+  const collectionAvatar = collection?.avatarImage ?? edition.photographerAvatar;
+  const contractAddress =
+    collection?.contractAddress ?? "0x29f8a32490b6c12c98d7b4c9103e5a7b8e9104f1";
+  const chainName = collection?.chain ?? "Ethereum";
+  const tokenStandard = edition.tier === "genesis_1_of_1" ? "ERC721" : "ERC1155";
+  const tokenNumber = edition.tokenId.split("-").pop() ?? edition.tokenId;
+
+  const latestOwner = editionOwnerships[0];
+  const ownerName = latestOwner?.ownerName ?? edition.photographerName;
+  const ownerIsArtist = !latestOwner || latestOwner.ownerId === edition.photographerId;
+  const extraOwners = Math.max(editionOwnerships.length - 1, 0);
+
+  const collectionFloorEth = Math.min(
+    edition.priceEth,
+    ...(relatedEditions.fromCollection ? relatedEditions.items.map((e) => e.priceEth) : []),
+  );
+  const sales = editionActivity.filter((a) => a.type === "purchased");
+
+  const socials = collection?.socials;
+  const socialLinks = [
+    { label: "Website", href: socials?.website, icon: languageIcon },
+    { label: "Discord", href: socials?.discord, icon: discordIcon },
+    { label: "X (Twitter)", href: socials?.twitter, icon: xIcon },
+  ].filter((s): s is { label: string; href: string; icon: string } => Boolean(s.href));
+
+  const chainRows: { label: string; value: string; copy?: string }[] = [
+    { label: "Contract address", value: shortHex(contractAddress), copy: contractAddress },
+    { label: "Token ID", value: edition.tokenId },
+    { label: "Token standard", value: tokenStandard },
+    { label: "Chain", value: chainName },
+    { label: "Creator royalty", value: `${edition.royaltyPercent}%` },
+    {
+      label: "Master hash",
+      value: shortHex(edition.masterHash, 14, 6),
+      copy: edition.masterHash,
+    },
+    { label: "Minted", value: formatDate(edition.mintedAt) },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-[#edf4f1] font-sans selection:bg-[#10b981] selection:text-[#080B10]">
+    <EditionsShell
+      activeRail={activeTab === "activity" ? "activity" : undefined}
+      collectionHref={`/editions/collection/${collectionSlug}`}
+      onActivity={openActivityTab}
+      walletLabel={walletLabel}
+    >
       {/* ============================================================ */}
-      {/* 1. TOP UTILITY HEADER / BREADCRUMBS                          */}
+      {/* MAIN: ARTWORK (5 cols) + ITEM DETAILS (7 cols)               */}
       {/* ============================================================ */}
-      <header className="sticky top-0 z-40 bg-[#161b22]/90 backdrop-blur-md border-b border-[#21262d] px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 truncate">
-          <Link
-            to="/editions"
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#21262d]/50 hover:bg-[#30363d] text-xs font-medium text-[#c9d1d9] transition shrink-0"
+      <main className="grid flex-1 grid-cols-1 lg:grid-cols-12">
+        <section
+          aria-label="Artwork"
+          className="border-b border-(--ed-border) bg-(--ed-surface) lg:col-span-5 lg:border-b-0 lg:border-r"
+        >
+          <div className="lg:sticky lg:top-16">
+            <ArtworkPreview edition={edition} onExpand={() => setFullscreenOpen(true)} />
+          </div>
+        </section>
+
+        <section className="min-w-0 px-4 pb-16 pt-6 sm:px-6 lg:col-span-7">
+          <motion.div
+            key={edition.id}
+            initial="hidden"
+            animate="visible"
+            variants={staggerChildren}
+            className="flex max-w-[960px] flex-col gap-4"
           >
-            <ArrowLeft className="size-3.5" />
-            <span className="hidden sm:inline">Back to Editions</span>
-          </Link>
+            <motion.h1
+              variants={fadeUpVariants}
+              className="text-balance text-[26px] font-medium leading-9 tracking-[0.4px] text-(--ed-text) sm:text-[32px] sm:leading-10"
+            >
+              {edition.title}
+            </motion.h1>
 
-          <span className="text-[#484f58] hidden sm:inline">/</span>
-
-          <Link
-            to={`/editions/collection/${edition.collectionName ? edition.collectionName.toLowerCase().replace(/\s+/g, "-") : "kyoto-nocturnes"}`}
-            className="text-xs font-mono text-[#8b949e] hover:text-[#58a6ff] transition truncate hidden md:inline"
-          >
-            {edition.collectionName || "Fine-Art Registry"}
-          </Link>
-
-          <span className="text-[#484f58] hidden md:inline">/</span>
-
-          <span className="text-xs font-semibold text-[#f0f6fc] truncate">
-            {edition.title}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Share Button */}
-          <button
-            type="button"
-            onClick={handleShare}
-            className="p-2 rounded-lg border border-[#30363d] bg-[#21262d]/50 hover:bg-[#30363d] text-[#c9d1d9] hover:text-white transition"
-            title="Share Masterwork"
-          >
-            <Share2 className="size-4" />
-          </button>
-
-          {/* Favorite Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsFavorited(!isFavorited);
-              toast.success(
-                !isFavorited ? "Added to your collection watchlist" : "Removed from watchlist",
-              );
-            }}
-            className={`p-2 rounded-lg border transition ${
-              isFavorited
-                ? "border-pink-500/50 bg-pink-500/10 text-pink-400"
-                : "border-[#30363d] bg-[#21262d]/50 hover:bg-[#30363d] text-[#c9d1d9] hover:text-white"
-            }`}
-            title="Favorite / Watchlist"
-          >
-            <Heart className={`size-4 ${isFavorited ? "fill-current" : ""}`} />
-          </button>
-
-          {/* Inspect COA Modal Trigger */}
-          <button
-            type="button"
-            onClick={() => {
-              setActiveOwnershipForCoa(editionOwnerships[0] || null);
-              setCoaModalOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#10b981]/40 bg-[#10b981]/10 hover:bg-[#10b981]/20 text-xs font-mono font-medium text-[#5af2b3] transition"
-          >
-            <ShieldCheck className="size-3.5" />
-            <span className="hidden sm:inline">Inspect COA</span>
-          </button>
-        </div>
-      </header>
-
-      {/* ============================================================ */}
-      {/* 2. MAIN 2-COLUMN WORKSPACE (Matching Figma Screen)            */}
-      {/* ============================================================ */}
-      <main className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-10 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          {/* ------------------------------------------------------------ */}
-          {/* LEFT COLUMN (Cols 1-6): Artwork Display & Details Accordions */}
-          {/* ------------------------------------------------------------ */}
-          <div className="lg:col-span-6 space-y-6">
-            {/* Artwork Card with Framing & Zoom */}
-            <div className="relative rounded-2xl overflow-hidden border border-[#30363d] bg-[#161b22] shadow-2xl group">
-              {/* Top Banner Tag inside Artwork */}
-              <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0d1117]/80 backdrop-blur-md border border-[#30363d] text-[11px] font-mono font-semibold text-white shadow-lg">
-                  <Sparkles className="size-3 text-[#10b981]" />
-                  {edition.tier === "genesis_1_of_1"
-                    ? "1 OF 1 GENESIS MASTER"
-                    : edition.tier === "physical_twin"
-                      ? "PHYSICAL GICLÉE TWIN"
-                      : `LIMITED SERIES #${String(edition.totalEditions - edition.availableEditions + 1).padStart(2, "0")}/${edition.totalEditions}`}
-                </span>
-                {edition.hasPhysicalTwin && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 backdrop-blur-md border border-amber-500/40 text-[10px] font-mono font-bold text-amber-300">
-                    MUSEUM PRINT PAIRING
-                  </span>
-                )}
-              </div>
-
-              {/* Fullscreen Trigger */}
-              <button
-                type="button"
-                onClick={() => setFullscreenOpen(true)}
-                className="absolute top-4 right-4 z-10 p-2 rounded-xl bg-[#0d1117]/80 backdrop-blur-md border border-[#30363d] text-white/80 hover:text-white hover:scale-105 transition shadow-lg opacity-0 group-hover:opacity-100"
-                title="Fullscreen View"
-              >
-                <Maximize2 className="size-4" />
-              </button>
-
-              {/* High-Resolution Artwork Image */}
-              <div className="w-full aspect-square bg-[#0d1117] flex items-center justify-center overflow-hidden">
-                <img
-                  src={edition.image}
-                  alt={edition.title}
-                  className="w-full h-full object-cover object-center group-hover:scale-[1.02] transition duration-500 ease-out"
-                />
-              </div>
-
-              {/* Master Hash & Provenance Bar below image */}
-              <div className="p-4 bg-[#161b22] border-t border-[#21262d] flex flex-wrap items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2 text-[#8b949e] font-mono text-[11px] truncate">
-                  <ShieldCheck className="size-4 text-[#10b981] shrink-0" />
-                  <span className="truncate">
-                    SHA-256: {edition.masterHash.slice(0, 16)}...{edition.masterHash.slice(-8)}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(edition.masterHash, "hash", "Master Hash")}
-                  className="inline-flex items-center gap-1 text-[11px] font-mono text-[#58a6ff] hover:underline"
+            {/* Collection / owner / actions */}
+            <motion.div
+              variants={fadeUpVariants}
+              className="relative z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-3"
+            >
+              <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+                <Link
+                  to={`/editions/collection/${collectionSlug}`}
+                  className="flex min-w-0 items-center gap-2 text-sm font-medium tracking-[-0.15px] text-(--ed-text) transition-colors hover:text-(--ed-text-soft)"
                 >
-                  {copiedKey === "hash" ? <Check className="size-3" /> : <Copy className="size-3" />}
-                  <span>{copiedKey === "hash" ? "Copied" : "Copy Hash"}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Accordion 1: Description & Curatorial Statement */}
-            <div className="rounded-xl border border-[#30363d] bg-[#161b22] overflow-hidden shadow-sm">
-              <button
-                type="button"
-                onClick={() => setDescOpen(!descOpen)}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-[#21262d]/40 transition"
-              >
-                <div className="flex items-center gap-2.5">
-                  <FileText className="size-4 text-[#8b949e]" />
-                  <span className="text-sm font-semibold text-[#f0f6fc]">
-                    Description &amp; Curatorial Note
-                  </span>
-                </div>
-                {descOpen ? <ChevronUp className="size-4 text-[#8b949e]" /> : <ChevronDown className="size-4 text-[#8b949e]" />}
-              </button>
-              {descOpen && (
-                <div className="px-5 pb-5 pt-1 text-sm text-[#8b949e] leading-relaxed space-y-3 border-t border-[#21262d]">
-                  <p>{edition.description}</p>
-                  {edition.curatorNote && (
-                    <div className="p-3.5 rounded-xl border border-[#10b981]/30 bg-[#10b981]/5 text-xs text-[#c9d1d9] space-y-1">
-                      <span className="font-mono text-[10px] text-[#5af2b3] uppercase font-bold tracking-wider block">
-                        Curator's Assessment
-                      </span>
-                      <p className="italic leading-relaxed">{edition.curatorNote}</p>
-                    </div>
-                  )}
-                  {edition.physicalPrintDetails && (
-                    <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/5 text-xs text-[#c9d1d9] space-y-1">
-                      <span className="font-mono text-[10px] text-amber-400 uppercase font-bold tracking-wider block">
-                        Physical Twin Specifications
-                      </span>
-                      <p className="leading-relaxed">{edition.physicalPrintDetails}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Accordion 2: About the Artist */}
-            <div className="rounded-xl border border-[#30363d] bg-[#161b22] overflow-hidden shadow-sm">
-              <button
-                type="button"
-                onClick={() => setArtistOpen(!artistOpen)}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-[#21262d]/40 transition"
-              >
-                <div className="flex items-center gap-2.5">
-                  <User className="size-4 text-[#8b949e]" />
-                  <span className="text-sm font-semibold text-[#f0f6fc]">
-                    About {edition.photographerName}
-                  </span>
-                </div>
-                {artistOpen ? <ChevronUp className="size-4 text-[#8b949e]" /> : <ChevronDown className="size-4 text-[#8b949e]" />}
-              </button>
-              {artistOpen && (
-                <div className="px-5 pb-5 pt-1 space-y-4 border-t border-[#21262d]">
-                  <div className="flex items-center gap-3 pt-2">
+                  {collectionAvatar && (
                     <img
-                      src={
-                        edition.photographerAvatar ||
-                        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80"
-                      }
-                      alt={edition.photographerName}
-                      className="size-12 rounded-full object-cover border border-[#30363d]"
+                      src={collectionAvatar}
+                      alt=""
+                      className="size-6 shrink-0 rounded-full object-cover outline outline-1 -outline-offset-1 outline-(--ed-image-outline)"
                     />
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-semibold text-white">
-                          {edition.photographerName}
-                        </span>
-                        <CheckCircle2 className="size-4 text-[#10b981]" />
-                      </div>
-                      <span className="text-xs text-[#8b949e] font-mono">
-                        Verified Fine-Art Photographer
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-[#8b949e] leading-relaxed">
-                    Celebrated photographer focusing on medium-format archival storytelling,
-                    tonal precision, and cryptographic digital provenance registered on NS CAPTURES.
-                  </p>
-                  <div className="pt-1 flex items-center gap-3">
+                  )}
+                  <span className="truncate">
+                    {edition.collectionName || "NS CAPTURES Registry"}
+                  </span>
+                  <VerifiedBadge />
+                </Link>
+
+                <span className="hidden h-6 w-px bg-(--ed-divider) sm:block" />
+
+                <div className="flex min-w-0 items-center gap-1 text-sm tracking-[-0.15px]">
+                  <span className="text-(--ed-muted)">Owned by</span>
+                  {ownerIsArtist && edition.photographerAvatar ? (
+                    <img
+                      src={edition.photographerAvatar}
+                      alt=""
+                      className="size-5 shrink-0 rounded-full object-cover outline outline-1 -outline-offset-1 outline-(--ed-image-outline)"
+                    />
+                  ) : (
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-(--ed-raised) text-[9px] font-medium text-(--ed-text)">
+                      {initials(ownerName)}
+                    </span>
+                  )}
+                  {ownerIsArtist ? (
                     <Link
                       to={`/photographer/${edition.photographerSlug || edition.photographerId}`}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#30363d] bg-[#21262d]/60 hover:bg-[#30363d] text-xs font-semibold text-[#f0f6fc] transition"
+                      className="truncate font-medium text-(--ed-text) transition-colors hover:text-(--ed-text-soft)"
                     >
-                      <span>View Artist Profile</span>
-                      <ExternalLink className="size-3.5" />
+                      {ownerName}
                     </Link>
-                  </div>
+                  ) : (
+                    <span className="truncate font-medium text-(--ed-text)">{ownerName}</span>
+                  )}
+                  {extraOwners > 0 && <span className="text-(--ed-muted)">+{extraOwners}</span>}
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Accordion 3: Contract & Details */}
-            <div className="rounded-xl border border-[#30363d] bg-[#161b22] overflow-hidden shadow-sm">
-              <button
-                type="button"
-                onClick={() => setDetailsOpen(!detailsOpen)}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-[#21262d]/40 transition"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Layers className="size-4 text-[#8b949e]" />
-                  <span className="text-sm font-semibold text-[#f0f6fc]">
-                    Contract &amp; On-Chain Details
-                  </span>
+              <div className="flex items-center gap-5">
+                {socialLinks.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-5">
+                      {socialLinks.map((link) => (
+                        <a
+                          key={link.label}
+                          href={link.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label={link.label}
+                          title={link.label}
+                          className={headerIconClass}
+                        >
+                          <MaskIcon src={link.icon} className="size-5" />
+                        </a>
+                      ))}
+                    </div>
+                    <span className="h-6 w-px bg-(--ed-divider)" />
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handleCopy(window.location.href, "Page link")}
+                  aria-label="Copy link"
+                  title="Copy link"
+                  className={headerIconClass}
+                >
+                  <MaskIcon src={contentCopyIcon} className="size-5" />
+                </button>
+
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setIsFavorited(!isFavorited);
+                    toast.success(
+                      !isFavorited
+                        ? "Added to your collection watchlist"
+                        : "Removed from watchlist",
+                    );
+                  }}
+                  animate={isFavorited ? { scale: [1, 1.3, 1] } : { scale: 1 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  aria-pressed={isFavorited}
+                  aria-label="Favorite"
+                  title="Favorite"
+                  className={`flex items-center transition-colors ${isFavorited ? "text-[#ff5c8a]" : "text-(--ed-text) hover:text-(--ed-text-soft)"}`}
+                >
+                  <MaskIcon src={favoriteIcon} className="size-[22px]" />
+                </motion.button>
+
+                <div ref={moreMenuRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setMoreMenuOpen((open) => !open)}
+                    aria-haspopup="menu"
+                    aria-expanded={moreMenuOpen}
+                    aria-label="More options"
+                    className={headerIconClass}
+                  >
+                    <MaskIcon src={moreHorizIcon} className="size-5" />
+                  </button>
+                  <AnimatePresence>
+                    {moreMenuOpen && (
+                      <motion.div
+                        role="menu"
+                        initial={{ opacity: 0, scale: 0.96, y: -4 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.1 } }}
+                        transition={{ type: "spring", duration: 0.25, bounce: 0 }}
+                        style={{ transformOrigin: "top right" }}
+                        className="absolute right-0 top-8 z-20 w-56 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-1 shadow-(--ed-shadow)"
+                      >
+                        {[
+                          { label: "View full size", onSelect: () => setFullscreenOpen(true) },
+                          {
+                            label: "Inspect certificate (COA)",
+                            onSelect: () => openCoa(editionOwnerships[0] || null),
+                          },
+                          { label: "Share", onSelect: handleShare },
+                          {
+                            label: "View collection",
+                            onSelect: () => navigate(`/editions/collection/${collectionSlug}`),
+                          },
+                        ].map((item) => (
+                          <button
+                            key={item.label}
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setMoreMenuOpen(false);
+                              item.onSelect();
+                            }}
+                            className="block w-full rounded-md px-3 py-2 text-left text-sm text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
+                          >
+                            {item.label}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                {detailsOpen ? <ChevronUp className="size-4 text-[#8b949e]" /> : <ChevronDown className="size-4 text-[#8b949e]" />}
-              </button>
-              {detailsOpen && (
-                <div className="px-5 pb-5 pt-1 space-y-3 text-xs border-t border-[#21262d] font-mono">
-                  <div className="flex items-center justify-between py-1 border-b border-[#21262d]">
-                    <span className="text-[#8b949e]">Contract Address</span>
-                    <div className="flex items-center gap-1.5 text-[#58a6ff]">
-                      <a
-                        href="https://basescan.org"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="hover:underline"
-                      >
-                        0x29f8...7B4c
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleCopy(
-                            "0x29f8a32490b6c12c98d7b4c9103e5a7b8e9104f1",
-                            "contract",
-                            "Contract Address",
-                          )
-                        }
-                      >
-                        {copiedKey === "contract" ? (
-                          <Check className="size-3 text-emerald-400" />
-                        ) : (
-                          <Copy className="size-3" />
-                        )}
-                      </button>
+              </div>
+            </motion.div>
+
+            {/* Token chips */}
+            <motion.div variants={fadeUpVariants} className="flex flex-wrap gap-2">
+              <Chip>{tokenStandard}</Chip>
+              <Chip icon={ethereumIcon}>{chainName}</Chip>
+              <Chip>Token #{tokenNumber}</Chip>
+            </motion.div>
+
+            {/* Price card */}
+            <motion.div variants={fadeUpVariants} className="pt-2">
+              <div className="flex flex-col gap-4 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-4">
+                <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                  <Stat label="Best offer" value={formatEth(edition.priceEth * 0.85)} />
+                  <Stat
+                    label="Last sale"
+                    value={editionOwnerships.length > 0 ? formatEth(edition.priceEth) : "—"}
+                  />
+                  <Stat label="Collection floor" value={formatEth(collectionFloorEth)} />
+                  <Stat label="Royalty" value={`${edition.royaltyPercent}%`} muted alignEnd />
+                </dl>
+
+                <div className="h-px bg-(--ed-divider)" />
+
+                <div className="flex flex-col gap-6">
+                  <div className="flex flex-col gap-2">
+                    <span className={monoLabelClass}>Buy for</span>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="font-mono text-[32px] font-medium leading-10 text-(--ed-text)">
+                        {formatEth(edition.priceEth)}
+                      </span>
+                      <span className="font-mono text-sm text-(--ed-muted)">
+                        ≈ {formatGbp(edition.priceGbp)}
+                      </span>
+                      <Chip>
+                        {isSoldOut
+                          ? "Sold out"
+                          : `${edition.availableEditions} of ${edition.totalEditions} available`}
+                      </Chip>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between py-1 border-b border-[#21262d]">
-                    <span className="text-[#8b949e]">Token ID</span>
-                    <span className="text-[#f0f6fc]">{edition.tokenId}</span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-1 border-b border-[#21262d]">
-                    <span className="text-[#8b949e]">Token Standard</span>
-                    <span className="text-[#f0f6fc]">
-                      {edition.tier === "genesis_1_of_1" ? "ERC-721 (1/1 Master)" : "ERC-1155 (Edition Series)"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-1 border-b border-[#21262d]">
-                    <span className="text-[#8b949e]">Chain</span>
-                    <span className="text-[#f0f6fc]">Base L2 • Multi-Chain EVM</span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-1 border-b border-[#21262d]">
-                    <span className="text-[#8b949e]">Creator Royalties</span>
-                    <span className="text-[#f0f6fc]">{edition.royaltyPercent}% Perpetual</span>
-                  </div>
-
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-[#8b949e]">Metadata Fingerprint</span>
-                    <span className="text-[#10b981] font-semibold">100% On-Chain COA</span>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={() => setOfferModalOpen(true)}
+                      className={`${secondaryButtonClass} h-12 px-6 text-base tracking-[-0.31px] sm:flex-[356_1_0%]`}
+                    >
+                      Make Offer
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSoldOut || isPurchasing}
+                      onClick={handleExecuteBuy}
+                      className={`${primaryButtonClass} h-12 px-6 text-base tracking-[-0.31px] sm:flex-[308_1_0%]`}
+                    >
+                      {isPurchasing ? "Processing…" : isSoldOut ? "Sold Out" : "Buy Now"}
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* ------------------------------------------------------------ */}
-          {/* RIGHT COLUMN (Cols 7-12): Pricing, Actions, Traits & Activity */}
-          {/* ------------------------------------------------------------ */}
-          <div className="lg:col-span-6 space-y-6">
-            {/* Header / Collection & Title */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Link
-                  to={`/editions/collection/${edition.collectionName ? edition.collectionName.toLowerCase().replace(/\s+/g, "-") : "kyoto-nocturnes"}`}
-                  className="text-xs font-mono font-semibold text-[#58a6ff] hover:underline cursor-pointer"
-                >
-                  {edition.collectionName || "NS CAPTURES Fine-Art Master Series"}
-                </Link>
-                <CheckCircle2 className="size-3.5 text-[#58a6ff] fill-current" />
               </div>
+            </motion.div>
 
-              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight">
-                {edition.title}
-              </h1>
+            {/* Tabs */}
+            <motion.div ref={tabsRef} variants={fadeUpVariants} className="scroll-mt-20">
+              <TabBar
+                label="Item sections"
+                tabs={DETAIL_TABS}
+                active={activeTab}
+                onChange={setActiveTab}
+              />
 
-              <div className="flex items-center gap-3 text-xs text-[#8b949e]">
-                <span>
-                  Minted by{" "}
-                  <strong className="text-white font-medium">
-                    {edition.photographerName}
-                  </strong>
-                </span>
-                <span>&bull;</span>
-                <span className="font-mono">
-                  {edition.availableEditions} of {edition.totalEditions} Remaining
-                </span>
-              </div>
-            </div>
-
-            {/* Metric Ribbon (Figma 4-stat bar) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl border border-[#30363d] bg-[#161b22]">
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-mono text-[#8b949e] uppercase block">
-                  Top Offer
-                </span>
-                <span className="text-sm font-semibold font-mono text-white">
-                  {(edition.priceEth * 0.85).toFixed(2)} ETH
-                </span>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-mono text-[#8b949e] uppercase block">
-                  Last Sale
-                </span>
-                <span className="text-sm font-semibold font-mono text-white">
-                  {edition.priceEth} ETH
-                </span>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-mono text-[#8b949e] uppercase block">
-                  Floor Price
-                </span>
-                <span className="text-sm font-semibold font-mono text-white">
-                  {edition.priceEth} ETH
-                </span>
-              </div>
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-mono text-[#8b949e] uppercase block">
-                  Edition Supply
-                </span>
-                <span className="text-sm font-semibold font-mono text-[#10b981]">
-                  {edition.totalEditions} Total
-                </span>
-              </div>
-            </div>
-
-            {/* Price Box & Primary CTAs (Figma Prominent Buy Now) */}
-            <div className="p-6 rounded-2xl border border-[#30363d] bg-[#161b22] shadow-xl space-y-5">
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs text-[#8b949e]">
-                  <span>Current Price</span>
-                  <span className="flex items-center gap-1 text-[#10b981] font-mono">
-                    <Zap className="size-3" />
-                    Instant Acquisition
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <span className="text-3xl sm:text-4xl font-mono font-bold text-white tracking-tight">
-                    {edition.priceEth} ETH
-                  </span>
-                  <span className="text-sm font-mono text-[#8b949e]">
-                    &asymp; £{edition.priceGbp.toLocaleString("en-GB")} GBP / $
-                    {edition.priceUsd.toLocaleString("en-US")} USD
-                  </span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="space-y-2.5">
-                <button
-                  type="button"
-                  disabled={isSoldOut || isPurchasing}
-                  onClick={handleExecuteBuy}
-                  className={`w-full py-4 px-6 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2.5 shadow-xl ${
-                    isSoldOut
-                      ? "bg-[#21262d] text-[#6e7681] cursor-not-allowed border border-[#30363d]"
-                      : "bg-[#2081e2] hover:bg-[#1868b7] active:scale-[0.99] text-white shadow-[#2081e2]/25"
-                  }`}
-                >
-                  <Zap className="size-4" />
-                  <span>
-                    {isPurchasing
-                      ? "Processing Acquisition..."
-                      : isSoldOut
-                        ? "Sold Out"
-                        : "Buy Now"}
-                  </span>
-                </button>
-
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setOfferModalOpen(true)}
-                    className="py-2.5 px-4 rounded-xl border border-[#30363d] bg-[#21262d]/60 hover:bg-[#30363d] text-xs font-semibold text-white transition flex items-center justify-center gap-2"
+              <AnimatePresence mode="wait" initial={false}>
+                {/* ---------------- Details ---------------- */}
+                {activeTab === "details" && (
+                  <motion.div
+                    key="details"
+                    role="tabpanel"
+                    {...panelMotion}
+                    className="flex flex-col gap-2 pt-6"
                   >
-                    <Tag className="size-3.5 text-[#8b949e]" />
-                    <span>Make Offer</span>
-                  </button>
+                    <DetailSection
+                      icon={traitsIcon}
+                      iconClassName="text-(--ed-text)"
+                      title="Traits"
+                      open={openSections.traits}
+                      onToggle={() => toggleSection("traits")}
+                    >
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm uppercase leading-[17.5px] text-(--ed-text)">
+                              Traits
+                            </span>
+                            <span className="text-sm text-(--ed-muted)">{traits.length}</span>
+                          </div>
+                          <div role="radiogroup" aria-label="Trait layout" className="flex">
+                            {(
+                              [
+                                { id: "grid", label: "Grid view", icon: gridViewIcon },
+                                { id: "table", label: "Table view", icon: tableRowsIcon },
+                              ] as const
+                            ).map((option) => {
+                              const checked = traitsView === option.id;
+                              return (
+                                <button
+                                  key={option.id}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={checked}
+                                  aria-label={option.label}
+                                  title={option.label}
+                                  onClick={() => setTraitsView(option.id)}
+                                  className={`flex size-8 items-center justify-center rounded-full border transition-colors ${
+                                    checked
+                                      ? "border-(--ed-border) bg-(--ed-surface) text-(--ed-text)"
+                                      : "border-transparent text-(--ed-muted) hover:text-(--ed-text)"
+                                  }`}
+                                >
+                                  <MaskIcon src={option.icon} className="size-5" />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveOwnershipForCoa(editionOwnerships[0] || null);
-                      setCoaModalOpen(true);
-                    }}
-                    className="py-2.5 px-4 rounded-xl border border-[#30363d] bg-[#21262d]/60 hover:bg-[#30363d] text-xs font-semibold text-[#5af2b3] transition flex items-center justify-center gap-2"
-                  >
-                    <ShieldCheck className="size-3.5" />
-                    <span>Inspect COA</span>
-                  </button>
-                </div>
-              </div>
+                        {traitsView === "grid" ? (
+                          <motion.ul
+                            key="traits-grid"
+                            initial="hidden"
+                            animate="visible"
+                            variants={traitsStagger}
+                            className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                          >
+                            {traits.map((trait) => (
+                              <motion.li
+                                key={trait.type}
+                                variants={fadeUpVariants}
+                                className="flex min-w-0 flex-col rounded-lg border border-(--ed-border) bg-(--ed-bg) p-4 transition-[border-color,translate] duration-150 ease-out hover:-translate-y-0.5 hover:border-(--ed-border-strong) motion-reduce:hover:translate-y-0"
+                              >
+                                <span className="truncate text-xs uppercase leading-[18px] text-(--ed-muted)">
+                                  {trait.type}
+                                </span>
+                                <span
+                                  className="truncate pt-1 text-sm leading-[21px] tracking-[-0.15px] text-(--ed-text)"
+                                  title={trait.value}
+                                >
+                                  {trait.value}
+                                </span>
+                                <div className="flex items-center justify-between gap-2 pt-3">
+                                  <span
+                                    className={`inline-flex h-[22px] items-center gap-2 rounded px-1.5 font-mono text-sm uppercase leading-[14px] ${traitTone(trait.percent)}`}
+                                  >
+                                    <span className="text-(--ed-text)">
+                                      {trait.count.toLocaleString("en-US")}
+                                    </span>
+                                    <span>{formatPercent(trait.percent)}</span>
+                                  </span>
+                                  <span className="font-mono text-sm leading-[21px] text-(--ed-text)">
+                                    {formatEth(trait.floorEth)}
+                                  </span>
+                                </div>
+                              </motion.li>
+                            ))}
+                          </motion.ul>
+                        ) : (
+                          <div className="overflow-x-auto rounded-lg border border-(--ed-border)">
+                            <table className="w-full text-left text-sm">
+                              <thead className={tableHeadClass}>
+                                <tr>
+                                  <th className="px-4 py-3 font-normal">Trait</th>
+                                  <th className="px-4 py-3 font-normal">Value</th>
+                                  <th className="px-4 py-3 font-normal">Count</th>
+                                  <th className="px-4 py-3 text-right font-normal">Floor</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {traits.map((trait) => (
+                                  <tr
+                                    key={trait.type}
+                                    className="border-t border-(--ed-border) transition-colors hover:bg-(--ed-hover)"
+                                  >
+                                    <td className="whitespace-nowrap px-4 py-3 text-xs uppercase text-(--ed-muted)">
+                                      {trait.type}
+                                    </td>
+                                    <td className="px-4 py-3 text-(--ed-text)">{trait.value}</td>
+                                    <td className="whitespace-nowrap px-4 py-3">
+                                      <span
+                                        className={`inline-flex h-[22px] items-center gap-2 rounded px-1.5 font-mono text-sm leading-[14px] ${traitTone(trait.percent)}`}
+                                      >
+                                        <span className="text-(--ed-text)">{trait.count}</span>
+                                        <span>{formatPercent(trait.percent)}</span>
+                                      </span>
+                                    </td>
+                                    <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-(--ed-text)">
+                                      {formatEth(trait.floorEth)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    </DetailSection>
 
-              {/* Deposit Gating Verification Notice */}
-              <div className="pt-2 border-t border-[#21262d] flex items-center justify-between text-[11px] text-[#8b949e]">
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="size-3.5 text-[#10b981]" />
-                  <span>Platform Deposit Vault Guarded</span>
-                </div>
-                <span className="font-mono text-[#58a6ff]">Base &bull; Solana &bull; USDT</span>
-              </div>
-            </div>
-
-            {/* Traits & Photographic Attributes Grid (Exact Figma Replica) */}
-            <div className="rounded-xl border border-[#30363d] bg-[#161b22] overflow-hidden shadow-sm">
-              <button
-                type="button"
-                onClick={() => setTraitsOpen(!traitsOpen)}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-[#21262d]/40 transition"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Tag className="size-4 text-[#8b949e]" />
-                  <span className="text-sm font-semibold text-[#f0f6fc]">
-                    Traits &amp; Photographic Attributes
-                  </span>
-                  <span className="text-xs font-mono text-[#8b949e]">
-                    ({traits.length})
-                  </span>
-                </div>
-                {traitsOpen ? <ChevronUp className="size-4 text-[#8b949e]" /> : <ChevronDown className="size-4 text-[#8b949e]" />}
-              </button>
-
-              {traitsOpen && (
-                <div className="p-5 pt-2 border-t border-[#21262d]">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {traits.map((t, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3 rounded-xl border border-[#30363d] bg-[#0d1117] hover:border-[#58a6ff]/50 transition space-y-1.5"
-                      >
-                        <span className="font-mono text-[10px] text-[#8b949e] uppercase tracking-wider block">
-                          {t.type}
-                        </span>
-                        <p className="text-xs font-semibold text-white truncate" title={t.value}>
-                          {t.value}
+                    <DetailSection
+                      icon={attachMoneyIcon}
+                      title="Price history"
+                      open={openSections.priceHistory}
+                      onToggle={() => toggleSection("priceHistory")}
+                    >
+                      {sales.length === 0 ? (
+                        <p className="text-sm text-(--ed-muted)">
+                          No sales recorded for this edition yet.
                         </p>
-                        <div className="flex items-center justify-between pt-1 text-[10px] font-mono">
-                          <span className={`px-2 py-0.5 rounded-full border ${getRarityBadgeStyle(t.rarity)}`}>
-                            {t.rarity}% rarity
-                          </span>
-                          <span className="text-[#8b949e]">{t.floorEth}</span>
+                      ) : (
+                        <ul className="divide-y divide-(--ed-border) rounded-lg border border-(--ed-border)">
+                          {sales.map((sale) => (
+                            <li
+                              key={sale.id}
+                              className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
+                            >
+                              <span className="text-(--ed-muted)">
+                                {formatDate(sale.timestamp)}
+                              </span>
+                              <span className="truncate text-(--ed-text)">
+                                {sale.toUser ?? "Collector"}
+                              </span>
+                              <span className="font-mono text-(--ed-text)">
+                                {formatGbp(sale.price ?? 0)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </DetailSection>
+
+                    <DetailSection
+                      icon={editNoteIcon}
+                      title="About"
+                      open={openSections.about}
+                      onToggle={() => toggleSection("about")}
+                    >
+                      <div className="flex flex-col gap-4 text-sm leading-6 text-(--ed-muted)">
+                        <p>{edition.description}</p>
+                        {edition.curatorNote && (
+                          <div className="rounded-lg border border-(--ed-border) bg-(--ed-bg) p-3">
+                            <p className={monoLabelClass}>Curator's note</p>
+                            <p className="mt-1 text-(--ed-text)">{edition.curatorNote}</p>
+                          </div>
+                        )}
+                        {edition.physicalPrintDetails && (
+                          <div className="rounded-lg border border-(--ed-border) bg-(--ed-bg) p-3">
+                            <p className={monoLabelClass}>Physical twin</p>
+                            <p className="mt-1 text-(--ed-text)">{edition.physicalPrintDetails}</p>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between gap-3 border-t border-(--ed-border) pt-4">
+                          <div className="flex min-w-0 items-center gap-3">
+                            {edition.photographerAvatar ? (
+                              <img
+                                src={edition.photographerAvatar}
+                                alt=""
+                                className="size-10 shrink-0 rounded-full object-cover outline outline-1 -outline-offset-1 outline-(--ed-image-outline)"
+                              />
+                            ) : (
+                              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-(--ed-raised) text-xs font-medium text-(--ed-text)">
+                                {initials(edition.photographerName)}
+                              </span>
+                            )}
+                            <div className="min-w-0">
+                              <p className="truncate font-medium text-(--ed-text)">
+                                {edition.photographerName}
+                              </p>
+                              <p className="text-xs">Photographer</p>
+                            </div>
+                          </div>
+                          <Link
+                            to={`/photographer/${edition.photographerSlug || edition.photographerId}`}
+                            className={`${secondaryButtonClass} h-9 shrink-0 px-4 text-sm`}
+                          >
+                            View profile
+                          </Link>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+                    </DetailSection>
 
-            {/* Item Activity Table (Mints, Sales, Transfers) */}
-            <div className="rounded-xl border border-[#30363d] bg-[#161b22] overflow-hidden shadow-sm">
-              <button
-                type="button"
-                onClick={() => setActivityOpen(!activityOpen)}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-[#21262d]/40 transition"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Clock className="size-4 text-[#8b949e]" />
-                  <span className="text-sm font-semibold text-[#f0f6fc]">
-                    Item Activity &amp; Provenance
-                  </span>
-                  <span className="text-xs font-mono text-[#8b949e]">
-                    ({editionActivity.length + 1})
-                  </span>
-                </div>
-                {activityOpen ? <ChevronUp className="size-4 text-[#8b949e]" /> : <ChevronDown className="size-4 text-[#8b949e]" />}
-              </button>
+                    <DetailSection
+                      icon={tileMediumIcon}
+                      title="Blockchain details"
+                      open={openSections.chain}
+                      onToggle={() => toggleSection("chain")}
+                    >
+                      <dl className="divide-y divide-(--ed-border)">
+                        {chainRows.map((row) => (
+                          <div
+                            key={row.label}
+                            className="flex items-center justify-between gap-4 py-2.5 text-sm"
+                          >
+                            <dt className="text-(--ed-muted)">{row.label}</dt>
+                            <dd className="flex min-w-0 items-center gap-2 font-mono text-(--ed-text)">
+                              <span className="truncate">{row.value}</span>
+                              {row.copy && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopy(row.copy!, row.label)}
+                                  aria-label={`Copy ${row.label.toLowerCase()}`}
+                                  className="shrink-0 text-(--ed-muted) transition-colors hover:text-(--ed-text)"
+                                >
+                                  <MaskIcon src={contentCopyIcon} className="size-4" />
+                                </button>
+                              )}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </DetailSection>
 
-              {activityOpen && (
-                <div className="border-t border-[#21262d] overflow-x-auto">
-                  <table className="w-full text-left text-xs font-mono">
-                    <thead className="bg-[#161b22] text-[#8b949e] text-[10px] uppercase border-b border-[#21262d]">
-                      <tr>
-                        <th className="px-4 py-3 font-medium">Event</th>
-                        <th className="px-4 py-3 font-medium">Price</th>
-                        <th className="px-4 py-3 font-medium">From</th>
-                        <th className="px-4 py-3 font-medium">To</th>
-                        <th className="px-4 py-3 font-medium">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#21262d] text-[#c9d1d9]">
-                      {/* Seed Mint Event */}
-                      <tr className="hover:bg-[#21262d]/30">
-                        <td className="px-4 py-3 font-semibold text-[#5af2b3] flex items-center gap-1.5">
-                          <Sparkles className="size-3" />
-                          Minted
-                        </td>
-                        <td className="px-4 py-3 text-white font-bold">
-                          {edition.priceEth} ETH
-                        </td>
-                        <td className="px-4 py-3 text-[#58a6ff] truncate max-w-[100px]">
-                          NullAddress
-                        </td>
-                        <td className="px-4 py-3 text-[#58a6ff] truncate max-w-[100px]">
-                          {edition.photographerName}
-                        </td>
-                        <td className="px-4 py-3 text-[#8b949e]">
-                          {new Date(edition.mintedAt).toLocaleDateString()}
-                        </td>
-                      </tr>
+                    <DetailSection
+                      icon={gridViewIcon}
+                      title="More from this collection"
+                      open={openSections.more}
+                      onToggle={() => toggleSection("more")}
+                    >
+                      {!relatedEditions.fromCollection && (
+                        <p className="pb-3 text-sm text-(--ed-muted)">
+                          This is the only edition in its collection so far. Other editions on NS
+                          CAPTURES:
+                        </p>
+                      )}
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        {relatedEditions.items.map((item) => (
+                          <EditionCard key={item.id} edition={item} />
+                        ))}
+                      </div>
+                    </DetailSection>
+                  </motion.div>
+                )}
 
-                      {/* Real User Activities */}
-                      {editionActivity.map((act) => (
-                        <tr key={act.id} className="hover:bg-[#21262d]/30">
-                          <td className="px-4 py-3 font-semibold text-[#58a6ff] capitalize">
-                            {act.type}
-                          </td>
-                          <td className="px-4 py-3 text-white font-bold">
-                            {act.price ? `${act.price} ETH` : "-"}
-                          </td>
-                          <td className="px-4 py-3 text-[#8b949e] truncate max-w-[100px]">
-                            {act.fromUser || "Registry"}
-                          </td>
-                          <td className="px-4 py-3 text-[#58a6ff] truncate max-w-[100px]">
-                            {act.toUser || "Collector"}
-                          </td>
-                          <td className="px-4 py-3 text-[#8b949e]">Just now</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-            {/* Link to Full Collection Drop */}
-            <div className="p-4 rounded-xl border border-[#30363d] bg-[#161b22] flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="size-10 rounded-lg bg-[#21262d] flex items-center justify-center shrink-0 text-[#58a6ff]">
-                  <Layers className="size-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs text-[#8b949e] font-mono">Part of Drop</div>
-                  <div className="text-sm font-semibold text-white truncate">
-                    {edition.collectionName || "Kyoto Nocturnes Series"}
-                  </div>
-                </div>
-              </div>
-              <Link
-                to={`/editions/collection/${edition.collectionName ? edition.collectionName.toLowerCase().replace(/\s+/g, "-") : "kyoto-nocturnes"}`}
-                className="px-3.5 py-2 rounded-lg bg-[#21262d] hover:bg-[#30363d] text-xs font-mono font-medium text-white border border-[#30363d] transition flex items-center gap-1.5 shrink-0"
-              >
-                <span>View Collection</span>
-                <ChevronRight className="size-3.5" />
-              </Link>
-            </div>
-          </div>
-        </div>
+                {/* ---------------- Orders ---------------- */}
+                {activeTab === "orders" && (
+                  <motion.div key="orders" role="tabpanel" {...panelMotion} className="pt-6">
+                    {editionOwnerships.length === 0 ? (
+                      <EmptyState
+                        title="No orders yet"
+                        description="Be the first collector of this edition."
+                      />
+                    ) : (
+                      <div className="overflow-x-auto rounded-lg border border-(--ed-border) bg-(--ed-surface)">
+                        <table className="w-full text-left text-sm">
+                          <thead className={tableHeadClass}>
+                            <tr>
+                              <th className="px-4 py-3 font-normal">Serial</th>
+                              <th className="px-4 py-3 font-normal">Collector</th>
+                              <th className="px-4 py-3 font-normal">Price</th>
+                              <th className="px-4 py-3 font-normal">Acquired</th>
+                              <th className="px-4 py-3 text-right font-normal">
+                                <span className="sr-only">Certificate</span>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {editionOwnerships.map((own) => (
+                              <tr
+                                key={own.id}
+                                className="border-t border-(--ed-border) transition-colors hover:bg-(--ed-hover)"
+                              >
+                                <td className="whitespace-nowrap px-4 py-3 font-mono text-(--ed-text)">
+                                  {own.serialDisplay}
+                                </td>
+                                <td className="px-4 py-3 text-(--ed-text)">{own.ownerName}</td>
+                                <td className="whitespace-nowrap px-4 py-3 font-mono text-(--ed-text)">
+                                  {formatGbp(own.purchasePriceGbp)}
+                                  <span className="pl-1.5 text-xs text-(--ed-muted)">
+                                    via {own.purchaseCurrency}
+                                  </span>
+                                </td>
+                                <td className="whitespace-nowrap px-4 py-3 text-(--ed-muted)">
+                                  {formatDate(own.acquiredAt)}
+                                </td>
+                                <td className="whitespace-nowrap px-4 py-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => openCoa(own)}
+                                    className={`${secondaryButtonClass} h-8 px-3 text-xs`}
+                                  >
+                                    View COA
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+
+                {/* ---------------- Activity ---------------- */}
+                {activeTab === "activity" && (
+                  <motion.div key="activity" role="tabpanel" {...panelMotion} className="pt-6">
+                    <ActivityTable activities={editionActivity} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
+        </section>
       </main>
 
       {/* ============================================================ */}
-      {/* 3. MODALS (COA, Fullscreen, Offers, Deposit Warning)          */}
+      {/* MODALS (COA, Full screen, Offers, Deposit Warning)           */}
       {/* ============================================================ */}
 
-      {/* Cryptographic Certificate of Authenticity Modal */}
       {coaModalOpen && (
         <CertificateOfAuthenticityModal
           edition={edition}
-          ownership={
-            activeOwnershipForCoa || {
-              id: `coa-${edition.id}-sample`,
-              editionId: edition.id,
-              serialNumber: 1,
-              serialDisplay:
-                edition.tier === "genesis_1_of_1"
-                  ? "#01 / 01"
-                  : `#01 / ${edition.totalEditions}`,
-              ownerId: edition.photographerId,
-              ownerName: edition.photographerName,
-              acquiredAt: edition.mintedAt,
-              purchasePriceGbp: edition.priceGbp,
-              purchaseCurrency: "ETH",
-              certificateNumber: `COA-${edition.tokenId.replace("NSC-", "")}-01`,
-              isListedForResale: false,
-            }
-          }
+          ownership={activeOwnershipForCoa || sampleOwnershipFor(edition)}
           onClose={() => setCoaModalOpen(false)}
         />
       )}
 
-      {/* Fullscreen Artwork Modal */}
-      {fullscreenOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-200"
-          onClick={() => setFullscreenOpen(false)}
-        >
-          <button
-            type="button"
-            onClick={() => setFullscreenOpen(false)}
-            className="absolute top-6 right-6 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition z-10"
-          >
-            <X className="size-6" />
-          </button>
-          <img
-            src={edition.image}
-            alt={edition.title}
-            className="max-h-[92vh] max-w-[92vw] object-contain rounded-lg shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
+      <ArtworkLightbox edition={edition} open={fullscreenOpen} onClose={closeFullscreen} />
 
-      {/* Make Offer Modal */}
       {offerModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="max-w-md w-full rounded-2xl border border-[#30363d] bg-[#161b22] p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-serif font-bold text-white">Make an Offer</h3>
-              <button
-                type="button"
-                onClick={() => setOfferModalOpen(false)}
-                className="text-[#8b949e] hover:text-white"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-[#8b949e]">
-              Enter your offer amount in ETH for <strong>{edition.title}</strong>.
+        <EditionsModal
+          eyebrow="Make an offer"
+          title={edition.title}
+          onClose={() => setOfferModalOpen(false)}
+        >
+          <form onSubmit={handleMakeOffer} className="flex flex-col gap-4">
+            <p className="text-sm leading-6 text-(--ed-muted)">
+              Offers go to {edition.photographerName}. The listed price is{" "}
+              {formatEth(edition.priceEth)}.
             </p>
-
-            <form onSubmit={handleMakeOffer} className="space-y-4">
-              <div>
-                <label className="text-[10px] font-mono uppercase text-[#8b949e] block mb-1">
-                  Offer Amount (ETH)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    required
-                    value={offerAmount}
-                    onChange={(e) => setOfferAmount(e.target.value)}
-                    placeholder="0.45"
-                    className="w-full px-4 py-2.5 rounded-xl border border-[#30363d] bg-[#0d1117] text-white font-mono text-sm focus:border-[#58a6ff] outline-none"
-                  />
-                  <span className="absolute right-3.5 top-3 text-xs font-mono text-[#8b949e]">
-                    ETH
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setOfferModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-[#30363d] text-xs font-semibold text-[#c9d1d9] hover:bg-[#21262d] transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#2081e2] hover:bg-[#1868b7] text-white text-xs font-bold transition shadow-lg"
-                >
-                  Submit Offer
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Deposit Required Warning Modal */}
-      {purchaseModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="max-w-md w-full rounded-2xl border border-amber-500/40 bg-[#161b22] p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400">
-                <Coins className="size-5" />
-              </div>
-              <div>
-                <h3 className="text-base font-serif font-bold text-white">
-                  Web3 Deposit Required
-                </h3>
-                <span className="text-xs text-[#8b949e]">
-                  Collector Verification Gate
+            <div>
+              <label htmlFor="offer-amount" className={`${monoLabelClass} mb-2 block`}>
+                Offer amount (ETH)
+              </label>
+              <div className="relative">
+                <input
+                  id="offer-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={offerAmount}
+                  onChange={(e) => setOfferAmount(e.target.value)}
+                  placeholder={(edition.priceEth * 0.85).toFixed(2)}
+                  className={`${inputClass} pr-14 font-mono`}
+                />
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-mono text-sm text-(--ed-muted)">
+                  ETH
                 </span>
               </div>
             </div>
-
-            <p className="text-xs text-[#c9d1d9] leading-relaxed">
-              To acquire on-platform digital editions, an active crypto deposit is required in your
-              assigned Web3 address (min: {depositConfig.ethThreshold} ETH,{" "}
-              {depositConfig.solThreshold} SOL, or {depositConfig.usdtThreshold} USDT).
-            </p>
-
-            {primaryEvmAddress && (
-              <div className="p-3 rounded-xl bg-[#0d1117] border border-[#30363d] space-y-1">
-                <span className="text-[10px] font-mono uppercase text-[#8b949e]">
-                  Your Web3 Deposit Address
-                </span>
-                <div className="flex items-center justify-between font-mono text-xs text-[#58a6ff]">
-                  <span className="truncate">{primaryEvmAddress}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(primaryEvmAddress, "depositAddr", "Deposit Address")}
-                  >
-                    <Copy className="size-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
-
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
+                onClick={() => setOfferModalOpen(false)}
+                className={`${secondaryButtonClass} h-10 px-5 text-sm`}
+              >
+                Cancel
+              </button>
+              <button type="submit" className={`${primaryButtonClass} h-10 px-5 text-sm`}>
+                Submit offer
+              </button>
+            </div>
+          </form>
+        </EditionsModal>
+      )}
+
+      {purchaseModalOpen && (
+        <EditionsModal
+          eyebrow="Collector verification"
+          title="Web3 deposit required"
+          onClose={() => setPurchaseModalOpen(false)}
+          footer={
+            <>
+              <button
+                type="button"
                 onClick={() => setPurchaseModalOpen(false)}
-                className="px-4 py-2 rounded-xl border border-[#30363d] text-xs font-semibold text-[#c9d1d9] hover:bg-[#21262d] transition"
+                className={`${secondaryButtonClass} h-10 px-5 text-sm`}
               >
                 Close
               </button>
               <Link
                 to="/account?tab=settlement"
-                className="px-5 py-2 rounded-xl bg-[#10b981] hover:bg-[#059669] text-[#080B10] text-xs font-bold transition shadow-lg"
+                className={`${primaryButtonClass} h-10 px-5 text-sm`}
               >
-                Go to Vault Deposit
+                Go to vault deposit
               </Link>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[rgba(255,138,0,0.2)] text-(--ed-warning)">
+                <Coins className="size-5" />
+              </span>
+              <p className="text-sm leading-6 text-(--ed-muted)">
+                To acquire on-platform digital editions, an active crypto deposit is required in
+                your Web3 vault (min: {depositConfig.ethThreshold} ETH, {depositConfig.solThreshold}{" "}
+                SOL, or {depositConfig.usdtThreshold} USDT).
+              </p>
             </div>
+
+            {primaryEvmAddress ? (
+              <div className="flex flex-col gap-1.5 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-3">
+                <span className={monoLabelClass}>Your Web3 deposit address</span>
+                <div className="flex items-center justify-between gap-2 font-mono text-xs text-(--ed-text)">
+                  <span className="truncate">{primaryEvmAddress}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(primaryEvmAddress, "Deposit address")}
+                    aria-label="Copy deposit address"
+                    className="shrink-0 text-(--ed-muted) transition-colors hover:text-(--ed-text)"
+                  >
+                    <Copy className="size-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm leading-6 text-(--ed-muted)">
+                You don't have a vault wallet yet. Create one from your account to get a deposit
+                address.
+              </p>
+            )}
           </div>
-        </div>
+        </EditionsModal>
       )}
-    </div>
+    </EditionsShell>
   );
 }

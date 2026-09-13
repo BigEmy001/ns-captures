@@ -1,9 +1,20 @@
-import { useRef } from "react";
-import { X, Printer, ShieldCheck, Copy, Check, QrCode } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { MotionConfig, motion } from "framer-motion";
+import { X, Printer, Copy, Check, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import type { DigitalEdition, EditionOwnership } from "../data/editions";
 import { copyToClipboard } from "../../lib/clipboard";
+import { NsCapturesLogoBadge } from "./NsCapturesLogoBadge";
+import { Chip } from "./editions/editionsUi";
+import {
+  fadeUpVariants,
+  formatDate,
+  monoLabelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from "./editions/editionsFormat";
+import { useBodyScrollLock } from "./editions/useBodyScrollLock";
+import { useEditionsTheme } from "./editions/useEditionsTheme";
 
 interface CertificateOfAuthenticityModalProps {
   edition: DigitalEdition;
@@ -11,13 +22,32 @@ interface CertificateOfAuthenticityModalProps {
   onClose: () => void;
 }
 
+const detailsStagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.05, delayChildren: 0.1 } },
+};
+
 export function CertificateOfAuthenticityModal({
   edition,
   ownership,
   onClose,
 }: CertificateOfAuthenticityModalProps) {
   const [copied, setCopied] = useState(false);
-  const certRef = useRef<HTMLDivElement>(null);
+  const { theme } = useEditionsTheme();
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  useBodyScrollLock();
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const handlePrint = () => {
     window.print();
@@ -33,189 +63,196 @@ export function CertificateOfAuthenticityModal({
     }
   };
 
+  const details: { label: string; value: string; mono?: boolean; wide?: boolean }[] = [
+    { label: "Certificate serial", value: ownership.certificateNumber, mono: true, wide: true },
+    { label: "Token ID", value: edition.tokenId, mono: true, wide: true },
+    {
+      label: "Edition run",
+      value:
+        edition.tier === "genesis_1_of_1"
+          ? "1 of 1 Genesis master"
+          : `${edition.totalEditions} editions`,
+    },
+    { label: "Current owner", value: ownership.ownerName },
+    { label: "Date certified", value: formatDate(ownership.acquiredAt), mono: true },
+    { label: "Camera system", value: edition.camera },
+  ];
+
+  const cornerClass = "absolute size-3 border-(--ed-muted)/60";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#FAF9F5] text-[#18211f] rounded-2xl shadow-2xl overflow-hidden border border-[#e5e2da] my-8 animate-in fade-in zoom-in-95 duration-200">
-        {/* Header Action Bar (Hidden during print) */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e5e2da] bg-white/70 backdrop-blur print:hidden">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="size-5 text-[#1e4a3f]" />
-            <span className="text-xs font-mono tracking-widest uppercase text-[#59645f]">
-              Digital Provenance Registry
-            </span>
+    <MotionConfig reducedMotion="user">
+      <motion.div
+        data-ed-theme={theme}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="coa-title"
+          onClick={(e) => e.stopPropagation()}
+          initial={{ opacity: 0, y: 32, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", duration: 0.45, bounce: 0 }}
+          className="flex max-h-[94dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-(--ed-border) bg-(--ed-surface) font-sans text-(--ed-text) shadow-(--ed-shadow-lg) sm:max-h-[calc(100dvh-2rem)] sm:rounded-xl"
+        >
+          {/* Grab handle (mobile bottom sheet) */}
+          <div aria-hidden className="flex shrink-0 justify-center pt-2 sm:hidden print:hidden">
+            <span className="h-1 w-10 rounded-full bg-(--ed-muted)/40" />
           </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleCopyVerification}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#1e4a3f] bg-[#1e4a3f]/10 rounded-lg hover:bg-[#1e4a3f]/20 transition"
-              title="Copy verification hash"
-            >
-              {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-              <span>{copied ? "Copied" : "Copy Hash"}</span>
-            </button>
-            <button
-              onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#1e4a3f] rounded-lg hover:bg-[#163830] transition shadow-sm"
-            >
-              <Printer className="size-3.5" />
-              <span>Print / Save PDF</span>
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-[#59645f] hover:text-[#18211f] hover:bg-gray-100 transition"
-            >
-              <X className="size-5" />
-            </button>
+
+          {/* Header actions (hidden when printing) */}
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-(--ed-border) px-4 py-3 sm:px-5 print:hidden">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <NsCapturesLogoBadge className="size-8" />
+              <span className={`${monoLabelClass} truncate`}>Provenance registry</span>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCopyVerification}
+                aria-label="Copy verification data"
+                className={`${secondaryButtonClass} h-9 px-3 text-sm`}
+              >
+                {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                <span className="hidden sm:inline">{copied ? "Copied" : "Copy hash"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handlePrint}
+                aria-label="Print or save as PDF"
+                className={`${primaryButtonClass} h-9 px-3 text-sm`}
+              >
+                <Printer className="size-4" />
+                <span className="hidden sm:inline">Print / save PDF</span>
+              </button>
+              <button
+                ref={closeButtonRef}
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="rounded-full p-1.5 text-(--ed-muted) transition-colors hover:bg-(--ed-hover) hover:text-(--ed-text)"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Museum Certificate Document (Print-ready) */}
-        <div ref={certRef} className="p-8 sm:p-12 relative bg-[#FAF9F5]">
-          {/* Ornate Archival Double Border */}
-          <div className="p-6 sm:p-8 border-2 border-[#1e4a3f]/30 rounded-xl relative bg-white/80 shadow-inner">
-            {/* Corner Embellishments */}
-            <div className="absolute top-2 left-2 size-3 border-t-2 border-l-2 border-[#1e4a3f]" />
-            <div className="absolute top-2 right-2 size-3 border-t-2 border-r-2 border-[#1e4a3f]" />
-            <div className="absolute bottom-2 left-2 size-3 border-b-2 border-l-2 border-[#1e4a3f]" />
-            <div className="absolute bottom-2 right-2 size-3 border-b-2 border-r-2 border-[#1e4a3f]" />
+          {/* Certificate (scrolls inside the sheet when the screen is short) */}
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-6">
+            <div className="ed-print-area relative rounded-lg border border-(--ed-border) bg-(--ed-bg) p-4 sm:p-8">
+              <span aria-hidden className={`${cornerClass} left-2 top-2 border-l border-t`} />
+              <span aria-hidden className={`${cornerClass} right-2 top-2 border-r border-t`} />
+              <span aria-hidden className={`${cornerClass} bottom-2 left-2 border-b border-l`} />
+              <span aria-hidden className={`${cornerClass} bottom-2 right-2 border-b border-r`} />
 
-            {/* Gallery Branding */}
-            <div className="text-center space-y-2">
-              <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#1e4a3f] font-semibold">
-                NS CAPTURES FINE-ART ARCHIVES
-              </p>
-              <h2 className="font-serif text-2xl sm:text-3xl tracking-tight text-[#18211f]">
-                Certificate of Authenticity
-              </h2>
-              <p className="text-xs text-[#59645f] max-w-md mx-auto italic font-serif">
-                This document certifies the authorship, provenance, and numbered scarcity of the
-                photographic digital edition specified below.
-              </p>
-            </div>
-
-            {/* Artwork Overview Card */}
-            <div className="mt-8 flex flex-col sm:flex-row gap-6 items-center p-4 bg-[#FAF9F5] rounded-xl border border-[#e5e2da]">
-              <img
-                src={edition.image}
-                alt={edition.title}
-                className="w-28 h-28 sm:w-32 sm:h-32 object-cover rounded-lg shadow-md border border-white"
-              />
-              <div className="space-y-1.5 text-center sm:text-left min-w-0 flex-1">
-                <div className="inline-block px-2.5 py-0.5 rounded-full bg-[#1e4a3f]/10 text-[#1e4a3f] text-[10px] font-mono font-semibold uppercase tracking-wider">
-                  {ownership.serialDisplay}
-                </div>
-                <h3 className="font-serif text-lg font-semibold text-[#18211f] truncate">
-                  {edition.title}
-                </h3>
-                <p className="text-sm text-[#59645f]">
-                  Artist:{" "}
-                  <strong className="text-[#18211f] font-medium">{edition.photographerName}</strong>
-                </p>
-                <p className="text-xs text-[#59645f]">
-                  Location & Year: {edition.location || "Global"} • {edition.yearCreated}
-                </p>
-              </div>
-            </div>
-
-            {/* Certificate Details Grid */}
-            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
-              <div className="p-3 bg-[#FAF9F5] rounded-lg border border-[#e5e2da]/70">
-                <span className="text-[10px] uppercase tracking-wider font-mono text-[#59645f] block">
-                  Certificate Serial
-                </span>
-                <span className="font-mono font-bold text-[#1e4a3f] text-xs">
-                  {ownership.certificateNumber}
-                </span>
-              </div>
-
-              <div className="p-3 bg-[#FAF9F5] rounded-lg border border-[#e5e2da]/70">
-                <span className="text-[10px] uppercase tracking-wider font-mono text-[#59645f] block">
-                  Token ID
-                </span>
-                <span className="font-mono font-semibold text-[#18211f] text-xs">
-                  {edition.tokenId}
-                </span>
-              </div>
-
-              <div className="p-3 bg-[#FAF9F5] rounded-lg border border-[#e5e2da]/70">
-                <span className="text-[10px] uppercase tracking-wider font-mono text-[#59645f] block">
-                  Total Edition Run
-                </span>
-                <span className="font-serif font-semibold text-[#18211f] text-xs">
-                  {edition.tier === "genesis_1_of_1"
-                    ? "1 of 1 Genesis Master"
-                    : `${edition.totalEditions} Editions`}
-                </span>
-              </div>
-
-              <div className="p-3 bg-[#FAF9F5] rounded-lg border border-[#e5e2da]/70">
-                <span className="text-[10px] uppercase tracking-wider font-mono text-[#59645f] block">
-                  Current Owner
-                </span>
-                <span className="font-medium text-[#18211f] truncate block">
-                  {ownership.ownerName}
-                </span>
-              </div>
-
-              <div className="p-3 bg-[#FAF9F5] rounded-lg border border-[#e5e2da]/70">
-                <span className="text-[10px] uppercase tracking-wider font-mono text-[#59645f] block">
-                  Date Certified
-                </span>
-                <span className="font-mono text-[#18211f]">
-                  {new Date(ownership.acquiredAt).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-
-              <div className="p-3 bg-[#FAF9F5] rounded-lg border border-[#e5e2da]/70">
-                <span className="text-[10px] uppercase tracking-wider font-mono text-[#59645f] block">
-                  Camera System
-                </span>
-                <span className="text-[#18211f] truncate block">{edition.camera}</span>
-              </div>
-            </div>
-
-            {/* Cryptographic Master Fingerprint */}
-            <div className="mt-4 p-3 bg-[#1e4a3f]/5 rounded-lg border border-[#1e4a3f]/20">
-              <span className="text-[9px] uppercase tracking-widest font-mono text-[#1e4a3f] font-semibold block">
-                Cryptographic SHA-256 Master Fingerprint
-              </span>
-              <p className="font-mono text-[10px] text-[#18211f] break-all select-all mt-0.5">
-                {edition.masterHash}
-              </p>
-            </div>
-
-            {/* Signatures & Seal */}
-            <div className="mt-8 pt-6 border-t border-[#e5e2da] flex items-center justify-between">
-              <div>
-                <p className="font-serif italic text-lg text-[#1e4a3f] leading-none">
-                  {edition.photographerName}
-                </p>
-                <div className="h-px w-32 bg-[#1e4a3f]/40 my-1" />
-                <p className="text-[9px] font-mono uppercase tracking-wider text-[#59645f]">
-                  Photographer / Author
+              <div className="text-center">
+                <p className={monoLabelClass}>NS CAPTURES fine-art archives</p>
+                <h2
+                  id="coa-title"
+                  className="mt-2 text-balance text-2xl font-medium leading-8 tracking-[0.2px] text-(--ed-text) sm:text-[32px] sm:leading-10"
+                >
+                  Certificate of Authenticity
+                </h2>
+                <p className="mx-auto mt-2 max-w-md text-pretty text-sm leading-6 text-(--ed-muted)">
+                  This document certifies the authorship, provenance, and numbered scarcity of the
+                  photographic digital edition specified below.
                 </p>
               </div>
 
-              {/* Embossed Gallery Seal */}
-              <div className="flex items-center gap-2 text-right">
-                <div className="size-12 rounded-full border-2 border-dashed border-[#1e4a3f] flex items-center justify-center p-1 bg-[#1e4a3f]/5 text-[#1e4a3f]">
-                  <QrCode className="size-8 opacity-70" />
-                </div>
-                <div className="text-left hidden sm:block">
-                  <p className="text-[9px] font-mono uppercase font-bold text-[#1e4a3f] tracking-wider">
-                    VERIFIED MASTER
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={detailsStagger}
+                className="mt-5 flex flex-col gap-2 sm:mt-6 sm:gap-3"
+              >
+                {/* Artwork overview */}
+                <motion.div
+                  variants={fadeUpVariants}
+                  className="flex items-center gap-3 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-2.5 sm:gap-4 sm:p-3"
+                >
+                  <img
+                    src={edition.image}
+                    alt={edition.title}
+                    className="size-16 shrink-0 rounded object-cover outline outline-1 -outline-offset-1 outline-(--ed-image-outline) sm:size-24"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
+                    <Chip>{ownership.serialDisplay}</Chip>
+                    <h3 className="max-w-full truncate text-sm font-medium text-(--ed-text) sm:text-base">
+                      {edition.title}
+                    </h3>
+                    <p className="max-w-full truncate text-xs text-(--ed-muted) sm:text-sm">
+                      By <span className="text-(--ed-text)">{edition.photographerName}</span> ·{" "}
+                      {edition.location || "Global"} · {edition.yearCreated}
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* Certificate details */}
+                <motion.dl
+                  variants={fadeUpVariants}
+                  className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3"
+                >
+                  {details.map((detail) => (
+                    <div
+                      key={detail.label}
+                      className={`min-w-0 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-2.5 sm:p-3 ${detail.wide ? "col-span-2 sm:col-span-1" : ""}`}
+                    >
+                      <dt className={monoLabelClass}>{detail.label}</dt>
+                      <dd
+                        className={`mt-1 truncate text-sm text-(--ed-text) sm:mt-1.5 ${detail.mono ? "font-mono sm:text-[13px]" : ""}`}
+                        title={detail.value}
+                      >
+                        {detail.value}
+                      </dd>
+                    </div>
+                  ))}
+                </motion.dl>
+
+                {/* Cryptographic master fingerprint */}
+                <motion.div
+                  variants={fadeUpVariants}
+                  className="rounded-lg border border-(--ed-border) bg-(--ed-surface) p-2.5 sm:p-3"
+                >
+                  <p className={monoLabelClass}>SHA-256 master fingerprint</p>
+                  <p className="mt-1 select-all break-all font-mono text-[11px] leading-5 text-(--ed-text) sm:text-xs">
+                    {edition.masterHash}
                   </p>
-                  <p className="text-[8px] text-[#59645f] font-mono">NS CAPTURES REGISTRY</p>
+                </motion.div>
+              </motion.div>
+
+              {/* Signature & seal */}
+              <div className="mt-5 flex items-end justify-between gap-4 border-t border-(--ed-border) pt-4 sm:mt-8 sm:pt-6">
+                <div className="min-w-0">
+                  <p className="truncate text-base font-medium italic leading-none text-(--ed-text) sm:text-lg">
+                    {edition.photographerName}
+                  </p>
+                  <div className="my-2 h-px w-28 bg-(--ed-muted)/40 sm:w-32" />
+                  <p className={monoLabelClass}>Photographer / author</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.6, rotate: -90 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", duration: 0.7, bounce: 0, delay: 0.35 }}
+                    className="flex size-11 items-center justify-center rounded-full border-2 border-dashed border-(--ed-primary)/60 text-(--ed-primary) sm:size-12"
+                  >
+                    <QrCode className="size-6 sm:size-7" />
+                  </motion.div>
+                  <div className="hidden min-[420px]:block">
+                    <p className="font-mono text-xs uppercase text-(--ed-text)">Verified master</p>
+                    <p className={monoLabelClass}>NS CAPTURES registry</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </MotionConfig>
   );
 }

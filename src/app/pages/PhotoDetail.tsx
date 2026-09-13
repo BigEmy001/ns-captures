@@ -147,7 +147,10 @@ export function PhotoDetail() {
   return (
     <div className="mx-auto min-h-screen max-w-[1600px] px-4 py-8 sm:px-8 lg:px-10">
       <div className="mb-6 flex items-center justify-between gap-4">
-        <Link to="/search" className="inline-flex items-center gap-2 text-sm font-medium text-[#1e4a3f] hover:underline">
+        <Link
+          to="/search"
+          className="inline-flex items-center gap-2 text-sm font-medium text-[#1e4a3f] hover:underline"
+        >
           <ArrowRight className="size-4 rotate-180" />
           Back to library
         </Link>
@@ -185,7 +188,9 @@ export function PhotoDetail() {
               toast(nextLiked ? "Liked" : "Unliked");
             }}
             className={`grid place-items-center rounded-full border px-3 py-2 transition ${
-              liked ? "border-[#1e4a3f] bg-[#e9f0ee] text-[#1e4a3f]" : "border-[#e7e1d9] bg-[#faf7f2] text-[#1c1b1a]"
+              liked
+                ? "border-[#1e4a3f] bg-[#e9f0ee] text-[#1e4a3f]"
+                : "border-[#e7e1d9] bg-[#faf7f2] text-[#1c1b1a]"
             }`}
           >
             <Heart className="size-4" fill={liked ? "#1e4a3f" : "none"} />
@@ -204,7 +209,8 @@ export function PhotoDetail() {
               <Eye className="size-4" /> {getDisplayViews(photo).toLocaleString()} views
             </span>
             <span className="flex items-center gap-2">
-              <Download className="size-4" /> {getDisplayDownloads(photo).toLocaleString()} downloads
+              <Download className="size-4" /> {getDisplayDownloads(photo).toLocaleString()}{" "}
+              downloads
             </span>
             <span className="flex items-center gap-2">
               <Heart className="size-4" /> {getDisplayLikes(photo).toLocaleString()} likes
@@ -231,8 +237,12 @@ export function PhotoDetail() {
 
           <div className="mt-6 rounded-2xl border border-[#e7e1d9] bg-white p-4">
             <div className="flex items-center justify-between gap-3 border-b border-[#efe9e3] pb-3">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#666e68]">License</span>
-              <span className="text-lg font-semibold text-[#171513]">£{current.price.toLocaleString()}</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#666e68]">
+                License
+              </span>
+              <span className="text-lg font-semibold text-[#171513]">
+                £{current.price.toLocaleString()}
+              </span>
             </div>
 
             <div className="mt-4 space-y-3">
@@ -249,7 +259,9 @@ export function PhotoDetail() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-medium text-[#171513]">{option.id}</span>
-                    <span className="font-mono text-xs text-[#5c605d]">£{option.price.toLocaleString()}</span>
+                    <span className="font-mono text-xs text-[#5c605d]">
+                      £{option.price.toLocaleString()}
+                    </span>
                   </div>
                 </button>
               ))}
@@ -282,7 +294,8 @@ export function PhotoDetail() {
               <span className="font-medium text-[#171513]">Usage:</span> {current.usage}
             </p>
             <p>
-              <span className="font-medium text-[#171513]">Restrictions:</span> {current.restrictions}
+              <span className="font-medium text-[#171513]">Restrictions:</span>{" "}
+              {current.restrictions}
             </p>
             <p>
               <span className="font-medium text-[#171513]">Duration:</span> {current.duration}
@@ -307,7 +320,9 @@ export function PhotoDetail() {
                   )}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-[#171513]">{photographer.name || photo.photographer}</p>
+                  <p className="text-sm font-medium text-[#171513]">
+                    {photographer.name || photo.photographer}
+                  </p>
                   <p className="text-xs text-[#5d625e]">{photo.location}</p>
                 </div>
               </div>
@@ -331,7 +346,9 @@ export function PhotoDetail() {
             <div key={entry.label} className="rounded-2xl border border-[#e7e1d9] bg-[#faf7f2] p-4">
               <div className="mb-2 flex items-center gap-2 text-[#58615d]">
                 {entry.icon && <entry.icon className="size-4" />}
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em]">{entry.label}</span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em]">
+                  {entry.label}
+                </span>
               </div>
               <p className="text-sm text-[#171513]">{entry.value}</p>
             </div>
@@ -363,31 +380,36 @@ export function PhotoDetail() {
 
         if (matchingEdition && isEditionsVisible) {
           return (
-            <div className="mt-10 rounded-[28px] border border-[#d9caa6] bg-[#0d1714] p-5 text-white shadow-[0_18px_50px_rgba(11,16,14,0.14)] sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="inline-flex items-center gap-2 rounded-full bg-[#d4af37]/15 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-[#d4af37]">
-                  <Sparkles className="size-3" /> Digital edition
-                </span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">
+            <div className="mt-10 flex flex-col gap-5 rounded-xl border border-[#26272d] bg-[#101011] p-5 text-white sm:flex-row sm:items-center sm:p-6">
+              <img
+                src={matchingEdition.image}
+                alt=""
+                className="size-20 shrink-0 rounded-lg object-cover outline outline-1 -outline-offset-1 outline-white/10"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-1.5 font-mono text-xs uppercase leading-[15px] text-[#acadae]">
+                  <Sparkles className="size-3.5" />
+                  Digital edition ·{" "}
                   {matchingEdition.tier === "genesis_1_of_1"
                     ? "Genesis 1 of 1"
                     : `${matchingEdition.availableEditions}/${matchingEdition.totalEditions} left`}
-                </span>
+                </p>
+                <h2 className="mt-2 truncate text-xl font-medium text-white">
+                  {matchingEdition.title}
+                </h2>
+                <p className="mt-1 text-sm leading-6 text-[#acadae]">
+                  Numbered edition with a cryptographic certificate of authenticity.
+                </p>
               </div>
-
-              <div className="mt-5 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <h2 className="font-serif text-2xl text-white">Fine-Art Digital Masterpiece</h2>
-                  <p className="mt-2 max-w-xl text-sm text-white/70">
-                    Numbered photographic edition with cryptographic Certificate of Authenticity and
-                    museum-grade archival pairing.
-                  </p>
-                </div>
+              <div className="flex shrink-0 items-center justify-between gap-4 sm:flex-col sm:items-end">
+                <span className="font-mono text-lg font-medium text-white">
+                  {matchingEdition.priceEth} ETH
+                </span>
                 <Link
                   to={`/editions/${matchingEdition.id}`}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#d4af37] px-5 py-3 text-sm font-semibold text-[#0d1714] transition hover:bg-[#e3c75c]"
+                  className="inline-flex h-10 items-center gap-2 rounded-full bg-[#0786ff] px-5 text-sm font-medium text-white transition-colors hover:bg-[#0070e0]"
                 >
-                  Acquire edition
+                  View edition
                   <ArrowRight className="size-4" />
                 </Link>
               </div>
@@ -397,17 +419,17 @@ export function PhotoDetail() {
 
         if (isOwner) {
           return (
-            <div className="mt-10 rounded-[28px] border border-[#dfe8e3] bg-[#edf5f2] p-5 sm:p-6">
-              <div className="flex items-center gap-3 text-[#1e4a3f]">
-                <Sparkles className="size-4" />
-                <span className="text-xs font-semibold uppercase tracking-[0.14em]">Fine-art digital edition</span>
-              </div>
-              <p className="mt-3 max-w-xl text-sm text-[#46615d]">
+            <div className="mt-10 rounded-xl border border-[#26272d] bg-[#101011] p-5 text-white sm:p-6">
+              <p className="flex items-center gap-1.5 font-mono text-xs uppercase leading-[15px] text-[#acadae]">
+                <Sparkles className="size-3.5" />
+                Fine-art digital edition
+              </p>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-[#acadae]">
                 Certify this master as a limited digital edition on the NS CAPTURES platform.
               </p>
               <button
                 onClick={() => setShowMintModal(true)}
-                className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#1e4a3f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#183a33]"
+                className="mt-5 inline-flex h-10 items-center gap-2 rounded-full bg-[#0786ff] px-5 text-sm font-medium text-white transition-colors hover:bg-[#0070e0]"
               >
                 <ShieldCheck className="size-4" />
                 Certify as digital edition

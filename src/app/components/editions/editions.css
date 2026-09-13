@@ -1,0 +1,100 @@
+/*
+ * NS CAPTURES Editions (NFT) design tokens.
+ * Dark is the default; any subtree marked data-ed-theme="light" switches palette.
+ */
+:root {
+  --ed-bg: #101011;
+  --ed-surface: #141415;
+  --ed-raised: #1b1d1f;
+  --ed-border: #26272d;
+  --ed-border-strong: #3a3b42;
+  --ed-text: #ffffff;
+  --ed-text-soft: rgba(255, 255, 255, 0.72);
+  --ed-muted: #acadae;
+  --ed-hover: rgba(255, 255, 255, 0.06);
+  --ed-selected: rgba(255, 255, 255, 0.1);
+  --ed-divider: rgba(255, 255, 255, 0.08);
+  --ed-input: rgba(255, 255, 255, 0.02);
+  --ed-image-outline: rgba(255, 255, 255, 0.1);
+  --ed-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  --ed-shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --ed-ambient-opacity: 0.35;
+  --ed-primary: #0786ff;
+  --ed-primary-hover: #0070e0;
+  --ed-positive: #2fbf71;
+  --ed-negative: #ff5c5c;
+  --ed-warning: #ff8a00;
+  --ed-tone-rare-bg: rgba(255, 138, 0, 0.3);
+  --ed-tone-rare-fg: #ff8a00;
+  --ed-tone-uncommon-bg: rgba(211, 88, 255, 0.3);
+  --ed-tone-uncommon-fg: #d358ff;
+  --ed-tone-common-bg: rgba(0, 163, 255, 0.3);
+  --ed-tone-common-fg: #00a3ff;
+}
+
+[data-ed-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-ed-theme="light"] {
+  color-scheme: light;
+  --ed-bg: #f5f5f6;
+  --ed-surface: #ffffff;
+  --ed-raised: #efeff1;
+  --ed-border: #e3e4e8;
+  --ed-border-strong: #c8c9d0;
+  --ed-text: #141415;
+  --ed-text-soft: rgba(20, 20, 21, 0.72);
+  --ed-muted: #5e6066;
+  --ed-hover: rgba(20, 20, 21, 0.05);
+  --ed-selected: rgba(20, 20, 21, 0.08);
+  --ed-divider: rgba(20, 20, 21, 0.08);
+  --ed-input: rgba(20, 20, 21, 0.03);
+  --ed-image-outline: rgba(0, 0, 0, 0.1);
+  --ed-shadow: 0 16px 40px rgba(20, 20, 21, 0.12);
+  --ed-shadow-lg: 0 24px 64px rgba(20, 20, 21, 0.18);
+  --ed-ambient-opacity: 0.22;
+  --ed-positive: #148a4b;
+  --ed-negative: #d63a3a;
+  --ed-warning: #b35900;
+  --ed-tone-rare-bg: rgba(255, 138, 0, 0.16);
+  --ed-tone-rare-fg: #a84f00;
+  --ed-tone-uncommon-bg: rgba(170, 60, 230, 0.14);
+  --ed-tone-uncommon-fg: #8b2fc4;
+  --ed-tone-common-bg: rgba(0, 140, 230, 0.14);
+  --ed-tone-common-fg: #0067b5;
+}
+
+/* Brief colour cross-fade while the theme toggles */
+[data-ed-theme-switching],
+[data-ed-theme-switching] * {
+  transition:
+    background-color 240ms ease-out,
+    border-color 240ms ease-out,
+    color 240ms ease-out !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-ed-theme-switching],
+  [data-ed-theme-switching] * {
+    transition: none !important;
+  }
+}
+
+/* Printing an open certificate prints only the certificate */
+@media print {
+  body:has(.ed-print-area) * {
+    visibility: hidden !important;
+  }
+
+  .ed-print-area,
+  .ed-print-area * {
+    visibility: visible !important;
+  }
+
+  .ed-print-area {
+    position: fixed;
+    inset: 0;
+    overflow: visible;
+  }
+}

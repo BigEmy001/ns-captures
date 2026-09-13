@@ -849,88 +849,98 @@ export function SettlementVaultTab() {
           </div>
 
           {/* Digital Editions & Fine-Art Collection */}
-          <div className="space-y-4 pt-6 border-t border-[#ececec]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-[#18211f]">
-                    Fine-Art Digital Editions & Provenance
-                  </h3>
-                  <span className="px-2 py-0.5 rounded-full bg-[#d4af37]/15 text-[#8a6b10] text-[10px] font-mono font-bold uppercase">
-                    Digital Provenance
+          <div className="pt-6 border-t border-[#ececec]">
+            <div className="rounded-xl border border-[#26272d] bg-[#101011] p-5 text-white sm:p-6">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                <div>
+                  <p className="font-mono text-xs uppercase leading-[15px] text-[#acadae]">
+                    Digital provenance
+                  </p>
+                  <h3 className="mt-2 text-lg font-medium text-white">Fine-art digital editions</h3>
+                  <p className="mt-1 text-sm leading-6 text-[#acadae]">
+                    Photographic masterworks, certificates of authenticity and verified edition
+                    ownership.
+                  </p>
+                </div>
+                <Link
+                  to={isEditionsPublic() || user?.role === "Admin" ? "/editions" : "/explore"}
+                  className="inline-flex h-9 shrink-0 items-center gap-1.5 self-start rounded-full border border-[#26272d] bg-[#141415] px-4 text-sm font-medium text-white transition-colors hover:bg-[#1b1d1f] sm:self-auto"
+                >
+                  <span>
+                    {isEditionsPublic() || user?.role === "Admin"
+                      ? "Editions room"
+                      : "Explore gallery"}
                   </span>
-                </div>
-                <p className="text-xs text-[#758078]">
-                  Photographic masterworks, certificates of authenticity, and verified edition
-                  ownership.
-                </p>
+                  <ArrowRight className="size-3.5" />
+                </Link>
               </div>
-              <Link
-                to={isEditionsPublic() || user?.role === "Admin" ? "/editions" : "/explore"}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#dce8df] bg-white text-xs font-semibold text-[#1e4a3f] hover:bg-[#FAF9F5] transition self-start sm:self-auto"
-              >
-                <span>{isEditionsPublic() || user?.role === "Admin" ? "The Editions Room" : "Explore Gallery"}</span>
-                <ArrowRight className="size-3.5" />
-              </Link>
-            </div>
 
-            {/* Collection Cards */}
-            {userOwnerships.length === 0 ? (
-              <div className="p-8 text-center rounded-2xl border border-dashed border-[#dce8df] bg-[#FAF9F5] space-y-2.5">
-                <Sparkles className="size-6 text-[#8a6b10] mx-auto opacity-70" />
-                <h4 className="font-serif text-sm font-semibold text-[#18211f]">
-                  No Digital Editions Collected Yet
-                </h4>
-                <p className="text-xs text-[#758078] max-w-sm mx-auto">
-                  Acquire limited photographic editions and genesis masterworks with cryptographic
-                  Certificates of Authenticity.
-                </p>
-                <div className="pt-2">
-                  <Link
-                    to={isEditionsPublic() || user?.role === "Admin" ? "/editions" : "/explore"}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1e4a3f] text-white text-xs font-semibold hover:bg-[#163830] transition shadow-sm"
-                  >
-                    <span>{isEditionsPublic() || user?.role === "Admin" ? "Explore Curated Editions" : "Explore Stock Photography"}</span>
-                    <ArrowRight className="size-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {userOwnerships.map((own) => {
-                  const ed = allEditions.find((e) => e.id === own.editionId);
-                  if (!ed) return null;
-                  return (
-                    <div
-                      key={own.id}
-                      className="p-4 rounded-2xl border border-[#ececec] bg-white flex gap-4 items-center shadow-sm hover:border-[#1e4a3f]/40 transition"
+              <div className="mt-5">
+                {userOwnerships.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-[#26272d] bg-[#141415] px-6 py-8 text-center">
+                    <Sparkles className="mx-auto size-5 text-[#acadae]" />
+                    <h4 className="mt-3 text-sm font-medium text-white">
+                      No digital editions collected yet
+                    </h4>
+                    <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-[#acadae]">
+                      Acquire limited photographic editions and genesis masterworks with
+                      cryptographic certificates of authenticity.
+                    </p>
+                    <Link
+                      to={isEditionsPublic() || user?.role === "Admin" ? "/editions" : "/explore"}
+                      className="mt-4 inline-flex h-10 items-center gap-1.5 rounded-full bg-[#0786ff] px-5 text-sm font-medium text-white transition-colors hover:bg-[#0070e0]"
                     >
-                      <img
-                        src={ed.image}
-                        alt={ed.title}
-                        className="size-20 rounded-xl object-cover border border-[#ececec]"
-                      />
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#1e4a3f]/10 text-[#1e4a3f] font-semibold">
-                          {own.serialDisplay}
-                        </span>
-                        <h4 className="font-serif text-sm font-semibold text-[#18211f] truncate">
-                          {ed.title}
-                        </h4>
-                        <p className="text-xs text-[#758078]">Artist: {ed.photographerName}</p>
-                        <button
-                          onClick={() => setSelectedCert({ edition: ed, ownership: own })}
-                          className="text-xs text-[#1e4a3f] font-semibold hover:underline flex items-center gap-1 pt-0.5 cursor-pointer"
+                      <span>
+                        {isEditionsPublic() || user?.role === "Admin"
+                          ? "Explore curated editions"
+                          : "Explore stock photography"}
+                      </span>
+                      <ArrowRight className="size-4" />
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {userOwnerships.map((own) => {
+                      const ed = allEditions.find((e) => e.id === own.editionId);
+                      if (!ed) return null;
+                      return (
+                        <div
+                          key={own.id}
+                          className="flex items-center gap-4 rounded-lg border border-[#26272d] bg-[#141415] p-3 transition-colors hover:border-[#3a3b42]"
                         >
-                          <FileText className="size-3.5" />
-                          <span>View Certificate (COA)</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                          <img
+                            src={ed.image}
+                            alt={ed.title}
+                            className="size-20 shrink-0 rounded object-cover outline outline-1 -outline-offset-1 outline-white/10"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <span className="inline-flex h-[18px] items-center rounded border border-[#26272d] bg-[#101011] px-1.5 font-mono text-xs uppercase leading-[18px] text-white">
+                              {own.serialDisplay}
+                            </span>
+                            <h4 className="mt-1.5 truncate text-sm font-medium text-white">
+                              <Link
+                                to={`/editions/${ed.id}`}
+                                className="transition-colors hover:text-white/80"
+                              >
+                                {ed.title}
+                              </Link>
+                            </h4>
+                            <p className="text-xs text-[#acadae]">By {ed.photographerName}</p>
+                            <button
+                              onClick={() => setSelectedCert({ edition: ed, ownership: own })}
+                              className="mt-1.5 flex items-center gap-1 text-xs font-medium text-white transition-colors hover:text-white/80"
+                            >
+                              <FileText className="size-3.5" />
+                              <span>View certificate (COA)</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </>
       )}

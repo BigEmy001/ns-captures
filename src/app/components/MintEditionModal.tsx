@@ -1,15 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  X,
-  ShieldAlert,
-  ShieldCheck,
-  Sparkles,
-  Copy,
-  Check,
-  RefreshCw,
-  Layers,
-  FileCheck,
-} from "lucide-react";
+import { Link } from "react-router";
+import { MotionConfig, motion } from "framer-motion";
+import { X, ShieldAlert, ShieldCheck, Copy, Check, RefreshCw, FileCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -24,6 +16,16 @@ import { fetchMultiChainVaultBalances } from "../../lib/onChainBalance";
 import { generateQrSvg } from "../../lib/qrcode";
 import { copyToClipboard } from "../../lib/clipboard";
 import type { Photo } from "../data/photos";
+import { NsCapturesLogoBadge } from "./NsCapturesLogoBadge";
+import { Chip, SegmentedControl } from "./editions/editionsUi";
+import { useBodyScrollLock } from "./editions/useBodyScrollLock";
+import { useEditionsTheme } from "./editions/useEditionsTheme";
+import {
+  inputClass,
+  monoLabelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from "./editions/editionsFormat";
 
 interface MintEditionModalProps {
   photo: Photo;
@@ -31,12 +33,34 @@ interface MintEditionModalProps {
   onSuccess?: (edition: DigitalEdition) => void;
 }
 
+const DEPOSIT_COINS = [
+  { id: "ETH", label: "ETH" },
+  { id: "USDT", label: "USDT" },
+  { id: "SOL", label: "SOL" },
+  { id: "BTC", label: "BTC" },
+] as const;
+
+const TIER_CHOICES: { id: EditionTier; title: string; description: string }[] = [
+  {
+    id: "genesis_1_of_1",
+    title: "Genesis 1 of 1 master",
+    description: "A singular digital original. No further copies will ever be minted.",
+  },
+  {
+    id: "limited_series",
+    title: "Numbered series",
+    description: "A fixed run (e.g. 15 or 25) with stamped serials like #01/25.",
+  },
+];
+
 export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModalProps) {
   const { user } = useAuth();
+  const { theme } = useEditionsTheme();
   const config = getDepositConfig();
+  useBodyScrollLock();
 
   // Verification state
-  const [checkingBalance, setCheckingBalance] = useState(true);
+  const [checkingBalance, setCheckingBalance] = useState(() => Boolean(user));
   const [isEligible, setIsEligible] = useState(false);
   const [eligibilityToken, setEligibilityToken] = useState<string | null>(null);
   const [wallets, setWallets] = useState<CryptoWalletEntry[]>([]);
@@ -56,12 +80,20 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
   );
   const [minting, setMinting] = useState(false);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   // Load vault & check balances
   const checkBalances = useCallback(async () => {
     if (!user) return;
     try {
       setCheckingBalance(true);
-      const vault = await fetchCreatorWeb3Vault(user.id || (user as any).slug);
+      const vault = await fetchCreatorWeb3Vault(user.id);
       const userWallets = vault?.wallets || [];
       setWallets(userWallets);
 
@@ -70,19 +102,14 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
           tokenBalances: vault?.tokenBalances,
         });
 
-        // Find individual coin balances
-        const ethAsset = balances.assets.find((a) => a.coin === "ETH");
-        const solAsset = balances.assets.find((a) => a.coin === "SOL");
-        const usdtAsset = balances.assets.find((a) => a.coin === "USDT");
-        const usdcAsset = balances.assets.find((a) => a.coin === "USDC");
-        const btcAsset = balances.assets.find((a) => a.coin === "BTC");
-
+        const balanceOf = (coin: string) =>
+          balances.assets.find((a) => a.coin === coin)?.balance || 0;
         const eligibility = checkDepositEligibility({
-          eth: ethAsset?.balance || 0,
-          sol: solAsset?.balance || 0,
-          usdt: usdtAsset?.balance || 0,
-          usdc: usdcAsset?.balance || 0,
-          btc: btcAsset?.balance || 0,
+          eth: balanceOf("ETH"),
+          sol: balanceOf("SOL"),
+          usdt: balanceOf("USDT"),
+          usdc: balanceOf("USDC"),
+          btc: balanceOf("BTC"),
           totalUsd: balances.totalGbp * 1.28,
         });
 
@@ -165,355 +192,347 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
       toast.success(`Successfully minted ${newEdition.title} as ${newEdition.tokenId}!`);
       if (onSuccess) onSuccess(newEdition);
       onClose();
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to mint digital edition.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to mint digital edition.");
     } finally {
       setMinting(false);
     }
   };
 
+  const formLocked = !user || !isEligible;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-[#FAF9F5] text-[#18211f] rounded-2xl shadow-2xl overflow-hidden border border-[#e5e2da] my-8 animate-in fade-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e5e2da] bg-white/70 backdrop-blur">
-          <div className="flex items-center gap-2.5">
-            <span className="grid size-8 place-items-center bg-[#1e4a3f] text-white rounded-full text-xs font-mono font-bold">
-              NS
-            </span>
-            <div>
-              <h2 className="font-serif text-lg font-semibold leading-none text-[#18211f]">
-                Certify & Mint Fine-Art Edition
-              </h2>
-              <p className="text-xs text-[#59645f] mt-0.5">
-                On-platform digital provenance & numbered scarcity
-              </p>
+    <MotionConfig reducedMotion="user">
+      <motion.div
+        data-ed-theme={theme}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Certify and mint edition"
+          onClick={(e) => e.stopPropagation()}
+          initial={{ opacity: 0, y: 32, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", duration: 0.45, bounce: 0 }}
+          className="flex max-h-[94dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-(--ed-border) bg-(--ed-surface) font-sans text-(--ed-text) shadow-(--ed-shadow-lg) sm:max-h-[calc(100dvh-2rem)] sm:rounded-xl"
+        >
+          {/* Header */}
+          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-(--ed-border) px-5 py-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <NsCapturesLogoBadge className="size-9" />
+              <div className="min-w-0">
+                <h2 className="truncate text-lg font-medium leading-7 text-(--ed-text)">
+                  Certify & mint edition
+                </h2>
+                <p className="truncate text-sm text-(--ed-muted)">
+                  On-platform provenance and numbered scarcity
+                </p>
+              </div>
             </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-[#59645f] hover:text-[#18211f] hover:bg-gray-100 transition"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6 max-h-[78vh] overflow-y-auto">
-          {/* Artwork Snippet */}
-          <div className="flex gap-4 items-center p-3 bg-white rounded-xl border border-[#e5e2da] shadow-sm">
-            <img
-              src={photo.image}
-              alt={photo.title}
-              className="w-16 h-16 object-cover rounded-lg border border-[#e5e2da]"
-            />
-            <div className="min-w-0 flex-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#59645f] font-semibold">
-                Original Master File
-              </span>
-              <h3 className="font-serif text-base font-semibold text-[#18211f] truncate">
-                {photo.title}
-              </h3>
-              <p className="text-xs text-[#59645f]">
-                {photo.camera} • {photo.lens} • ISO {photo.iso}
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="rounded-full p-1.5 text-(--ed-muted) transition-colors hover:bg-(--ed-hover) hover:text-(--ed-text)"
+            >
+              <X className="size-5" />
+            </button>
           </div>
 
-          {/* Verification Status & Gating Alert */}
-          {checkingBalance ? (
-            <div className="flex items-center justify-center p-8 bg-white rounded-xl border border-[#e5e2da]">
-              <RefreshCw className="size-5 text-[#1e4a3f] animate-spin mr-2" />
-              <span className="text-xs font-mono text-[#59645f]">
-                Verifying Web3 Vault on-chain deposit status...
-              </span>
+          <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain p-5">
+            {/* Artwork Snippet */}
+            <div className="flex items-center gap-4 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-3">
+              <img
+                src={photo.image}
+                alt={photo.title}
+                className="size-16 shrink-0 rounded object-cover outline outline-1 -outline-offset-1 outline-(--ed-image-outline)"
+              />
+              <div className="min-w-0 flex-1">
+                <p className={monoLabelClass}>Original master file</p>
+                <h3 className="truncate pt-1 text-base font-medium text-(--ed-text)">
+                  {photo.title}
+                </h3>
+                <p className="truncate text-xs text-(--ed-muted)">
+                  {photo.camera} · {photo.lens} · ISO {photo.iso}
+                </p>
+              </div>
             </div>
-          ) : !isEligible ? (
-            /* Deposit Gate Required Banner */
-            <div className="p-5 bg-[#fcf8f0] rounded-xl border border-[#eedab2] space-y-4">
-              <div className="flex items-start gap-3">
-                <ShieldAlert className="size-5 text-[#c27803] shrink-0 mt-0.5" />
+
+            {/* Verification Status & Gating */}
+            {!user ? (
+              <div className="flex flex-col items-start gap-3 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-4">
                 <div>
-                  <h4 className="text-sm font-semibold text-[#8a5300]">
-                    Active Web3 Vault Deposit Required
-                  </h4>
-                  <p className="text-xs text-[#704800] mt-1 leading-relaxed">
-                    To maintain an exclusive, spam-free gallery of authentic photographic
-                    masterworks, NS CAPTURES requires creators to hold an active deposit in their
-                    Web3 vault (minimum <strong>£15 / $20 equivalent</strong> in ETH, SOL, USDT, or
-                    BTC).
+                  <p className="text-sm font-medium text-(--ed-text)">Sign in to mint editions</p>
+                  <p className="pt-1 text-sm leading-6 text-(--ed-muted)">
+                    Minting is linked to your creator account and Web3 vault.
                   </p>
                 </div>
+                <Link to="/signin" className={`${primaryButtonClass} h-9 px-4 text-sm`}>
+                  Sign in
+                </Link>
               </div>
-
-              {/* Deposit Network Tabs */}
-              <div className="pt-2 border-t border-[#eedab2]/60">
-                <div className="flex gap-1.5 p-1 bg-[#f4ece0] rounded-lg text-xs font-medium">
-                  {(["ETH", "USDT", "SOL", "BTC"] as const).map((coin) => (
-                    <button
-                      key={coin}
-                      onClick={() => setActiveDepositTab(coin)}
-                      className={`flex-1 py-1.5 rounded-md transition text-center ${
-                        activeDepositTab === coin
-                          ? "bg-white text-[#1e4a3f] shadow-sm font-semibold"
-                          : "text-[#704800] hover:text-[#18211f]"
-                      }`}
-                    >
-                      {coin}
-                    </button>
-                  ))}
+            ) : checkingBalance ? (
+              <div className="flex items-center justify-center gap-2 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-6 text-sm text-(--ed-muted)">
+                <RefreshCw className="size-4 animate-spin" />
+                Verifying your Web3 vault deposit…
+              </div>
+            ) : !isEligible ? (
+              <div className="flex flex-col gap-4 rounded-lg border border-[rgba(255,138,0,0.35)] bg-[rgba(255,138,0,0.08)] p-4">
+                <div className="flex items-start gap-3">
+                  <ShieldAlert className="mt-0.5 size-5 shrink-0 text-(--ed-warning)" />
+                  <div>
+                    <h4 className="text-sm font-medium text-(--ed-text)">
+                      Active vault deposit required
+                    </h4>
+                    <p className="mt-1 text-sm leading-6 text-(--ed-muted)">
+                      To keep the gallery spam-free, creators need an active deposit in their Web3
+                      vault (minimum <span className="text-(--ed-text)">£15 / $20 equivalent</span>{" "}
+                      in ETH, SOL, USDT or BTC).
+                    </p>
+                  </div>
                 </div>
 
-                {/* Deposit Address & QR */}
-                <div className="mt-4 flex flex-col sm:flex-row gap-4 items-center bg-white p-4 rounded-xl border border-[#eedab2]/80">
+                <SegmentedControl
+                  label="Deposit network"
+                  fullWidth
+                  options={DEPOSIT_COINS}
+                  value={activeDepositTab}
+                  onChange={setActiveDepositTab}
+                />
+
+                <div className="flex flex-col items-center gap-4 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-3 sm:flex-row">
                   {qrSvg && (
                     <div
-                      className="size-24 shrink-0 bg-white p-1 rounded-lg border border-[#e5e2da] shadow-sm flex items-center justify-center [&>svg]:size-full"
+                      className="size-24 shrink-0 rounded bg-[#fff] p-1 [&>svg]:size-full"
                       dangerouslySetInnerHTML={{ __html: qrSvg }}
                     />
                   )}
-                  <div className="min-w-0 flex-1 space-y-1.5 text-center sm:text-left">
-                    <span className="text-[10px] uppercase font-mono tracking-wider text-[#59645f] block">
-                      Your Vault {activeDepositTab} Deposit Address
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 text-center sm:text-left">
+                    <span className={monoLabelClass}>
+                      Your vault {activeDepositTab} deposit address
                     </span>
-                    <p className="font-mono text-xs font-semibold text-[#18211f] break-all select-all bg-[#FAF9F5] p-2 rounded border border-[#e5e2da]">
-                      {depositAddress || "No address derived"}
+                    <p className="select-all break-all rounded border border-(--ed-border) bg-(--ed-surface) p-2 font-mono text-xs text-(--ed-text)">
+                      {depositAddress || "No vault wallet for this network yet"}
                     </p>
-                    <div className="flex gap-2 justify-center sm:justify-start pt-1">
+                    <div className="flex justify-center gap-2 sm:justify-start">
                       <button
+                        type="button"
                         onClick={handleCopy}
-                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1 bg-[#FAF9F5] border border-[#e5e2da] rounded-md text-[#1e4a3f] hover:bg-white font-medium"
+                        disabled={!depositAddress}
+                        className={`${secondaryButtonClass} h-8 px-3 text-xs disabled:opacity-50`}
                       >
                         {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                        <span>{copied ? "Copied" : "Copy Address"}</span>
+                        {copied ? "Copied" : "Copy address"}
                       </button>
                       <button
+                        type="button"
                         onClick={checkBalances}
-                        className="inline-flex items-center gap-1 text-xs px-2.5 py-1 bg-[#1e4a3f] text-white rounded-md hover:bg-[#163830] font-medium transition"
+                        className={`${primaryButtonClass} h-8 px-3 text-xs`}
                       >
                         <RefreshCw className="size-3.5" />
-                        <span>Verify On-Chain</span>
+                        Verify on-chain
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-3 text-[11px] text-[#704800] italic text-center">
-                  Deposited funds remain 100% in your self-custody vault and are never confiscated.
-                </div>
+                <p className="text-center text-xs text-(--ed-muted)">
+                  Deposited funds stay in your self-custody vault and are never confiscated.
+                </p>
               </div>
-            </div>
-          ) : (
-            /* Eligible Verified Banner */
-            <div className="flex items-center justify-between p-3.5 bg-[#eef7f0] rounded-xl border border-[#c3e3cb] text-[#1e7a4f]">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="size-5 text-[#1e7a4f]" />
-                <span className="text-xs font-semibold">
-                  Vault Verified: Active deposit confirmed via {eligibilityToken || "Web3 Vault"}.
-                </span>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[rgba(47,191,113,0.35)] bg-[rgba(47,191,113,0.08)] p-3">
+                <p className="flex items-center gap-2 text-sm text-(--ed-text)">
+                  <ShieldCheck className="size-5 text-(--ed-positive)" />
+                  Vault verified via {eligibilityToken || "Web3 Vault"}
+                </p>
+                <Chip>Minting unlocked</Chip>
               </div>
-              <span className="text-[10px] font-mono uppercase bg-[#1e7a4f]/15 px-2 py-0.5 rounded-full font-bold">
-                MINTING UNLOCKED
-              </span>
-            </div>
-          )}
+            )}
 
-          {/* Minting Form Options */}
-          <div
-            className={`space-y-5 transition-opacity duration-200 ${!isEligible ? "opacity-40 pointer-events-none" : "opacity-100"}`}
-          >
-            {/* Edition Tier Selector */}
-            <div>
-              <label className="text-xs font-mono uppercase tracking-wider text-[#59645f] block mb-2 font-semibold">
-                Select Scarcity Tier
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setTier("genesis_1_of_1")}
-                  className={`p-3.5 text-left rounded-xl border transition ${
-                    tier === "genesis_1_of_1"
-                      ? "border-[#1e4a3f] bg-[#1e4a3f]/5 ring-1 ring-[#1e4a3f]"
-                      : "border-[#e5e2da] bg-white hover:border-[#1e4a3f]/40"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-serif font-semibold text-sm text-[#18211f]">
-                      Genesis 1 of 1 Master
-                    </span>
-                    <Sparkles className="size-4 text-[#d4af37]" />
-                  </div>
-                  <p className="text-xs text-[#59645f] leading-snug">
-                    Singular digital master original. No further digital copies will ever be minted.
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setTier("limited_series")}
-                  className={`p-3.5 text-left rounded-xl border transition ${
-                    tier === "limited_series"
-                      ? "border-[#1e4a3f] bg-[#1e4a3f]/5 ring-1 ring-[#1e4a3f]"
-                      : "border-[#e5e2da] bg-white hover:border-[#1e4a3f]/40"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-serif font-semibold text-sm text-[#18211f]">
-                      Curated Numbered Series
-                    </span>
-                    <Layers className="size-4 text-[#1e4a3f]" />
-                  </div>
-                  <p className="text-xs text-[#59645f] leading-snug">
-                    Fixed limited edition run (e.g. 15 or 25) with stamped serials (#01/25).
-                  </p>
-                </button>
-              </div>
-            </div>
-
-            {/* Total Editions input (if series) */}
-            {tier === "limited_series" && (
+            {/* Minting Form */}
+            <div
+              className={`flex flex-col gap-5 transition-opacity duration-200 ${formLocked ? "pointer-events-none opacity-40" : "opacity-100"}`}
+            >
               <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-xs font-mono uppercase tracking-wider text-[#59645f] font-semibold">
-                    Edition Quantity
-                  </label>
-                  <span className="text-xs font-mono font-bold text-[#1e4a3f]">
-                    {totalEditions} Editions
-                  </span>
+                <span className={`${monoLabelClass} mb-2 block`}>Scarcity tier</span>
+                <div
+                  role="radiogroup"
+                  aria-label="Scarcity tier"
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                >
+                  {TIER_CHOICES.map((choice) => {
+                    const checked = tier === choice.id;
+                    return (
+                      <button
+                        key={choice.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={checked}
+                        onClick={() => setTier(choice.id)}
+                        className={`rounded-lg border p-4 text-left transition-colors ${
+                          checked
+                            ? "border-(--ed-primary) bg-(--ed-primary)/10"
+                            : "border-(--ed-border) bg-(--ed-bg) hover:border-(--ed-border-strong)"
+                        }`}
+                      >
+                        <span className="block text-sm font-medium text-(--ed-text)">
+                          {choice.title}
+                        </span>
+                        <span className="mt-1 block text-xs leading-5 text-(--ed-muted)">
+                          {choice.description}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="flex items-center gap-3">
+              </div>
+
+              {tier === "limited_series" && (
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="mint-quantity" className={monoLabelClass}>
+                      Edition quantity
+                    </label>
+                    <span className="font-mono text-sm text-(--ed-text)">
+                      {totalEditions} editions
+                    </span>
+                  </div>
                   <input
+                    id="mint-quantity"
                     type="range"
                     min={5}
                     max={100}
                     step={5}
                     value={totalEditions}
                     onChange={(e) => setTotalEditions(Number(e.target.value))}
-                    className="w-full accent-[#1e4a3f]"
+                    className="mt-3 w-full accent-(--ed-primary)"
                   />
+                  <div className="mt-1 flex justify-between font-mono text-[10px] text-(--ed-muted)">
+                    <span>5 · ultra rare</span>
+                    <span>25 · standard</span>
+                    <span>50</span>
+                    <span>100</span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-[10px] text-[#59645f] mt-1 font-mono">
-                  <span>5 (Ultra Rare)</span>
-                  <span>25 (Standard Gallery)</span>
-                  <span>50</span>
-                  <span>100</span>
-                </div>
-              </div>
-            )}
-
-            {/* Price Configuration */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-mono uppercase tracking-wider text-[#59645f] block mb-1.5 font-semibold">
-                  Listing Price (GBP £)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-sm text-[#59645f] font-serif">
-                    £
-                  </span>
-                  <input
-                    type="number"
-                    min={50}
-                    step={10}
-                    value={priceGbp}
-                    onChange={(e) => setPriceGbp(Math.max(1, Number(e.target.value)))}
-                    className="w-full pl-7 pr-3 py-2 bg-white border border-[#e5e2da] rounded-xl text-sm font-medium text-[#18211f] focus:outline-none focus:border-[#1e4a3f]"
-                  />
-                </div>
-                <span className="text-[11px] text-[#59645f] mt-1 block font-mono">
-                  ≈ ${(priceGbp * 1.28).toFixed(0)} USD • {(priceGbp / 2600).toFixed(3)} ETH
-                </span>
-              </div>
-
-              <div>
-                <label className="text-xs font-mono uppercase tracking-wider text-[#59645f] block mb-1.5 font-semibold">
-                  Secondary Resale Royalty
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min={5}
-                    max={20}
-                    value={royaltyPercent}
-                    onChange={(e) => setRoyaltyPercent(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-white border border-[#e5e2da] rounded-xl text-sm font-medium text-[#18211f] focus:outline-none focus:border-[#1e4a3f]"
-                  />
-                  <span className="absolute right-3 top-2.5 text-xs text-[#59645f] font-mono">
-                    %
-                  </span>
-                </div>
-                <span className="text-[11px] text-[#59645f] mt-1 block">
-                  Creator cut credited automatically on future secondary sales.
-                </span>
-              </div>
-            </div>
-
-            {/* Physical Twin Toggle */}
-            <div className="p-4 bg-white rounded-xl border border-[#e5e2da] space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={hasPhysicalTwin}
-                  onChange={(e) => setHasPhysicalTwin(e.target.checked)}
-                  className="size-4 rounded text-[#1e4a3f] accent-[#1e4a3f]"
-                />
-                <div>
-                  <span className="text-xs font-semibold text-[#18211f] block">
-                    Pair with Archival Physical Print Twin (Optional)
-                  </span>
-                  <span className="text-[11px] text-[#59645f]">
-                    Collector also receives a museum-grade Hahnemühle physical print delivered to
-                    their door.
-                  </span>
-                </div>
-              </label>
-
-              {hasPhysicalTwin && (
-                <textarea
-                  value={physicalDetails}
-                  onChange={(e) => setPhysicalDetails(e.target.value)}
-                  rows={2}
-                  className="w-full text-xs p-2.5 bg-[#FAF9F5] border border-[#e5e2da] rounded-lg mt-2 text-[#18211f] focus:outline-none focus:border-[#1e4a3f]"
-                  placeholder="Specify print dimension, paper type (e.g. 24x36 Photo Rag), and framing details..."
-                />
               )}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="mint-price" className={`${monoLabelClass} mb-2 block`}>
+                    Listing price (GBP)
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-(--ed-muted)">
+                      £
+                    </span>
+                    <input
+                      id="mint-price"
+                      type="number"
+                      min={50}
+                      step={10}
+                      value={priceGbp}
+                      onChange={(e) => setPriceGbp(Math.max(1, Number(e.target.value)))}
+                      className={`${inputClass} pl-7 font-mono`}
+                    />
+                  </div>
+                  <p className="mt-1.5 font-mono text-xs text-(--ed-muted)">
+                    ≈ ${(priceGbp * 1.28).toFixed(0)} · {(priceGbp / 2600).toFixed(3)} ETH
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="mint-royalty" className={`${monoLabelClass} mb-2 block`}>
+                    Resale royalty
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="mint-royalty"
+                      type="number"
+                      min={5}
+                      max={20}
+                      value={royaltyPercent}
+                      onChange={(e) => setRoyaltyPercent(Number(e.target.value))}
+                      className={`${inputClass} pr-8 font-mono`}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-sm text-(--ed-muted)">
+                      %
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-xs text-(--ed-muted)">
+                    Credited automatically on secondary sales.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-4">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={hasPhysicalTwin}
+                    onChange={(e) => setHasPhysicalTwin(e.target.checked)}
+                    className="mt-0.5 size-4 shrink-0 accent-(--ed-primary)"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-(--ed-text)">
+                      Pair with a physical print twin
+                    </span>
+                    <span className="block text-xs leading-5 text-(--ed-muted)">
+                      The collector also receives a museum-grade Hahnemühle print delivered to their
+                      door.
+                    </span>
+                  </span>
+                </label>
+
+                {hasPhysicalTwin && (
+                  <textarea
+                    value={physicalDetails}
+                    onChange={(e) => setPhysicalDetails(e.target.value)}
+                    rows={2}
+                    aria-label="Physical print details"
+                    placeholder="Print dimensions, paper type (e.g. 24x36 Photo Rag) and framing details"
+                    className="w-full rounded-lg border border-(--ed-border) bg-(--ed-surface) p-2.5 text-sm text-(--ed-text) outline-none transition-colors placeholder:text-(--ed-muted) focus:border-(--ed-primary)"
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Action Footer */}
-        <div className="px-6 py-4 border-t border-[#e5e2da] bg-white/70 backdrop-blur flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-medium text-[#59645f] hover:text-[#18211f] transition"
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            onClick={handleMint}
-            disabled={!isEligible || minting}
-            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold transition shadow-sm ${
-              !isEligible || minting
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-[#1e4a3f] text-white hover:bg-[#163830]"
-            }`}
-          >
-            {minting ? (
-              <>
-                <RefreshCw className="size-4 animate-spin" />
-                <span>Certifying Masterpiece...</span>
-              </>
-            ) : (
-              <>
-                <FileCheck className="size-4" />
-                <span>Certify & Publish Edition</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
+          {/* Action Footer */}
+          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-(--ed-border) px-5 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className={`${secondaryButtonClass} h-10 px-5 text-sm`}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleMint}
+              disabled={formLocked || minting}
+              className={`${primaryButtonClass} h-10 px-5 text-sm`}
+            >
+              {minting ? (
+                <>
+                  <RefreshCw className="size-4 animate-spin" />
+                  Certifying…
+                </>
+              ) : (
+                <>
+                  <FileCheck className="size-4" />
+                  Certify & publish edition
+                </>
+              )}
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </MotionConfig>
   );
 }

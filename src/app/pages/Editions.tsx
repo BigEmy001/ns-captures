@@ -1,75 +1,142 @@
-import { useState, useMemo, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router";
-import {
-  Compass,
-  LayoutGrid,
-  Activity,
-  Calendar,
-  Anchor,
-  ShieldCheck,
-  User,
-  Settings,
-  ArrowLeft,
-  ArrowRight,
-  Search,
-  Bell,
-  Fuel,
-  Wallet,
-  Check,
-  Copy,
-  ExternalLink,
-  ChevronDown,
-  Sparkles,
-  ChevronRight,
-  ShoppingBag,
-  Eye,
-  ArrowUpRight,
-  TrendingUp,
-  Flame,
-  CheckCircle2,
-  X,
-  Layers,
-  Award,
-  Globe,
-  RefreshCw,
-  LogOut,
-  Plus,
-  Sun,
-  Moon,
-} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
+import { ArrowUpRight, Copy } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import {
   getStoredEditions,
   getStoredOwnerships,
   getStoredActivity,
+  getEditionCollection,
   purchaseEdition,
   isEditionsPublic,
   EDITIONS_VISIBILITY_EVENT,
   type DigitalEdition,
-  type EditionTier,
+  type EditionOwnership,
 } from "../data/editions";
 import { CertificateOfAuthenticityModal } from "../components/CertificateOfAuthenticityModal";
 import { MintEditionModal } from "../components/MintEditionModal";
-import { useAuth } from "../context/AuthContext";
-import { fetchCreatorWeb3Vault, type CryptoWalletEntry } from "../data/db";
+import { NsCapturesLogoBadge } from "../components/NsCapturesLogoBadge";
+import { MaskIcon } from "../components/MaskIcon";
+import { EditionsShell } from "../components/editions/EditionsShell";
 import {
-  fetchMultiChainVaultBalances,
-  type MultiChainVaultBalance,
-} from "../../lib/onChainBalance";
+  ActivityTable,
+  Chip,
+  EditionCard,
+  EditionsModal,
+  EmptyState,
+  SegmentedControl,
+  Stat,
+  TabBar,
+  VerifiedBadge,
+} from "../components/editions/editionsUi";
+import {
+  collectionSlugFor,
+  formatEth,
+  formatGbp,
+  initials,
+  monoLabelClass,
+  primaryButtonClass,
+  sampleOwnershipFor,
+  secondaryButtonClass,
+  selectClass,
+  shortHex,
+  tableHeadClass,
+  tierLabel,
+} from "../components/editions/editionsFormat";
+import { useEditionVault } from "../components/editions/useEditionVault";
+import { useEditionsTheme } from "../components/editions/useEditionsTheme";
+import { useAuth } from "../context/AuthContext";
 import { copyToClipboard } from "../../lib/clipboard";
 import { generateQrSvg } from "../../lib/qrcode";
 import { photos, type Photo } from "../data/photos";
+import contentCopyIcon from "../../assets/edition-detail/content-copy.svg";
+import chevronLeftIcon from "../../assets/edition-detail/chevron-left.svg";
 
-// Mini SVG Sparkline Component
-function Sparkline({
-  data,
-  isPositive = true,
-  className = "w-24 h-8",
-}: {
-  data: number[];
-  isPositive?: boolean;
-  className?: string;
-}) {
+const CATEGORY_FILTERS = [
+  { id: "all", label: "All works" },
+  { id: "art", label: "Fine art" },
+  { id: "genesis", label: "Genesis 1/1" },
+  { id: "series", label: "Series" },
+  { id: "twin", label: "Physical twin" },
+  { id: "curator", label: "Curator spotlight" },
+] as const;
+
+const CHAIN_FILTERS = [
+  { id: "all", label: "All chains" },
+  { id: "eth", label: "Ethereum" },
+  { id: "sol", label: "Solana" },
+  { id: "base", label: "Base" },
+  { id: "btc", label: "Bitcoin" },
+  { id: "tron", label: "TRON" },
+] as const;
+
+const TIMEFRAMES = [
+  { id: "1h", label: "1h" },
+  { id: "6h", label: "6h" },
+  { id: "24h", label: "24h" },
+  { id: "7d", label: "7d" },
+] as const;
+
+type Timeframe = (typeof TIMEFRAMES)[number]["id"];
+
+const TIMEFRAME_SCALE: Record<Timeframe, number> = { "1h": 0.06, "6h": 0.3, "24h": 1, "7d": 2.4 };
+
+const HERO_INTERVAL_MS = 6000;
+const sectionReveal = {
+  initial: { opacity: 0, y: 16 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-80px" },
+  transition: { type: "spring", duration: 0.6, bounce: 0 },
+} as const;
+
+const CURRENCY_OPTIONS = [
+  { id: "eth", label: "ETH" },
+  { id: "gbp", label: "GBP" },
+] as const;
+
+const PAYMENT_CURRENCIES = [
+  { id: "ETH", label: "ETH" },
+  { id: "SOL", label: "SOL" },
+  { id: "USDT", label: "USDT" },
+  { id: "GBP", label: "GBP" },
+] as const;
+
+// Illustrative 24h market momentum per collection; floor prices come from live inventory
+const TRENDING_COLLECTIONS = [
+  {
+    id: "kyoto-nocturnes",
+    change: 28.3,
+    volumeGbp: 142500,
+    sparkline: [12, 14, 13, 17, 19, 18, 24, 28],
+  },
+  {
+    id: "namibian-horizons",
+    change: 18.2,
+    volumeGbp: 89000,
+    sparkline: [30, 29, 32, 35, 33, 38, 41, 44],
+  },
+  {
+    id: "korean-peninsula-silences",
+    change: 14.5,
+    volumeGbp: 68200,
+    sparkline: [20, 21, 19, 22, 23, 21, 26, 29],
+  },
+  {
+    id: "metropolitan-geometry",
+    change: 9.9,
+    volumeGbp: 34800,
+    sparkline: [15, 16, 14, 18, 17, 20, 22, 24],
+  },
+];
+
+const SALON_FEATURES = [
+  { label: "Provenance", text: "Cryptographic certificates of authenticity" },
+  { label: "Scarcity", text: "Numbered limited series & Genesis 1/1s" },
+  { label: "Physical twins", text: "Museum-grade giclée print pairings" },
+];
+
+function Sparkline({ data, className = "h-8 w-24" }: { data: number[]; className?: string }) {
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
@@ -82,69 +149,38 @@ function Sparkline({
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
     .join(" ");
-
-  const color = isPositive ? "#10B981" : "#EF4444";
-  const gradId = `spark-grad-${data[0]}-${data[data.length - 1]}`;
+  const color = data[data.length - 1] >= data[0] ? "#2fbf71" : "#ff5c5c";
 
   return (
-    <svg className={className} viewBox={`0 0 ${width} ${height}`}>
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <polygon
-        fill={`url(#${gradId})`}
-        points={`0,${height} ${points} ${width},${height}`}
-      />
+    <svg
+      aria-hidden
+      className={className}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+    >
       <polyline
         fill="none"
         stroke={color}
         strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
         points={points}
       />
     </svg>
   );
 }
 
-// Official NS CAPTURES Monogram Brand Badge
-function NsCapturesLogoBadge({ className = "size-9" }: { className?: string }) {
-  return (
-    <div
-      className={`relative flex items-center justify-center rounded-xl bg-[#12241e] border border-[#10b981]/40 shadow-lg hover:border-[#10b981] transition group ${className}`}
-    >
-      <svg
-        viewBox="0 0 700 700"
-        className="size-6 shrink-0"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Main letters */}
-        <path
-          d="M408.602 226.458C416.585 225.749 432.633 226.199 441.109 226.203L502.536 226.264L511.721 270.435C489.584 270.727 467.246 270.05 445.222 270.43C423.021 270.812 397.602 266.65 380.618 284.038C367.723 297.071 368.086 316.828 380.126 330.203C396.255 348.115 416.803 345.815 438.706 345.628C449.198 345.538 459.617 345.597 470.044 347.47C509.261 354.515 542.696 387.258 542.954 428.725C543.269 449.967 534.874 470.402 519.721 485.289C496.189 508.636 471.278 510.902 440.311 510.845C390.118 511.257 366.933 508.853 334.869 466.507C375.449 466.088 415.932 466.927 456.665 466.298C490.568 465.773 513.019 427.5 485.842 402.315C464.568 382.593 430.456 392.903 404.094 389.041C365.61 383.412 330.24 353.352 326.393 313.257C324.466 292.947 330.828 272.721 344.046 257.175C360.747 237.129 383.328 228.872 408.602 226.458Z"
-          fill="#ffffff"
-        />
-        <path
-          d="M138.549 203.895C143.958 207.542 157.137 220.77 162.5 225.923L208.173 269.811L399.595 455.635C377.87 456.2 354.693 455.805 332.862 455.788L267.833 392.346C239.7 364.608 211.37 337.065 182.846 309.724C181.664 373.474 182.894 439.015 182.499 503.03C168.095 503.457 152.733 503.28 138.325 503.062L138.311 309.433C138.303 275.469 137.478 237.609 138.549 203.895Z"
-          fill="#ffffff"
-        />
-        {/* Trademark Dot */}
-        <path
-          d="M534.4 190.718C546.609 187.6 559.052 194.927 562.246 207.12C565.439 219.314 558.189 231.8 546.012 235.07C533.738 238.369 521.117 231.042 517.892 218.74C514.666 206.438 522.077 193.864 534.4 190.718Z"
-          fill="#5af2b3"
-        />
-      </svg>
-    </div>
-  );
-}
+const formatCompactGbp = (value: number) =>
+  value >= 1000 ? `£${(value / 1000).toFixed(1)}K` : formatGbp(Math.round(value));
 
 export function Editions() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, logout } = useAuth();
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const { wallets, balances } = useEditionVault();
+  const { theme } = useEditionsTheme();
+  const reduceMotion = useReducedMotion();
 
   const isAdmin = user?.role === "Admin";
   const [isPublic, setIsPublic] = useState(() => isEditionsPublic());
@@ -160,138 +196,57 @@ export function Editions() {
   }, []);
 
   const [editions, setEditions] = useState<DigitalEdition[]>(() => getStoredEditions());
+  const [activity, setActivity] = useState(() => getStoredActivity());
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedChain, setSelectedChain] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [activeLeaderboardTab, setActiveLeaderboardTab] = useState<"nfts" | "collections">("nfts");
-  const [activeTimeframe, setActiveTimeframe] = useState<"1h" | "6h" | "24h" | "7d">("24h");
-  const [proMode, setProMode] = useState<boolean>(false);
-  const [currencyMode, setCurrencyMode] = useState<"crypto" | "usd">("crypto");
-  const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
-  const isDarkTheme = themeMode === "dark";
-
-  const marketTheme = isDarkTheme
-    ? {
-        page: "min-h-screen bg-[#0d1117] text-[#edf4f1]",
-        panel: "bg-[#11161b] border-[#1c252d]",
-        panelAlt: "bg-[#121a20] border-[#1c252d]",
-        soft: "bg-[#171d24] border-[#1f2a32]",
-        mutedText: "text-[#8a9aa5]",
-        strongText: "text-[#f3f6f8]",
-        subText: "text-[#6f7c85]",
-        accent: "bg-[#1f8fff] text-[#edf8ff] border-[#1f8fff]",
-        accentSoft: "bg-[#1f8fff]/10 text-[#dfeeff] border-[#1f8fff]/30",
-        action: "bg-[#1f8fff] text-[#f4faf7] hover:bg-[#1977d6]",
-        buttonNeutral: "bg-[#151c22] text-[#edf4f1] border-[#212d35] hover:bg-[#1b242c]",
-        border: "border-[#1d262d]",
-      }
-    : {
-        page: "min-h-screen bg-[#f4efe8] text-[#1b1b1a]",
-        panel: "bg-[#fbfaf7] border-[#e7dfd4]",
-        panelAlt: "bg-[#f7f2eb] border-[#e9dfd3]",
-        soft: "bg-[#f6f1ea] border-[#e9dfd5]",
-        mutedText: "text-[#5f6662]",
-        strongText: "text-[#1b1b1a]",
-        subText: "text-[#6d726d]",
-        accent: "bg-[#1e4a3f] text-[#f7faf8] border-[#1e4a3f]",
-        accentSoft: "bg-[#ebf3ef] text-[#1e4a3f] border-[#d6e6df]",
-        action: "bg-[#1e4a3f] text-[#f4f9f7] hover:bg-[#163d35]",
-        buttonNeutral: "bg-white text-[#1b1b1a] border-[#e3d9cd] hover:bg-[#f6f1ea]",
-        border: "border-[#e7dfd4]",
-      };
-
-  // Wallet Flyout & Web3 State
-  const [isWalletFlyoutOpen, setIsWalletFlyoutOpen] = useState<boolean>(false);
-  const [vaultWallets, setVaultWallets] = useState<CryptoWalletEntry[]>([]);
-  const [vaultBalances, setVaultBalances] = useState<MultiChainVaultBalance | null>(null);
-  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+  const [catalogTab, setCatalogTab] = useState<"items" | "activity">("items");
+  const [timeframe, setTimeframe] = useState<Timeframe>("24h");
+  const [currencyMode, setCurrencyMode] = useState<"eth" | "gbp">("eth");
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+  const [heroPaused, setHeroPaused] = useState(false);
+  const [isWalletMenuOpen, setIsWalletMenuOpen] = useState(false);
+  const walletMenuRef = useRef<HTMLDivElement>(null);
+  const catalogRef = useRef<HTMLElement>(null);
 
   // Modals
   const [activeCertData, setActiveCertData] = useState<{
     edition: DigitalEdition;
-    ownership: any;
+    ownership: EditionOwnership;
   } | null>(null);
   const [selectedEditionForPurchase, setSelectedEditionForPurchase] =
     useState<DigitalEdition | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const [paymentCurrency, setPaymentCurrency] = useState<"GBP" | "ETH" | "USDT" | "SOL">("ETH");
-  const [isMintModalOpen, setIsMintModalOpen] = useState(false);
+  const [isMintModalOpen, setIsMintModalOpen] = useState(() => searchParams.get("mint") === "1");
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
-  const [activeDepositCoin, setActiveDepositCoin] = useState<"ETH" | "SOL" | "USDT" | "BTC">("ETH");
+  const [depositWalletIndex, setDepositWalletIndex] = useState(0);
 
-  // Hero carousel slide index
-  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
-
-  // Load user Web3 vault balances
+  // Rail "Mint" links from other editions pages arrive as ?mint=1 — consume the flag once
   useEffect(() => {
-    let isMounted = true;
-    async function loadVault() {
-      if (!user) return;
-      try {
-        const targetId = user.slug || user.id;
-        const vault = await fetchCreatorWeb3Vault(targetId);
-        if (vault && vault.wallets && vault.wallets.length > 0 && isMounted) {
-          setVaultWallets(vault.wallets);
-          const balances = await fetchMultiChainVaultBalances(vault.wallets);
-          if (isMounted) setVaultBalances(balances);
-        }
-      } catch (err) {
-        console.error("Failed to load Web3 vault in Editions:", err);
-      }
-    }
-    loadVault();
-    return () => {
-      isMounted = false;
+    if (searchParams.get("mint") !== "1") return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("mint");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  // Close the wallet menu on outside click or Escape
+  useEffect(() => {
+    if (!isWalletMenuOpen) return;
+    const handlePointerDown = (e: MouseEvent) => {
+      if (!walletMenuRef.current?.contains(e.target as Node)) setIsWalletMenuOpen(false);
     };
-  }, [user]);
-
-  // Derived user addresses for the NS multi-wallet drawer
-  const evmWallet = useMemo(() => {
-    const found = vaultWallets.find(
-      (w) => w.coin === "ETH" || w.network === "ERC20" || w.network === "Base",
-    );
-    return (
-      found || {
-        coin: "ETH",
-        network: "Base",
-        address: "0x9f538e12a8497cb9e2a1b9f481c4e90264b9401b",
-        name: "EVM Primary Vault",
-      }
-    );
-  }, [vaultWallets]);
-
-  const solanaWallet = useMemo(() => {
-    const found = vaultWallets.find((w) => w.coin === "SOL" || w.network === "Solana");
-    return (
-      found || {
-        coin: "SOL",
-        network: "Solana",
-        address: "7mXw8kP2q9tZ4L5nY6vB3jR8cM1dF9sA2eH5gW7uK4p",
-        name: "Solana Primary Vault",
-      }
-    );
-  }, [vaultWallets]);
-
-  // Combined wallet value display
-  const totalWalletUsd = useMemo(() => {
-    if (!vaultBalances) return "$0.00";
-    return `$${(vaultBalances.totalGbp * 1.28).toFixed(2)}`;
-  }, [vaultBalances]);
-
-  // Global keyboard shortcut '/' to focus search bar
-  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "/" && document.activeElement !== searchInputRef.current) {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-      if (e.key === "Escape") {
-        setIsWalletFlyoutOpen(false);
-      }
+      if (e.key === "Escape") setIsWalletMenuOpen(false);
     };
+    document.addEventListener("mousedown", handlePointerDown);
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isWalletMenuOpen]);
+
+  const totalWalletUsd = balances ? `$${(balances.totalGbp * 1.28).toFixed(2)}` : null;
 
   // Featured Editions for Hero Carousel
   const featuredEditions = useMemo(() => {
@@ -301,10 +256,19 @@ export function Editions() {
 
   const activeHero = featuredEditions[heroSlideIndex % featuredEditions.length] || editions[0];
 
+  // Auto-advance the featured carousel; pauses on hover/focus and for reduced motion
+  useEffect(() => {
+    if (heroPaused || reduceMotion || featuredEditions.length < 2) return;
+    const timer = window.setTimeout(
+      () => setHeroSlideIndex((index) => (index + 1) % featuredEditions.length),
+      HERO_INTERVAL_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [heroSlideIndex, heroPaused, reduceMotion, featuredEditions.length]);
+
   // Filtered editions catalog
   const filteredEditions = useMemo(() => {
     return editions.filter((e) => {
-      // Category filter
       const matchesCategory =
         selectedCategory === "all" ||
         (selectedCategory === "art" && e.tier !== "physical_twin") ||
@@ -322,163 +286,46 @@ export function Editions() {
         (selectedChain === "btc" && e.priceGbp > 1000) ||
         selectedChain === "tron";
 
-      // Search query
-      const matchesSearch =
-        !searchQuery ||
-        e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.photographerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (e.collectionName && e.collectionName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        e.camera.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.tokenId.toLowerCase().includes(searchQuery.toLowerCase());
-
-      return matchesCategory && matchesChain && matchesSearch;
+      return matchesCategory && matchesChain;
     });
-  }, [editions, selectedCategory, selectedChain, searchQuery]);
+  }, [editions, selectedCategory, selectedChain]);
 
-  // Trending drops with live sparklines
-  const trendingDrops = useMemo(
-    () => [
-      {
-        id: "tr-1",
-        collectionSlug: "kyoto-nocturnes",
-        title: "Kyoto Nocturnes",
-        artist: "Haru Tanaka",
-        avatar:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-        volume: "£142.5K",
-        change: "+28.3%",
-        isPositive: true,
-        sparkline: [12, 14, 13, 17, 19, 18, 24, 28],
-      },
-      {
-        id: "tr-2",
-        collectionSlug: "korean-peninsula-silences",
-        title: "Gangwon Mist Series",
-        artist: "Junghoon Sung",
-        avatar:
-          "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-        volume: "£68.2K",
-        change: "+14.5%",
-        isPositive: true,
-        sparkline: [20, 21, 19, 22, 23, 21, 26, 29],
-      },
-      {
-        id: "tr-3",
-        collectionSlug: "metropolitan-geometry",
-        title: "Barbican Modernism",
-        artist: "Patrick Watson-Quine",
-        avatar:
-          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
-        volume: "£34.8K",
-        change: "+9.9%",
-        isPositive: true,
-        sparkline: [15, 16, 14, 18, 17, 20, 22, 24],
-      },
-      {
-        id: "tr-4",
-        collectionSlug: "namibian-horizons",
-        title: "Namib Dune Twilight",
-        artist: "Lexmond Dennis",
-        avatar:
-          "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-        volume: "£89.0K",
-        change: "+18.2%",
-        isPositive: true,
-        sparkline: [30, 29, 32, 35, 33, 38, 41, 44],
-      },
-    ],
-    [],
-  );
-
-  // Right-hand Leaderboard collections
-  const leaderboardItems = useMemo(
-    () => [
-      {
-        rank: 1,
-        id: "kyoto-nocturnes",
-        title: "Kyoto Nocturnes",
-        artist: "Haru Tanaka",
-        image:
-          "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=150&auto=format&fit=crop&q=80",
-        floorEth: "0.72 ETH",
-        floorUsd: "$1,850",
-        change: "+456.6%",
-        isPositive: true,
-      },
-      {
-        rank: 2,
-        id: "korean-peninsula-silences",
-        title: "Gangwon Peninsula",
-        artist: "Junghoon Sung",
-        image:
-          "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=150&auto=format&fit=crop&q=80",
-        floorEth: "0.18 ETH",
-        floorUsd: "$450",
-        change: "+10.5%",
-        isPositive: true,
-      },
-      {
-        rank: 3,
-        id: "metropolitan-geometry",
-        title: "Barbican Geometry",
-        artist: "Patrick Watson-Quine",
-        image:
-          "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=150&auto=format&fit=crop&q=80",
-        floorEth: "0.11 ETH",
-        floorUsd: "$280",
-        change: "+22.2%",
-        isPositive: true,
-      },
-      {
-        rank: 4,
-        id: "namibian-horizons",
-        title: "Dune 45 Genesis",
-        artist: "Lexmond Dennis",
-        image:
-          "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=150&auto=format&fit=crop&q=80",
-        floorEth: "0.58 ETH",
-        floorUsd: "$1,480",
-        change: "+4.1%",
-        isPositive: true,
-      },
-      {
-        rank: 5,
-        id: "kyoto-nocturnes",
-        title: "Nordic Silence",
-        artist: "Astrid Lindholm",
-        image:
-          "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=150&auto=format&fit=crop&q=80",
-        floorEth: "0.25 ETH",
-        floorUsd: "$640",
-        change: "+18.4%",
-        isPositive: true,
-      },
-    ],
-    [],
+  const trendingCollections = useMemo(
+    () =>
+      TRENDING_COLLECTIONS.flatMap((entry) => {
+        const meta = getEditionCollection(entry.id);
+        if (!meta) return [];
+        const items = editions.filter((e) => e.collectionName === meta.name);
+        if (items.length === 0) return [];
+        return [
+          {
+            ...entry,
+            meta,
+            image: items[0].image,
+            floorEth: Math.min(...items.map((e) => e.priceEth)),
+            floorGbp: Math.min(...items.map((e) => e.priceGbp)),
+          },
+        ];
+      }),
+    [editions],
   );
 
   const handleCopy = (text: string, label: string) => {
     copyToClipboard(text);
-    setCopiedAddress(text);
     toast.success(`${label} copied to clipboard`);
-    setTimeout(() => setCopiedAddress(null), 2500);
-  };
-
-  const handlePurchase = (edition: DigitalEdition) => {
-    setSelectedEditionForPurchase(edition);
   };
 
   const confirmPurchase = () => {
     if (!selectedEditionForPurchase) return;
     try {
       setPurchasing(true);
-      const buyerName = user?.name || "Private Collector";
-      const buyerId = user?.id || "guest-collector";
-      const buyerEmail = user?.email;
-
       const res = purchaseEdition(
         selectedEditionForPurchase.id,
-        { id: buyerId, name: buyerName, email: buyerEmail },
+        {
+          id: user?.id || "guest-collector",
+          name: user?.name || "Private Collector",
+          email: user?.email,
+        },
         paymentCurrency,
       );
 
@@ -487,19 +334,31 @@ export function Editions() {
           `Acquired: ${selectedEditionForPurchase.title} (${res.ownership.serialDisplay})`,
         );
         setEditions(getStoredEditions());
+        setActivity(getStoredActivity());
         setSelectedEditionForPurchase(null);
-        setActiveCertData({
-          edition: selectedEditionForPurchase,
-          ownership: res.ownership,
-        });
+        setActiveCertData({ edition: selectedEditionForPurchase, ownership: res.ownership });
       } else {
         toast.error(res.error || "Purchase failed.");
       }
-    } catch (e: any) {
-      toast.error(e?.message || "Transaction failed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Transaction failed");
     } finally {
       setPurchasing(false);
     }
+  };
+
+  const openCertificate = (edition: DigitalEdition) => {
+    setActiveCertData({
+      edition,
+      ownership:
+        getStoredOwnerships().find((o) => o.editionId === edition.id) ||
+        sampleOwnershipFor(edition),
+    });
+  };
+
+  const openActivity = () => {
+    setCatalogTab("activity");
+    catalogRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   // Sample photo to supply to MintEditionModal
@@ -533,1370 +392,749 @@ export function Editions() {
   // Public Visibility Guard: If editions room is toggled OFF by admin, hide from public
   if (!isPublic && !isAdmin) {
     return (
-      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f3efe8] px-5 py-16 text-[#171513] selection:bg-[#d8d0c5] selection:text-[#171513]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(17,17,17,0.04),_transparent_55%)]" />
-
-        <div className="relative z-10 w-full max-w-5xl rounded-[28px] border border-[#d8d0c5] bg-[#faf7f2]/90 p-6 shadow-[0_20px_80px_rgba(27,23,19,0.06)] backdrop-blur-sm sm:p-8 md:p-12">
-          <div className="flex flex-col items-center text-center">
-            <div className="mb-6 flex justify-center">
-              <NsCapturesLogoBadge className="size-14 md:size-16" />
-            </div>
-
-            <p className="font-mono text-[10px] tracking-[0.22em] text-[#5f655e] uppercase">
-              Private Curated Salon &bull; Coming Soon
-            </p>
-
-            <h1 className="mt-6 font-serif text-5xl leading-none tracking-[-0.04em] text-[#171513] sm:text-6xl md:text-7xl">
-              Fine-Art Digital Editions
-            </h1>
-
-            <p className="mt-5 max-w-2xl text-sm leading-7 text-[#5c605c] md:text-base">
-              The NS CAPTURES Editions room is currently accessible by invitation and administrative preview only while our curated collection of limited series and cryptographic certificates of authenticity is being assembled.
-            </p>
-
-            <div className="mt-8 grid w-full max-w-4xl gap-3 text-left md:grid-cols-3">
-              <div className="rounded-2xl border border-[#d8d0c5] bg-[#f6f0e8] p-4">
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#5f655e]">Provenance</span>
-                <p className="mt-2 text-sm leading-6 text-[#1d1d1b]">
-                  Cryptographic Certificates of Authenticity
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[#d8d0c5] bg-[#f6f0e8] p-4">
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#5f655e]">Scarcity</span>
-                <p className="mt-2 text-sm leading-6 text-[#1d1d1b]">
-                  Numbered Limited Series &amp; Genesis 1/1s
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[#d8d0c5] bg-[#f6f0e8] p-4">
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#5f655e]">Physical Twins</span>
-                <p className="mt-2 text-sm leading-6 text-[#1d1d1b]">
-                  Museum-Grade Giclée Print Pairings
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8 flex w-full max-w-xl flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link
-                to="/explore"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#1a1a19] bg-[#1a1a19] px-6 py-3 text-sm font-medium text-[#f7f3ee] transition hover:bg-[#2b2823] sm:w-auto"
+      <div className="flex min-h-screen items-center justify-center bg-(--ed-bg) px-4 py-16 font-sans text-(--ed-text)">
+        <div className="w-full max-w-3xl rounded-xl border border-(--ed-border) bg-(--ed-surface) p-6 text-center sm:p-10">
+          <NsCapturesLogoBadge className="mx-auto size-14" />
+          <p className={`${monoLabelClass} mt-6`}>Private curated salon · Coming soon</p>
+          <h1 className="mt-3 text-balance text-[32px] font-medium leading-10 sm:text-[40px] sm:leading-[48px]">
+            Fine-art digital editions
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-(--ed-muted)">
+            The NS CAPTURES Editions room is currently accessible by invitation and administrative
+            preview only while our curated collection of limited series and cryptographic
+            certificates of authenticity is being assembled.
+          </p>
+          <dl className="mt-8 grid gap-3 text-left sm:grid-cols-3">
+            {SALON_FEATURES.map((feature) => (
+              <div
+                key={feature.label}
+                className="rounded-lg border border-(--ed-border) bg-(--ed-bg) p-4"
               >
-                <span>Explore Stock Gallery</span>
-                <ArrowRight className="size-4" />
-              </Link>
-              <Link
-                to="/"
-                className="inline-flex w-full items-center justify-center rounded-full border border-[#d8d0c5] bg-white/40 px-6 py-3 text-sm font-medium text-[#171513] transition hover:bg-white sm:w-auto"
-              >
-                Return to Homepage
-              </Link>
-            </div>
-
-            <p className="mt-8 font-mono text-[10px] tracking-[0.18em] text-[#7a726d] uppercase">
-              NS CAPTURES Fine Art Registry © {new Date().getFullYear()} &bull; Private Access Only
-            </p>
+                <dt className={monoLabelClass}>{feature.label}</dt>
+                <dd className="mt-2 text-sm leading-6 text-(--ed-text)">{feature.text}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link to="/explore" className={`${primaryButtonClass} h-12 px-6 text-base`}>
+              Explore stock gallery
+            </Link>
+            <Link to="/" className={`${secondaryButtonClass} h-12 px-6 text-base`}>
+              Return to homepage
+            </Link>
           </div>
+          <p className={`${monoLabelClass} mt-8`}>
+            NS CAPTURES Fine Art Registry © {new Date().getFullYear()} · Private access only
+          </p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className={`${marketTheme.page} flex flex-col selection:bg-[#1e4a3f] selection:text-white font-sans antialiased`}>
-      {/* Admin Preview Mode Alert Banner (Visible only when editions is hidden from public) */}
-      {isAdmin && !isPublic && (
-        <div className="w-full bg-[#2a1e0b] border-b border-[#f59e0b]/40 text-amber-200 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs z-50 sticky top-0 shadow-md">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex size-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="font-semibold text-amber-300 font-mono uppercase tracking-wider">
-              Admin Preview Mode
-            </span>
-            <span className="text-amber-200/90">
-              &bull; The Digital Editions room is currently <strong>HIDDEN</strong> from the public. Regular visitors see the private salon holding card.
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              to="/admin"
-              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-100 font-mono text-[11px] transition"
-            >
-              Open Admin Console &rarr;
-            </Link>
-          </div>
-        </div>
-      )}
-      {/* App Shell: Left Slim Rail + Main Workspace */}
-      <div className="flex flex-1 relative overflow-x-hidden">
-        {/* ============================================================ */}
-        {/* 1. LEFT SLIM NAVIGATION RAIL (Luxury Collector Console)     */}
-        {/* ============================================================ */}
-        <aside className={`w-16 shrink-0 ${marketTheme.panel} border-r flex flex-col items-center justify-between py-3.5 z-40 sticky top-0 h-screen`}>
-          {/* Top Rail: Official NS Monogram + Primary Navigation */}
-          <div className="flex flex-col items-center gap-4 w-full">
-            {/* NS CAPTURES Official Monogram Icon */}
-            <Link
-              to="/editions"
-              className="p-1 rounded-xl transition hover:scale-105 active:scale-95 group relative"
-              title="NS CAPTURES Digital Editions"
-            >
-              <NsCapturesLogoBadge className="size-10" />
-              <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#12241e] border border-[#10b981]/40 text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                NS CAPTURES Editions
+  const adminBanner =
+    isAdmin && !isPublic ? (
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(255,138,0,0.3)] bg-[rgba(255,138,0,0.12)] px-4 py-2.5 text-sm sm:px-6">
+        <p className="flex flex-wrap items-center gap-2">
+          <span className="size-2 animate-pulse rounded-full bg-(--ed-warning)" />
+          <span className="font-mono text-xs uppercase text-(--ed-warning)">Admin preview</span>
+          <span className="text-(--ed-text-soft)">
+            The Editions room is hidden from the public. Visitors see the private salon card.
+          </span>
+        </p>
+        <Link to="/admin" className={`${secondaryButtonClass} h-8 px-3 text-xs`}>
+          Open admin console
+        </Link>
+      </div>
+    ) : null;
+
+  const activeDepositWallet = wallets[depositWalletIndex] ?? wallets[0];
+
+  const walletControl = (
+    <div ref={walletMenuRef} className="relative hidden sm:block">
+      <button
+        type="button"
+        onClick={() => {
+          if (wallets.length === 0) navigate(user ? "/account?tab=vault" : "/signin");
+          else setIsWalletMenuOpen((open) => !open);
+        }}
+        aria-haspopup={wallets.length > 0 ? "menu" : undefined}
+        aria-expanded={wallets.length > 0 ? isWalletMenuOpen : undefined}
+        className="flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium tracking-[-0.15px] text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
+      >
+        {wallets.length === 0 ? (
+          "Connect Wallet"
+        ) : (
+          <>
+            <span className="font-mono">{totalWalletUsd ?? shortHex(wallets[0].address)}</span>
+            <MaskIcon
+              src={chevronLeftIcon}
+              className={`size-4 text-(--ed-muted) transition-transform ${isWalletMenuOpen ? "rotate-90" : "-rotate-90"}`}
+            />
+          </>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {isWalletMenuOpen && wallets.length > 0 && (
+          <motion.div
+            role="menu"
+            initial={{ opacity: 0, scale: 0.96, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.1 } }}
+            transition={{ type: "spring", duration: 0.25, bounce: 0 }}
+            style={{ transformOrigin: "top right" }}
+            className="absolute right-0 top-12 z-40 w-80 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-2 shadow-(--ed-shadow)"
+          >
+            <div className="flex items-center gap-3 border-b border-(--ed-border) px-2 pb-3 pt-1">
+              <span className="flex size-9 items-center justify-center rounded-full bg-(--ed-raised) text-xs font-medium text-(--ed-text)">
+                {initials(user?.name ?? "NS")}
               </span>
-            </Link>
-
-            <div className="w-8 h-[1px] bg-[#1F2633]" />
-
-            {/* Navigation Icons with NS Emerald Active Indicators */}
-            <nav className="flex flex-col items-center gap-1.5 w-full">
-              {/* Discover / Explore */}
-              <button
-                onClick={() => {
-                  setSelectedCategory("all");
-                  setSelectedChain("all");
-                  setSearchQuery("");
-                }}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition group relative ${
-                  selectedCategory === "all"
-                    ? "bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                }`}
-                title="Discover Editions"
-              >
-                <Compass className="size-5" />
-                <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  Discover All Works
-                </span>
-              </button>
-
-              {/* Collections */}
-              <button
-                onClick={() => setSelectedCategory("series")}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition group relative ${
-                  selectedCategory === "series"
-                    ? "bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                }`}
-                title="Numbered Series"
-              >
-                <LayoutGrid className="size-5" />
-                <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  Numbered Series
-                </span>
-              </button>
-
-              {/* Activity / Pulse */}
-              <button
-                onClick={() => {
-                  const acts = getStoredActivity();
-                  toast.info(
-                    `NS CAPTURES Provenance Engine: ${acts.length} verified records on Base & Solana.`,
-                  );
-                }}
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition group relative"
-                title="Activity Feed"
-              >
-                <Activity className="size-5" />
-                <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  Provenance Activity
-                </span>
-              </button>
-
-              {/* Genesis Drops Calendar */}
-              <button
-                onClick={() => setSelectedCategory("genesis")}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition group relative ${
-                  selectedCategory === "genesis"
-                    ? "bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                }`}
-                title="Genesis 1/1 Drops"
-              >
-                <Calendar className="size-5" />
-                <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  Genesis 1 of 1s
-                </span>
-              </button>
-
-              {/* Mint / Create (Anchor) */}
-              <button
-                onClick={() => setIsMintModalOpen(true)}
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-[#10B981] bg-[#10B981]/15 hover:bg-[#10B981]/25 border border-[#10B981]/40 transition group relative shadow-md"
-                title="Mint Fine-Art Edition"
-              >
-                <Anchor className="size-5" />
-                <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  Mint Edition (Web3 Deposit Required)
-                </span>
-              </button>
-
-              {/* Certificate of Authenticity Lookup */}
-              <button
-                onClick={() => {
-                  const sampleEdition = editions[0];
-                  const sampleOwnership = getStoredOwnerships().find(
-                    (o) => o.editionId === sampleEdition.id,
-                  ) || {
-                    id: "coa-demo",
-                    editionId: sampleEdition.id,
-                    serialNumber: 1,
-                    serialDisplay: "#01 / 01",
-                    ownerId: "owner-1",
-                    ownerName: sampleEdition.photographerName,
-                    acquiredAt: sampleEdition.mintedAt,
-                    purchasePriceGbp: sampleEdition.priceGbp,
-                    purchaseCurrency: "ETH",
-                    certificateNumber: "COA-NSC-DEMO-01",
-                    isListedForResale: false,
-                  };
-                  setActiveCertData({
-                    edition: sampleEdition,
-                    ownership: sampleOwnership,
-                  });
-                }}
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition group relative"
-                title="Inspect Archival Certificate (COA)"
-              >
-                <ShieldCheck className="size-5" />
-                <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  Certificates of Authenticity (COA)
-                </span>
-              </button>
-            </nav>
-          </div>
-
-          {/* Bottom Rail: Back to Stock Photography & Vault Account */}
-          <div className="flex flex-col items-center gap-3 w-full">
-            {/* Return to Normal Photography Gallery */}
-            <Link
-              to="/search"
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition group relative border border-white/5"
-              title="Return to Stock Photography Gallery"
-            >
-              <ArrowLeft className="size-4" />
-              <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                Exit to Photography Gallery
-              </span>
-            </Link>
-
-            {/* Profile / Web3 Vault */}
-            <Link
-              to="/account?tab=vault"
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition group relative"
-              title="Collector Web3 Vault"
-            >
-              <User className="size-5" />
-              <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                Web3 Settlement Vault
-              </span>
-            </Link>
-
-            {/* Settings */}
-            <button
-              onClick={() => toast.info("Collector terminal preferences saved.")}
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 transition group relative"
-              title="Preferences"
-            >
-              <Settings className="size-4" />
-              <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                Preferences
-              </span>
-            </button>
-          </div>
-        </aside>
-
-        {/* ============================================================ */}
-        {/* 2. MAIN WORKSPACE WITH TOP BAR, STAGE, & RIGHT LEADERBOARD   */}
-        {/* ============================================================ */}
-        <div className="flex-1 flex flex-col min-w-0 pb-12">
-          {/* ---------------------------------------------------------- */}
-          {/* TOP APP BAR (NS CAPTURES Branded Navigation)               */}
-          {/* ---------------------------------------------------------- */}
-          <header className={`${marketTheme.panel} h-16 bg-opacity-95 backdrop-blur-md border-b px-4 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-30`}>
-            {/* Search Input with Hotkey Shortcut '/' */}
-            <div className="flex items-center gap-4 flex-1 max-w-xl">
-              <div className="relative w-full">
-                <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 size-4 ${marketTheme.subText}`} />
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search NS CAPTURES editions, artists, cameras..."
-                  className={`w-full pl-10 pr-10 py-2 ${marketTheme.soft} border ${marketTheme.border} rounded-xl text-xs ${marketTheme.strongText} placeholder:text-[#7f938f] focus:outline-none transition`}
-                />
-                <span className={`absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded border ${marketTheme.border} text-[10px] ${marketTheme.subText} font-mono`}>
-                  /
-                </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-(--ed-text)">
+                  {user?.name ?? "Collector"}
+                </p>
+                <p className="font-mono text-xs text-(--ed-muted)">
+                  {wallets.length} wallet{wallets.length === 1 ? "" : "s"}
+                  {totalWalletUsd ? ` · ${totalWalletUsd}` : ""}
+                </p>
               </div>
             </div>
 
-            {/* Category Pills */}
-            <div className="hidden lg:flex items-center gap-1.5 overflow-x-auto py-1">
-              {[
-                { id: "all", label: "All Works" },
-                { id: "art", label: "Fine Art" },
-                { id: "genesis", label: "Genesis 1/1" },
-                { id: "series", label: "Series" },
-                { id: "twin", label: "Physical Twin" },
-                { id: "curator", label: "Curator Spotlight" },
-              ].map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setSelectedCategory(c.id)}
-                  className={`px-3 py-1.5 rounded-xl text-[11px] font-medium transition whitespace-nowrap ${
-                    selectedCategory === c.id
-                      ? "bg-[#1f8fff] text-white border border-[#1f8fff]"
-                      : `${marketTheme.buttonNeutral} ${marketTheme.mutedText}`
-                  }`}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Multi-Chain Filter Selectors */}
-            <div className={`hidden 2xl:flex items-center gap-1.5 pl-3 border-l ${marketTheme.border}`}>
-              {[
-                { id: "all", label: "All", icon: "🌐" },
-                { id: "eth", label: "Ethereum", icon: "⟠" },
-                { id: "sol", label: "Solana", icon: "◎" },
-                { id: "base", label: "Base", icon: "🔵" },
-                { id: "btc", label: "Bitcoin", icon: "₿" },
-                { id: "tron", label: "TRON", icon: "💎" },
-              ].map((ch) => (
-                <button
-                  key={ch.id}
-                  onClick={() => setSelectedChain(ch.id)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-mono transition flex items-center gap-1 ${
-                    selectedChain === ch.id
-                      ? `${marketTheme.accent} font-bold`
-                      : `${marketTheme.buttonNeutral} ${marketTheme.mutedText}`
-                  }`}
-                  title={ch.label}
-                >
-                  <span>{ch.icon}</span>
-                  <span className="text-[11px]">{ch.id.toUpperCase()}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Right Controls: Gas Tracker, Notifications, Wallet Pill & Avatar */}
-            <div className="flex items-center gap-2.5 sm:gap-3">
-              {/* Notification Bell */}
-              <button
-                onClick={() => toast.info("No unread marketplace notifications.")}
-                className={`size-9 rounded-xl flex items-center justify-center ${marketTheme.buttonNeutral} ${marketTheme.mutedText} transition relative`}
-                title="Notifications"
-              >
-                <Bell className="size-4" />
-                <span className="absolute top-2 right-2 size-2 rounded-full bg-[#1e4a3f]" />
-              </button>
-
-              {/* Gas Tracker Pill */}
-              <div
-                className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${marketTheme.buttonNeutral} ${marketTheme.mutedText} text-xs font-mono`}
-                title="Ethereum & Base Network Gas Tracker"
-              >
-                <Fuel className="size-3.5 text-[#1e4a3f]" />
-                <span className="text-[11px]">15 Gwei</span>
-              </div>
-
-              <button
-                onClick={() => setThemeMode(isDarkTheme ? "light" : "dark")}
-                className={`hidden sm:flex size-9 items-center justify-center rounded-xl border ${marketTheme.buttonNeutral} ${marketTheme.mutedText} transition`}
-                title={isDarkTheme ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {isDarkTheme ? <Sun className="size-4" /> : <Moon className="size-4" />}
-              </button>
-
-              {/* Wallet Pill & Connected Avatar */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsWalletFlyoutOpen(!isWalletFlyoutOpen)}
-                  className={`flex items-center gap-2 pl-3 pr-2 py-1.5 ${marketTheme.buttonNeutral} border rounded-xl transition shadow-sm`}
-                >
-                  <Wallet className={`size-4 ${isDarkTheme ? "text-[#d9b57a]" : "text-[#1e4a3f]"}`} />
-                  <span className={`font-mono text-xs font-semibold ${marketTheme.strongText}`}>
-                    {totalWalletUsd}
-                  </span>
-
-                  <div className={`size-6 rounded-full ${isDarkTheme ? "bg-[linear-gradient(135deg,_#d9b57a_0%,_#b98b5a_38%,_#553d31_100%)] text-[#171412]" : "bg-[#dfeae5] text-[#1e4a3f]"} flex items-center justify-center text-[10px] font-bold uppercase ml-1`}>
-                    {user?.name ? user.name.slice(0, 2) : "NS"}
-                  </div>
-                  <ChevronDown className={`size-3.5 ${marketTheme.subText}`} />
-                </button>
-
-                {/* ============================================================ */}
-                {/* 3. MULTI-WALLET FLYOUT DRAWER (Top Right Dropdown)           */}
-                {/* ============================================================ */}
-                {isWalletFlyoutOpen && (
-                  <div className="absolute right-0 top-12 mt-2 w-80 bg-[#121722] border border-[#232D3F] rounded-2xl shadow-2xl p-4 z-50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-150">
-                    {/* Header Address Card */}
-                    <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                      <div className="flex items-center gap-2.5">
-                        <div className="size-9 rounded-full bg-gradient-to-br from-[#10B981] via-[#059669] to-[#d4af37] flex items-center justify-center text-xs font-bold text-[#080B10] shadow-inner">
-                          {user?.name ? user.name.slice(0, 2).toUpperCase() : "NS"}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1 text-xs font-mono font-semibold text-white">
-                            <span>
-                              {evmWallet.address.slice(0, 6)}...
-                              {evmWallet.address.slice(-4)}
-                            </span>
-                            <button
-                              onClick={() => handleCopy(evmWallet.address, "EVM Address")}
-                              className="text-white/40 hover:text-white transition p-0.5"
-                              title="Copy EVM Address"
-                            >
-                              {copiedAddress === evmWallet.address ? (
-                                <Check className="size-3 text-[#10B981]" />
-                              ) : (
-                                <Copy className="size-3" />
-                              )}
-                            </button>
-                          </div>
-                          <span className="text-[10px] font-mono text-white/50 block">
-                            2 Wallets Linked • {totalWalletUsd}
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight className="size-4 text-white/40" />
-                    </div>
-
-                    {/* Sub-Wallets List */}
-                    <div className="space-y-2">
-                      {/* EVM Wallet Card */}
-                      <div className="p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="size-7 rounded-lg bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-xs text-[#10B981] font-mono font-bold">
-                            ⟠
-                          </div>
-                          <div>
-                            <span className="text-xs font-semibold text-white block">
-                              EVM Wallet
-                            </span>
-                            <span className="text-[10px] font-mono text-white/50 block">
-                              {evmWallet.address.slice(0, 4)}...{evmWallet.address.slice(-4)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right font-mono">
-                          <span className="text-xs font-semibold text-white block">
-                            {vaultBalances?.assets.find((a) => a.coin === "ETH")?.balanceFormatted ||
-                              "0.00 ETH"}
-                          </span>
-                          <span className="text-[10px] text-[#10B981] block">● Connected</span>
-                        </div>
-                      </div>
-
-                      {/* Solana Wallet Card */}
-                      <div className="p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="size-7 rounded-lg bg-[#9945FF]/20 border border-[#9945FF]/40 flex items-center justify-center text-xs text-[#9945FF] font-mono font-bold">
-                            ◎
-                          </div>
-                          <div>
-                            <span className="text-xs font-semibold text-white block">
-                              Solana Wallet
-                            </span>
-                            <span className="text-[10px] font-mono text-white/50 block">
-                              {solanaWallet.address.slice(0, 4)}...{solanaWallet.address.slice(-4)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right font-mono">
-                          <span className="text-xs font-semibold text-white block">
-                            {vaultBalances?.assets.find((a) => a.coin === "SOL")?.balanceFormatted ||
-                              "0.00 SOL"}
-                          </span>
-                          <span className="text-[10px] text-[#10B981] block">● Connected</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Quick Action Links */}
-                    <div className="pt-2 border-t border-white/10 space-y-1">
-                      {/* Deposit / Link */}
-                      <button
-                        onClick={() => {
-                          setIsWalletFlyoutOpen(false);
-                          setIsDepositModalOpen(true);
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-white hover:bg-white/10 transition"
-                      >
-                        <Plus className="size-4 text-[#10B981]" />
-                        <span>Link Wallet / Deposit Crypto</span>
-                      </button>
-
-                      {/* Manage Web3 Vault */}
-                      <Link
-                        to="/account?tab=vault"
-                        onClick={() => setIsWalletFlyoutOpen(false)}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-white hover:bg-white/10 transition"
-                      >
-                        <Wallet className="size-4 text-white/60" />
-                        <span>Manage Wallets & Settlement Vault</span>
-                      </Link>
-
-                      {/* Profile / Editions */}
-                      <button
-                        onClick={() => {
-                          setIsWalletFlyoutOpen(false);
-                          const owns = getStoredOwnerships();
-                          if (owns.length === 0) {
-                            toast.info("You haven't acquired any digital editions yet.");
-                          } else {
-                            toast.success(`You own ${owns.length} fine-art digital editions.`);
-                          }
-                        }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-white hover:bg-white/10 transition"
-                      >
-                        <User className="size-4 text-white/60" />
-                        <span>Profile & Provenance Portfolio</span>
-                      </button>
-
-                      {/* Sign Out */}
-                      {user && (
+            <ul className="flex flex-col gap-0.5 py-2">
+              {wallets.map((wallet) => {
+                const asset = balances?.assets.find((a) => a.coin === wallet.coin);
+                return (
+                  <li
+                    key={`${wallet.coin}-${wallet.network}-${wallet.address}`}
+                    className="flex items-center justify-between gap-3 rounded-md px-2 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm text-(--ed-text)">
+                        {wallet.coin}
+                        <span className="pl-1.5 text-xs text-(--ed-muted)">{wallet.network}</span>
+                      </p>
+                      <div className="flex items-center gap-1.5 font-mono text-xs text-(--ed-muted)">
+                        <span>{shortHex(wallet.address)}</span>
                         <button
-                          onClick={async () => {
-                            setIsWalletFlyoutOpen(false);
-                            await logout();
-                            toast.success("Disconnected Web3 session");
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-[#EF4444] hover:bg-[#EF4444]/10 transition"
+                          type="button"
+                          onClick={() => handleCopy(wallet.address, `${wallet.coin} address`)}
+                          aria-label={`Copy ${wallet.coin} address`}
+                          className="transition-colors hover:text-(--ed-text)"
                         >
-                          <LogOut className="size-4 text-[#EF4444]" />
-                          <span>Log Out</span>
+                          <MaskIcon src={contentCopyIcon} className="size-3.5" />
                         </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </header>
-
-          {/* ---------------------------------------------------------- */}
-          {/* MAIN STAGE + RIGHT SIDEBAR LEADERBOARD (75% / 25% GRID)    */}
-          {/* ---------------------------------------------------------- */}
-          <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto w-full grid grid-cols-12 gap-8">
-            {/* Left 75%: Hero Drop + Trending Drops + Marketplace Grid */}
-            <div className="col-span-12 xl:col-span-9 space-y-8">
-              {/* ======================================================== */}
-              {/* HERO FEATURE DROP CAROUSEL (Fine-Art Verified Spotlight) */}
-              {/* ======================================================== */}
-              {activeHero && (
-                <div className={`relative rounded-[22px] border ${marketTheme.border} ${isDarkTheme ? "bg-[#0d1117]" : "bg-[#f7f3ee]"} shadow-[0_16px_40px_rgba(0,0,0,0.16)] overflow-hidden`}>
-                  <div className="relative p-4 sm:p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#101820] border border-[#23313d] text-[10px] font-mono uppercase tracking-[0.16em] text-[#dfeaf5]">
-                          <Sparkles className="size-3 text-[#80d0ff]" />
-                          {activeHero.tier === "genesis_1_of_1" ? "Genesis 1/1" : "Curated Series"}
-                        </span>
-                        {activeHero.hasPhysicalTwin && (
-                          <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-[#101820] border border-[#23313d] text-[10px] font-mono text-[#dfeaf5]">
-                            Archival Print Twin
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        {featuredEditions.map((_, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setHeroSlideIndex(idx)}
-                            className={`h-1.5 rounded-full transition-all ${
-                              heroSlideIndex % featuredEditions.length === idx
-                                ? "w-6 bg-[#1f8fff]"
-                                : "w-2 bg-white/15"
-                            }`}
-                            title={`Slide ${idx + 1}`}
-                          />
-                        ))}
                       </div>
                     </div>
+                    <p className="shrink-0 font-mono text-sm text-(--ed-text)">
+                      {asset?.balanceFormatted ?? `0 ${wallet.coin}`}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-4 items-center">
-                      <div className="relative overflow-hidden rounded-[18px] border border-[#182531] bg-[#0a0e13] min-h-[180px]">
-                        <img
-                          src={activeHero.image}
-                          alt={activeHero.title}
-                          className="absolute inset-0 size-full object-cover opacity-40"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0e13] via-[#0a0e13]/75 to-transparent" />
-                        <div className="relative p-5 sm:p-6">
-                          <div className="flex items-center gap-2 text-[11px] font-mono text-[#dfeaf5]/70 mb-3">
-                            <span>By {activeHero.photographerName}</span>
-                            <span className="size-3.5 rounded-full bg-[#1f8fff] text-[8px] font-bold text-white flex items-center justify-center">✓</span>
-                          </div>
-                          <Link to={`/editions/${activeHero.id}`}>
-                            <h1 className="font-serif text-2xl sm:text-4xl text-white leading-tight mb-2 max-w-md hover:text-[#80d0ff] transition cursor-pointer">
-                              {activeHero.title}
-                            </h1>
-                          </Link>
-                          <p className="max-w-lg text-[12px] sm:text-sm text-[#dfeaf5]/70 font-serif leading-relaxed">
-                            {activeHero.description}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2.5 rounded-[18px] border border-[#182531] bg-[#101821] p-3 sm:p-4">
-                        <div className="flex items-center justify-between border-b border-[#1a2734] pb-2">
-                          <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-[#8aa1ae]">Floor</span>
-                          <span className="font-mono text-base font-semibold text-white">
-                            {currencyMode === "crypto" ? `${activeHero.priceEth} ETH` : `£${activeHero.priceGbp.toLocaleString("en-GB")}`}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-[11px]">
-                          <div className="rounded-xl border border-[#182531] bg-[#0d1319] p-2.5">
-                            <div className="text-[#8aa1ae] font-mono uppercase tracking-[0.12em] mb-1">Editions</div>
-                            <div className="text-white font-mono text-sm font-semibold">{activeHero.totalEditions}</div>
-                          </div>
-                          <div className="rounded-xl border border-[#182531] bg-[#0d1319] p-2.5">
-                            <div className="text-[#8aa1ae] font-mono uppercase tracking-[0.12em] mb-1">Volume</div>
-                            <div className="text-white font-mono text-sm font-semibold">£142.5K</div>
-                          </div>
-                          <div className="rounded-xl border border-[#182531] bg-[#0d1319] p-2.5 col-span-2">
-                            <div className="text-[#8aa1ae] font-mono uppercase tracking-[0.12em] mb-1">Availability</div>
-                            <div className="text-white font-mono text-sm font-semibold">
-                              {activeHero.availableEditions} / {activeHero.totalEditions} listed
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-2 mt-2">
-                          <button
-                            onClick={() => handlePurchase(activeHero)}
-                            disabled={activeHero.availableEditions === 0}
-                            className={`w-full px-4 py-2.5 rounded-xl text-xs font-semibold font-mono transition ${
-                              activeHero.availableEditions === 0
-                                ? "bg-white/10 text-white/40 cursor-not-allowed"
-                                : "bg-[#1f8fff] text-white hover:bg-[#1977d6]"
-                            }`}
-                          >
-                            {activeHero.availableEditions === 0 ? "Sold Out" : "Acquire Edition"}
-                          </button>
-                          <Link
-                            to={`/editions/${activeHero.id}`}
-                            className="w-full px-4 py-2 rounded-xl text-xs font-semibold font-mono text-center border border-[#23313d] bg-[#0d1319] text-[#dfeaf5] hover:bg-[#15202b] transition flex items-center justify-center gap-1.5"
-                          >
-                            <span>View Details &amp; Provenance</span>
-                            <ChevronRight className="size-3.5" />
-                          </Link>
-                          <Link
-                            to={`/editions/collection/${activeHero.collectionName ? activeHero.collectionName.toLowerCase().replace(/\s+/g, "-") : "kyoto-nocturnes"}`}
-                            className="w-full px-4 py-2 rounded-xl text-xs font-semibold font-mono text-center border border-[#1e2a38] bg-[#131b26] text-[#60a5fa] hover:bg-[#182332] transition flex items-center justify-center gap-1.5"
-                          >
-                            <span>Explore Full Collection</span>
-                            <ChevronRight className="size-3.5" />
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <div className="flex flex-col gap-0.5 border-t border-(--ed-border) pt-2">
+              {[
+                {
+                  label: "Deposit crypto",
+                  onSelect: () => {
+                    setDepositWalletIndex(0);
+                    setIsDepositModalOpen(true);
+                  },
+                },
+                { label: "Manage wallets & vault", onSelect: () => navigate("/account?tab=vault") },
+                {
+                  label: "Your editions",
+                  onSelect: () => {
+                    const owned = getStoredOwnerships().filter(
+                      (o) => o.ownerId === user?.id,
+                    ).length;
+                    toast.info(
+                      owned === 0
+                        ? "You haven't acquired any digital editions yet."
+                        : `You own ${owned} fine-art digital edition${owned === 1 ? "" : "s"}.`,
+                    );
+                  },
+                },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsWalletMenuOpen(false);
+                    item.onSelect();
+                  }}
+                  className="rounded-md px-2 py-2 text-left text-sm text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
+                >
+                  {item.label}
+                </button>
+              ))}
+              {user && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={async () => {
+                    setIsWalletMenuOpen(false);
+                    await logout();
+                    toast.success("Disconnected Web3 session");
+                  }}
+                  className="rounded-md px-2 py-2 text-left text-sm text-(--ed-negative) transition-colors hover:bg-(--ed-negative)/10"
+                >
+                  Log out
+                </button>
               )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 
-              {/* ======================================================== */}
-              {/* TRENDING DROPS WITH DYNAMIC SPARKLINE CHARTS             */}
-              {/* ======================================================== */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className={`font-sans text-lg font-bold ${isDarkTheme ? "text-[#f6f9f7]" : "text-[#1b1b1a]"} flex items-center gap-2`}>
-                      <span>Trending Fine-Art Drops</span>
-                      <span className="size-2 rounded-full bg-[#1e4a3f] animate-pulse" />
-                    </h2>
-                    <p className={`text-xs ${isDarkTheme ? "text-[#dfece8]/70" : "text-[#5f6662]"}`}>
-                      Editions with verified provenance and transaction volume today
-                    </p>
+  const priceFor = (edition: DigitalEdition) =>
+    currencyMode === "eth" ? formatEth(edition.priceEth) : formatGbp(edition.priceGbp);
+
+  return (
+    <EditionsShell
+      activeRail={catalogTab === "activity" ? "activity" : "discover"}
+      onActivity={openActivity}
+      onMint={() => setIsMintModalOpen(true)}
+      onCertificates={() => editions[0] && openCertificate(editions[0])}
+      headerActions={walletControl}
+      banner={adminBanner}
+    >
+      <main className="flex flex-1 flex-col gap-10 px-4 pb-16 pt-6 sm:px-6">
+        {/* ============================================================ */}
+        {/* FEATURED EDITION                                             */}
+        {/* ============================================================ */}
+        {activeHero && (
+          <section
+            aria-label="Featured editions"
+            aria-roledescription="carousel"
+            onMouseEnter={() => setHeroPaused(true)}
+            onMouseLeave={() => setHeroPaused(false)}
+            onFocusCapture={() => setHeroPaused(true)}
+            onBlurCapture={() => setHeroPaused(false)}
+            className="relative isolate flex min-h-[420px] flex-col justify-end overflow-hidden rounded-xl border border-(--ed-border) bg-(--ed-surface) sm:min-h-[460px]"
+          >
+            <AnimatePresence initial={false}>
+              <motion.img
+                key={activeHero.id}
+                src={activeHero.image}
+                alt=""
+                initial={{ opacity: 0, scale: 1.06 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.9, ease: [0.2, 0, 0, 1] }}
+                className="absolute inset-0 -z-10 size-full object-cover"
+              />
+            </AnimatePresence>
+            <div className="absolute inset-0 -z-10 bg-gradient-to-t from-(--ed-bg) via-(--ed-bg)/70 to-(--ed-bg)/10" />
+
+            {featuredEditions.length > 1 && (
+              <div className="absolute right-4 top-4 flex items-center gap-1.5">
+                {featuredEditions.map((item, idx) => {
+                  const current = heroSlideIndex % featuredEditions.length === idx;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setHeroSlideIndex(idx)}
+                      aria-label={`Show featured edition ${idx + 1}`}
+                      aria-current={current}
+                      className={`relative h-1.5 overflow-hidden rounded-full bg-[#fff]/40 transition-[width,background-color] duration-300 hover:bg-[#fff]/70 ${
+                        current ? "w-8" : "w-1.5"
+                      }`}
+                    >
+                      {current && (
+                        <motion.span
+                          key={`${heroSlideIndex}-${heroPaused}`}
+                          initial={{ width: heroPaused || reduceMotion ? "100%" : "0%" }}
+                          animate={{ width: "100%" }}
+                          transition={{
+                            duration: heroPaused || reduceMotion ? 0 : HERO_INTERVAL_MS / 1000,
+                            ease: "linear",
+                          }}
+                          className="absolute inset-y-0 left-0 bg-[#fff]"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={activeHero.id}
+                initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  filter: "blur(0px)",
+                  transitionEnd: { filter: "none" },
+                }}
+                exit={{ opacity: 0, y: -8, filter: "blur(4px)", transition: { duration: 0.18 } }}
+                transition={{ type: "spring", duration: 0.5, bounce: 0 }}
+                className="flex flex-col gap-6 p-5 sm:p-8 lg:flex-row lg:items-end lg:justify-between"
+              >
+                <div className="min-w-0 max-w-2xl">
+                  <div className="flex flex-wrap gap-2">
+                    <Chip>Featured</Chip>
+                    <Chip>{tierLabel(activeHero)}</Chip>
+                    {activeHero.hasPhysicalTwin && <Chip>Print twin</Chip>}
                   </div>
-                  <div className={`flex items-center gap-1 text-xs font-mono ${isDarkTheme ? "text-[#dfece8]" : "text-[#1e4a3f]"} hover:underline cursor-pointer`}>
-                    <span>View all drops</span>
-                    <ChevronRight className="size-3" />
-                  </div>
+                  <Link
+                    to={`/editions/collection/${collectionSlugFor(activeHero)}`}
+                    className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium tracking-[-0.15px] text-(--ed-text) transition-colors hover:text-(--ed-text-soft)"
+                  >
+                    {activeHero.collectionName ?? activeHero.photographerName}
+                    <VerifiedBadge />
+                  </Link>
+                  <h1 className="mt-2 text-balance text-[28px] font-medium leading-9 tracking-[0.2px] text-(--ed-text) sm:text-[40px] sm:leading-[48px]">
+                    <Link
+                      to={`/editions/${activeHero.id}`}
+                      className="transition-colors hover:text-(--ed-text-soft)"
+                    >
+                      {activeHero.title}
+                    </Link>
+                  </h1>
+                  <p className="mt-3 line-clamp-2 max-w-xl text-sm leading-6 text-(--ed-muted)">
+                    {activeHero.description}
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {trendingDrops.map((token) => (
-                    <Link
-                      key={token.id}
-                      to={`/editions/collection/${token.collectionSlug}`}
-                      className={`p-3.5 rounded-2xl ${isDarkTheme ? "bg-[#141d1b] border-[#24312e] hover:bg-[#192521]" : "bg-[#f9f7f3] border-[#e7dfd4] hover:bg-[#f3efe9]"} border hover:border-[#1e4a3f]/40 transition cursor-pointer flex items-center justify-between shadow-sm group`}
+                <div className="w-full shrink-0 rounded-lg border border-(--ed-divider) bg-(--ed-surface)/85 p-4 backdrop-blur-md lg:w-[340px]">
+                  <dl className="grid grid-cols-3 gap-3">
+                    <Stat label="Price" value={priceFor(activeHero)} />
+                    <Stat label="Editions" value={activeHero.totalEditions} />
+                    <Stat label="Available" value={activeHero.availableEditions} />
+                  </dl>
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEditionForPurchase(activeHero)}
+                      disabled={activeHero.availableEditions === 0}
+                      className={`${primaryButtonClass} h-10 flex-1 text-sm`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <img
-                          src={token.avatar}
-                          alt={token.title}
-                          className="size-10 rounded-xl object-cover border border-white/10 shrink-0"
-                        />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-semibold text-white truncate group-hover:text-[#10B981] transition">
-                              {token.title}
-                            </span>
-                            <span className="size-3.5 rounded-full bg-[#10B981] flex items-center justify-center text-[#080B10] font-bold text-[8px] shrink-0">
-                              ✓
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                            <span className="text-white/60">{token.volume}</span>
-                            <span className="text-[#10B981] font-semibold">{token.change}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Sparkline Graph */}
-                      <Sparkline
-                        data={token.sparkline}
-                        isPositive={token.isPositive}
-                        className="w-16 h-8 shrink-0 ml-2"
-                      />
+                      {activeHero.availableEditions === 0 ? "Sold out" : "Buy now"}
+                    </button>
+                    <Link
+                      to={`/editions/${activeHero.id}`}
+                      className={`${secondaryButtonClass} h-10 flex-1 text-sm`}
+                    >
+                      View details
                     </Link>
-                  ))}
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </section>
+        )}
+
+        {/* ============================================================ */}
+        {/* TRENDING COLLECTIONS                                         */}
+        {/* ============================================================ */}
+        <motion.section
+          {...sectionReveal}
+          aria-labelledby="trending-heading"
+          className="flex flex-col gap-4"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2
+              id="trending-heading"
+              className="text-xl font-medium tracking-[-0.3px] text-(--ed-text)"
+            >
+              Trending collections
+            </h2>
+            <SegmentedControl
+              label="Timeframe"
+              options={TIMEFRAMES}
+              value={timeframe}
+              onChange={setTimeframe}
+            />
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-(--ed-border) bg-(--ed-surface)">
+            <table className="w-full text-left text-sm">
+              <thead className={tableHeadClass}>
+                <tr>
+                  <th className="hidden w-12 px-4 py-3 font-normal sm:table-cell">#</th>
+                  <th className="px-4 py-3 font-normal">Collection</th>
+                  <th className="px-4 py-3 text-right font-normal">Floor</th>
+                  <th className="hidden px-4 py-3 text-right font-normal min-[480px]:table-cell">
+                    Change
+                  </th>
+                  <th className="hidden px-4 py-3 text-right font-normal sm:table-cell">Volume</th>
+                  <th className="hidden w-36 px-4 py-3 font-normal md:table-cell">
+                    <span className="sr-only">Trend</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {trendingCollections.map((col, idx) => (
+                  <tr
+                    key={col.id}
+                    className="border-t border-(--ed-border) transition-colors hover:bg-(--ed-hover)"
+                  >
+                    <td className="hidden px-4 py-3 font-mono text-(--ed-muted) sm:table-cell">
+                      {idx + 1}
+                    </td>
+                    <td className="w-full max-w-0 px-4 py-3">
+                      <Link
+                        to={`/editions/collection/${col.id}`}
+                        className="flex min-w-0 items-center gap-3"
+                      >
+                        <img
+                          src={col.image}
+                          alt=""
+                          className="size-10 shrink-0 rounded-lg object-cover outline outline-1 -outline-offset-1 outline-(--ed-image-outline)"
+                        />
+                        <span className="min-w-0">
+                          <span className="flex items-center gap-1">
+                            <span className="truncate font-medium text-(--ed-text)">
+                              {col.meta.name}
+                            </span>
+                            <VerifiedBadge />
+                          </span>
+                          <span className="block truncate text-xs text-(--ed-muted)">
+                            {col.meta.photographerName}
+                          </span>
+                        </span>
+                      </Link>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-(--ed-text)">
+                      {currencyMode === "eth" ? formatEth(col.floorEth) : formatGbp(col.floorGbp)}
+                    </td>
+                    <td className="hidden whitespace-nowrap px-4 py-3 text-right font-mono text-(--ed-positive) min-[480px]:table-cell">
+                      +{(col.change * TIMEFRAME_SCALE[timeframe]).toFixed(1)}%
+                    </td>
+                    <td className="hidden whitespace-nowrap px-4 py-3 text-right font-mono text-(--ed-text) sm:table-cell">
+                      {formatCompactGbp(col.volumeGbp * TIMEFRAME_SCALE[timeframe])}
+                    </td>
+                    <td className="hidden px-4 py-3 md:table-cell">
+                      <Sparkline data={col.sparkline} className="ml-auto h-8 w-28" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.section>
+
+        {/* ============================================================ */}
+        {/* MARKETPLACE CATALOG                                          */}
+        {/* ============================================================ */}
+        <motion.section
+          {...sectionReveal}
+          ref={catalogRef}
+          aria-label="Marketplace"
+          className="flex scroll-mt-20 flex-col gap-4"
+        >
+          <TabBar<"items" | "activity">
+            label="Marketplace sections"
+            tabs={[
+              { id: "items", label: "Items", count: filteredEditions.length },
+              { id: "activity", label: "Activity" },
+            ]}
+            active={catalogTab}
+            onChange={setCatalogTab}
+            trailing={
+              <SegmentedControl
+                label="Price currency"
+                options={CURRENCY_OPTIONS}
+                value={currencyMode}
+                onChange={setCurrencyMode}
+              />
+            }
+          />
+
+          {catalogTab === "items" ? (
+            <>
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
+                  {CATEGORY_FILTERS.map((category) => {
+                    const selected = selectedCategory === category.id;
+                    return (
+                      <button
+                        key={category.id}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => setSelectedCategory(category.id)}
+                        className={`h-9 shrink-0 rounded-full border px-4 text-sm font-medium tracking-[-0.15px] transition-colors ${
+                          selected
+                            ? "border-(--ed-text) bg-(--ed-text) text-(--ed-bg)"
+                            : "border-(--ed-border) bg-(--ed-surface) text-(--ed-text) hover:bg-(--ed-raised)"
+                        }`}
+                      >
+                        {category.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="relative shrink-0">
+                    <span className="sr-only">Chain</span>
+                    <select
+                      value={selectedChain}
+                      onChange={(e) => setSelectedChain(e.target.value)}
+                      className={`${selectClass} h-9`}
+                    >
+                      {CHAIN_FILTERS.map((chain) => (
+                        <option key={chain.id} value={chain.id}>
+                          {chain.label}
+                        </option>
+                      ))}
+                    </select>
+                    <MaskIcon
+                      src={chevronLeftIcon}
+                      className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 -rotate-90 text-(--ed-muted)"
+                    />
+                  </label>
+                  <div className="md:hidden">
+                    <SegmentedControl
+                      label="Price currency"
+                      options={CURRENCY_OPTIONS}
+                      value={currencyMode}
+                      onChange={setCurrencyMode}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* ======================================================== */}
-              {/* MARKETPLACE CATALOG GRID                                */}
-              {/* ======================================================== */}
-              <div className="space-y-4 pt-4 border-t border-[#2a2722]">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <button className={`px-3.5 py-1.5 rounded-xl ${isDarkTheme ? "bg-[#101920] text-[#edf3f7] border-[#1d2a35]" : "bg-[#eaf3ef] text-[#1e4a3f] border-[#cfe1d9]"} font-semibold text-xs border flex items-center gap-1.5`}>
-                      <span>Items</span>
-                      <span className={`px-1.5 py-0.2 rounded-full ${isDarkTheme ? "bg-[#1e4a3f] text-[#ebf8f4]" : "bg-[#1e4a3f] text-white"} text-[10px] font-mono font-bold`}>
-                        {filteredEditions.length}
-                      </span>
-                    </button>
+              {filteredEditions.length === 0 ? (
+                <EmptyState
+                  title="No digital editions found"
+                  description="Try another category or chain."
+                  action={
                     <button
-                      onClick={() => toast.info("Live secondary trading orderbook syncing...")}
-                      className={`px-3.5 py-1.5 rounded-xl ${marketTheme.mutedText} text-xs ${isDarkTheme ? "hover:text-white" : "hover:text-[#1b1b1a]"} transition`}
-                    >
-                      Activity
-                    </button>
-                    <button
-                      onClick={() => toast.info("Analytics charts available in Pro Mode")}
-                      className={`px-3.5 py-1.5 rounded-xl ${marketTheme.mutedText} text-xs ${isDarkTheme ? "hover:text-white" : "hover:text-[#1b1b1a]"} transition`}
-                    >
-                      Analytics
-                    </button>
-                  </div>
-
-                  <div className={`flex items-center gap-2 font-mono text-xs ${marketTheme.mutedText}`}>
-                    <span>Pricing:</span>
-                    <button
-                      onClick={() => setCurrencyMode(currencyMode === "crypto" ? "usd" : "crypto")}
-                      className={`${marketTheme.buttonNeutral} px-2.5 py-1 rounded-lg transition`}
-                    >
-                      {currencyMode === "crypto" ? "ETH / SOL" : "GBP (£)"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Grid of Editions */}
-                {filteredEditions.length === 0 ? (
-                  <div className={`p-16 text-center rounded-2xl border space-y-3 ${isDarkTheme ? "bg-[#0E131C] border-[#1B222D]" : "bg-[#f7f3ee] border-[#e8dfd3]"}`}>
-                    <Search className={`size-8 mx-auto ${isDarkTheme ? "text-white/30" : "text-[#6f736f]"}`} />
-                    <p className={`text-sm font-semibold ${marketTheme.strongText}`}>No digital editions found</p>
-                    <p className={`text-xs ${marketTheme.mutedText}`}>
-                      Try clearing filters or searching for another camera model or artist.
-                    </p>
-                    <button
+                      type="button"
                       onClick={() => {
                         setSelectedCategory("all");
                         setSelectedChain("all");
-                        setSearchQuery("");
                       }}
-                      className="px-4 py-2 bg-[#1e4a3f] text-[#f7faf8] text-xs rounded-xl font-bold hover:bg-[#163d35] transition"
+                      className={`${primaryButtonClass} h-10 px-5 text-sm`}
                     >
-                      Reset All Filters
+                      Reset filters
                     </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {filteredEditions.map((item) => {
-                      const isSoldOut = item.availableEditions === 0;
-                      return (
-                        <div
-                          key={item.id}
-                          className={`group rounded-2xl overflow-hidden border transition duration-300 flex flex-col shadow-sm relative ${isDarkTheme ? "bg-[#0d1319] border-[#1a232d] hover:border-[#1f8fff]" : "bg-[#fffdfb] border-[#e7dfd4] hover:border-[#1e4a3f]/50"}`}
-                        >
-                          {/* Image Container */}
-                          <div className={`relative aspect-[4/3] overflow-hidden ${isDarkTheme ? "bg-black/40" : "bg-[#efe7df]"}`}>
-                            <Link to={`/editions/${item.id}`} className="block size-full">
-                              <img
-                                src={item.image}
-                                alt={item.title}
-                                className="size-full object-cover transition duration-500 group-hover:scale-105 cursor-pointer"
-                              />
-                            </Link>
-
-                            {/* Scarcity / Serial Badge */}
-                            <div className="absolute top-3 left-3 flex gap-1.5">
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md backdrop-blur-md text-[10px] font-mono uppercase font-semibold border ${isDarkTheme ? "bg-black/70 text-[#d4af37] border-white/15" : "bg-white/80 text-[#1e4a3f] border-[#dfe9e3]"}`}>
-                                {item.tier === "genesis_1_of_1"
-                                  ? "Genesis 1/1"
-                                  : `${item.availableEditions}/${item.totalEditions} Available`}
-                              </span>
-                            </div>
-
-                            {item.hasPhysicalTwin && (
-                              <div className="absolute top-3 right-3">
-                                <span className={`px-2 py-0.5 rounded backdrop-blur text-[10px] font-mono border ${isDarkTheme ? "bg-black/70 text-white/90 border-white/10" : "bg-white/75 text-[#1b1b1a] border-[#e3d9cd]"}`}>
-                                  + Print Twin
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Hover Quick Action Buttons */}
-                            <div className={`absolute inset-0 ${isDarkTheme ? "bg-[#070b10]/55" : "bg-[#1b1b1a]/25"} backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-4`}>
-                              <button
-                                onClick={() => handlePurchase(item)}
-                                disabled={isSoldOut}
-                                className={`px-4 py-2.5 rounded-xl font-medium text-xs font-mono transition shadow-lg ${
-                                  isSoldOut
-                                    ? isDarkTheme
-                                      ? "bg-white/10 text-white/40 cursor-not-allowed"
-                                      : "bg-[#e6ece9] text-[#6f7a76] cursor-not-allowed"
-                                    : "bg-[#1f8fff] text-white hover:bg-[#1977d6] font-bold"
-                                }`}
-                              >
-                                {isSoldOut ? "Sold Out" : "Instant Collect"}
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  const sampleOwnership = getStoredOwnerships().find(
-                                    (o) => o.editionId === item.id,
-                                  ) || {
-                                    id: `coa-${item.id}`,
-                                    editionId: item.id,
-                                    serialNumber: 1,
-                                    serialDisplay:
-                                      item.tier === "genesis_1_of_1"
-                                        ? "#01 / 01"
-                                        : `#01 / ${item.totalEditions}`,
-                                    ownerId: item.photographerId,
-                                    ownerName: item.photographerName,
-                                    acquiredAt: item.mintedAt,
-                                    purchasePriceGbp: item.priceGbp,
-                                    purchaseCurrency: "ETH",
-                                    certificateNumber: `COA-${item.tokenId.replace("NSC-", "")}-01`,
-                                    isListedForResale: false,
-                                  };
-                                  setActiveCertData({
-                                    edition: item,
-                                    ownership: sampleOwnership,
-                                  });
-                                }}
-                                className={`px-3.5 py-2.5 rounded-xl font-medium text-xs font-mono border transition ${isDarkTheme ? "bg-white/20 text-white hover:bg-white/30 border-white/20" : "bg-[#f4efe8] text-[#1b1b1a] hover:bg-[#efe5da] border-[#e3d9cd]"}`}
-                                title="Inspect Archival COA"
-                              >
-                                <Eye className="size-4" />
-                              </button>
-
-                              <Link
-                                to={`/editions/${item.id}`}
-                                className={`px-3.5 py-2.5 rounded-xl font-medium text-xs font-mono border transition flex items-center justify-center ${isDarkTheme ? "bg-white/20 text-white hover:bg-white/30 border-white/20" : "bg-[#f4efe8] text-[#1b1b1a] hover:bg-[#efe5da] border-[#e3d9cd]"}`}
-                                title="View NFT Picture Details"
-                              >
-                                <ExternalLink className="size-4" />
-                              </Link>
-                            </div>
-                          </div>
-
-                          {/* Card Body */}
-                          <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                            <div>
-                              <div className={`flex items-center justify-between text-[11px] font-mono mb-1 ${isDarkTheme ? "text-white/50" : "text-[#5f6662]"}`}>
-                                <span className="truncate">{item.tokenId}</span>
-                                <span>{item.yearCreated}</span>
-                              </div>
-
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <span className={`text-xs truncate ${isDarkTheme ? "text-white/70" : "text-[#3f4d49]"}`}>
-                                  {item.photographerName}
-                                </span>
-                                <span className="size-3 rounded-full bg-[#1f8fff] flex items-center justify-center text-white font-bold text-[7px]">
-                                  ✓
-                                </span>
-                              </div>
-
-                              <Link to={`/editions/${item.id}`}>
-                                <h3 className={`font-serif text-base font-medium transition truncate hover:underline ${isDarkTheme ? "text-white group-hover:text-[#10B981]" : "text-[#1b1b1a] group-hover:text-[#1e4a3f]"}`}>
-                                  {item.title}
-                                </h3>
-                              </Link>
-                            </div>
-
-                            {/* Camera & Lens */}
-                            <div className={`py-1.5 px-2.5 rounded-lg border text-[10px] font-mono flex items-center justify-between ${isDarkTheme ? "bg-white/5 border-white/5 text-white/60" : "bg-[#f5efe9] border-[#e7dfd4] text-[#475651]"}`}>
-                              <span className="truncate">{item.camera}</span>
-                              <span className="shrink-0">{item.lens}</span>
-                            </div>
-
-                            {/* Pricing & Footer */}
-                            <div className={`pt-2 border-t flex items-center justify-between ${isDarkTheme ? "border-[#1E2738]" : "border-[#e7dfd4]"}`}>
-                              <div>
-                                <span className={`text-[9px] font-mono uppercase tracking-wider block ${isDarkTheme ? "text-white/50" : "text-[#5f6662]"}`}>
-                                  Price
-                                </span>
-                                <span className={`font-mono text-sm font-bold ${isDarkTheme ? "text-white" : "text-[#1b1b1a]"}`}>
-                                  {currencyMode === "crypto"
-                                    ? `${item.priceEth} ETH`
-                                    : `£${item.priceGbp.toLocaleString("en-GB")}`}
-                                </span>
-                              </div>
-
-                              <div className="text-right">
-                                <span className={`text-[9px] font-mono uppercase tracking-wider block ${isDarkTheme ? "text-white/50" : "text-[#5f6662]"}`}>
-                                  Secondary Royalty
-                                </span>
-                                <span className="font-mono text-xs text-[#1f8fff]">
-                                  {item.royaltyPercent}% to Artist
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* ======================================================== */}
-            {/* RIGHT 25%: TOP COLLECTIONS LEADERBOARD                   */}
-            {/* ======================================================== */}
-            <div className="col-span-12 xl:col-span-3 space-y-4">
-              <div className={`sticky top-20 border rounded-2xl p-4 shadow-sm space-y-4 ${isDarkTheme ? "bg-[#0E131C] border-[#1E2738]" : "bg-[#fbfaf7] border-[#e7dfd4]"}`}>
-                {/* Header Switcher: [ NFTs ] [ Collections ] */}
-                <div className={`flex items-center justify-between border-b pb-3 ${isDarkTheme ? "border-[#1E2738]" : "border-[#e7dfd4]"}`}>
-                  <div className={`flex items-center p-1 rounded-xl border ${isDarkTheme ? "bg-[#121722] border-[#222B3A]" : "bg-[#f4efe8] border-[#e7dfd4]"}`}>
-                    <button
-                      onClick={() => setActiveLeaderboardTab("nfts")}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                        activeLeaderboardTab === "nfts"
-                          ? "bg-[#1e4a3f] text-[#f7faf8] font-bold"
-                          : isDarkTheme
-                            ? "text-white/60 hover:text-white"
-                            : "text-[#5f6662] hover:text-[#1b1b1a]"
-                      }`}
-                    >
-                      NFTs
-                    </button>
-                    <button
-                      onClick={() => setActiveLeaderboardTab("collections")}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                        activeLeaderboardTab === "collections"
-                          ? "bg-[#1e4a3f] text-[#f7faf8] font-bold"
-                          : isDarkTheme
-                            ? "text-white/60 hover:text-white"
-                            : "text-[#5f6662] hover:text-[#1b1b1a]"
-                      }`}
-                    >
-                      Collections
-                    </button>
-                  </div>
-
-                  {/* Timeframe selector: 1h / 6h / 24h / 7d */}
-                  <div className={`flex items-center gap-1 font-mono text-[10px] ${isDarkTheme ? "text-white/60" : "text-[#5f6662]"}`}>
-                    {(["1h", "6h", "24h", "7d"] as const).map((tf) => (
-                      <button
-                        key={tf}
-                        onClick={() => setActiveTimeframe(tf)}
-                        className={`px-1.5 py-0.5 rounded transition ${
-                          activeTimeframe === tf
-                            ? isDarkTheme
-                              ? "bg-white/20 text-white font-bold"
-                              : "bg-[#e8f0ed] text-[#1e4a3f] font-bold"
-                            : isDarkTheme
-                              ? "text-white/40 hover:text-white"
-                              : "text-[#7e827f] hover:text-[#1b1b1a]"
-                        }`}
-                      >
-                        {tf}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Table Header */}
-                <div className={`flex items-center justify-between text-[10px] font-mono uppercase tracking-wider px-1 ${isDarkTheme ? "text-white/50" : "text-[#5f6662]"}`}>
-                  <span>COLLECTION</span>
-                  <span>FLOOR / 24H</span>
-                </div>
-
-                {/* Ranked List */}
-                <div className="space-y-1">
-                  {leaderboardItems.map((col) => (
-                    <Link
-                      key={col.rank}
-                      to={`/editions/collection/${col.id}`}
-                      className={`p-2 rounded-xl transition cursor-pointer flex items-center justify-between group ${isDarkTheme ? "hover:bg-[#141C29]" : "hover:bg-[#f4efe8]"}`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className={`font-mono text-xs w-4 text-center ${isDarkTheme ? "text-white/40" : "text-[#7a807d]"}`}>
-                          {col.rank}
-                        </span>
-                        <img
-                          src={col.image}
-                          alt={col.title}
-                          className={`size-8 rounded-lg object-cover border shrink-0 ${isDarkTheme ? "border-white/10" : "border-[#e7dfd4]"}`}
-                        />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1">
-                            <span className={`text-xs font-semibold truncate transition ${isDarkTheme ? "text-white group-hover:text-[#10B981]" : "text-[#1b1b1a] group-hover:text-[#1e4a3f]"}`}>
-                              {col.title}
-                            </span>
-                            <span className="size-3 rounded-full bg-[#1e4a3f] flex items-center justify-center text-white font-bold text-[7px] shrink-0">
-                              ✓
-                            </span>
-                          </div>
-                          <span className={`text-[10px] block truncate ${isDarkTheme ? "text-white/40" : "text-[#5f6662]"}`}>
-                            {col.artist}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="text-right font-mono shrink-0 ml-2">
-                        <span className={`text-xs font-bold block ${isDarkTheme ? "text-white" : "text-[#1b1b1a]"}`}>
-                          {currencyMode === "crypto" ? col.floorEth : col.floorUsd}
-                        </span>
-                        <span className="text-[10px] text-[#1e4a3f] font-semibold block">
-                          {col.change}
-                        </span>
-                      </div>
-                    </Link>
+                  }
+                />
+              ) : (
+                <div className="grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                  {filteredEditions.map((item) => (
+                    <EditionCard
+                      key={item.id}
+                      edition={item}
+                      currency={currencyMode}
+                      onBuy={setSelectedEditionForPurchase}
+                      onInspectCertificate={openCertificate}
+                    />
                   ))}
                 </div>
-
-                {/* Promotion Card */}
-                <div className={`pt-3 border-t space-y-2 ${isDarkTheme ? "border-[#1E2738]" : "border-[#e7dfd4]"}`}>
-                  <div className={`p-3 rounded-xl border bg-gradient-to-r space-y-1 ${isDarkTheme ? "from-[#10B981]/15 to-transparent border-[#10B981]/30" : "from-[#eaf2ef] to-transparent border-[#d5e4de]"}`}>
-                    <div className={`flex items-center gap-1.5 text-xs font-bold ${isDarkTheme ? "text-white" : "text-[#1b1b1a]"}`}>
-                      <Flame className="size-3.5 text-[#1e4a3f]" />
-                      <span>NS CAPTURES Collector Terminal</span>
-                    </div>
-                    <p className={`text-[11px] leading-relaxed ${isDarkTheme ? "text-white/70" : "text-[#4d5855]"}`}>
-                      Archival museum provenance, cryptographic certificates of authenticity, and instant on-chain multi-token settlement.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              )}
+            </>
+          ) : (
+            <ActivityTable activities={activity} editions={editions} />
+          )}
+        </motion.section>
+      </main>
 
       {/* ============================================================ */}
-      {/* 4. BOTTOM STICKY LIVE STATUS BAR                             */}
-      {/* ============================================================ */}
-      <footer className={`${marketTheme.panel} h-9 border-t px-4 flex items-center justify-between text-[11px] font-mono ${marketTheme.mutedText} fixed bottom-0 left-0 right-0 z-30`}>
-        {/* Left Status Indicators */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-[#10B981] animate-pulse" />
-            <span className="text-white/80 font-medium">Live</span>
-          </div>
-
-          <span className="hidden sm:inline text-white/20">|</span>
-
-          <div className="hidden sm:flex items-center gap-1 text-white/70">
-            <Sparkles className="size-3 text-[#10B981]" />
-            <span>NS CAPTURES Provenance Engine • Base & Solana</span>
-          </div>
-
-          <span className="hidden md:inline text-white/20">|</span>
-
-          <Link
-            to="/legal"
-            className="hidden md:inline hover:text-white transition"
-          >
-            Terms & Privacy
-          </Link>
-        </div>
-
-        {/* Right Status Controls */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          {/* Gas Price Tracker */}
-          <div className="flex items-center gap-1.5 text-white/80">
-            <Fuel className="size-3 text-[#10B981]" />
-            <span>$2,519.15 (15 Gwei)</span>
-          </div>
-
-          <span className="text-white/20">|</span>
-
-          {/* Mode Switch: Collector / Pro */}
-          <button
-            onClick={() => {
-              setProMode(!proMode);
-              toast.success(`Switched to ${!proMode ? "Pro Trader" : "Collector"} mode`);
-            }}
-            className="flex items-center gap-1 hover:text-white transition"
-          >
-            <span className="text-white/40">Mode:</span>
-            <span className={proMode ? "text-[#10B981] font-bold" : "text-white"}>
-              {proMode ? "Pro" : "Collector"}
-            </span>
-          </button>
-
-          <span className="hidden sm:inline text-white/20">|</span>
-
-          {/* Currency Switcher */}
-          <button
-            onClick={() => setCurrencyMode(currencyMode === "crypto" ? "usd" : "crypto")}
-            className="hidden sm:inline hover:text-white transition uppercase font-semibold text-white/90"
-          >
-            {currencyMode === "crypto" ? "Crypto" : "USD / GBP"}
-          </button>
-        </div>
-      </footer>
-
-      {/* ============================================================ */}
-      {/* 5. INTERACTIVE ACQUISITION MODAL (Checkout)                  */}
+      {/* ACQUISITION MODAL                                            */}
       {/* ============================================================ */}
       {selectedEditionForPurchase && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-[#121722] border border-[#232D3F] rounded-2xl text-white p-6 sm:p-8 space-y-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div>
-                <span className="text-[10px] font-mono uppercase text-[#d4af37] tracking-widest font-semibold">
-                  CONFIRM ART ACQUISITION
-                </span>
-                <h3 className="font-serif text-xl text-white mt-0.5">
-                  {selectedEditionForPurchase.title}
-                </h3>
-              </div>
+        <EditionsModal
+          eyebrow="Confirm acquisition"
+          title={selectedEditionForPurchase.title}
+          onClose={() => setSelectedEditionForPurchase(null)}
+          footer={
+            <>
               <button
+                type="button"
                 onClick={() => setSelectedEditionForPurchase(null)}
-                className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition"
+                className={`${secondaryButtonClass} h-10 px-5 text-sm`}
               >
-                <X className="size-4" />
+                Cancel
               </button>
-            </div>
-
-            {/* Overview */}
-            <div className="flex gap-4 items-center p-3.5 bg-white/5 rounded-xl border border-white/10">
+              <button
+                type="button"
+                onClick={confirmPurchase}
+                disabled={purchasing}
+                className={`${primaryButtonClass} h-10 px-5 text-sm`}
+              >
+                {purchasing ? "Issuing certificate…" : "Confirm & issue COA"}
+              </button>
+            </>
+          }
+        >
+          <div className="flex flex-col gap-5">
+            <div className="flex items-center gap-4 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-3">
               <img
                 src={selectedEditionForPurchase.image}
-                alt={selectedEditionForPurchase.title}
-                className="size-16 object-cover rounded-lg"
+                alt=""
+                className="size-16 shrink-0 rounded object-cover"
               />
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <p className="font-serif text-sm font-semibold text-white truncate">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-(--ed-text)">
                   {selectedEditionForPurchase.title}
                 </p>
-                <p className="text-xs text-white/60">
+                <p className="text-sm text-(--ed-muted)">
                   By {selectedEditionForPurchase.photographerName}
                 </p>
-                <span className="text-[10px] font-mono text-[#d4af37] block">
-                  Next Serial: #
+                <p className="pt-1 font-mono text-xs text-(--ed-text)">
+                  Next serial #
                   {String(
                     selectedEditionForPurchase.totalEditions -
                       selectedEditionForPurchase.availableEditions +
                       1,
                   ).padStart(2, "0")}{" "}
                   / {selectedEditionForPurchase.totalEditions}
-                </span>
+                </p>
               </div>
             </div>
 
-            {/* Currency Selector */}
-            <div className="space-y-2">
-              <label className="text-xs font-mono uppercase tracking-wider text-white/70 block">
-                Settlement Currency
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {(["ETH", "SOL", "USDT", "GBP"] as const).map((curr) => (
-                  <button
-                    key={curr}
-                    onClick={() => setPaymentCurrency(curr)}
-                    className={`py-2 rounded-lg text-xs font-mono transition border ${
-                      paymentCurrency === curr
-                        ? "bg-[#10B981] text-[#080B10] font-bold border-[#10B981]"
-                        : "bg-white/5 text-white/80 border-white/10 hover:border-white/30"
-                    }`}
-                  >
-                    {curr}
-                  </button>
-                ))}
-              </div>
+            <div className="flex flex-col gap-2">
+              <span className={monoLabelClass}>Settlement currency</span>
+              <SegmentedControl
+                label="Settlement currency"
+                fullWidth
+                options={PAYMENT_CURRENCIES}
+                value={paymentCurrency}
+                onChange={setPaymentCurrency}
+              />
             </div>
 
-            {/* Pricing Breakdown */}
-            <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-2 text-xs font-mono">
-              <div className="flex justify-between text-white/70">
-                <span>Master Artwork Price:</span>
-                <span>£{selectedEditionForPurchase.priceGbp.toFixed(2)}</span>
+            <dl className="flex flex-col gap-2 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-4 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-(--ed-muted)">Artwork price</dt>
+                <dd className="font-mono text-(--ed-text)">
+                  £{selectedEditionForPurchase.priceGbp.toFixed(2)}
+                </dd>
               </div>
-              <div className="flex justify-between text-white/70">
-                <span>Platform Mint & Certification:</span>
-                <span className="text-[#10B981]">INCLUDED (£0.00)</span>
+              <div className="flex justify-between gap-4">
+                <dt className="text-(--ed-muted)">Mint & certification</dt>
+                <dd className="font-mono text-(--ed-positive)">Included</dd>
               </div>
-              <div className="flex justify-between text-white/70">
-                <span>Secondary Creator Royalty (10%):</span>
-                <span>£{(selectedEditionForPurchase.priceGbp * 0.1).toFixed(2)}</span>
+              <div className="flex justify-between gap-4">
+                <dt className="text-(--ed-muted)">
+                  Creator royalty ({selectedEditionForPurchase.royaltyPercent}%)
+                </dt>
+                <dd className="font-mono text-(--ed-text)">
+                  £
+                  {(
+                    selectedEditionForPurchase.priceGbp *
+                    (selectedEditionForPurchase.royaltyPercent / 100)
+                  ).toFixed(2)}
+                </dd>
               </div>
-              <div className="pt-2 border-t border-white/10 flex justify-between font-bold text-sm text-white">
-                <span>Total Due:</span>
-                <span className="text-[#d4af37]">
+              <div className="mt-1 flex justify-between gap-4 border-t border-(--ed-border) pt-3 font-medium">
+                <dt className="text-(--ed-text)">Total due</dt>
+                <dd className="font-mono text-(--ed-text)">
                   {paymentCurrency === "ETH" && `${selectedEditionForPurchase.priceEth} ETH`}
                   {paymentCurrency === "SOL" && `${selectedEditionForPurchase.priceSol} SOL`}
                   {paymentCurrency === "USDT" &&
                     `${(selectedEditionForPurchase.priceGbp * 1.28).toFixed(2)} USDT`}
-                  {paymentCurrency === "GBP" &&
-                    `£${selectedEditionForPurchase.priceGbp.toLocaleString("en-GB")}`}
-                </span>
+                  {paymentCurrency === "GBP" && formatGbp(selectedEditionForPurchase.priceGbp)}
+                </dd>
               </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setSelectedEditionForPurchase(null)}
-                className="flex-1 py-3 rounded-xl text-xs font-mono text-white/70 hover:text-white bg-white/5 hover:bg-white/10 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmPurchase}
-                disabled={purchasing}
-                className="flex-1 py-3 rounded-xl text-xs font-mono font-bold bg-[#10B981] text-[#080B10] hover:bg-[#059669] transition shadow-lg"
-              >
-                {purchasing ? "Issuing Provenance..." : "Confirm & Issue COA"}
-              </button>
-            </div>
+            </dl>
           </div>
-        </div>
+        </EditionsModal>
       )}
 
       {/* ============================================================ */}
-      {/* 6. CRYPTO DEPOSIT MODAL (For funding Web3 Vault)             */}
+      {/* CRYPTO DEPOSIT MODAL (real vault wallets only)               */}
       {/* ============================================================ */}
-      {isDepositModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-[#121722] border border-[#232D3F] rounded-2xl text-white p-6 space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div>
-                <span className="text-[10px] font-mono uppercase text-[#10B981] tracking-widest font-semibold">
-                  WEB3 VAULT DEPOSIT
-                </span>
-                <h3 className="font-sans text-lg text-white font-bold mt-0.5">
-                  Fund Collector Vault
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsDepositModalOpen(false)}
-                className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            {/* Network Selector Tabs */}
-            <div className="grid grid-cols-4 gap-2">
-              {(["ETH", "SOL", "USDT", "BTC"] as const).map((coin) => (
-                <button
-                  key={coin}
-                  onClick={() => setActiveDepositCoin(coin)}
-                  className={`py-2 rounded-xl text-xs font-mono font-semibold transition border ${
-                    activeDepositCoin === coin
-                      ? "bg-[#10B981] text-[#080B10] border-[#10B981]"
-                      : "bg-white/5 text-white/70 border-white/10 hover:border-white/30"
-                  }`}
-                >
-                  {coin}
-                </button>
-              ))}
-            </div>
-
-            {/* QR Code and Address */}
-            {(() => {
-              const depositTargetAddress =
-                activeDepositCoin === "SOL"
-                  ? solanaWallet.address
-                  : activeDepositCoin === "BTC"
-                    ? "bc1q9f538e12a8497cb9e2a1b9f481c4e90264b9401"
-                    : evmWallet.address;
-
-              const qrSvg = generateQrSvg(depositTargetAddress, {
-                margin: 2,
-                fgColor: "#FFFFFF",
-                bgColor: "#161D2B",
-              });
-
-              return (
-                <div className="space-y-4">
-                  <div className="flex justify-center p-4 bg-[#161D2B] rounded-2xl border border-white/10">
-                    <div
-                      className="size-44 [&>svg]:size-full"
-                      dangerouslySetInnerHTML={{ __html: qrSvg }}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-mono uppercase text-white/50">
-                      Deposit Address ({activeDepositCoin})
-                    </span>
-                    <div className="p-3 bg-white/5 border border-white/10 rounded-xl font-mono text-xs break-all text-white/90 flex items-center justify-between gap-2">
-                      <span>{depositTargetAddress}</span>
-                      <button
-                        onClick={() => handleCopy(depositTargetAddress, `${activeDepositCoin} Address`)}
-                        className="p-1 text-white/60 hover:text-white transition shrink-0"
-                      >
-                        {copiedAddress === depositTargetAddress ? (
-                          <Check className="size-4 text-[#10B981]" />
-                        ) : (
-                          <Copy className="size-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <p className="text-[11px] text-white/60 leading-relaxed font-mono">
-                    • Send only {activeDepositCoin} to this address.
-                    <br />• Deposits automatically credit your Web3 vault balance upon on-chain confirmation.
-                  </p>
-                </div>
-              );
-            })()}
-
+      {isDepositModalOpen && activeDepositWallet && (
+        <EditionsModal
+          eyebrow="Web3 vault deposit"
+          title="Fund collector vault"
+          onClose={() => setIsDepositModalOpen(false)}
+          footer={
             <button
+              type="button"
               onClick={() => {
                 setIsDepositModalOpen(false);
                 navigate("/account?tab=vault");
               }}
-              className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-mono font-medium transition flex items-center justify-center gap-2"
+              className={`${secondaryButtonClass} h-10 px-5 text-sm`}
             >
-              <span>Open Settlement Vault Tab</span>
+              Open settlement vault
               <ArrowUpRight className="size-4" />
             </button>
+          }
+        >
+          <div className="flex flex-col gap-4">
+            {wallets.length > 1 && (
+              <SegmentedControl
+                label="Deposit wallet"
+                fullWidth
+                options={wallets.map((wallet, idx) => ({
+                  id: String(idx),
+                  label:
+                    wallets.filter((w) => w.coin === wallet.coin).length > 1
+                      ? `${wallet.coin} · ${wallet.network}`
+                      : wallet.coin,
+                }))}
+                value={String(depositWalletIndex)}
+                onChange={(value) => setDepositWalletIndex(Number(value))}
+              />
+            )}
+
+            <div className="flex justify-center rounded-lg border border-(--ed-border) bg-(--ed-bg) p-4">
+              <div
+                className="size-44 [&>svg]:size-full"
+                dangerouslySetInnerHTML={{
+                  __html: generateQrSvg(activeDepositWallet.address, {
+                    margin: 2,
+                    fgColor: theme === "dark" ? "#FFFFFF" : "#141415",
+                    bgColor: theme === "dark" ? "#101011" : "#F5F5F6",
+                  }),
+                }}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <span className={monoLabelClass}>
+                Deposit address · {activeDepositWallet.coin} ({activeDepositWallet.network})
+              </span>
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-3 font-mono text-xs text-(--ed-text)">
+                <span className="break-all">{activeDepositWallet.address}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopy(activeDepositWallet.address, `${activeDepositWallet.coin} address`)
+                  }
+                  aria-label="Copy deposit address"
+                  className="shrink-0 text-(--ed-muted) transition-colors hover:text-(--ed-text)"
+                >
+                  <Copy className="size-4" />
+                </button>
+              </div>
+            </div>
+
+            <p className="text-sm leading-6 text-(--ed-muted)">
+              Send only {activeDepositWallet.coin} on {activeDepositWallet.network} to this address.
+              Deposits credit your vault after on-chain confirmation.
+            </p>
           </div>
-        </div>
+        </EditionsModal>
       )}
 
-      {/* ============================================================ */}
-      {/* 7. MINT EDITION MODAL (Anchor Trigger)                       */}
-      {/* ============================================================ */}
       {isMintModalOpen && (
         <MintEditionModal
           photo={demoMintPhoto}
           onClose={() => setIsMintModalOpen(false)}
           onSuccess={(newEdition) => {
             setEditions(getStoredEditions());
+            setActivity(getStoredActivity());
             setIsMintModalOpen(false);
             toast.success(`Successfully minted: ${newEdition.title}`);
           }}
         />
       )}
 
-      {/* ============================================================ */}
-      {/* 8. ARCHIVAL CERTIFICATE OF AUTHENTICITY VIEWER MODAL         */}
-      {/* ============================================================ */}
       {activeCertData && (
         <CertificateOfAuthenticityModal
           edition={activeCertData.edition}
@@ -1904,6 +1142,6 @@ export function Editions() {
           onClose={() => setActiveCertData(null)}
         />
       )}
-    </div>
+    </EditionsShell>
   );
 }
