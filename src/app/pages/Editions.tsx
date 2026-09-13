@@ -1121,9 +1121,11 @@ export function Editions() {
                             <span>By {activeHero.photographerName}</span>
                             <span className="size-3.5 rounded-full bg-[#1f8fff] text-[8px] font-bold text-white flex items-center justify-center">✓</span>
                           </div>
-                          <h1 className="font-serif text-2xl sm:text-4xl text-white leading-tight mb-2 max-w-md">
-                            {activeHero.title}
-                          </h1>
+                          <Link to={`/editions/${activeHero.id}`}>
+                            <h1 className="font-serif text-2xl sm:text-4xl text-white leading-tight mb-2 max-w-md hover:text-[#80d0ff] transition cursor-pointer">
+                              {activeHero.title}
+                            </h1>
+                          </Link>
                           <p className="max-w-lg text-[12px] sm:text-sm text-[#dfeaf5]/70 font-serif leading-relaxed">
                             {activeHero.description}
                           </p>
@@ -1154,17 +1156,26 @@ export function Editions() {
                           </div>
                         </div>
 
-                        <button
-                          onClick={() => handlePurchase(activeHero)}
-                          disabled={activeHero.availableEditions === 0}
-                          className={`w-full mt-2 px-4 py-2.5 rounded-xl text-xs font-semibold font-mono transition ${
-                            activeHero.availableEditions === 0
-                              ? "bg-white/10 text-white/40 cursor-not-allowed"
-                              : "bg-[#1f8fff] text-white hover:bg-[#1977d6]"
-                          }`}
-                        >
-                          {activeHero.availableEditions === 0 ? "Sold Out" : "Acquire Edition"}
-                        </button>
+                        <div className="flex flex-col gap-2 mt-2">
+                          <button
+                            onClick={() => handlePurchase(activeHero)}
+                            disabled={activeHero.availableEditions === 0}
+                            className={`w-full px-4 py-2.5 rounded-xl text-xs font-semibold font-mono transition ${
+                              activeHero.availableEditions === 0
+                                ? "bg-white/10 text-white/40 cursor-not-allowed"
+                                : "bg-[#1f8fff] text-white hover:bg-[#1977d6]"
+                            }`}
+                          >
+                            {activeHero.availableEditions === 0 ? "Sold Out" : "Acquire Edition"}
+                          </button>
+                          <Link
+                            to={`/editions/${activeHero.id}`}
+                            className="w-full px-4 py-2 rounded-xl text-xs font-semibold font-mono text-center border border-[#23313d] bg-[#0d1319] text-[#dfeaf5] hover:bg-[#15202b] transition flex items-center justify-center gap-1.5"
+                          >
+                            <span>View Details & Provenance</span>
+                            <ChevronRight className="size-3.5" />
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1298,11 +1309,13 @@ export function Editions() {
                         >
                           {/* Image Container */}
                           <div className={`relative aspect-[4/3] overflow-hidden ${isDarkTheme ? "bg-black/40" : "bg-[#efe7df]"}`}>
-                            <img
-                              src={item.image}
-                              alt={item.title}
-                              className="size-full object-cover transition duration-500 group-hover:scale-105"
-                            />
+                            <Link to={`/editions/${item.id}`} className="block size-full">
+                              <img
+                                src={item.image}
+                                alt={item.title}
+                                className="size-full object-cover transition duration-500 group-hover:scale-105 cursor-pointer"
+                              />
+                            </Link>
 
                             {/* Scarcity / Serial Badge */}
                             <div className="absolute top-3 left-3 flex gap-1.5">
@@ -1367,6 +1380,14 @@ export function Editions() {
                               >
                                 <Eye className="size-4" />
                               </button>
+
+                              <Link
+                                to={`/editions/${item.id}`}
+                                className={`px-3.5 py-2.5 rounded-xl font-medium text-xs font-mono border transition flex items-center justify-center ${isDarkTheme ? "bg-white/20 text-white hover:bg-white/30 border-white/20" : "bg-[#f4efe8] text-[#1b1b1a] hover:bg-[#efe5da] border-[#e3d9cd]"}`}
+                                title="View NFT Picture Details"
+                              >
+                                <ExternalLink className="size-4" />
+                              </Link>
                             </div>
                           </div>
 
@@ -1387,9 +1408,11 @@ export function Editions() {
                                 </span>
                               </div>
 
-                              <h3 className={`font-serif text-base font-medium transition truncate ${isDarkTheme ? "text-white group-hover:text-[#10B981]" : "text-[#1b1b1a] group-hover:text-[#1e4a3f]"}`}>
-                                {item.title}
-                              </h3>
+                              <Link to={`/editions/${item.id}`}>
+                                <h3 className={`font-serif text-base font-medium transition truncate hover:underline ${isDarkTheme ? "text-white group-hover:text-[#10B981]" : "text-[#1b1b1a] group-hover:text-[#1e4a3f]"}`}>
+                                  {item.title}
+                                </h3>
+                              </Link>
                             </div>
 
                             {/* Camera & Lens */}

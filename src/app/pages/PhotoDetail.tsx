@@ -384,7 +384,7 @@ export function PhotoDetail() {
                   </p>
                 </div>
                 <Link
-                  to="/editions"
+                  to={`/editions/${matchingEdition.id}`}
                   className="inline-flex items-center gap-2 rounded-full bg-[#d4af37] px-5 py-3 text-sm font-semibold text-[#0d1714] transition hover:bg-[#e3c75c]"
                 >
                   Acquire edition
