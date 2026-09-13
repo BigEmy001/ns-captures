@@ -89,7 +89,10 @@ function Sparkline({
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <polygon fill={`url(#${gradId})`} points={`0,${height} ${points} ${width},${height}`} />
+      <polygon
+        fill={`url(#${gradId})`}
+        points={`0,${height} ${points} ${width},${height}`}
+      />
       <polyline
         fill="none"
         stroke={color}
@@ -102,14 +105,32 @@ function Sparkline({
   );
 }
 
-// OpenSea stylized ship / monogram logo
-function OpenSeaShipLogo({ className = "size-7" }: { className?: string }) {
+// Official NS CAPTURES Monogram Brand Badge
+function NsCapturesLogoBadge({ className = "size-9" }: { className?: string }) {
   return (
-    <div className={`relative flex items-center justify-center ${className}`}>
-      <svg viewBox="0 0 40 40" fill="none" className="size-full">
-        <rect width="40" height="40" rx="10" fill="#2081E2" />
-        <path d="M10 24L20 9L30 24H10Z" fill="white" fillOpacity="0.9" />
-        <path d="M13 25.5C15 28 25 28 27 25.5L25 31H15L13 25.5Z" fill="white" />
+    <div
+      className={`relative flex items-center justify-center rounded-xl bg-[#12241e] border border-[#10b981]/40 shadow-lg hover:border-[#10b981] transition group ${className}`}
+    >
+      <svg
+        viewBox="0 0 700 700"
+        className="size-6 shrink-0"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Main letters */}
+        <path
+          d="M408.602 226.458C416.585 225.749 432.633 226.199 441.109 226.203L502.536 226.264L511.721 270.435C489.584 270.727 467.246 270.05 445.222 270.43C423.021 270.812 397.602 266.65 380.618 284.038C367.723 297.071 368.086 316.828 380.126 330.203C396.255 348.115 416.803 345.815 438.706 345.628C449.198 345.538 459.617 345.597 470.044 347.47C509.261 354.515 542.696 387.258 542.954 428.725C543.269 449.967 534.874 470.402 519.721 485.289C496.189 508.636 471.278 510.902 440.311 510.845C390.118 511.257 366.933 508.853 334.869 466.507C375.449 466.088 415.932 466.927 456.665 466.298C490.568 465.773 513.019 427.5 485.842 402.315C464.568 382.593 430.456 392.903 404.094 389.041C365.61 383.412 330.24 353.352 326.393 313.257C324.466 292.947 330.828 272.721 344.046 257.175C360.747 237.129 383.328 228.872 408.602 226.458Z"
+          fill="#ffffff"
+        />
+        <path
+          d="M138.549 203.895C143.958 207.542 157.137 220.77 162.5 225.923L208.173 269.811L399.595 455.635C377.87 456.2 354.693 455.805 332.862 455.788L267.833 392.346C239.7 364.608 211.37 337.065 182.846 309.724C181.664 373.474 182.894 439.015 182.499 503.03C168.095 503.457 152.733 503.28 138.325 503.062L138.311 309.433C138.303 275.469 137.478 237.609 138.549 203.895Z"
+          fill="#ffffff"
+        />
+        {/* Trademark Dot */}
+        <path
+          d="M534.4 190.718C546.609 187.6 559.052 194.927 562.246 207.12C565.439 219.314 558.189 231.8 546.012 235.07C533.738 238.369 521.117 231.042 517.892 218.74C514.666 206.438 522.077 193.864 534.4 190.718Z"
+          fill="#5af2b3"
+        />
       </svg>
     </div>
   );
@@ -174,7 +195,7 @@ export function Editions() {
     };
   }, [user]);
 
-  // Derived user addresses for the OpenSea multi-wallet drawer
+  // Derived user addresses for the NS multi-wallet drawer
   const evmWallet = useMemo(() => {
     const found = vaultWallets.find(
       (w) => w.coin === "ETH" || w.network === "ERC20" || w.network === "Base",
@@ -264,7 +285,7 @@ export function Editions() {
     });
   }, [editions, selectedCategory, selectedChain, searchQuery]);
 
-  // Trending tokens / editions mock with live sparklines
+  // Trending drops with live sparklines
   const trendingDrops = useMemo(
     () => [
       {
@@ -451,30 +472,30 @@ export function Editions() {
   }, [user]);
 
   return (
-    <div className="min-h-screen bg-[#080B10] text-[#E5E8EB] flex flex-col selection:bg-[#2081E2] selection:text-white font-sans antialiased">
+    <div className="min-h-screen bg-[#0b0b0a] text-[#f3efe8] flex flex-col selection:bg-[#d9b57a] selection:text-[#141210] font-sans antialiased">
       {/* App Shell: Left Slim Rail + Main Workspace */}
       <div className="flex flex-1 relative overflow-x-hidden">
         {/* ============================================================ */}
-        {/* 1. LEFT SLIM NAVIGATION RAIL (OpenSea Desktop Icon Rail)     */}
+        {/* 1. LEFT SLIM NAVIGATION RAIL (Luxury Collector Console)     */}
         {/* ============================================================ */}
-        <aside className="w-16 shrink-0 bg-[#0A0D14] border-r border-[#1B222D] flex flex-col items-center justify-between py-3.5 z-40 sticky top-0 h-screen">
-          {/* Top Rail: Brand Icon + Primary Navigation */}
+        <aside className="w-16 shrink-0 bg-[#11100f] border-r border-[#2a2722] flex flex-col items-center justify-between py-3.5 z-40 sticky top-0 h-screen">
+          {/* Top Rail: Official NS Monogram + Primary Navigation */}
           <div className="flex flex-col items-center gap-4 w-full">
-            {/* OpenSea Style App Logo */}
+            {/* NS CAPTURES Official Monogram Icon */}
             <Link
               to="/editions"
               className="p-1 rounded-xl transition hover:scale-105 active:scale-95 group relative"
-              title="NS Editions Marketplace"
+              title="NS CAPTURES Digital Editions"
             >
-              <OpenSeaShipLogo className="size-9" />
-              <span className="absolute left-16 ml-2 px-2 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                NS Editions Home
+              <NsCapturesLogoBadge className="size-10" />
+              <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#12241e] border border-[#10b981]/40 text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
+                NS CAPTURES Editions
               </span>
             </Link>
 
             <div className="w-8 h-[1px] bg-[#1F2633]" />
 
-            {/* Navigation Icons with OpenSea-style active indicators */}
+            {/* Navigation Icons with NS Emerald Active Indicators */}
             <nav className="flex flex-col items-center gap-1.5 w-full">
               {/* Discover / Explore */}
               <button
@@ -485,14 +506,14 @@ export function Editions() {
                 }}
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition group relative ${
                   selectedCategory === "all"
-                    ? "bg-[#2081E2]/20 text-[#2081E2] border border-[#2081E2]/40"
+                    ? "bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40"
                     : "text-white/60 hover:text-white hover:bg-white/5"
                 }`}
                 title="Discover Editions"
               >
                 <Compass className="size-5" />
                 <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  Discover
+                  Discover All Works
                 </span>
               </button>
 
@@ -501,14 +522,14 @@ export function Editions() {
                 onClick={() => setSelectedCategory("series")}
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition group relative ${
                   selectedCategory === "series"
-                    ? "bg-[#2081E2]/20 text-[#2081E2] border border-[#2081E2]/40"
+                    ? "bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40"
                     : "text-white/60 hover:text-white hover:bg-white/5"
                 }`}
-                title="Curated Series"
+                title="Numbered Series"
               >
                 <LayoutGrid className="size-5" />
                 <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  Series & Collections
+                  Numbered Series
                 </span>
               </button>
 
@@ -517,7 +538,7 @@ export function Editions() {
                 onClick={() => {
                   const acts = getStoredActivity();
                   toast.info(
-                    `Live Provenance Engine: ${acts.length} authenticated blockchain records on Base & Solana.`,
+                    `NS CAPTURES Provenance Engine: ${acts.length} verified records on Base & Solana.`,
                   );
                 }}
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition group relative"
@@ -525,30 +546,30 @@ export function Editions() {
               >
                 <Activity className="size-5" />
                 <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  Activity Feed
+                  Provenance Activity
                 </span>
               </button>
 
-              {/* Drops Calendar */}
+              {/* Genesis Drops Calendar */}
               <button
                 onClick={() => setSelectedCategory("genesis")}
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition group relative ${
                   selectedCategory === "genesis"
-                    ? "bg-[#2081E2]/20 text-[#2081E2] border border-[#2081E2]/40"
+                    ? "bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40"
                     : "text-white/60 hover:text-white hover:bg-white/5"
                 }`}
-                title="Genesis Drops"
+                title="Genesis 1/1 Drops"
               >
                 <Calendar className="size-5" />
                 <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  Genesis Drops
+                  Genesis 1 of 1s
                 </span>
               </button>
 
               {/* Mint / Create (Anchor) */}
               <button
                 onClick={() => setIsMintModalOpen(true)}
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-[#10B981] bg-[#10B981]/10 hover:bg-[#10B981]/20 border border-[#10B981]/30 transition group relative shadow-md"
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-[#10B981] bg-[#10B981]/15 hover:bg-[#10B981]/25 border border-[#10B981]/40 transition group relative shadow-md"
                 title="Mint Fine-Art Edition"
               >
                 <Anchor className="size-5" />
@@ -582,23 +603,23 @@ export function Editions() {
                   });
                 }}
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/5 transition group relative"
-                title="Inspect Archival COA"
+                title="Inspect Archival Certificate (COA)"
               >
                 <ShieldCheck className="size-5" />
                 <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
-                  Archival Certificates (COA)
+                  Certificates of Authenticity (COA)
                 </span>
               </button>
             </nav>
           </div>
 
-          {/* Bottom Rail: Back to Main Photography Gallery & Vault Account */}
+          {/* Bottom Rail: Back to Stock Photography & Vault Account */}
           <div className="flex flex-col items-center gap-3 w-full">
             {/* Return to Normal Photography Gallery */}
             <Link
               to="/search"
               className="w-10 h-10 rounded-xl flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition group relative border border-white/5"
-              title="Back to Photography Gallery"
+              title="Return to Stock Photography Gallery"
             >
               <ArrowLeft className="size-4" />
               <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
@@ -622,7 +643,7 @@ export function Editions() {
             <button
               onClick={() => toast.info("Collector terminal preferences saved.")}
               className="w-10 h-10 rounded-xl flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 transition group relative"
-              title="Settings"
+              title="Preferences"
             >
               <Settings className="size-4" />
               <span className="absolute left-16 ml-2 px-2.5 py-1 bg-[#1A222F] text-white text-[11px] font-medium rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50">
@@ -637,44 +658,44 @@ export function Editions() {
         {/* ============================================================ */}
         <div className="flex-1 flex flex-col min-w-0 pb-12">
           {/* ---------------------------------------------------------- */}
-          {/* TOP OPEN-SEA APP BAR                                       */}
+          {/* TOP APP BAR (NS CAPTURES Branded Navigation)               */}
           {/* ---------------------------------------------------------- */}
-          <header className="h-16 bg-[#0A0D14]/90 backdrop-blur-md border-b border-[#1B222D] px-4 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-30">
+          <header className="h-16 bg-[#12100f]/90 backdrop-blur-md border-b border-[#2a2722] px-4 sm:px-6 flex items-center justify-between gap-3 sticky top-0 z-30">
             {/* Search Input with Hotkey Shortcut '/' */}
             <div className="flex items-center gap-4 flex-1 max-w-xl">
               <div className="relative w-full">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-white/40" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[#d9b57a]/80" />
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search OpenSea / NS Editions"
-                  className="w-full pl-10 pr-10 py-2 bg-[#121722] hover:bg-[#161D2B] focus:bg-[#161D2B] border border-[#222B3A] focus:border-[#2081E2] rounded-xl text-xs text-white placeholder:text-white/40 focus:outline-none transition"
+                  placeholder="Search NS CAPTURES fine-art editions, artists, cameras..."
+                  className="w-full pl-10 pr-10 py-2 bg-[#191614] hover:bg-[#201d1a] focus:bg-[#201d1a] border border-[#3a332e] focus:border-[#d9b57a] rounded-xl text-xs text-[#f6f1ea] placeholder:text-[#d9b57a]/45 focus:outline-none transition"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded border border-white/20 text-[10px] text-white/50 font-mono">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded border border-[#d9b57a]/30 text-[10px] text-[#d9b57a] font-mono">
                   /
                 </span>
               </div>
             </div>
 
-            {/* Category Pills (OpenSea Horizontal Badges) */}
+            {/* Category Pills */}
             <div className="hidden lg:flex items-center gap-1.5 overflow-x-auto py-1">
               {[
-                { id: "all", label: "All" },
-                { id: "art", label: "Art" },
+                { id: "all", label: "All Works" },
+                { id: "art", label: "Fine Art" },
                 { id: "genesis", label: "Genesis 1/1" },
                 { id: "series", label: "Series" },
-                { id: "twin", label: "Physical" },
-                { id: "curator", label: "Spotlight" },
+                { id: "twin", label: "Physical Twin" },
+                { id: "curator", label: "Curator Spotlight" },
               ].map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setSelectedCategory(c.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium transition whitespace-nowrap ${
                     selectedCategory === c.id
-                      ? "bg-white text-[#0A0D14] font-semibold"
-                      : "bg-[#121722] text-white/70 hover:text-white hover:bg-[#1A2230] border border-[#222B3A]"
+                      ? "bg-[#d9b57a] text-[#171412] font-bold"
+                      : "bg-[#191614] text-[#efe6d8]/75 hover:text-[#f6f1ea] hover:bg-[#231f1b] border border-[#3a332e]"
                   }`}
                 >
                   {c.label}
@@ -683,7 +704,7 @@ export function Editions() {
             </div>
 
             {/* Multi-Chain Filter Selectors */}
-            <div className="hidden 2xl:flex items-center gap-1.5 pl-3 border-l border-[#1B222D]">
+            <div className="hidden 2xl:flex items-center gap-1.5 pl-3 border-l border-[#2a2722]">
               {[
                 { id: "all", label: "All", icon: "🌐" },
                 { id: "eth", label: "Ethereum", icon: "⟠" },
@@ -697,8 +718,8 @@ export function Editions() {
                   onClick={() => setSelectedChain(ch.id)}
                   className={`px-2.5 py-1 rounded-full text-xs font-mono transition flex items-center gap-1 ${
                     selectedChain === ch.id
-                      ? "bg-[#2081E2] text-white font-bold"
-                      : "bg-[#121722] text-white/60 hover:text-white border border-[#222B3A]"
+                      ? "bg-[#d9b57a] text-[#171412] font-bold"
+                      : "bg-[#191614] text-[#efe6d8]/60 hover:text-[#f6f1ea] border border-[#3a332e]"
                   }`}
                   title={ch.label}
                 >
@@ -713,50 +734,49 @@ export function Editions() {
               {/* Notification Bell */}
               <button
                 onClick={() => toast.info("No unread marketplace notifications.")}
-                className="size-9 rounded-xl flex items-center justify-center bg-[#121722] hover:bg-[#1A2230] border border-[#222B3A] text-white/60 hover:text-white transition relative"
+                className="size-9 rounded-xl flex items-center justify-center bg-[#191614] hover:bg-[#231f1b] border border-[#3a332e] text-[#efe6d8]/70 hover:text-[#f6f1ea] transition relative"
                 title="Notifications"
               >
                 <Bell className="size-4" />
-                <span className="absolute top-2 right-2 size-2 rounded-full bg-[#2081E2]" />
+                <span className="absolute top-2 right-2 size-2 rounded-full bg-[#d9b57a]" />
               </button>
 
               {/* Gas Tracker Pill */}
               <div
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#121722] border border-[#222B3A] text-xs font-mono text-white/80"
-                title="Current Ethereum / Base Gas Tracker"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#191614] border border-[#3a332e] text-xs font-mono text-[#efe6d8]/80"
+                title="Ethereum & Base Network Gas Tracker"
               >
-                <Fuel className="size-3.5 text-[#10B981]" />
+                <Fuel className="size-3.5 text-[#9ae0b7]" />
                 <span className="text-[11px]">15 Gwei</span>
               </div>
 
-              {/* Wallet Pill & Connected Avatar (Triggers OpenSea Multi-Wallet Flyout) */}
+              {/* Wallet Pill & Connected Avatar */}
               <div className="relative">
                 <button
                   onClick={() => setIsWalletFlyoutOpen(!isWalletFlyoutOpen)}
-                  className="flex items-center gap-2 pl-3 pr-2 py-1.5 bg-[#121722] hover:bg-[#1A2230] border border-[#222B3A] rounded-xl transition shadow-sm"
+                  className="flex items-center gap-2 pl-3 pr-2 py-1.5 bg-[#191614] hover:bg-[#231f1b] border border-[#3a332e] rounded-xl transition shadow-sm"
                 >
-                  <Wallet className="size-4 text-[#2081E2]" />
-                  <span className="font-mono text-xs font-semibold text-white">
+                  <Wallet className="size-4 text-[#d9b57a]" />
+                  <span className="font-mono text-xs font-semibold text-[#f6f1ea]">
                     {totalWalletUsd}
                   </span>
 
-                  {/* Blockies style user avatar circle */}
-                  <div className="size-6 rounded-full bg-gradient-to-tr from-[#9333EA] via-[#2081E2] to-[#10B981] flex items-center justify-center text-[10px] font-bold text-white uppercase ml-1">
-                    {user?.name ? user.name.slice(0, 2) : "0x"}
+                  <div className="size-6 rounded-full bg-[linear-gradient(135deg,_#d9b57a_0%,_#b98b5a_38%,_#553d31_100%)] flex items-center justify-center text-[10px] font-bold text-[#171412] uppercase ml-1">
+                    {user?.name ? user.name.slice(0, 2) : "NS"}
                   </div>
-                  <ChevronDown className="size-3.5 text-white/50" />
+                  <ChevronDown className="size-3.5 text-[#d9b57a]/80" />
                 </button>
 
                 {/* ============================================================ */}
-                {/* 3. OPENSEA MULTI-WALLET FLYOUT DRAWER (Top Right Dropdown)   */}
+                {/* 3. MULTI-WALLET FLYOUT DRAWER (Top Right Dropdown)           */}
                 {/* ============================================================ */}
                 {isWalletFlyoutOpen && (
                   <div className="absolute right-0 top-12 mt-2 w-80 bg-[#121722] border border-[#232D3F] rounded-2xl shadow-2xl p-4 z-50 space-y-4 animate-in fade-in slide-in-from-top-2 duration-150">
                     {/* Header Address Card */}
                     <div className="flex items-center justify-between pb-3 border-b border-white/10">
                       <div className="flex items-center gap-2.5">
-                        <div className="size-9 rounded-full bg-gradient-to-br from-[#EC4899] via-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-white shadow-inner">
-                          {user?.name ? user.name.slice(0, 2).toUpperCase() : "0x"}
+                        <div className="size-9 rounded-full bg-gradient-to-br from-[#10B981] via-[#059669] to-[#d4af37] flex items-center justify-center text-xs font-bold text-[#080B10] shadow-inner">
+                          {user?.name ? user.name.slice(0, 2).toUpperCase() : "NS"}
                         </div>
                         <div>
                           <div className="flex items-center gap-1 text-xs font-mono font-semibold text-white">
@@ -789,7 +809,7 @@ export function Editions() {
                       {/* EVM Wallet Card */}
                       <div className="p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
-                          <div className="size-7 rounded-lg bg-[#2081E2]/20 border border-[#2081E2]/40 flex items-center justify-center text-xs text-[#2081E2] font-mono font-bold">
+                          <div className="size-7 rounded-lg bg-[#10B981]/20 border border-[#10B981]/40 flex items-center justify-center text-xs text-[#10B981] font-mono font-bold">
                             ⟠
                           </div>
                           <div>
@@ -803,8 +823,8 @@ export function Editions() {
                         </div>
                         <div className="text-right font-mono">
                           <span className="text-xs font-semibold text-white block">
-                            {vaultBalances?.assets.find((a) => a.coin === "ETH")
-                              ?.balanceFormatted || "0.00 ETH"}
+                            {vaultBalances?.assets.find((a) => a.coin === "ETH")?.balanceFormatted ||
+                              "0.00 ETH"}
                           </span>
                           <span className="text-[10px] text-[#10B981] block">● Connected</span>
                         </div>
@@ -827,8 +847,8 @@ export function Editions() {
                         </div>
                         <div className="text-right font-mono">
                           <span className="text-xs font-semibold text-white block">
-                            {vaultBalances?.assets.find((a) => a.coin === "SOL")
-                              ?.balanceFormatted || "0.00 SOL"}
+                            {vaultBalances?.assets.find((a) => a.coin === "SOL")?.balanceFormatted ||
+                              "0.00 SOL"}
                           </span>
                           <span className="text-[10px] text-[#10B981] block">● Connected</span>
                         </div>
@@ -845,7 +865,7 @@ export function Editions() {
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium text-white hover:bg-white/10 transition"
                       >
-                        <Plus className="size-4 text-[#2081E2]" />
+                        <Plus className="size-4 text-[#10B981]" />
                         <span>Link Wallet / Deposit Crypto</span>
                       </button>
 
@@ -904,48 +924,43 @@ export function Editions() {
             {/* Left 75%: Hero Drop + Trending Drops + Marketplace Grid */}
             <div className="col-span-12 xl:col-span-9 space-y-8">
               {/* ======================================================== */}
-              {/* HERO FEATURE DROP CAROUSEL (OpenSea Verified Spotlight)  */}
+              {/* HERO FEATURE DROP CAROUSEL (Fine-Art Verified Spotlight) */}
               {/* ======================================================== */}
               {activeHero && (
-                <div className="relative rounded-3xl overflow-hidden border border-[#222B3A] bg-[#0E131C] shadow-2xl group">
-                  {/* Background Artwork Banner */}
+                <div className="relative rounded-[28px] overflow-hidden border border-[#2a2722] bg-[#171412] shadow-[0_35px_80px_rgba(0,0,0,0.42)] group">
                   <div className="relative aspect-[16/9] sm:aspect-[21/9] max-h-[460px] overflow-hidden">
                     <img
                       src={activeHero.image}
                       alt={activeHero.title}
                       className="size-full object-cover transition duration-700 group-hover:scale-105"
                     />
-                    {/* Deep gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#080B10] via-[#080B10]/60 to-transparent" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#080B10]/90 via-[#080B10]/40 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0c0b0a] via-[#0c0b0a]/60 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#0c0b0a]/90 via-[#0c0b0a]/30 to-transparent" />
 
-                    {/* Content Overlay */}
                     <div className="absolute inset-0 p-6 sm:p-10 flex flex-col justify-between">
-                      {/* Top Badges */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-[#2081E2] text-[11px] font-mono font-semibold uppercase tracking-wider">
-                            <Sparkles className="size-3" />
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#171412]/75 backdrop-blur-md border border-[#d9b57a]/20 text-[#efd7ad] text-[11px] font-mono font-semibold uppercase tracking-wider">
+                            <Sparkles className="size-3 text-[#efd7ad]" />
                             {activeHero.tier === "genesis_1_of_1"
                               ? "Genesis 1 of 1"
                               : "Curated Limited Series"}
                           </span>
                           {activeHero.hasPhysicalTwin && (
-                            <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/20 text-white text-[11px] font-mono">
-                              + Hahnemühle Print Twin
+                            <span className="hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#171412]/75 backdrop-blur-md border border-[#d9b57a]/20 text-[#f5efe8] text-[11px] font-mono">
+                              + Archival Print Twin
                             </span>
                           )}
                         </div>
 
-                        {/* Slide Selector Indicators */}
-                        <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+                        <div className="flex items-center gap-1.5 bg-[#171412]/75 backdrop-blur-md px-3 py-1 rounded-full border border-[#d9b57a]/15">
                           {featuredEditions.map((_, idx) => (
                             <button
                               key={idx}
                               onClick={() => setHeroSlideIndex(idx)}
                               className={`h-1.5 rounded-full transition-all ${
                                 heroSlideIndex % featuredEditions.length === idx
-                                  ? "w-6 bg-[#2081E2]"
+                                  ? "w-6 bg-[#d9b57a]"
                                   : "w-2 bg-white/30 hover:bg-white/60"
                               }`}
                               title={`Slide ${idx + 1}`}
@@ -954,84 +969,74 @@ export function Editions() {
                         </div>
                       </div>
 
-                      {/* Bottom Title, Artist & Stats Overlay Bar */}
                       <div className="space-y-4">
                         <div className="space-y-1 max-w-xl">
-                          <div className="flex items-center gap-2 text-white/80 font-mono text-xs">
+                          <div className="flex items-center gap-2 text-[#efe6d8]/80 font-mono text-xs">
                             <span>By {activeHero.photographerName}</span>
-                            <span className="size-4 rounded-full bg-[#2081E2] flex items-center justify-center text-white text-[9px]">
+                            <span className="size-4 rounded-full bg-[#d9b57a] flex items-center justify-center text-[#171412] font-bold text-[9px]">
                               ✓
                             </span>
                           </div>
-                          <h1 className="font-serif text-2xl sm:text-4xl text-white font-medium leading-tight">
+                          <h1 className="font-serif text-2xl sm:text-4xl text-[#f6f1ea] font-medium leading-tight">
                             {activeHero.title}
                           </h1>
-                          <p className="text-xs sm:text-sm text-white/70 line-clamp-2 font-serif">
+                          <p className="text-xs sm:text-sm text-[#f1e9df]/75 line-clamp-2 font-serif">
                             {activeHero.description}
                           </p>
                         </div>
 
-                        {/* OpenSea Stats Card Bar */}
-                        <div className="inline-flex flex-wrap items-center gap-4 sm:gap-6 p-4 rounded-2xl bg-black/70 backdrop-blur-md border border-white/15">
+                        <div className="inline-flex flex-wrap items-center gap-4 sm:gap-6 p-4 rounded-2xl bg-[#171412]/75 backdrop-blur-md border border-[#d9b57a]/15">
                           <div>
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-white/50 block">
-                              FLOOR PRICE
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-[#d7c7a9]/80 block">
+                              Floor price
                             </span>
-                            <span className="font-mono text-sm sm:text-base font-bold text-white">
+                            <span className="font-mono text-sm sm:text-base font-bold text-[#f6f1ea]">
                               {currencyMode === "crypto"
                                 ? `${activeHero.priceEth} ETH`
                                 : `£${activeHero.priceGbp.toLocaleString("en-GB")}`}
                             </span>
                           </div>
 
-                          <div className="w-[1px] h-8 bg-white/15" />
+                          <div className="w-[1px] h-8 bg-[#d9b57a]/15" />
 
                           <div>
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-white/50 block">
-                              ITEMS
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-[#d7c7a9]/80 block">
+                              Editions
                             </span>
-                            <span className="font-mono text-sm sm:text-base font-bold text-white">
+                            <span className="font-mono text-sm sm:text-base font-bold text-[#f6f1ea]">
                               {activeHero.totalEditions}
                             </span>
                           </div>
 
-                          <div className="w-[1px] h-8 bg-white/15" />
+                          <div className="w-[1px] h-8 bg-[#d9b57a]/15" />
 
                           <div>
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-white/50 block">
-                              TOTAL VOLUME
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-[#d7c7a9]/80 block">
+                              Volume
                             </span>
-                            <span className="font-mono text-sm sm:text-base font-bold text-white">
+                            <span className="font-mono text-sm sm:text-base font-bold text-[#f6f1ea]">
                               £142.5K
                             </span>
                           </div>
 
-                          <div className="w-[1px] h-8 bg-white/15" />
+                          <div className="w-[1px] h-8 bg-[#d9b57a]/15" />
 
                           <div>
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-white/50 block">
-                              LISTED
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-[#d7c7a9]/80 block">
+                              Listed
                             </span>
-                            <span className="font-mono text-sm sm:text-base font-bold text-[#10B981]">
-                              {activeHero.availableEditions} (
-                              {activeHero.totalEditions > 0
-                                ? (
-                                    (activeHero.availableEditions / activeHero.totalEditions) *
-                                    100
-                                  ).toFixed(0)
-                                : 0}
-                              %)
+                            <span className="font-mono text-sm sm:text-base font-bold text-[#a8f0c1]">
+                              {activeHero.availableEditions} ({activeHero.totalEditions > 0 ? ((activeHero.availableEditions / activeHero.totalEditions) * 100).toFixed(0) : 0}%)
                             </span>
                           </div>
 
-                          {/* Action Button inside banner */}
                           <button
                             onClick={() => handlePurchase(activeHero)}
                             disabled={activeHero.availableEditions === 0}
-                            className={`ml-auto px-5 py-2.5 rounded-xl font-medium text-xs font-mono transition flex items-center gap-2 shadow-lg ${
+                            className={`ml-auto px-5 py-2.5 rounded-xl font-medium text-xs font-mono transition flex items-center gap-2 shadow-[0_12px_28px_rgba(217,181,122,0.16)] ${
                               activeHero.availableEditions === 0
                                 ? "bg-white/10 text-white/40 cursor-not-allowed"
-                                : "bg-[#2081E2] text-white hover:bg-[#1868B7]"
+                                : "bg-[#d9b57a] text-[#171412] hover:bg-[#e8c892] font-bold"
                             }`}
                           >
                             <ShoppingBag className="size-4" />
@@ -1047,32 +1052,31 @@ export function Editions() {
               )}
 
               {/* ======================================================== */}
-              {/* TRENDING DROPS (TOKENS) WITH DYNAMIC SPARKLINE CHARTS    */}
+              {/* TRENDING DROPS WITH DYNAMIC SPARKLINE CHARTS             */}
               {/* ======================================================== */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="font-sans text-lg font-bold text-white flex items-center gap-2">
-                      <span>Trending Drops</span>
-                      <span className="size-2 rounded-full bg-[#10B981] animate-pulse" />
+                    <h2 className="font-sans text-lg font-bold text-[#f6f1ea] flex items-center gap-2">
+                      <span>Trending Fine-Art Drops</span>
+                      <span className="size-2 rounded-full bg-[#d9b57a] animate-pulse" />
                     </h2>
-                    <p className="text-xs text-white/50">
-                      Editions with verified provenance and volume today
+                    <p className="text-xs text-[#efe6d8]/60">
+                      Editions with verified provenance and transaction volume today
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 text-xs font-mono text-[#2081E2] hover:underline cursor-pointer">
+                  <div className="flex items-center gap-1 text-xs font-mono text-[#d9b57a] hover:underline cursor-pointer">
                     <span>View all drops</span>
                     <ChevronRight className="size-3" />
                   </div>
                 </div>
 
-                {/* Horizontal Cards with Sparklines */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {trendingDrops.map((token) => (
                     <div
                       key={token.id}
                       onClick={() => setSearchQuery(token.title.split(" ")[0])}
-                      className="p-3.5 rounded-2xl bg-[#0E131C] border border-[#1E2738] hover:border-[#2081E2]/50 hover:bg-[#121824] transition cursor-pointer flex items-center justify-between shadow-sm group"
+                      className="p-3.5 rounded-2xl bg-[#171412] border border-[#2a2722] hover:border-[#d9b57a]/50 hover:bg-[#1d1a17] transition cursor-pointer flex items-center justify-between shadow-sm group"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <img
@@ -1082,10 +1086,10 @@ export function Editions() {
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1">
-                            <span className="text-xs font-semibold text-white truncate group-hover:text-[#2081E2] transition">
+                            <span className="text-xs font-semibold text-white truncate group-hover:text-[#10B981] transition">
                               {token.title}
                             </span>
-                            <span className="size-3.5 rounded-full bg-[#2081E2] flex items-center justify-center text-white text-[8px] shrink-0">
+                            <span className="size-3.5 rounded-full bg-[#10B981] flex items-center justify-center text-[#080B10] font-bold text-[8px] shrink-0">
                               ✓
                             </span>
                           </div>
@@ -1108,14 +1112,14 @@ export function Editions() {
               </div>
 
               {/* ======================================================== */}
-              {/* MARKETPLACE CATALOG GRID (OpenSea Pro Card Layout)       */}
+              {/* MARKETPLACE CATALOG GRID                                */}
               {/* ======================================================== */}
-              <div className="space-y-4 pt-4 border-t border-[#1B222D]">
+              <div className="space-y-4 pt-4 border-t border-[#2a2722]">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <button className="px-3.5 py-1.5 rounded-xl bg-[#2081E2]/15 text-[#2081E2] font-semibold text-xs border border-[#2081E2]/30 flex items-center gap-1.5">
+                    <button className="px-3.5 py-1.5 rounded-xl bg-[#d9b57a]/10 text-[#f1d8a6] font-semibold text-xs border border-[#d9b57a]/30 flex items-center gap-1.5">
                       <span>Items</span>
-                      <span className="px-1.5 py-0.2 rounded-full bg-[#2081E2] text-white text-[10px] font-mono">
+                      <span className="px-1.5 py-0.2 rounded-full bg-[#d9b57a] text-[#171412] text-[10px] font-mono font-bold">
                         {filteredEditions.length}
                       </span>
                     </button>
@@ -1137,7 +1141,7 @@ export function Editions() {
                     <span>Pricing:</span>
                     <button
                       onClick={() => setCurrencyMode(currencyMode === "crypto" ? "usd" : "crypto")}
-                      className="px-2.5 py-1 rounded-lg bg-[#121722] border border-[#222B3A] text-white hover:border-[#2081E2] transition"
+                      className="px-2.5 py-1 rounded-lg bg-[#121722] border border-[#222B3A] text-white hover:border-[#10B981] transition"
                     >
                       {currencyMode === "crypto" ? "ETH / SOL" : "GBP (£)"}
                     </button>
@@ -1158,7 +1162,7 @@ export function Editions() {
                         setSelectedChain("all");
                         setSearchQuery("");
                       }}
-                      className="px-4 py-2 bg-[#2081E2] text-white text-xs rounded-xl font-medium"
+                      className="px-4 py-2 bg-[#10B981] text-[#080B10] text-xs rounded-xl font-bold"
                     >
                       Reset All Filters
                     </button>
@@ -1170,7 +1174,7 @@ export function Editions() {
                       return (
                         <div
                           key={item.id}
-                          className="group rounded-2xl overflow-hidden bg-[#0E131C] border border-[#1E2738] hover:border-[#2081E2] transition duration-300 flex flex-col shadow-lg relative"
+                          className="group rounded-2xl overflow-hidden bg-[#0E131C] border border-[#1E2738] hover:border-[#10B981] transition duration-300 flex flex-col shadow-lg relative"
                         >
                           {/* Image Container */}
                           <div className="relative aspect-[4/3] bg-black/40 overflow-hidden">
@@ -1182,7 +1186,7 @@ export function Editions() {
 
                             {/* Scarcity / Serial Badge */}
                             <div className="absolute top-3 left-3 flex gap-1.5">
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md text-[#2081E2] text-[10px] font-mono uppercase font-semibold border border-white/15">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md text-[#d4af37] text-[10px] font-mono uppercase font-semibold border border-white/15">
                                 {item.tier === "genesis_1_of_1"
                                   ? "Genesis 1/1"
                                   : `${item.availableEditions}/${item.totalEditions} Available`}
@@ -1205,7 +1209,7 @@ export function Editions() {
                                 className={`px-4 py-2.5 rounded-xl font-medium text-xs font-mono transition shadow-lg ${
                                   isSoldOut
                                     ? "bg-white/10 text-white/40 cursor-not-allowed"
-                                    : "bg-[#2081E2] text-white hover:bg-[#1868B7]"
+                                    : "bg-[#10B981] text-[#080B10] hover:bg-[#059669] font-bold"
                                 }`}
                               >
                                 {isSoldOut ? "Sold Out" : "Instant Collect"}
@@ -1256,12 +1260,12 @@ export function Editions() {
                                 <span className="text-xs text-white/70 truncate">
                                   {item.photographerName}
                                 </span>
-                                <span className="size-3 rounded-full bg-[#2081E2] flex items-center justify-center text-white text-[7px]">
+                                <span className="size-3 rounded-full bg-[#10B981] flex items-center justify-center text-[#080B10] font-bold text-[7px]">
                                   ✓
                                 </span>
                               </div>
 
-                              <h3 className="font-serif text-base text-white font-medium group-hover:text-[#2081E2] transition truncate">
+                              <h3 className="font-serif text-base text-white font-medium group-hover:text-[#10B981] transition truncate">
                                 {item.title}
                               </h3>
                             </div>
@@ -1304,7 +1308,7 @@ export function Editions() {
             </div>
 
             {/* ======================================================== */}
-            {/* RIGHT 25%: TOP COLLECTIONS LEADERBOARD (OpenSea Rail)    */}
+            {/* RIGHT 25%: TOP COLLECTIONS LEADERBOARD                   */}
             {/* ======================================================== */}
             <div className="col-span-12 xl:col-span-3 space-y-4">
               <div className="sticky top-20 bg-[#0E131C] border border-[#1E2738] rounded-2xl p-4 shadow-xl space-y-4">
@@ -1315,7 +1319,7 @@ export function Editions() {
                       onClick={() => setActiveLeaderboardTab("nfts")}
                       className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
                         activeLeaderboardTab === "nfts"
-                          ? "bg-[#2081E2] text-white"
+                          ? "bg-[#10B981] text-[#080B10] font-bold"
                           : "text-white/60 hover:text-white"
                       }`}
                     >
@@ -1325,7 +1329,7 @@ export function Editions() {
                       onClick={() => setActiveLeaderboardTab("collections")}
                       className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
                         activeLeaderboardTab === "collections"
-                          ? "bg-[#2081E2] text-white"
+                          ? "bg-[#10B981] text-[#080B10] font-bold"
                           : "text-white/60 hover:text-white"
                       }`}
                     >
@@ -1376,10 +1380,10 @@ export function Editions() {
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1">
-                            <span className="text-xs font-semibold text-white truncate group-hover:text-[#2081E2] transition">
+                            <span className="text-xs font-semibold text-white truncate group-hover:text-[#10B981] transition">
                               {col.title}
                             </span>
-                            <span className="size-3 rounded-full bg-[#2081E2] flex items-center justify-center text-white text-[7px] shrink-0">
+                            <span className="size-3 rounded-full bg-[#10B981] flex items-center justify-center text-[#080B10] font-bold text-[7px] shrink-0">
                               ✓
                             </span>
                           </div>
@@ -1401,16 +1405,15 @@ export function Editions() {
                   ))}
                 </div>
 
-                {/* OpenSea Collector Pro Promotion Card */}
+                {/* Promotion Card */}
                 <div className="pt-3 border-t border-[#1E2738] space-y-2">
-                  <div className="p-3 rounded-xl bg-gradient-to-r from-[#2081E2]/15 to-transparent border border-[#2081E2]/30 space-y-1">
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-[#10B981]/15 to-transparent border border-[#10B981]/30 space-y-1">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-white">
-                      <Flame className="size-3.5 text-[#2081E2]" />
-                      <span>NS Editions Terminal Pro</span>
+                      <Flame className="size-3.5 text-[#10B981]" />
+                      <span>NS CAPTURES Collector Terminal</span>
                     </div>
                     <p className="text-[11px] text-white/70 leading-relaxed">
-                      Real-time gas tracking, instant multi-token sweeping, and archival museum COA
-                      export.
+                      Archival museum provenance, cryptographic certificates of authenticity, and instant on-chain multi-token settlement.
                     </p>
                   </div>
                 </div>
@@ -1421,9 +1424,9 @@ export function Editions() {
       </div>
 
       {/* ============================================================ */}
-      {/* 4. BOTTOM STICKY LIVE STATUS BAR (OpenSea Console Footer)    */}
+      {/* 4. BOTTOM STICKY LIVE STATUS BAR                             */}
       {/* ============================================================ */}
-      <footer className="h-9 bg-[#0A0D14] border-t border-[#1B222D] px-4 flex items-center justify-between text-[11px] font-mono text-white/60 fixed bottom-0 left-0 right-0 z-30">
+      <footer className="h-9 bg-[#11100f] border-t border-[#2a2722] px-4 flex items-center justify-between text-[11px] font-mono text-[#efe6d8]/65 fixed bottom-0 left-0 right-0 z-30">
         {/* Left Status Indicators */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
@@ -1434,13 +1437,16 @@ export function Editions() {
           <span className="hidden sm:inline text-white/20">|</span>
 
           <div className="hidden sm:flex items-center gap-1 text-white/70">
-            <Sparkles className="size-3 text-[#2081E2]" />
-            <span>Aggregating Base & Solana Provenance</span>
+            <Sparkles className="size-3 text-[#10B981]" />
+            <span>NS CAPTURES Provenance Engine • Base & Solana</span>
           </div>
 
           <span className="hidden md:inline text-white/20">|</span>
 
-          <Link to="/legal" className="hidden md:inline hover:text-white transition">
+          <Link
+            to="/legal"
+            className="hidden md:inline hover:text-white transition"
+          >
             Terms & Privacy
           </Link>
         </div>
@@ -1464,7 +1470,7 @@ export function Editions() {
             className="flex items-center gap-1 hover:text-white transition"
           >
             <span className="text-white/40">Mode:</span>
-            <span className={proMode ? "text-[#2081E2] font-bold" : "text-white"}>
+            <span className={proMode ? "text-[#10B981] font-bold" : "text-white"}>
               {proMode ? "Pro" : "Collector"}
             </span>
           </button>
@@ -1489,7 +1495,7 @@ export function Editions() {
           <div className="w-full max-w-lg bg-[#121722] border border-[#232D3F] rounded-2xl text-white p-6 sm:p-8 space-y-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
-                <span className="text-[10px] font-mono uppercase text-[#2081E2] tracking-widest font-semibold">
+                <span className="text-[10px] font-mono uppercase text-[#d4af37] tracking-widest font-semibold">
                   CONFIRM ART ACQUISITION
                 </span>
                 <h3 className="font-serif text-xl text-white mt-0.5">
@@ -1518,7 +1524,7 @@ export function Editions() {
                 <p className="text-xs text-white/60">
                   By {selectedEditionForPurchase.photographerName}
                 </p>
-                <span className="text-[10px] font-mono text-[#2081E2] block">
+                <span className="text-[10px] font-mono text-[#d4af37] block">
                   Next Serial: #
                   {String(
                     selectedEditionForPurchase.totalEditions -
@@ -1542,7 +1548,7 @@ export function Editions() {
                     onClick={() => setPaymentCurrency(curr)}
                     className={`py-2 rounded-lg text-xs font-mono transition border ${
                       paymentCurrency === curr
-                        ? "bg-[#2081E2] text-white font-bold border-[#2081E2]"
+                        ? "bg-[#10B981] text-[#080B10] font-bold border-[#10B981]"
                         : "bg-white/5 text-white/80 border-white/10 hover:border-white/30"
                     }`}
                   >
@@ -1568,7 +1574,7 @@ export function Editions() {
               </div>
               <div className="pt-2 border-t border-white/10 flex justify-between font-bold text-sm text-white">
                 <span>Total Due:</span>
-                <span className="text-[#2081E2]">
+                <span className="text-[#d4af37]">
                   {paymentCurrency === "ETH" && `${selectedEditionForPurchase.priceEth} ETH`}
                   {paymentCurrency === "SOL" && `${selectedEditionForPurchase.priceSol} SOL`}
                   {paymentCurrency === "USDT" &&
@@ -1590,7 +1596,7 @@ export function Editions() {
               <button
                 onClick={confirmPurchase}
                 disabled={purchasing}
-                className="flex-1 py-3 rounded-xl text-xs font-mono font-bold bg-[#2081E2] text-white hover:bg-[#1868B7] transition shadow-lg"
+                className="flex-1 py-3 rounded-xl text-xs font-mono font-bold bg-[#10B981] text-[#080B10] hover:bg-[#059669] transition shadow-lg"
               >
                 {purchasing ? "Issuing Provenance..." : "Confirm & Issue COA"}
               </button>
@@ -1607,7 +1613,7 @@ export function Editions() {
           <div className="w-full max-w-md bg-[#121722] border border-[#232D3F] rounded-2xl text-white p-6 space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div>
-                <span className="text-[10px] font-mono uppercase text-[#2081E2] tracking-widest font-semibold">
+                <span className="text-[10px] font-mono uppercase text-[#10B981] tracking-widest font-semibold">
                   WEB3 VAULT DEPOSIT
                 </span>
                 <h3 className="font-sans text-lg text-white font-bold mt-0.5">
@@ -1630,7 +1636,7 @@ export function Editions() {
                   onClick={() => setActiveDepositCoin(coin)}
                   className={`py-2 rounded-xl text-xs font-mono font-semibold transition border ${
                     activeDepositCoin === coin
-                      ? "bg-[#2081E2] text-white border-[#2081E2]"
+                      ? "bg-[#10B981] text-[#080B10] border-[#10B981]"
                       : "bg-white/5 text-white/70 border-white/10 hover:border-white/30"
                   }`}
                 >
@@ -1670,9 +1676,7 @@ export function Editions() {
                     <div className="p-3 bg-white/5 border border-white/10 rounded-xl font-mono text-xs break-all text-white/90 flex items-center justify-between gap-2">
                       <span>{depositTargetAddress}</span>
                       <button
-                        onClick={() =>
-                          handleCopy(depositTargetAddress, `${activeDepositCoin} Address`)
-                        }
+                        onClick={() => handleCopy(depositTargetAddress, `${activeDepositCoin} Address`)}
                         className="p-1 text-white/60 hover:text-white transition shrink-0"
                       >
                         {copiedAddress === depositTargetAddress ? (
@@ -1686,8 +1690,7 @@ export function Editions() {
 
                   <p className="text-[11px] text-white/60 leading-relaxed font-mono">
                     • Send only {activeDepositCoin} to this address.
-                    <br />• Deposits automatically credit your Web3 vault balance upon on-chain
-                    confirmation.
+                    <br />• Deposits automatically credit your Web3 vault balance upon on-chain confirmation.
                   </p>
                 </div>
               );
