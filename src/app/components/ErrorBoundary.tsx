@@ -57,3 +57,47 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
+import { useRouteError, isRouteErrorResponse } from "react-router";
+
+export function RouteErrorBoundary() {
+  const error = useRouteError();
+  console.error("Route error caught by RouteErrorBoundary:", error);
+
+  let errorMessage = "An unexpected error occurred. Please try again.";
+  if (isRouteErrorResponse(error)) {
+    errorMessage = `${error.status} ${error.statusText || error.data?.message || "Error"}`;
+  } else if (error instanceof Error) {
+    errorMessage = error.message;
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FAF9F5] flex flex-col items-center justify-center p-6 text-center font-sans">
+      <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-[#ececec]">
+        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <AlertCircle className="size-8 text-red-600" />
+        </div>
+        <h1 className="text-2xl font-serif font-bold text-[#18211f] mb-4">
+          Something went wrong
+        </h1>
+        <p className="text-[#4a534e] mb-6 text-sm">
+          {errorMessage}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={() => window.location.reload()}
+            className="flex-1 bg-[#1e4a3f] hover:bg-[#123b31] text-white py-2.5 px-4 rounded-full font-semibold text-sm transition-colors"
+          >
+            Refresh Page
+          </button>
+          <button
+            onClick={() => (window.location.href = "/")}
+            className="flex-1 border border-[#1e4a3f]/30 hover:bg-[#FAF9F5] text-[#1e4a3f] py-2.5 px-4 rounded-full font-semibold text-sm transition-colors"
+          >
+            Return Home
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

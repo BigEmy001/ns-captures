@@ -104,126 +104,132 @@ export function PhotographerProfile() {
 
   return (
     <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-12">
-      {/* Header */}
-      <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-        <div className="flex items-start gap-5">
-          <Avatar className="size-20 shrink-0 sm:size-24">
-            <AvatarImage
-              src={photographer.avatar ? getOptimizedImageUrl(photographer.avatar, 200) : ""}
-              alt={photographer.name}
-              className="object-cover"
-            />
-            <AvatarFallback className="bg-[#1e4a3f] text-white font-serif text-2xl sm:text-3xl">
-              {photographer.name
-                ?.split(" ")
-                .map((n) => n[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase() || "NS"}
-            </AvatarFallback>
-          </Avatar>
-          <div className="pt-1">
-            <div className="flex items-center gap-2">
-              <h1 className="font-serif text-3xl leading-none sm:text-4xl">{photographer.name}</h1>
-              {photographer.verified && <BadgeCheck className="size-6 text-[#1e4a3f]" />}
-            </div>
-            <p className="mt-1.5 font-mono text-[10px] tracking-[0.14em] text-[#49685d] uppercase">
-              {contributorLevelLabel(photographer.contributorLevel)}
-            </p>
-            <p className="mt-3 max-w-md text-sm leading-6 text-[#59645f]">{photographer.bio}</p>
-            <p className="mt-3 flex items-center gap-1.5 text-sm text-[#6b716d]">
-              <MapPin className="size-4" /> {photographer.location}
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              {followerCount !== null && followerCount > 0 && (
-                <button
-                  onClick={() => setShowFollowers((v) => !v)}
-                  aria-expanded={showFollowers}
-                  className="text-sm text-[#59645f] hover:text-[#1e4a3f]"
-                >
-                  <span className="font-serif text-lg text-[#18211f]">
-                    {followerCount.toLocaleString()}
-                  </span>{" "}
-                  {followerCount === 1 ? "follower" : "followers"}
-                </button>
-              )}
-              {user && user.slug !== id && (
-                <button
-                  onClick={async () => {
-                    setFollowBusy(true);
-                    const now = await toggleFollow(user.id, id ?? "");
-                    setFollowBusy(false);
-                    setIsFollowing(now);
-                    setFollowerCount((c) => (c ?? 0) + (now ? 1 : -1));
-                    toast(now ? `Following ${photographer.name}` : "Unfollowed");
-                  }}
-                  disabled={followBusy}
-                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
-                    isFollowing
-                      ? "border border-[#ececec] text-[#6b716d] hover:border-[#1e4a3f] hover:text-[#1e4a3f]"
-                      : "bg-[#1e4a3f] text-white hover:bg-[#123b31]"
-                  }`}
-                >
-                  {isFollowing ? "Following" : "Follow"}
-                </button>
-              )}
-            </div>
-            {showFollowers && followers.length > 0 && (
-              <ul className="mt-4 flex flex-wrap gap-3">
-                {followers.map((f, i) => (
-                  <li key={`${f.name}-${i}`} className="flex items-center gap-2">
-                    <Avatar className="size-7">
-                      <AvatarImage src={f.avatar} alt="" className="object-cover" />
-                      <AvatarFallback className="bg-[#e7ebe2] font-mono text-[9px] text-[#1e4a3f]">
-                        {f.name.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-xs text-[#59645f]">{f.name}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {photographer.specialties && photographer.specialties.length > 0 && (
-              <ul className="mt-3 flex flex-wrap gap-1.5">
-                {photographer.specialties.map((s) => (
-                  <li
-                    key={s}
-                    className="rounded-full border border-[#ececec] bg-white px-3 py-1 text-xs text-[#59645f]"
+      <div className="rounded-[32px] border border-[#e7e1d9] bg-[#f7f2ea] p-6 sm:p-8 lg:p-10">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex items-start gap-5">
+            <Avatar className="size-20 shrink-0 sm:size-24">
+              <AvatarImage
+                src={photographer.avatar ? getOptimizedImageUrl(photographer.avatar, 200) : ""}
+                alt={photographer.name}
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-[#1e4a3f] text-white font-serif text-2xl sm:text-3xl">
+                {photographer.name
+                  ?.split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase() || "NS"}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="pt-1">
+              <div className="flex items-center gap-2">
+                <h1 className="font-serif text-3xl leading-none tracking-[-0.04em] sm:text-4xl">
+                  {photographer.name}
+                </h1>
+                {photographer.verified && <BadgeCheck className="size-5 text-[#1e4a3f]" />}
+              </div>
+
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#49685d]">
+                {contributorLevelLabel(photographer.contributorLevel)}
+              </p>
+
+              <p className="mt-4 max-w-xl text-sm leading-6 text-[#59645f]">{photographer.bio}</p>
+
+              <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-[#5f665f]">
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="size-4" /> {photographer.location}
+                </span>
+
+                {followerCount !== null && followerCount > 0 && (
+                  <button
+                    onClick={() => setShowFollowers((v) => !v)}
+                    aria-expanded={showFollowers}
+                    className="inline-flex items-center gap-1.5 transition hover:text-[#1e4a3f]"
                   >
-                    {s}
-                  </li>
-                ))}
-              </ul>
+                    <span className="font-serif text-lg text-[#1a1d1b]">{followerCount.toLocaleString()}</span>
+                    <span>{followerCount === 1 ? "follower" : "followers"}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => toast("Link copied")}
+              aria-label="Share"
+              className="grid size-10 place-items-center rounded-full border border-[#e7e1d9] bg-white/70 text-[#4a534e] transition hover:border-[#1e4a3f]"
+            >
+              <Share2 className="size-4" />
+            </button>
+            <Link
+              to="/contact"
+              aria-label="Message"
+              className="grid size-10 place-items-center rounded-full border border-[#e7e1d9] bg-white/70 text-[#4a534e] transition hover:border-[#1e4a3f]"
+            >
+              <Mail className="size-4" />
+            </Link>
+            {user && user.slug !== id && (
+              <button
+                onClick={async () => {
+                  setFollowBusy(true);
+                  const now = await toggleFollow(user.id, id ?? "");
+                  setFollowBusy(false);
+                  setIsFollowing(now);
+                  setFollowerCount((c) => (c ?? 0) + (now ? 1 : -1));
+                  toast(now ? `Following ${photographer.name}` : "Unfollowed");
+                }}
+                disabled={followBusy}
+                className={`rounded-full px-4 py-2 text-xs font-semibold transition disabled:opacity-50 ${
+                  isFollowing
+                    ? "border border-[#dfe7e2] bg-white text-[#43524d] hover:border-[#1e4a3f] hover:text-[#1e4a3f]"
+                    : "bg-[#1e4a3f] text-white hover:bg-[#123b31]"
+                }`}
+              >
+                {isFollowing ? "Following" : "Follow"}
+              </button>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => toast("Link copied")}
-            aria-label="Share"
-            className="grid size-10 place-items-center border border-[#ececec] text-[#4a534e] transition hover:border-[#1e4a3f]"
-          >
-            <Share2 className="size-4" />
-          </button>
-          <Link
-            to="/contact"
-            aria-label="Message"
-            className="grid size-10 place-items-center border border-[#ececec] text-[#4a534e] transition hover:border-[#1e4a3f]"
-          >
-            <Mail className="size-4" />
-          </Link>
-        </div>
+        {showFollowers && followers.length > 0 && (
+          <ul className="mt-6 flex flex-wrap gap-3">
+            {followers.map((f, i) => (
+              <li key={`${f.name}-${i}`} className="flex items-center gap-2 rounded-full border border-[#e7e1d9] bg-white/70 px-2.5 py-1.5">
+                <Avatar className="size-7">
+                  <AvatarImage src={f.avatar} alt="" className="object-cover" />
+                  <AvatarFallback className="bg-[#e7ebe2] font-mono text-[9px] text-[#1e4a3f]">
+                    {f.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs text-[#59645f]">{f.name}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {photographer.specialties && photographer.specialties.length > 0 && (
+          <ul className="mt-6 flex flex-wrap gap-2">
+            {photographer.specialties.map((s) => (
+              <li
+                key={s}
+                className="rounded-full border border-[#e7e1d9] bg-white/70 px-3 py-1.5 text-xs text-[#59645f]"
+              >
+                {s}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      {/* Stat strip */}
       <div className="mt-8 grid grid-cols-2 divide-[#ececec] border border-[#ececec] bg-[#ffffff] ns-shadow-sm sm:grid-cols-3 lg:grid-cols-3 lg:divide-x">
         <StatCell value={compact(totalViews)} label="Total views" />
         <StatCell value={compact(totalDownloads)} label="Downloads" />
         <StatCell value={String(shots.length)} label="Published" muted />
       </div>
 
-      {/* Tabs + filters */}
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-[#ececec] pb-3">
         <div className="flex flex-wrap items-center gap-1">
           {tabs.map((t) => (
@@ -264,7 +270,6 @@ export function PhotographerProfile() {
         )}
       </div>
 
-      {/* Content */}
       <div className="py-10">
         {tab === "gallery" &&
           (sorted.length > 0 ? (

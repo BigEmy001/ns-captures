@@ -9,7 +9,7 @@ import {
   PhotographerRoute,
   EnterpriseRoute,
 } from "./components/RouteGuards";
-import { GlobalErrorBoundary as ErrorBoundary } from "./components/ErrorBoundary";
+import { RouteErrorBoundary as ErrorBoundary } from "./components/ErrorBoundary";
 
 const Home = lazy(() => import("./pages/Home").then((m) => ({ default: m.Home })));
 const SearchPage = lazy(() => import("./pages/Search").then((m) => ({ default: m.SearchPage })));
@@ -18,6 +18,9 @@ const PhotoDetail = lazy(() =>
 );
 const Collections = lazy(() =>
   import("./pages/Collections").then((m) => ({ default: m.Collections })),
+);
+const CollectionDetail = lazy(() =>
+  import("./pages/CollectionDetail").then((m) => ({ default: m.CollectionDetail })),
 );
 const Editions = lazy(() => import("./pages/Editions").then((m) => ({ default: m.Editions })));
 const Pricing = lazy(() => import("./pages/Pricing").then((m) => ({ default: m.Pricing })));
@@ -98,6 +101,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={fallback}>
             <Collections />
+          </Suspense>
+        ),
+      },
+      {
+        path: "collection/:id",
+        element: (
+          <Suspense fallback={fallback}>
+            <CollectionDetail />
           </Suspense>
         ),
       },

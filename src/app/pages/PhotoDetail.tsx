@@ -142,95 +142,69 @@ export function PhotoDetail() {
   const categoryHref = `/search?cat=${encodeURIComponent(photo.category)}`;
   const photographerHref = `/photographer/${photo.photographerId}`;
 
-  // Optimized image display
   const imageSrc = getOptimizedImageUrl(photo.image || "", 1200);
 
   return (
-    <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8 lg:px-12 min-h-screen">
-      <nav className="mb-6 flex items-center gap-2 text-xs text-[#6b716d]">
-        <Link to="/search" className="hover:text-[#1e4a3f]">
-          Library
+    <div className="mx-auto min-h-screen max-w-[1600px] px-4 py-8 sm:px-8 lg:px-10">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <Link to="/search" className="inline-flex items-center gap-2 text-sm font-medium text-[#1e4a3f] hover:underline">
+          <ArrowRight className="size-4 rotate-180" />
+          Back to library
         </Link>
-        <span>/</span>
-        <Link to={categoryHref} className="hover:text-[#1e4a3f]">
-          {photo.category}
-        </Link>
-        <span>/</span>
-        <span className="text-[#18211f] truncate max-w-[200px] inline-block align-bottom">
-          {photo.title}
-        </span>
-      </nav>
 
-      <div className="grid gap-10 lg:grid-cols-[1.6fr_1fr]">
-        {/* Image + meta */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              if (!user) {
+                toast.error("Sign in to save");
+                return;
+              }
+              const nextSaved = await toggleSave(user.id, photo.id);
+              setSaved(nextSaved);
+              toast(nextSaved ? "Saved to collection" : "Removed from collection");
+            }}
+            className="flex items-center gap-2 rounded-full border border-[#e7e1d9] bg-[#faf7f2] px-3 py-2 text-sm text-[#1c1b1a] transition hover:border-[#1e4a3f]"
+          >
+            {saved ? <Check className="size-4 text-[#1e4a3f]" /> : <Bookmark className="size-4" />}
+            Save
+          </button>
+          <button
+            onClick={() => toast("Link copied")}
+            className="flex items-center gap-2 rounded-full border border-[#e7e1d9] bg-[#faf7f2] px-3 py-2 text-sm text-[#1c1b1a] transition hover:border-[#1e4a3f]"
+          >
+            <Share2 className="size-4" /> Share
+          </button>
+          <button
+            onClick={async () => {
+              if (!user) {
+                toast.error("Sign in to like");
+                return;
+              }
+              const nextLiked = await toggleLike(user.id, photo.id);
+              setLiked(nextLiked);
+              toast(nextLiked ? "Liked" : "Unliked");
+            }}
+            className={`grid place-items-center rounded-full border px-3 py-2 transition ${
+              liked ? "border-[#1e4a3f] bg-[#e9f0ee] text-[#1e4a3f]" : "border-[#e7e1d9] bg-[#faf7f2] text-[#1c1b1a]"
+            }`}
+          >
+            <Heart className="size-4" fill={liked ? "#1e4a3f" : "none"} />
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-8 xl:grid-cols-[1.5fr_0.85fr] xl:items-start">
         <div>
-          <div className="overflow-hidden bg-[#d7d8d2] rounded-2xl shadow-sm">
-            <img src={imageSrc} alt={photo.title} className="w-full object-cover max-h-[80vh]" />
+          <div className="overflow-hidden rounded-[28px] border border-[#e7e1d9] bg-[#f5f1ea] shadow-[0_18px_60px_rgba(17,15,13,0.04)]">
+            <img src={imageSrc} alt={photo.title} className="w-full max-h-[82vh] object-cover" />
           </div>
 
-          <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="font-serif text-3xl leading-snug sm:text-4xl">{photo.title}</h1>
-              <p className="mt-2 text-sm text-[#6b716d]">
-                by{" "}
-                <Link
-                  to={photographerHref}
-                  className="font-semibold text-[#1e4a3f] hover:underline"
-                >
-                  {photo.photographer}
-                </Link>
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={async () => {
-                  if (!user) {
-                    toast.error("Sign in to save");
-                    return;
-                  }
-                  const now = await toggleSave(user.id, photo.id);
-                  setSaved(now);
-                  toast(now ? "Saved to collection" : "Removed from collection");
-                }}
-                className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer"
-              >
-                {saved ? (
-                  <Check className="size-4 text-[#1e4a3f]" />
-                ) : (
-                  <Bookmark className="size-4" />
-                )}{" "}
-                Save
-              </button>
-              <button
-                onClick={() => toast("Link copied")}
-                className="flex items-center gap-2 rounded-full border border-[#ececec] bg-white/50 px-3 py-2 text-sm transition hover:border-[#1e4a3f] cursor-pointer"
-              >
-                <Share2 className="size-4" /> Share
-              </button>
-              <button
-                onClick={async () => {
-                  if (!user) {
-                    toast.error("Sign in to like");
-                    return;
-                  }
-                  const now = await toggleLike(user.id, photo.id);
-                  setLiked(now);
-                  toast(now ? "Liked" : "Unliked");
-                }}
-                className={`grid place-items-center rounded-full border bg-white/50 px-3 py-2 transition hover:border-[#1e4a3f] cursor-pointer ${liked ? "border-[#1e4a3f] text-[#1e4a3f]" : "border-[#ececec]"}`}
-              >
-                <Heart className="size-4" fill={liked ? "#1e4a3f" : "none"} />
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-6 border-y border-[#ececec] py-4 text-sm text-[#6b716d]">
+          <div className="mt-6 flex flex-wrap items-center gap-6 border-t border-[#ece4dc] pt-5 text-sm text-[#5d625e]">
             <span className="flex items-center gap-2">
               <Eye className="size-4" /> {getDisplayViews(photo).toLocaleString()} views
             </span>
             <span className="flex items-center gap-2">
-              <Download className="size-4" /> {getDisplayDownloads(photo).toLocaleString()}{" "}
-              downloads
+              <Download className="size-4" /> {getDisplayDownloads(photo).toLocaleString()} downloads
             </span>
             <span className="flex items-center gap-2">
               <Heart className="size-4" /> {getDisplayLikes(photo).toLocaleString()} likes
@@ -239,225 +213,212 @@ export function PhotoDetail() {
               <MapPin className="size-4" /> {photo.location}
             </span>
           </div>
-
-          {/* EXIF */}
-          <div className="mt-8">
-            <Eyebrow>TECHNICAL SPECS</Eyebrow>
-            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {[
-                { icon: Camera, label: "CAMERA BODY", value: photo.camera },
-                { icon: Aperture, label: "OPTICS/LENS", value: photo.lens },
-                { icon: null, label: "ISO SENSITIVITY", value: photo.iso ? String(photo.iso) : "" },
-                { icon: null, label: "APERTURE", value: photo.aperture },
-                { icon: null, label: "SHUTTER SPEED", value: photo.shutterSpeed },
-                { icon: null, label: "FOCAL LENGTH", value: photo.focalLength },
-                { icon: null, label: "LICENSING RIGHTS", value: photo.license },
-              ]
-                .filter((e) => e.value)
-                .map((e) => (
-                  <div
-                    key={e.label}
-                    className="border border-[#ececec] bg-[#ffffff] ns-shadow-sm p-4 rounded-xl"
-                  >
-                    <p className="font-mono text-[9px] tracking-[0.1em] text-[#758078]">
-                      {e.label}
-                    </p>
-                    <p className="mt-1.5 text-sm font-semibold truncate" title={e.value}>
-                      {e.value}
-                    </p>
-                  </div>
-                ))}
-            </div>
-          </div>
-
-          {/* Keywords */}
-          <div className="mt-8">
-            <Eyebrow>KEYWORDS</Eyebrow>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {(photo.keywords || []).map((k) => (
-                <Link
-                  key={k}
-                  to={`/search?q=${k}`}
-                  className="rounded-full border border-[#ececec] bg-white/50 px-3 py-1.5 text-xs text-[#4a534e] hover:border-[#1e4a3f]"
-                >
-                  {k}
-                </Link>
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* Sticky licensing panel */}
-        <div>
-          {/* Fine-Art Digital Edition Banner */}
-          {(() => {
-            const matchingEdition = editions.find(
-              (e) => e.photoId === photo.id || e.title.toLowerCase() === photo.title.toLowerCase(),
-            );
-            const isOwner =
-              user &&
-              (photo.photographerId === user.id || (user as any).slug === photo.photographerId);
+        <aside className="rounded-[28px] border border-[#e7e1d9] bg-[#faf7f2] p-5 shadow-[0_18px_60px_rgba(17,15,13,0.03)] sm:p-6">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#5f655e]">
+            {photo.category} / Archive
+          </p>
+          <h1 className="mt-4 font-serif text-4xl leading-none tracking-[-0.04em] text-[#171513] sm:text-5xl">
+            {photo.title}
+          </h1>
+          <p className="mt-4 text-sm text-[#5d625e]">
+            by{" "}
+            <Link to={photographerHref} className="font-semibold text-[#1e4a3f] hover:underline">
+              {photo.photographer}
+            </Link>
+          </p>
 
-            const isEditionsVisible = isEditionsPublic() || user?.role === "Admin";
-            if (matchingEdition && isEditionsVisible) {
-              return (
-                <div className="mb-6 p-5 rounded-2xl bg-[#0d1714] text-white border border-[#d4af37]/30 shadow-xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#d4af37]/15 text-[#d4af37] text-[10px] font-mono uppercase font-bold tracking-wider">
-                      <Sparkles className="size-3" />
-                      Digital Edition Available
-                    </span>
-                    <span className="text-xs font-mono text-[#d4af37]">
-                      {matchingEdition.tier === "genesis_1_of_1"
-                        ? "Genesis 1 of 1"
-                        : `${matchingEdition.availableEditions}/${matchingEdition.totalEditions} Left`}
-                    </span>
-                  </div>
-                  <div>
-                    <h4 className="font-serif text-base text-white font-medium">
-                      Fine-Art Digital Masterpiece
-                    </h4>
-                    <p className="text-xs text-white/60 mt-0.5 font-serif">
-                      Numbered photographic edition with cryptographic Certificate of Authenticity
-                      (COA) & uncompressed RAW master.
-                    </p>
-                  </div>
-                  <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] font-mono text-white/50 block">
-                        EDITION VALUATION
-                      </span>
-                      <span className="font-serif text-xl font-bold text-white">
-                        £{matchingEdition.priceGbp.toLocaleString("en-GB")}
-                      </span>
-                    </div>
-                    <Link
-                      to="/editions"
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#d4af37] text-[#0d1714] text-xs font-semibold hover:bg-[#e6c158] transition"
-                    >
-                      <span>Acquire Edition</span>
-                      <ArrowRight className="size-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              );
-            }
+          <div className="mt-6 rounded-2xl border border-[#e7e1d9] bg-white p-4">
+            <div className="flex items-center justify-between gap-3 border-b border-[#efe9e3] pb-3">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#666e68]">License</span>
+              <span className="text-lg font-semibold text-[#171513]">£{current.price.toLocaleString()}</span>
+            </div>
 
-            if (isOwner) {
-              return (
-                <div className="mb-6 p-4 rounded-2xl bg-[#1e4a3f]/5 border border-[#1e4a3f]/20 space-y-2">
-                  <div className="flex items-center gap-2 text-[#1e4a3f]">
-                    <Sparkles className="size-4" />
-                    <span className="text-xs font-semibold">Fine-Art Digital Edition Minting</span>
-                  </div>
-                  <p className="text-xs text-[#59645f]">
-                    Certify this photographic master as a limited digital edition on the NS CAPTURES
-                    platform.
-                  </p>
-                  <button
-                    onClick={() => setShowMintModal(true)}
-                    className="w-full mt-2 py-2 px-3 rounded-xl bg-[#1e4a3f] text-white text-xs font-semibold hover:bg-[#163830] transition flex items-center justify-center gap-1.5"
-                  >
-                    <ShieldCheck className="size-3.5" />
-                    <span>Certify as Digital Edition</span>
-                  </button>
-                </div>
-              );
-            }
-
-            return null;
-          })()}
-
-          <div className="sticky top-24 border border-[#e2e2e2] bg-[#ffffff] ns-shadow p-6 rounded-2xl">
-            <Eyebrow>LICENSE THIS IMAGE</Eyebrow>
-            <div className="mt-4 space-y-2">
-              {options.map((o) => (
+            <div className="mt-4 space-y-3">
+              {options.map((option) => (
                 <button
-                  key={o.id}
-                  onClick={() => setSelected(o.id)}
-                  className={`flex w-full items-center justify-between border px-4 py-3 text-left transition rounded-xl cursor-pointer ${
-                    selected === o.id
-                      ? "border-[#1e4a3f] bg-[#e7ebe2] ns-shadow-sm"
-                      : "border-[#ececec] bg-white hover:border-[#c3c8bf]"
+                  key={option.id}
+                  type="button"
+                  onClick={() => setSelected(option.id)}
+                  className={`w-full rounded-2xl border p-3 text-left transition ${
+                    selected === option.id
+                      ? "border-[#1e4a3f] bg-[#edf5f2]"
+                      : "border-[#e7e1d9] bg-[#faf7f2] hover:border-[#c8bfb3]"
                   }`}
                 >
-                  <span className="text-sm font-semibold capitalize">{o.id.toLowerCase()}</span>
-                  <span className="font-serif text-lg">£{o.price}</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium text-[#171513]">{option.id}</span>
+                    <span className="font-mono text-xs text-[#5c605d]">£{option.price.toLocaleString()}</span>
+                  </div>
                 </button>
               ))}
             </div>
 
-            <div className="mt-5 space-y-3 border-t border-[#ececec] pt-5 text-sm">
-              <Row label="Usage" value={current.usage} />
-              <Row label="Restrictions" value={current.restrictions} />
-              <Row label="Duration" value={current.duration} />
-              <Row label="Coverage" value={current.coverage} />
+            <div className="mt-5">
+              <button
+                onClick={() => {
+                  addToCart({
+                    id: `${photo.id}-${current.id}`,
+                    photoId: photo.id,
+                    title: photo.title,
+                    price: current.price,
+                    image: photo.image,
+                    photographer: photo.photographer,
+                    license: current.id,
+                  });
+                  toast.success(`${current.id} license added to cart`);
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-[#1e4a3f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#183a33]"
+              >
+                Add to cart
+                <ArrowRight className="size-4" />
+              </button>
             </div>
-
-            <div className="mt-6 flex items-center justify-between border-t border-[#ececec] pt-5">
-              <span className="text-sm text-[#6b716d]">Total</span>
-              <span className="font-serif text-3xl">£{current.price}</span>
-            </div>
-            <Button
-              onClick={() => {
-                addToCart({
-                  id: `${photo.id}-${selected}`,
-                  photoId: photo.id,
-                  title: photo.title,
-                  license: selected,
-                  price: current.price,
-                  image: photo.image,
-                  photographer: photo.photographer,
-                });
-                toast.success("Added to cart", {
-                  description: `${selected} license for "${photo.title}" has been added to your cart.`,
-                });
-              }}
-              className="mt-4 w-full py-3"
-            >
-              License & download
-            </Button>
-            <p className="mt-3 text-center text-xs text-[#8a8f89]">
-              Instant download · Royalty-free after purchase
-            </p>
-
-            <Link
-              to={photographerHref}
-              className="mt-6 flex items-center gap-3 border-t border-[#ececec] pt-5 hover:opacity-80"
-            >
-              <Avatar className="size-10 shrink-0">
-                <AvatarImage
-                  src={photographer?.avatar ? getOptimizedImageUrl(photographer.avatar, 80) : ""}
-                  alt={photo.photographer}
-                  className="object-cover"
-                />
-                <AvatarFallback className="bg-[#dce8df] text-[#1e4a3f] text-xs font-semibold">
-                  {photo.photographer.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="text-xs">
-                <p className="font-semibold">{photo.photographer}</p>
-                <p className="text-[#6b716d]">{photo.location}</p>
-              </div>
-              <Badge tone="muted">VERIFIED</Badge>
-            </Link>
           </div>
+
+          <div className="mt-6 space-y-2 text-sm text-[#4c514d]">
+            <p>
+              <span className="font-medium text-[#171513]">Usage:</span> {current.usage}
+            </p>
+            <p>
+              <span className="font-medium text-[#171513]">Restrictions:</span> {current.restrictions}
+            </p>
+            <p>
+              <span className="font-medium text-[#171513]">Duration:</span> {current.duration}
+            </p>
+            <p>
+              <span className="font-medium text-[#171513]">Coverage:</span> {current.coverage}
+            </p>
+          </div>
+
+          {photographer && (
+            <div className="mt-6 rounded-2xl border border-[#e7e1d9] bg-[#f4f0ea] p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center overflow-hidden rounded-full bg-[#dfeae6] text-xs font-semibold text-[#1e4a3f]">
+                  {photographer.avatar ? (
+                    <img
+                      src={getOptimizedImageUrl(photographer.avatar, 80)}
+                      alt={photographer.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    photographer.name?.charAt(0).toUpperCase() || "N"
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[#171513]">{photographer.name || photo.photographer}</p>
+                  <p className="text-xs text-[#5d625e]">{photo.location}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          { icon: Camera, label: "Camera body", value: photo.camera },
+          { icon: Aperture, label: "Lens", value: photo.lens },
+          { icon: null, label: "ISO", value: photo.iso ? String(photo.iso) : "" },
+          { icon: null, label: "Aperture", value: photo.aperture },
+          { icon: null, label: "Shutter", value: photo.shutterSpeed },
+          { icon: null, label: "Focal length", value: photo.focalLength },
+          { icon: null, label: "Rights", value: photo.license },
+        ]
+          .filter((entry) => entry.value)
+          .map((entry) => (
+            <div key={entry.label} className="rounded-2xl border border-[#e7e1d9] bg-[#faf7f2] p-4">
+              <div className="mb-2 flex items-center gap-2 text-[#58615d]">
+                {entry.icon && <entry.icon className="size-4" />}
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em]">{entry.label}</span>
+              </div>
+              <p className="text-sm text-[#171513]">{entry.value}</p>
+            </div>
+          ))}
+      </div>
+
+      <div className="mt-8">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#5f655e]">Keywords</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(photo.keywords || []).map((k) => (
+            <Link
+              key={k}
+              to={`/search?q=${encodeURIComponent(k)}`}
+              className="rounded-full border border-[#e7e1d9] bg-[#faf7f2] px-3 py-1.5 text-xs text-[#4a534e] hover:border-[#1e4a3f]"
+            >
+              {k}
+            </Link>
+          ))}
         </div>
       </div>
 
-      {/* Related */}
-      {related.length > 0 && (
-        <section className="mt-20">
-          <h2 className="mb-8 font-serif text-3xl">More like this</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {related.map((p) => (
-              <PhotoCard key={p.id} item={p} />
-            ))}
-          </div>
-        </section>
-      )}
+      {(() => {
+        const matchingEdition = editions.find(
+          (e) => e.photoId === photo.id || e.title.toLowerCase() === photo.title.toLowerCase(),
+        );
+        const isOwner =
+          user && (photo.photographerId === user.id || (user as any).slug === photo.photographerId);
+        const isEditionsVisible = isEditionsPublic() || user?.role === "Admin";
 
-      {/* Mint Edition Modal */}
+        if (matchingEdition && isEditionsVisible) {
+          return (
+            <div className="mt-10 rounded-[28px] border border-[#d9caa6] bg-[#0d1714] p-5 text-white shadow-[0_18px_50px_rgba(11,16,14,0.14)] sm:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="inline-flex items-center gap-2 rounded-full bg-[#d4af37]/15 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.16em] text-[#d4af37]">
+                  <Sparkles className="size-3" /> Digital edition
+                </span>
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">
+                  {matchingEdition.tier === "genesis_1_of_1"
+                    ? "Genesis 1 of 1"
+                    : `${matchingEdition.availableEditions}/${matchingEdition.totalEditions} left`}
+                </span>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h2 className="font-serif text-2xl text-white">Fine-Art Digital Masterpiece</h2>
+                  <p className="mt-2 max-w-xl text-sm text-white/70">
+                    Numbered photographic edition with cryptographic Certificate of Authenticity and
+                    museum-grade archival pairing.
+                  </p>
+                </div>
+                <Link
+                  to="/editions"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#d4af37] px-5 py-3 text-sm font-semibold text-[#0d1714] transition hover:bg-[#e3c75c]"
+                >
+                  Acquire edition
+                  <ArrowRight className="size-4" />
+                </Link>
+              </div>
+            </div>
+          );
+        }
+
+        if (isOwner) {
+          return (
+            <div className="mt-10 rounded-[28px] border border-[#dfe8e3] bg-[#edf5f2] p-5 sm:p-6">
+              <div className="flex items-center gap-3 text-[#1e4a3f]">
+                <Sparkles className="size-4" />
+                <span className="text-xs font-semibold uppercase tracking-[0.14em]">Fine-art digital edition</span>
+              </div>
+              <p className="mt-3 max-w-xl text-sm text-[#46615d]">
+                Certify this master as a limited digital edition on the NS CAPTURES platform.
+              </p>
+              <button
+                onClick={() => setShowMintModal(true)}
+                className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#1e4a3f] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#183a33]"
+              >
+                <ShieldCheck className="size-4" />
+                Certify as digital edition
+              </button>
+            </div>
+          );
+        }
+
+        return null;
+      })()}
+
       {showMintModal && (
         <MintEditionModal
           photo={photo}
@@ -467,17 +428,6 @@ export function PhotoDetail() {
           }}
         />
       )}
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-4">
-      <span className="w-24 shrink-0 font-mono text-[10px] tracking-[0.08em] text-[#758078]">
-        {label.toUpperCase()}
-      </span>
-      <span className="text-[#4a534e]">{value}</span>
     </div>
   );
 }

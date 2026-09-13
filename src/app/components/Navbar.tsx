@@ -162,6 +162,7 @@ export function Navbar() {
   // Cart States
   const [cartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
   const [checkoutStatus, setCheckoutStatus] = useState<"idle" | "loading" | "success">("idle");
   const [checkoutStep, setCheckoutStep] = useState<"select-method" | "payment-details" | "confirm">(
     "select-method",

@@ -167,23 +167,23 @@ export function Editions() {
   const [activeTimeframe, setActiveTimeframe] = useState<"1h" | "6h" | "24h" | "7d">("24h");
   const [proMode, setProMode] = useState<boolean>(false);
   const [currencyMode, setCurrencyMode] = useState<"crypto" | "usd">("crypto");
-  const [themeMode, setThemeMode] = useState<"dark" | "light">("light");
+  const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
   const isDarkTheme = themeMode === "dark";
 
   const marketTheme = isDarkTheme
     ? {
-        page: "min-h-screen bg-[#101714] text-[#edf4f1]",
-        panel: "bg-[#151d1b] border-[#23322f]",
-        panelAlt: "bg-[#1a241f] border-[#2b3834]",
-        soft: "bg-[#1a221f] border-[#2b3834]",
-        mutedText: "text-[#afc0b9]",
-        strongText: "text-[#f1f7f4]",
-        subText: "text-[#7f938f]",
-        accent: "bg-[#1e4a3f] text-[#edf8f4] border-[#285d52]",
-        accentSoft: "bg-[#1e4a3f]/10 text-[#dff5ee] border-[#285d52]/50",
-        action: "bg-[#1e4a3f] text-[#f4faf7] hover:bg-[#224d43]",
-        buttonNeutral: "bg-[#171f1c] text-[#edf4f1] border-[#2a3734] hover:bg-[#1d2724]",
-        border: "border-[#23322f]",
+        page: "min-h-screen bg-[#0d1117] text-[#edf4f1]",
+        panel: "bg-[#11161b] border-[#1c252d]",
+        panelAlt: "bg-[#121a20] border-[#1c252d]",
+        soft: "bg-[#171d24] border-[#1f2a32]",
+        mutedText: "text-[#8a9aa5]",
+        strongText: "text-[#f3f6f8]",
+        subText: "text-[#6f7c85]",
+        accent: "bg-[#1f8fff] text-[#edf8ff] border-[#1f8fff]",
+        accentSoft: "bg-[#1f8fff]/10 text-[#dfeeff] border-[#1f8fff]/30",
+        action: "bg-[#1f8fff] text-[#f4faf7] hover:bg-[#1977d6]",
+        buttonNeutral: "bg-[#151c22] text-[#edf4f1] border-[#212d35] hover:bg-[#1b242c]",
+        border: "border-[#1d262d]",
       }
     : {
         page: "min-h-screen bg-[#f4efe8] text-[#1b1b1a]",
@@ -524,71 +524,68 @@ export function Editions() {
   // Public Visibility Guard: If editions room is toggled OFF by admin, hide from public
   if (!isPublic && !isAdmin) {
     return (
-      <div className="min-h-screen bg-[#0d1412] text-[#edf4f1] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans selection:bg-[#1e4a3f] selection:text-white">
-        {/* Ambient Glows */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-[#173029]/35 via-[#0d1412]/80 to-[#0d1412] pointer-events-none" />
-        <div className="absolute -top-32 -right-32 w-96 h-96 bg-[#10b981]/8 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-[#d4af37]/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#f3efe8] px-5 py-16 text-[#171513] selection:bg-[#d8d0c5] selection:text-[#171513]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(17,17,17,0.04),_transparent_55%)]" />
 
-        <div className="relative z-10 max-w-xl w-full text-center space-y-7 p-8 md:p-12 rounded-3xl border border-[#23322f] bg-[#141d1b]/95 backdrop-blur-xl shadow-2xl">
-          {/* Brand Logo Monogram */}
-          <div className="flex justify-center">
-            <NsCapturesLogoBadge className="size-16" />
-          </div>
+        <div className="relative z-10 w-full max-w-5xl rounded-[28px] border border-[#d8d0c5] bg-[#faf7f2]/90 p-6 shadow-[0_20px_80px_rgba(27,23,19,0.06)] backdrop-blur-sm sm:p-8 md:p-12">
+          <div className="flex flex-col items-center text-center">
+            <div className="mb-6 flex justify-center">
+              <NsCapturesLogoBadge className="size-14 md:size-16" />
+            </div>
 
-          {/* Exclusive Status Pill */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#10b981]/10 border border-[#10b981]/30 text-[#5af2b3] text-xs font-mono font-medium tracking-wide">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#5af2b3] animate-pulse" />
-            PRIVATE CURATED SALON &bull; COMING SOON
-          </div>
+            <p className="font-mono text-[10px] tracking-[0.22em] text-[#5f655e] uppercase">
+              Private Curated Salon &bull; Coming Soon
+            </p>
 
-          {/* Heading and Narrative */}
-          <div className="space-y-3">
-            <h1 className="font-serif text-3xl md:text-4xl font-normal text-white tracking-tight">
+            <h1 className="mt-6 font-serif text-5xl leading-none tracking-[-0.04em] text-[#171513] sm:text-6xl md:text-7xl">
               Fine-Art Digital Editions
             </h1>
-            <p className="text-sm md:text-base text-[#9fb3ab] leading-relaxed">
+
+            <p className="mt-5 max-w-2xl text-sm leading-7 text-[#5c605c] md:text-base">
               The NS CAPTURES Editions room is currently accessible by invitation and administrative preview only while our curated collection of limited series and cryptographic certificates of authenticity is being assembled.
             </p>
-          </div>
 
-          {/* Key Value Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-left">
-            <div className="p-3.5 rounded-xl border border-[#23322f] bg-[#182320]/70 space-y-1">
-              <span className="font-mono text-[10px] text-[#5af2b3] uppercase tracking-wider block">Provenance</span>
-              <p className="text-xs text-[#edf4f1] font-medium leading-snug">Cryptographic Certificates of Authenticity</p>
+            <div className="mt-8 grid w-full max-w-4xl gap-3 text-left md:grid-cols-3">
+              <div className="rounded-2xl border border-[#d8d0c5] bg-[#f6f0e8] p-4">
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#5f655e]">Provenance</span>
+                <p className="mt-2 text-sm leading-6 text-[#1d1d1b]">
+                  Cryptographic Certificates of Authenticity
+                </p>
+              </div>
+              <div className="rounded-2xl border border-[#d8d0c5] bg-[#f6f0e8] p-4">
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#5f655e]">Scarcity</span>
+                <p className="mt-2 text-sm leading-6 text-[#1d1d1b]">
+                  Numbered Limited Series &amp; Genesis 1/1s
+                </p>
+              </div>
+              <div className="rounded-2xl border border-[#d8d0c5] bg-[#f6f0e8] p-4">
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#5f655e]">Physical Twins</span>
+                <p className="mt-2 text-sm leading-6 text-[#1d1d1b]">
+                  Museum-Grade Giclée Print Pairings
+                </p>
+              </div>
             </div>
-            <div className="p-3.5 rounded-xl border border-[#23322f] bg-[#182320]/70 space-y-1">
-              <span className="font-mono text-[10px] text-[#d4af37] uppercase tracking-wider block">Scarcity</span>
-              <p className="text-xs text-[#edf4f1] font-medium leading-snug">Numbered Limited Series &amp; Genesis 1/1s</p>
-            </div>
-            <div className="p-3.5 rounded-xl border border-[#23322f] bg-[#182320]/70 space-y-1">
-              <span className="font-mono text-[10px] text-[#60a5fa] uppercase tracking-wider block">Physical Twins</span>
-              <p className="text-xs text-[#edf4f1] font-medium leading-snug">Museum-Grade Giclée Print Pairings</p>
-            </div>
-          </div>
 
-          {/* Action CTAs */}
-          <div className="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              to="/explore"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#1e4a3f] hover:bg-[#255e50] text-white font-medium text-sm transition shadow-lg shadow-[#1e4a3f]/25"
-            >
-              <span>Explore Stock Gallery</span>
-              <ArrowRight className="size-4" />
-            </Link>
-            <Link
-              to="/"
-              className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 rounded-xl border border-[#2b3b37] hover:bg-[#1a2623] text-[#cfded7] text-sm font-medium transition"
-            >
-              Return to Homepage
-            </Link>
-          </div>
+            <div className="mt-8 flex w-full max-w-xl flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                to="/explore"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#1a1a19] bg-[#1a1a19] px-6 py-3 text-sm font-medium text-[#f7f3ee] transition hover:bg-[#2b2823] sm:w-auto"
+              >
+                <span>Explore Stock Gallery</span>
+                <ArrowRight className="size-4" />
+              </Link>
+              <Link
+                to="/"
+                className="inline-flex w-full items-center justify-center rounded-full border border-[#d8d0c5] bg-white/40 px-6 py-3 text-sm font-medium text-[#171513] transition hover:bg-white sm:w-auto"
+              >
+                Return to Homepage
+              </Link>
+            </div>
 
-          {/* Footer Subtext */}
-          <p className="text-[11px] text-[#677a72] font-mono">
-            NS CAPTURES Fine Art Registry &copy; {new Date().getFullYear()} &bull; Private Access Only
-          </p>
+            <p className="mt-8 font-mono text-[10px] tracking-[0.18em] text-[#7a726d] uppercase">
+              NS CAPTURES Fine Art Registry © {new Date().getFullYear()} &bull; Private Access Only
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -837,10 +834,10 @@ export function Editions() {
                 <button
                   key={c.id}
                   onClick={() => setSelectedCategory(c.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition whitespace-nowrap ${
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-medium transition whitespace-nowrap ${
                     selectedCategory === c.id
-                      ? `${marketTheme.accent} font-bold`
-                      : `${marketTheme.buttonNeutral} ${marketTheme.mutedText} hover:${marketTheme.strongText}`
+                      ? "bg-[#1f8fff] text-white border border-[#1f8fff]"
+                      : `${marketTheme.buttonNeutral} ${marketTheme.mutedText}`
                   }`}
                 >
                   {c.label}
@@ -1080,124 +1077,94 @@ export function Editions() {
               {/* HERO FEATURE DROP CAROUSEL (Fine-Art Verified Spotlight) */}
               {/* ======================================================== */}
               {activeHero && (
-                <div className={`relative rounded-[24px] overflow-hidden border ${marketTheme.border} ${isDarkTheme ? "bg-[#171d1b]" : "bg-[#f7f3ee]"} shadow-[0_12px_30px_rgba(15,23,20,0.08)] group`}>
-                  <div className="relative aspect-[16/9] sm:aspect-[21/9] max-h-[460px] overflow-hidden">
-                    <img
-                      src={activeHero.image}
-                      alt={activeHero.title}
-                      className="size-full object-cover transition duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0c0b0a] via-[#0c0b0a]/60 to-transparent" />
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0c0b0a]/90 via-[#0c0b0a]/30 to-transparent" />
-
-                    <div className="absolute inset-0 p-6 sm:p-10 flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${isDarkTheme ? "bg-[#121a18]/80 border border-[#2b3834] text-[#dfece8]" : "bg-white/80 border border-[#dfe6e2] text-[#183a32]"} text-[11px] font-mono font-semibold uppercase tracking-wider`}>
-                            <Sparkles className={`size-3 ${isDarkTheme ? "text-[#dfece8]" : "text-[#183a32]"}`} />
-                            {activeHero.tier === "genesis_1_of_1"
-                              ? "Genesis 1 of 1"
-                              : "Curated Limited Series"}
+                <div className={`relative rounded-[22px] border ${marketTheme.border} ${isDarkTheme ? "bg-[#0d1117]" : "bg-[#f7f3ee]"} shadow-[0_16px_40px_rgba(0,0,0,0.16)] overflow-hidden`}>
+                  <div className="relative p-4 sm:p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#101820] border border-[#23313d] text-[10px] font-mono uppercase tracking-[0.16em] text-[#dfeaf5]">
+                          <Sparkles className="size-3 text-[#80d0ff]" />
+                          {activeHero.tier === "genesis_1_of_1" ? "Genesis 1/1" : "Curated Series"}
+                        </span>
+                        {activeHero.hasPhysicalTwin && (
+                          <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-[#101820] border border-[#23313d] text-[10px] font-mono text-[#dfeaf5]">
+                            Archival Print Twin
                           </span>
-                          {activeHero.hasPhysicalTwin && (
-                            <span className={`hidden sm:inline-flex items-center gap-1 px-3 py-1 rounded-full ${isDarkTheme ? "bg-[#121a18]/80 border border-[#2b3834] text-[#edf9f4]" : "bg-white/80 border border-[#dfe6e2] text-[#183a32]"} text-[11px] font-mono`}>
-                              + Archival Print Twin
-                            </span>
-                          )}
-                        </div>
-
-                        <div className={`flex items-center gap-1.5 ${isDarkTheme ? "bg-[#121a18]/80" : "bg-white/70"} backdrop-blur-md px-3 py-1 rounded-full border ${isDarkTheme ? "border-[#2b3834]" : "border-[#dfe6e2]"}`}>
-                          {featuredEditions.map((_, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => setHeroSlideIndex(idx)}
-                              className={`h-1.5 rounded-full transition-all ${
-                                heroSlideIndex % featuredEditions.length === idx
-                                  ? "w-6 bg-[#1e4a3f]"
-                                  : `w-2 ${isDarkTheme ? "bg-white/20" : "bg-[#a6b5af]"}`
-                              }`}
-                              title={`Slide ${idx + 1}`}
-                            />
-                          ))}
-                        </div>
+                        )}
                       </div>
 
-                      <div className="space-y-4">
-                        <div className="space-y-1 max-w-xl">
-                          <div className={`flex items-center gap-2 ${isDarkTheme ? "text-[#dfece8]" : "text-[#1f2a28]"} font-mono text-xs`}>
+                      <div className="flex items-center gap-1.5">
+                        {featuredEditions.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setHeroSlideIndex(idx)}
+                            className={`h-1.5 rounded-full transition-all ${
+                              heroSlideIndex % featuredEditions.length === idx
+                                ? "w-6 bg-[#1f8fff]"
+                                : "w-2 bg-white/15"
+                            }`}
+                            title={`Slide ${idx + 1}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-4 items-center">
+                      <div className="relative overflow-hidden rounded-[18px] border border-[#182531] bg-[#0a0e13] min-h-[180px]">
+                        <img
+                          src={activeHero.image}
+                          alt={activeHero.title}
+                          className="absolute inset-0 size-full object-cover opacity-40"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0e13] via-[#0a0e13]/75 to-transparent" />
+                        <div className="relative p-5 sm:p-6">
+                          <div className="flex items-center gap-2 text-[11px] font-mono text-[#dfeaf5]/70 mb-3">
                             <span>By {activeHero.photographerName}</span>
-                            <span className={`size-4 rounded-full ${isDarkTheme ? "bg-[#1e4a3f] text-[#effaf5]" : "bg-[#1e4a3f] text-white"} flex items-center justify-center font-bold text-[9px]`}>
-                              ✓
-                            </span>
+                            <span className="size-3.5 rounded-full bg-[#1f8fff] text-[8px] font-bold text-white flex items-center justify-center">✓</span>
                           </div>
-                          <h1 className={`font-serif text-2xl sm:text-4xl ${isDarkTheme ? "text-[#f6f9f7]" : "text-[#1a1b1a]"} font-medium leading-tight`}>
+                          <h1 className="font-serif text-2xl sm:text-4xl text-white leading-tight mb-2 max-w-md">
                             {activeHero.title}
                           </h1>
-                          <p className={`text-xs sm:text-sm ${isDarkTheme ? "text-[#dfece8]/75" : "text-[#44524e]"} line-clamp-2 font-serif`}>
+                          <p className="max-w-lg text-[12px] sm:text-sm text-[#dfeaf5]/70 font-serif leading-relaxed">
                             {activeHero.description}
                           </p>
                         </div>
+                      </div>
 
-                        <div className={`inline-flex flex-wrap items-center gap-4 sm:gap-6 p-4 rounded-2xl ${isDarkTheme ? "bg-[#121a18]/80 border border-[#2b3834]" : "bg-white/80 border border-[#e3d9cd]"} backdrop-blur-md`}>
-                          <div>
-                            <span className={`text-[10px] font-mono uppercase tracking-wider ${isDarkTheme ? "text-[#bfcdc8]" : "text-[#5e6662]"} block`}>
-                              Floor price
-                            </span>
-                            <span className={`font-mono text-sm sm:text-base font-bold ${isDarkTheme ? "text-[#f6f9f7]" : "text-[#1b1b1a]"}`}>
-                              {currencyMode === "crypto"
-                                ? `${activeHero.priceEth} ETH`
-                                : `£${activeHero.priceGbp.toLocaleString("en-GB")}`}
-                            </span>
-                          </div>
-
-                          <div className={`w-[1px] h-8 ${isDarkTheme ? "bg-[#2b3834]" : "bg-[#e3d9cd]"}`} />
-
-                          <div>
-                            <span className={`text-[10px] font-mono uppercase tracking-wider ${isDarkTheme ? "text-[#bfcdc8]" : "text-[#5e6662]"} block`}>
-                              Editions
-                            </span>
-                            <span className={`font-mono text-sm sm:text-base font-bold ${isDarkTheme ? "text-[#f6f9f7]" : "text-[#1b1b1a]"}`}>
-                              {activeHero.totalEditions}
-                            </span>
-                          </div>
-
-                          <div className={`w-[1px] h-8 ${isDarkTheme ? "bg-[#2b3834]" : "bg-[#e3d9cd]"}`} />
-
-                          <div>
-                            <span className={`text-[10px] font-mono uppercase tracking-wider ${isDarkTheme ? "text-[#bfcdc8]" : "text-[#5e6662]"} block`}>
-                              Volume
-                            </span>
-                            <span className={`font-mono text-sm sm:text-base font-bold ${isDarkTheme ? "text-[#f6f9f7]" : "text-[#1b1b1a]"}`}>
-                              £142.5K
-                            </span>
-                          </div>
-
-                          <div className={`w-[1px] h-8 ${isDarkTheme ? "bg-[#2b3834]" : "bg-[#e3d9cd]"}`} />
-
-                          <div>
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-[#d7c7a9]/80 block">
-                              Listed
-                            </span>
-                            <span className="font-mono text-sm sm:text-base font-bold text-[#1e4a3f]">
-                              {activeHero.availableEditions} ({activeHero.totalEditions > 0 ? ((activeHero.availableEditions / activeHero.totalEditions) * 100).toFixed(0) : 0}%)
-                            </span>
-                          </div>
-
-                          <button
-                            onClick={() => handlePurchase(activeHero)}
-                            disabled={activeHero.availableEditions === 0}
-                            className={`ml-auto px-5 py-2.5 rounded-xl font-medium text-xs font-mono transition flex items-center gap-2 shadow-[0_8px_20px_rgba(30,74,63,0.14)] ${
-                              activeHero.availableEditions === 0
-                                ? "bg-white/10 text-white/40 cursor-not-allowed"
-                                : "bg-[#1e4a3f] text-[#f4faf7] hover:bg-[#163d35] font-bold"
-                            }`}
-                          >
-                            <ShoppingBag className="size-4" />
-                            <span>
-                              {activeHero.availableEditions === 0 ? "Sold Out" : "Acquire Edition"}
-                            </span>
-                          </button>
+                      <div className="space-y-2.5 rounded-[18px] border border-[#182531] bg-[#101821] p-3 sm:p-4">
+                        <div className="flex items-center justify-between border-b border-[#1a2734] pb-2">
+                          <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-[#8aa1ae]">Floor</span>
+                          <span className="font-mono text-base font-semibold text-white">
+                            {currencyMode === "crypto" ? `${activeHero.priceEth} ETH` : `£${activeHero.priceGbp.toLocaleString("en-GB")}`}
+                          </span>
                         </div>
+                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                          <div className="rounded-xl border border-[#182531] bg-[#0d1319] p-2.5">
+                            <div className="text-[#8aa1ae] font-mono uppercase tracking-[0.12em] mb-1">Editions</div>
+                            <div className="text-white font-mono text-sm font-semibold">{activeHero.totalEditions}</div>
+                          </div>
+                          <div className="rounded-xl border border-[#182531] bg-[#0d1319] p-2.5">
+                            <div className="text-[#8aa1ae] font-mono uppercase tracking-[0.12em] mb-1">Volume</div>
+                            <div className="text-white font-mono text-sm font-semibold">£142.5K</div>
+                          </div>
+                          <div className="rounded-xl border border-[#182531] bg-[#0d1319] p-2.5 col-span-2">
+                            <div className="text-[#8aa1ae] font-mono uppercase tracking-[0.12em] mb-1">Availability</div>
+                            <div className="text-white font-mono text-sm font-semibold">
+                              {activeHero.availableEditions} / {activeHero.totalEditions} listed
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handlePurchase(activeHero)}
+                          disabled={activeHero.availableEditions === 0}
+                          className={`w-full mt-2 px-4 py-2.5 rounded-xl text-xs font-semibold font-mono transition ${
+                            activeHero.availableEditions === 0
+                              ? "bg-white/10 text-white/40 cursor-not-allowed"
+                              : "bg-[#1f8fff] text-white hover:bg-[#1977d6]"
+                          }`}
+                        >
+                          {activeHero.availableEditions === 0 ? "Sold Out" : "Acquire Edition"}
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -1270,7 +1237,7 @@ export function Editions() {
               <div className="space-y-4 pt-4 border-t border-[#2a2722]">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <button className={`px-3.5 py-1.5 rounded-xl ${isDarkTheme ? "bg-[#1e4a3f]/15 text-[#ebf8f4] border-[#2a5d52]" : "bg-[#eaf3ef] text-[#1e4a3f] border-[#cfe1d9]"} font-semibold text-xs border flex items-center gap-1.5`}>
+                    <button className={`px-3.5 py-1.5 rounded-xl ${isDarkTheme ? "bg-[#101920] text-[#edf3f7] border-[#1d2a35]" : "bg-[#eaf3ef] text-[#1e4a3f] border-[#cfe1d9]"} font-semibold text-xs border flex items-center gap-1.5`}>
                       <span>Items</span>
                       <span className={`px-1.5 py-0.2 rounded-full ${isDarkTheme ? "bg-[#1e4a3f] text-[#ebf8f4]" : "bg-[#1e4a3f] text-white"} text-[10px] font-mono font-bold`}>
                         {filteredEditions.length}
@@ -1327,7 +1294,7 @@ export function Editions() {
                       return (
                         <div
                           key={item.id}
-                          className={`group rounded-2xl overflow-hidden border transition duration-300 flex flex-col shadow-sm relative ${isDarkTheme ? "bg-[#0E131C] border-[#1E2738] hover:border-[#10B981]" : "bg-[#fffdfb] border-[#e7dfd4] hover:border-[#1e4a3f]/50"}`}
+                          className={`group rounded-2xl overflow-hidden border transition duration-300 flex flex-col shadow-sm relative ${isDarkTheme ? "bg-[#0d1319] border-[#1a232d] hover:border-[#1f8fff]" : "bg-[#fffdfb] border-[#e7dfd4] hover:border-[#1e4a3f]/50"}`}
                         >
                           {/* Image Container */}
                           <div className={`relative aspect-[4/3] overflow-hidden ${isDarkTheme ? "bg-black/40" : "bg-[#efe7df]"}`}>
@@ -1355,7 +1322,7 @@ export function Editions() {
                             )}
 
                             {/* Hover Quick Action Buttons */}
-                            <div className={`absolute inset-0 ${isDarkTheme ? "bg-black/40" : "bg-[#1b1b1a]/25"} backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-4`}>
+                            <div className={`absolute inset-0 ${isDarkTheme ? "bg-[#070b10]/55" : "bg-[#1b1b1a]/25"} backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-4`}>
                               <button
                                 onClick={() => handlePurchase(item)}
                                 disabled={isSoldOut}
@@ -1364,7 +1331,7 @@ export function Editions() {
                                     ? isDarkTheme
                                       ? "bg-white/10 text-white/40 cursor-not-allowed"
                                       : "bg-[#e6ece9] text-[#6f7a76] cursor-not-allowed"
-                                    : "bg-[#1e4a3f] text-[#f4faf7] hover:bg-[#163d35] font-bold"
+                                    : "bg-[#1f8fff] text-white hover:bg-[#1977d6] font-bold"
                                 }`}
                               >
                                 {isSoldOut ? "Sold Out" : "Instant Collect"}
@@ -1415,7 +1382,7 @@ export function Editions() {
                                 <span className={`text-xs truncate ${isDarkTheme ? "text-white/70" : "text-[#3f4d49]"}`}>
                                   {item.photographerName}
                                 </span>
-                                <span className="size-3 rounded-full bg-[#1e4a3f] flex items-center justify-center text-white font-bold text-[7px]">
+                                <span className="size-3 rounded-full bg-[#1f8fff] flex items-center justify-center text-white font-bold text-[7px]">
                                   ✓
                                 </span>
                               </div>
@@ -1448,7 +1415,7 @@ export function Editions() {
                                 <span className={`text-[9px] font-mono uppercase tracking-wider block ${isDarkTheme ? "text-white/50" : "text-[#5f6662]"}`}>
                                   Secondary Royalty
                                 </span>
-                                <span className="font-mono text-xs text-[#1e4a3f]">
+                                <span className="font-mono text-xs text-[#1f8fff]">
                                   {item.royaltyPercent}% to Artist
                                 </span>
                               </div>

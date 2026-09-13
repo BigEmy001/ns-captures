@@ -218,7 +218,7 @@ export function Home() {
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {collections.map((c) => (
-              <Link key={c.id} to="/collections" className="group">
+              <Link key={c.id} to={`/collection/${c.id}`} className="group">
                 <div className="grid aspect-[4/3] grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden bg-[#d7d8d2]">
                   <img
                     src={c.cover?.[0] || ""}

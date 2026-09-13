@@ -23,6 +23,7 @@ export function RootLayout() {
   }, []);
 
   const isEditions = pathname === "/editions" || pathname.startsWith("/editions/");
+  const isPhotoDetail = pathname.startsWith("/photo/");
 
   return (
     <AuthProvider>
@@ -38,11 +39,11 @@ export function RootLayout() {
           >
             Skip to content
           </a>
-          {!isEditions && <Navbar />}
+          {!isEditions && !isPhotoDetail && <Navbar />}
           <main id="main-content" className="flex-1" tabIndex={-1}>
             <Outlet />
           </main>
-          {!isEditions && <Footer />}
+          {!isEditions && !isPhotoDetail && <Footer />}
           <VerificationWelcomeModal />
           <Toaster position="bottom-right" />
         </div>
