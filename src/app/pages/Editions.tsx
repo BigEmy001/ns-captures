@@ -561,7 +561,9 @@ export function Editions() {
               <button
                 onClick={() => {
                   const sampleEdition = editions[0];
-                  const sampleOwnership = getStoredOwnerships(sampleEdition.id)[0] || {
+                  const sampleOwnership = getStoredOwnerships().find(
+                    (o) => o.editionId === sampleEdition.id,
+                  ) || {
                     id: "coa-demo",
                     editionId: sampleEdition.id,
                     serialNumber: 1,
@@ -1211,7 +1213,9 @@ export function Editions() {
 
                               <button
                                 onClick={() => {
-                                  const sampleOwnership = getStoredOwnerships(item.id)[0] || {
+                                  const sampleOwnership = getStoredOwnerships().find(
+                                    (o) => o.editionId === item.id,
+                                  ) || {
                                     id: `coa-${item.id}`,
                                     editionId: item.id,
                                     serialNumber: 1,
