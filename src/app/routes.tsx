@@ -26,6 +26,9 @@ const Editions = lazy(() => import("./pages/Editions").then((m) => ({ default: m
 const EditionDetail = lazy(() =>
   import("./pages/EditionDetail").then((m) => ({ default: m.EditionDetail })),
 );
+const EditionCollection = lazy(() =>
+  import("./pages/EditionCollection").then((m) => ({ default: m.EditionCollection })),
+);
 const Pricing = lazy(() => import("./pages/Pricing").then((m) => ({ default: m.Pricing })));
 const Enterprise = lazy(() =>
   import("./pages/Enterprise").then((m) => ({ default: m.Enterprise })),
@@ -120,6 +123,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={fallback}>
             <Editions />
+          </Suspense>
+        ),
+      },
+      {
+        path: "editions/collection/:id?",
+        element: (
+          <Suspense fallback={fallback}>
+            <EditionCollection />
           </Suspense>
         ),
       },

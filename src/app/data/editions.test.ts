@@ -8,6 +8,10 @@ import {
   isEditionsPublic,
   setEditionsPublic,
   INITIAL_EDITIONS,
+  INITIAL_EDITION_COLLECTIONS,
+  getEditionCollections,
+  getEditionCollection,
+  getEditionsByCollection,
 } from "./editions";
 
 describe("Digital Editions Data Engine", () => {
@@ -140,6 +144,53 @@ describe("Digital Editions Data Engine", () => {
 
       setEditionsPublic(true);
       expect(isEditionsPublic()).toBe(true);
+    });
+  });
+
+  describe("Edition Collections (Figma node 18:567)", () => {
+    it("returns list of curated collections including Kyoto Nocturnes", () => {
+      const collections = getEditionCollections();
+      expect(collections.length).toBeGreaterThanOrEqual(4);
+      const kyoto = collections.find((c) => c.id === "kyoto-nocturnes");
+      expect(kyoto).toBeDefined();
+      expect(kyoto?.name).toBe("Kyoto Nocturnes");
+      expect(kyoto?.photographerName).toBe("Haru Tanaka");
+      expect(kyoto?.chain).toBe("Ethereum");
+      expect(kyoto?.royaltyPercent).toBe(10);
+      expect(kyoto?.contractAddress).toMatch(/^0x/);
+    });
+
+    it("retrieves a collection by id or slug", () => {
+      const col = getEditionCollection("kyoto-nocturnes");
+      expect(col).toBeDefined();
+      expect(col?.id).toBe("kyoto-nocturnes");
+      expect(col?.name).toBe("Kyoto Nocturnes");
+      expect(col?.royaltyPercent).toBe(10);
+    });
+
+    it("retrieves a collection case-insensitively by name", () => {
+      const col = getEditionCollection("Kyoto Nocturnes");
+      expect(col).toBeDefined();
+      expect(col?.id).toBe("kyoto-nocturnes");
+    });
+
+    it("retrieves editions belonging to a collection", () => {
+      const items = getEditionsByCollection("kyoto-nocturnes");
+      expect(items.length).toBeGreaterThan(0);
+      items.forEach((item) => {
+        expect(
+          item.collectionName?.toLowerCase() === "kyoto nocturnes" ||
+          item.photographerName === "Haru Tanaka",
+        ).toBe(true);
+      });
+    });
+
+    it("falls back gracefully for unknown collection id", () => {
+      const unknownCol = getEditionCollection("non-existent-collection-id");
+      expect(unknownCol).toBeNull();
+
+      const items = getEditionsByCollection("non-existent-collection-id");
+      expect(items).toEqual([]);
     });
   });
 });

@@ -340,6 +340,7 @@ export function Editions() {
     () => [
       {
         id: "tr-1",
+        collectionSlug: "kyoto-nocturnes",
         title: "Kyoto Nocturnes",
         artist: "Haru Tanaka",
         avatar:
@@ -351,6 +352,7 @@ export function Editions() {
       },
       {
         id: "tr-2",
+        collectionSlug: "korean-peninsula-silences",
         title: "Gangwon Mist Series",
         artist: "Junghoon Sung",
         avatar:
@@ -362,6 +364,7 @@ export function Editions() {
       },
       {
         id: "tr-3",
+        collectionSlug: "metropolitan-geometry",
         title: "Barbican Modernism",
         artist: "Patrick Watson-Quine",
         avatar:
@@ -373,6 +376,7 @@ export function Editions() {
       },
       {
         id: "tr-4",
+        collectionSlug: "namibian-horizons",
         title: "Namib Dune Twilight",
         artist: "Lexmond Dennis",
         avatar:
@@ -391,6 +395,7 @@ export function Editions() {
     () => [
       {
         rank: 1,
+        id: "kyoto-nocturnes",
         title: "Kyoto Nocturnes",
         artist: "Haru Tanaka",
         image:
@@ -402,6 +407,7 @@ export function Editions() {
       },
       {
         rank: 2,
+        id: "korean-peninsula-silences",
         title: "Gangwon Peninsula",
         artist: "Junghoon Sung",
         image:
@@ -413,6 +419,7 @@ export function Editions() {
       },
       {
         rank: 3,
+        id: "metropolitan-geometry",
         title: "Barbican Geometry",
         artist: "Patrick Watson-Quine",
         image:
@@ -424,6 +431,7 @@ export function Editions() {
       },
       {
         rank: 4,
+        id: "namibian-horizons",
         title: "Dune 45 Genesis",
         artist: "Lexmond Dennis",
         image:
@@ -435,6 +443,7 @@ export function Editions() {
       },
       {
         rank: 5,
+        id: "kyoto-nocturnes",
         title: "Nordic Silence",
         artist: "Astrid Lindholm",
         image:
@@ -1172,7 +1181,14 @@ export function Editions() {
                             to={`/editions/${activeHero.id}`}
                             className="w-full px-4 py-2 rounded-xl text-xs font-semibold font-mono text-center border border-[#23313d] bg-[#0d1319] text-[#dfeaf5] hover:bg-[#15202b] transition flex items-center justify-center gap-1.5"
                           >
-                            <span>View Details & Provenance</span>
+                            <span>View Details &amp; Provenance</span>
+                            <ChevronRight className="size-3.5" />
+                          </Link>
+                          <Link
+                            to={`/editions/collection/${activeHero.collectionName ? activeHero.collectionName.toLowerCase().replace(/\s+/g, "-") : "kyoto-nocturnes"}`}
+                            className="w-full px-4 py-2 rounded-xl text-xs font-semibold font-mono text-center border border-[#1e2a38] bg-[#131b26] text-[#60a5fa] hover:bg-[#182332] transition flex items-center justify-center gap-1.5"
+                          >
+                            <span>Explore Full Collection</span>
                             <ChevronRight className="size-3.5" />
                           </Link>
                         </div>
@@ -1204,9 +1220,9 @@ export function Editions() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {trendingDrops.map((token) => (
-                    <div
+                    <Link
                       key={token.id}
-                      onClick={() => setSearchQuery(token.title.split(" ")[0])}
+                      to={`/editions/collection/${token.collectionSlug}`}
                       className={`p-3.5 rounded-2xl ${isDarkTheme ? "bg-[#141d1b] border-[#24312e] hover:bg-[#192521]" : "bg-[#f9f7f3] border-[#e7dfd4] hover:bg-[#f3efe9]"} border hover:border-[#1e4a3f]/40 transition cursor-pointer flex items-center justify-between shadow-sm group`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -1237,7 +1253,7 @@ export function Editions() {
                         isPositive={token.isPositive}
                         className="w-16 h-8 shrink-0 ml-2"
                       />
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -1517,9 +1533,9 @@ export function Editions() {
                 {/* Ranked List */}
                 <div className="space-y-1">
                   {leaderboardItems.map((col) => (
-                    <div
+                    <Link
                       key={col.rank}
-                      onClick={() => setSearchQuery(col.title.split(" ")[0])}
+                      to={`/editions/collection/${col.id}`}
                       className={`p-2 rounded-xl transition cursor-pointer flex items-center justify-between group ${isDarkTheme ? "hover:bg-[#141C29]" : "hover:bg-[#f4efe8]"}`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -1554,7 +1570,7 @@ export function Editions() {
                           {col.change}
                         </span>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
 

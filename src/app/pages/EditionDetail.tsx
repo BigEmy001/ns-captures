@@ -15,6 +15,7 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Coins,
   Wallet,
   Zap,
@@ -362,9 +363,12 @@ export function EditionDetail() {
 
           <span className="text-[#484f58] hidden sm:inline">/</span>
 
-          <span className="text-xs font-mono text-[#8b949e] truncate hidden md:inline">
+          <Link
+            to={`/editions/collection/${edition.collectionName ? edition.collectionName.toLowerCase().replace(/\s+/g, "-") : "kyoto-nocturnes"}`}
+            className="text-xs font-mono text-[#8b949e] hover:text-[#58a6ff] transition truncate hidden md:inline"
+          >
             {edition.collectionName || "Fine-Art Registry"}
-          </span>
+          </Link>
 
           <span className="text-[#484f58] hidden md:inline">/</span>
 
@@ -662,9 +666,12 @@ export function EditionDetail() {
             {/* Header / Collection & Title */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-semibold text-[#58a6ff] hover:underline cursor-pointer">
+                <Link
+                  to={`/editions/collection/${edition.collectionName ? edition.collectionName.toLowerCase().replace(/\s+/g, "-") : "kyoto-nocturnes"}`}
+                  className="text-xs font-mono font-semibold text-[#58a6ff] hover:underline cursor-pointer"
+                >
                   {edition.collectionName || "NS CAPTURES Fine-Art Master Series"}
-                </span>
+                </Link>
                 <CheckCircle2 className="size-3.5 text-[#58a6ff] fill-current" />
               </div>
 
@@ -920,6 +927,27 @@ export function EditionDetail() {
                   </table>
                 </div>
               )}
+            </div>
+            {/* Link to Full Collection Drop */}
+            <div className="p-4 rounded-xl border border-[#30363d] bg-[#161b22] flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="size-10 rounded-lg bg-[#21262d] flex items-center justify-center shrink-0 text-[#58a6ff]">
+                  <Layers className="size-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs text-[#8b949e] font-mono">Part of Drop</div>
+                  <div className="text-sm font-semibold text-white truncate">
+                    {edition.collectionName || "Kyoto Nocturnes Series"}
+                  </div>
+                </div>
+              </div>
+              <Link
+                to={`/editions/collection/${edition.collectionName ? edition.collectionName.toLowerCase().replace(/\s+/g, "-") : "kyoto-nocturnes"}`}
+                className="px-3.5 py-2 rounded-lg bg-[#21262d] hover:bg-[#30363d] text-xs font-mono font-medium text-white border border-[#30363d] transition flex items-center gap-1.5 shrink-0"
+              >
+                <span>View Collection</span>
+                <ChevronRight className="size-3.5" />
+              </Link>
             </div>
           </div>
         </div>

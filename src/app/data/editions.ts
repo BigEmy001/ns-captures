@@ -709,3 +709,152 @@ export function setEditionsPublic(visible: boolean): void {
   }
 }
 
+// ============================================================
+// DIGITAL EDITIONS COLLECTIONS REGISTRY
+// ============================================================
+
+export interface EditionCollectionMeta {
+  id: string;
+  name: string;
+  description: string;
+  curatorStatement?: string;
+  bannerImage: string;
+  avatarImage: string;
+  photographerId: string;
+  photographerName: string;
+  chain: string;
+  contractAddress: string;
+  createdAt: string;
+  royaltyPercent: number;
+  socials?: {
+    twitter?: string;
+    discord?: string;
+    instagram?: string;
+    etherscan?: string;
+    website?: string;
+  };
+}
+
+export const INITIAL_EDITION_COLLECTIONS: EditionCollectionMeta[] = [
+  {
+    id: "kyoto-nocturnes",
+    name: "Kyoto Nocturnes",
+    description:
+      "An intimate photographic exploration of nocturnal Kyoto. Captured between midnight and blue twilight across ancient Gion alleyways and lantern-lit stone staircases using high-precision prime lenses. Numbered editions accompanied by cryptographic Certificates of Authenticity.",
+    curatorStatement:
+      "Featured Curatorial Highlight: Exquisite low-light isolation, unmatched analogue warmth, and historical architecture rendered in pristine dynamic range.",
+    bannerImage:
+      "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=2400&auto=format&fit=crop&q=85",
+    avatarImage:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=250&auto=format&fit=crop&q=80",
+    photographerId: "haru-tanaka",
+    photographerName: "Haru Tanaka",
+    chain: "Ethereum",
+    contractAddress: "0x2B4a971c4D6B21Ac8F01b9E71cA71D925e019E71",
+    createdAt: "2026-01-15T00:00:00Z",
+    royaltyPercent: 10,
+    socials: {
+      twitter: "https://twitter.com",
+      discord: "https://discord.com",
+      instagram: "https://instagram.com",
+      etherscan: "https://etherscan.io",
+      website: "https://nscaptures.com",
+    },
+  },
+  {
+    id: "korean-peninsula-silences",
+    name: "Korean Peninsula Silences",
+    description:
+      "100-megapixel medium-format masterworks documenting morning mists and monolith ridges across Gangwon-do. An ode to solitude, geological patience, and silent mountain passes.",
+    curatorStatement:
+      "Captured on Hasselblad X2D 100C with extreme resolution, preserving delicate tonal gradation across alpine mountain passes.",
+    bannerImage:
+      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=2400&auto=format&fit=crop&q=85",
+    avatarImage:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=250&auto=format&fit=crop&q=80",
+    photographerId: "junghoon-sung-e85d599d",
+    photographerName: "Junghoon Sung",
+    chain: "Ethereum",
+    contractAddress: "0x89C1a54E0F45963E879B54128D849B11306d15E3",
+    createdAt: "2026-02-01T00:00:00Z",
+    royaltyPercent: 10,
+    socials: {
+      twitter: "https://twitter.com",
+      discord: "https://discord.com",
+      etherscan: "https://etherscan.io",
+    },
+  },
+  {
+    id: "metropolitan-geometry",
+    name: "Metropolitan Geometry",
+    description:
+      "A formal architectural study of brutalist rhythm, cast concrete, and shadow across iconic post-war British modernist complexes.",
+    curatorStatement:
+      "Geometry, balance, and austere concrete tonality captured in crisp high-contrast monochrome and twilight tones.",
+    bannerImage:
+      "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=2400&auto=format&fit=crop&q=85",
+    avatarImage:
+      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=250&auto=format&fit=crop&q=80",
+    photographerId: "patrick-watson-quine",
+    photographerName: "Patrick Watson-Quine",
+    chain: "Ethereum",
+    contractAddress: "0x3F2b810D7a1884C9B417eE6997B24d623b092A19",
+    createdAt: "2026-02-12T00:00:00Z",
+    royaltyPercent: 10,
+    socials: {
+      twitter: "https://twitter.com",
+      etherscan: "https://etherscan.io",
+    },
+  },
+  {
+    id: "namibian-horizons",
+    name: "Namibian Horizons",
+    description:
+      "Sculptural red dunes and minimal shadow cast in Sossusvlei, exploring transient desert light and ancient geological silence.",
+    curatorStatement:
+      "Ultra-wide and telephoto isolation of natural ridges and deep contrast at the golden hour.",
+    bannerImage:
+      "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=2400&auto=format&fit=crop&q=85",
+    avatarImage:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=250&auto=format&fit=crop&q=80",
+    photographerId: "lexmond-dennis",
+    photographerName: "Lexmond Dennis",
+    chain: "Ethereum",
+    contractAddress: "0x11A4cD6b8897E90B427F231Ac96e0019B8641a9B",
+    createdAt: "2026-02-20T00:00:00Z",
+    royaltyPercent: 10,
+    socials: {
+      twitter: "https://twitter.com",
+      etherscan: "https://etherscan.io",
+    },
+  },
+];
+
+export function getEditionCollections(): EditionCollectionMeta[] {
+  return INITIAL_EDITION_COLLECTIONS;
+}
+
+export function getEditionCollection(idOrName: string): EditionCollectionMeta | null {
+  if (!idOrName) return null;
+  const norm = idOrName.toLowerCase().replace(/-/g, " ");
+  return (
+    INITIAL_EDITION_COLLECTIONS.find(
+      (c) =>
+        c.id === idOrName ||
+        c.name.toLowerCase() === norm ||
+        c.name.toLowerCase() === idOrName.toLowerCase(),
+    ) || null
+  );
+}
+
+export function getEditionsByCollection(collectionIdOrName: string): DigitalEdition[] {
+  const col = getEditionCollection(collectionIdOrName);
+  if (!col) return [];
+  const allEditions = getStoredEditions();
+  return allEditions.filter(
+    (e) =>
+      e.collectionName?.toLowerCase() === col.name.toLowerCase() ||
+      e.photographerId === col.photographerId,
+  );
+}
+
