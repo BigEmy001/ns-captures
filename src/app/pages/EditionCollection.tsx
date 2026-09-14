@@ -1,4 +1,4 @@
-import { useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import {
   Chip,
   EditionCard,
   EmptyState,
+  FilterGroup,
   SegmentedControl,
   Stat,
   TabBar,
@@ -39,9 +40,6 @@ import {
 } from "../components/editions/editionsFormat";
 import { useEditionVault } from "../components/editions/useEditionVault";
 import { copyToClipboard } from "../../lib/clipboard";
-import languageIcon from "../../assets/edition-detail/language.svg";
-import discordIcon from "../../assets/edition-detail/discord.svg";
-import xIcon from "../../assets/edition-detail/x.svg";
 import contentCopyIcon from "../../assets/edition-detail/content-copy.svg";
 import favoriteIcon from "../../assets/edition-detail/favorite.svg";
 import searchIcon from "../../assets/edition-detail/search.svg";
@@ -94,36 +92,6 @@ const ANALYTICS_HIGHLIGHTS = [
 
 const headerIconClass =
   "flex items-center text-(--ed-text) transition-colors hover:text-(--ed-text-soft)";
-
-function FilterGroup({
-  title,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className="border-b border-(--ed-border) py-3">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between py-1 text-left text-sm font-medium text-(--ed-text)"
-      >
-        {title}
-        <MaskIcon
-          src={chevronLeftIcon}
-          className={`size-4 transition-transform ${open ? "rotate-90 text-(--ed-text)" : "-rotate-90 text-(--ed-muted)"}`}
-        />
-      </button>
-      {open && <div className="pt-3">{children}</div>}
-    </div>
-  );
-}
 
 function CheckboxList({
   options,
@@ -435,12 +403,6 @@ export function EditionCollection() {
     });
   };
 
-  const socialLinks = [
-    { label: "Website", href: collection.socials?.website, icon: languageIcon },
-    { label: "Discord", href: collection.socials?.discord, icon: discordIcon },
-    { label: "X (Twitter)", href: collection.socials?.twitter, icon: xIcon },
-  ].filter((s): s is { label: string; href: string; icon: string } => Boolean(s.href));
-
   const createdLabel = new Date(collection.createdAt).toLocaleDateString("en-GB", {
     month: "short",
     year: "numeric",
@@ -451,7 +413,6 @@ export function EditionCollection() {
   return (
     <EditionsShell
       activeRail={activeTab === "activity" ? "activity" : "collections"}
-      collectionHref={`/editions/collection/${collection.id}`}
       onActivity={() => setActiveTab("activity")}
       walletLabel={walletLabel}
     >
@@ -510,26 +471,6 @@ export function EditionCollection() {
               </div>
 
               <div className="flex items-center gap-5">
-                {socialLinks.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-5">
-                      {socialLinks.map((link) => (
-                        <a
-                          key={link.label}
-                          href={link.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          aria-label={link.label}
-                          title={link.label}
-                          className={headerIconClass}
-                        >
-                          <MaskIcon src={link.icon} className="size-5" />
-                        </a>
-                      ))}
-                    </div>
-                    <span className="h-6 w-px bg-(--ed-divider)" />
-                  </>
-                )}
                 <button
                   type="button"
                   onClick={() => {

@@ -4,7 +4,7 @@ import { ArrowUpRight, Copy } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import {
-  getStoredEditions,
+  getPublishedEditions,
   getStoredOwnerships,
   getStoredActivity,
   getEditionCollection,
@@ -26,6 +26,7 @@ import {
   EditionsModal,
   EmptyState,
   SegmentedControl,
+  Sparkline,
   Stat,
   TabBar,
   VerifiedBadge,
@@ -39,11 +40,19 @@ import {
   primaryButtonClass,
   sampleOwnershipFor,
   secondaryButtonClass,
+  sectionReveal,
   selectClass,
   shortHex,
   tableHeadClass,
   tierLabel,
 } from "../components/editions/editionsFormat";
+import { Nft101Section } from "../components/editions/Nft101Section";
+import {
+  COLLECTION_MOMENTUM,
+  TIMEFRAMES,
+  TIMEFRAME_SCALE,
+  type Timeframe,
+} from "../components/editions/collectionStats";
 import { useEditionVault } from "../components/editions/useEditionVault";
 import { useEditionsTheme } from "../components/editions/useEditionsTheme";
 import { useAuth } from "../context/AuthContext";
@@ -71,24 +80,7 @@ const CHAIN_FILTERS = [
   { id: "tron", label: "TRON" },
 ] as const;
 
-const TIMEFRAMES = [
-  { id: "1h", label: "1h" },
-  { id: "6h", label: "6h" },
-  { id: "24h", label: "24h" },
-  { id: "7d", label: "7d" },
-] as const;
-
-type Timeframe = (typeof TIMEFRAMES)[number]["id"];
-
-const TIMEFRAME_SCALE: Record<Timeframe, number> = { "1h": 0.06, "6h": 0.3, "24h": 1, "7d": 2.4 };
-
 const HERO_INTERVAL_MS = 6000;
-const sectionReveal = {
-  initial: { opacity: 0, y: 16 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-80px" },
-  transition: { type: "spring", duration: 0.6, bounce: 0 },
-} as const;
 
 const CURRENCY_OPTIONS = [
   { id: "eth", label: "ETH" },
@@ -102,74 +94,11 @@ const PAYMENT_CURRENCIES = [
   { id: "GBP", label: "GBP" },
 ] as const;
 
-// Illustrative 24h market momentum per collection; floor prices come from live inventory
-const TRENDING_COLLECTIONS = [
-  {
-    id: "kyoto-nocturnes",
-    change: 28.3,
-    volumeGbp: 142500,
-    sparkline: [12, 14, 13, 17, 19, 18, 24, 28],
-  },
-  {
-    id: "namibian-horizons",
-    change: 18.2,
-    volumeGbp: 89000,
-    sparkline: [30, 29, 32, 35, 33, 38, 41, 44],
-  },
-  {
-    id: "korean-peninsula-silences",
-    change: 14.5,
-    volumeGbp: 68200,
-    sparkline: [20, 21, 19, 22, 23, 21, 26, 29],
-  },
-  {
-    id: "metropolitan-geometry",
-    change: 9.9,
-    volumeGbp: 34800,
-    sparkline: [15, 16, 14, 18, 17, 20, 22, 24],
-  },
-];
-
 const SALON_FEATURES = [
   { label: "Provenance", text: "Cryptographic certificates of authenticity" },
   { label: "Scarcity", text: "Numbered limited series & Genesis 1/1s" },
   { label: "Physical twins", text: "Museum-grade giclée print pairings" },
 ];
-
-function Sparkline({ data, className = "h-8 w-24" }: { data: number[]; className?: string }) {
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const height = 32;
-  const width = 100;
-  const points = data
-    .map((val, i) => {
-      const x = (i / (data.length - 1)) * width;
-      const y = height - ((val - min) / range) * (height - 8) - 4;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-  const color = data[data.length - 1] >= data[0] ? "#2fbf71" : "#ff5c5c";
-
-  return (
-    <svg
-      aria-hidden
-      className={className}
-      viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio="none"
-    >
-      <polyline
-        fill="none"
-        stroke={color}
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-        points={points}
-      />
-    </svg>
-  );
-}
 
 const formatCompactGbp = (value: number) =>
   value >= 1000 ? `£${(value / 1000).toFixed(1)}K` : formatGbp(Math.round(value));
@@ -195,7 +124,7 @@ export function Editions() {
     };
   }, []);
 
-  const [editions, setEditions] = useState<DigitalEdition[]>(() => getStoredEditions());
+  const [editions, setEditions] = useState<DigitalEdition[]>(() => getPublishedEditions());
   const [activity, setActivity] = useState(() => getStoredActivity());
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedChain, setSelectedChain] = useState<string>("all");
@@ -292,7 +221,7 @@ export function Editions() {
 
   const trendingCollections = useMemo(
     () =>
-      TRENDING_COLLECTIONS.flatMap((entry) => {
+      COLLECTION_MOMENTUM.flatMap((entry) => {
         const meta = getEditionCollection(entry.id);
         if (!meta) return [];
         const items = editions.filter((e) => e.collectionName === meta.name);
@@ -333,7 +262,7 @@ export function Editions() {
         toast.success(
           `Acquired: ${selectedEditionForPurchase.title} (${res.ownership.serialDisplay})`,
         );
-        setEditions(getStoredEditions());
+        setEditions(getPublishedEditions());
         setActivity(getStoredActivity());
         setSelectedEditionForPurchase(null);
         setActiveCertData({ edition: selectedEditionForPurchase, ownership: res.ownership });
@@ -741,12 +670,20 @@ export function Editions() {
           className="flex flex-col gap-4"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2
-              id="trending-heading"
-              className="text-xl font-medium tracking-[-0.3px] text-(--ed-text)"
-            >
-              Trending collections
-            </h2>
+            <div className="flex items-baseline gap-3">
+              <h2
+                id="trending-heading"
+                className="text-xl font-medium tracking-[-0.3px] text-(--ed-text)"
+              >
+                Trending collections
+              </h2>
+              <Link
+                to="/editions/collection"
+                className="text-sm font-medium text-(--ed-muted) transition-colors hover:text-(--ed-text)"
+              >
+                View all
+              </Link>
+            </div>
             <SegmentedControl
               label="Timeframe"
               options={TIMEFRAMES}
@@ -938,6 +875,11 @@ export function Editions() {
             <ActivityTable activities={activity} editions={editions} />
           )}
         </motion.section>
+
+        {/* ============================================================ */}
+        {/* NFT 101 (Figma node 18:2106)                                 */}
+        {/* ============================================================ */}
+        <Nft101Section coverImage={featuredEditions[0]?.image ?? editions[0]?.image} />
       </main>
 
       {/* ============================================================ */}
@@ -1126,11 +1068,10 @@ export function Editions() {
         <MintEditionModal
           photo={demoMintPhoto}
           onClose={() => setIsMintModalOpen(false)}
-          onSuccess={(newEdition) => {
-            setEditions(getStoredEditions());
+          onSuccess={() => {
+            setEditions(getPublishedEditions());
             setActivity(getStoredActivity());
             setIsMintModalOpen(false);
-            toast.success(`Successfully minted: ${newEdition.title}`);
           }}
         />
       )}

@@ -6,6 +6,8 @@ cloudinary-test.mjs
 .DS_Store
 scratch_upload.mjs
 *.png
+# UI illustrations exported from Figma ship with the app (NFT 101 cards)
+!src/assets/nft-101/*.png
 supabase/.temp
 .vercel
 

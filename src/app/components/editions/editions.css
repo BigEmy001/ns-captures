@@ -19,6 +19,7 @@
   --ed-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
   --ed-shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6);
   --ed-ambient-opacity: 0.35;
+  --ed-glow-opacity: 0.2;
   --ed-primary: #0786ff;
   --ed-primary-hover: #0070e0;
   --ed-positive: #2fbf71;
@@ -54,6 +55,7 @@
   --ed-shadow: 0 16px 40px rgba(20, 20, 21, 0.12);
   --ed-shadow-lg: 0 24px 64px rgba(20, 20, 21, 0.18);
   --ed-ambient-opacity: 0.22;
+  --ed-glow-opacity: 0.14;
   --ed-positive: #148a4b;
   --ed-negative: #d63a3a;
   --ed-warning: #b35900;
@@ -78,6 +80,97 @@
   [data-ed-theme-switching],
   [data-ed-theme-switching] * {
     transition: none !important;
+  }
+}
+
+/*
+ * Soft colour wash behind NFT 101 article headers. Two tints come from the guide
+ * (--ed-glow-a / --ed-glow-b); blobs drift slowly and fade out towards the content.
+ */
+.ed-article-glow {
+  opacity: var(--ed-glow-opacity);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 100%);
+}
+
+.ed-article-glow__inner {
+  animation: ed-glow-in 1.6s ease-out both;
+}
+
+.ed-article-glow__blob {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform;
+}
+
+.ed-article-glow__blob--a {
+  top: -45%;
+  left: -12%;
+  width: 70%;
+  height: 130%;
+  background: radial-gradient(closest-side, var(--ed-glow-a), transparent);
+  animation: ed-glow-drift-a 22s ease-in-out infinite alternate;
+}
+
+.ed-article-glow__blob--b {
+  top: -55%;
+  right: -15%;
+  width: 65%;
+  height: 140%;
+  background: radial-gradient(closest-side, var(--ed-glow-b), transparent);
+  animation: ed-glow-drift-b 26s ease-in-out infinite alternate;
+}
+
+.ed-article-glow__blob--c {
+  top: -25%;
+  left: 28%;
+  width: 45%;
+  height: 100%;
+  opacity: 0.6;
+  background: radial-gradient(closest-side, var(--ed-glow-a), transparent);
+  animation: ed-glow-drift-c 30s ease-in-out infinite alternate;
+}
+
+@keyframes ed-glow-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ed-glow-drift-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(12%, 8%, 0) scale(1.15);
+  }
+}
+
+@keyframes ed-glow-drift-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.05);
+  }
+  to {
+    transform: translate3d(-14%, 10%, 0) scale(0.95);
+  }
+}
+
+@keyframes ed-glow-drift-c {
+  from {
+    transform: translate3d(-10%, 0, 0) scale(0.9);
+  }
+  to {
+    transform: translate3d(15%, 12%, 0) scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ed-article-glow__inner,
+  .ed-article-glow__blob {
+    animation: none;
   }
 }
 

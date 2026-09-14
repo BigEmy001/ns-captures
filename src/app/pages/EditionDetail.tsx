@@ -9,6 +9,10 @@ import {
   getStoredActivity,
   getEditionCollection,
   purchaseEdition,
+  EDITION_REVIEW_LABELS,
+  editionReviewStatus,
+  isEditionCreator,
+  isEditionPublished,
   type DigitalEdition,
   type EditionOwnership,
   type EditionActivity,
@@ -49,9 +53,6 @@ import { useEditionVault } from "../components/editions/useEditionVault";
 import { copyToClipboard } from "../../lib/clipboard";
 
 // Icons exported from the Figma "photo details" frame (node 18:2)
-import languageIcon from "../../assets/edition-detail/language.svg";
-import discordIcon from "../../assets/edition-detail/discord.svg";
-import xIcon from "../../assets/edition-detail/x.svg";
 import contentCopyIcon from "../../assets/edition-detail/content-copy.svg";
 import favoriteIcon from "../../assets/edition-detail/favorite.svg";
 import moreHorizIcon from "../../assets/edition-detail/more-horiz.svg";
@@ -100,6 +101,9 @@ export function EditionDetail() {
   const edition = useMemo(() => {
     return editions.find((e) => e.id === id || e.tokenId.toLowerCase() === id?.toLowerCase());
   }, [editions, id]);
+
+  // Only public editions count towards trait rarity and "more from this collection"
+  const publishedEditions = useMemo(() => editions.filter(isEditionPublished), [editions]);
 
   const collection = useMemo(
     () => (edition?.collectionName ? getEditionCollection(edition.collectionName) : null),
@@ -178,7 +182,7 @@ export function EditionDetail() {
   // Traits derived from photographic metadata, counted across the whole registry
   const traits = useMemo(() => {
     if (!edition) return [];
-    const total = editions.length || 1;
+    const total = publishedEditions.length || 1;
     const defs: { type: string; value: string; matches: (e: DigitalEdition) => boolean }[] = [
       { type: "Camera", value: edition.camera, matches: (e) => e.camera === edition.camera },
       { type: "Lens", value: edition.lens, matches: (e) => e.lens === edition.lens },
@@ -221,7 +225,7 @@ export function EditionDetail() {
     ];
 
     return defs.map(({ type, value, matches }) => {
-      const sharing = editions.filter(matches);
+      const sharing = publishedEditions.filter(matches);
       const count = Math.max(sharing.length, 1);
       return {
         type,
@@ -231,11 +235,11 @@ export function EditionDetail() {
         floorEth: Math.min(edition.priceEth, ...sharing.map((e) => e.priceEth)),
       };
     });
-  }, [edition, editions]);
+  }, [edition, publishedEditions]);
 
   const relatedEditions = useMemo(() => {
     if (!edition) return { items: [] as DigitalEdition[], fromCollection: true };
-    const others = editions.filter((e) => e.id !== edition.id);
+    const others = publishedEditions.filter((e) => e.id !== edition.id);
     const siblings = others.filter(
       (e) =>
         (edition.collectionName && e.collectionName === edition.collectionName) ||
@@ -244,7 +248,7 @@ export function EditionDetail() {
     return siblings.length > 0
       ? { items: siblings.slice(0, 6), fromCollection: true }
       : { items: others.slice(0, 6), fromCollection: false };
-  }, [edition, editions]);
+  }, [edition, publishedEditions]);
 
   const handleCopy = (text: string, label: string) => {
     copyToClipboard(text);
@@ -334,8 +338,13 @@ export function EditionDetail() {
     setOfferAmount("");
   };
 
-  // If edition is not found
-  if (!edition) {
+  const reviewStatus = edition ? editionReviewStatus(edition) : "published";
+  const isPublished = reviewStatus === "published";
+  const isCreator = !!edition && isEditionCreator(edition, user);
+  const canPreview = isCreator || user?.role === "Admin";
+
+  // Unpublished editions exist only for their creator and the review team
+  if (!edition || (!isPublished && !canPreview)) {
     return (
       <EditionsShell walletLabel={walletLabel}>
         <main className="flex flex-1 items-center justify-center p-6">
@@ -375,13 +384,6 @@ export function EditionDetail() {
   );
   const sales = editionActivity.filter((a) => a.type === "purchased");
 
-  const socials = collection?.socials;
-  const socialLinks = [
-    { label: "Website", href: socials?.website, icon: languageIcon },
-    { label: "Discord", href: socials?.discord, icon: discordIcon },
-    { label: "X (Twitter)", href: socials?.twitter, icon: xIcon },
-  ].filter((s): s is { label: string; href: string; icon: string } => Boolean(s.href));
-
   const chainRows: { label: string; value: string; copy?: string }[] = [
     { label: "Contract address", value: shortHex(contractAddress), copy: contractAddress },
     { label: "Token ID", value: edition.tokenId },
@@ -399,7 +401,6 @@ export function EditionDetail() {
   return (
     <EditionsShell
       activeRail={activeTab === "activity" ? "activity" : undefined}
-      collectionHref={`/editions/collection/${collectionSlug}`}
       onActivity={openActivityTab}
       walletLabel={walletLabel}
     >
@@ -424,6 +425,30 @@ export function EditionDetail() {
             variants={staggerChildren}
             className="flex max-w-[960px] flex-col gap-4"
           >
+            {!isPublished && (
+              <motion.div
+                variants={fadeUpVariants}
+                role="status"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-(--ed-tone-rare-fg)/40 bg-(--ed-tone-rare-bg) px-4 py-3 text-sm"
+              >
+                <p className="text-(--ed-text)">
+                  <span className="font-medium">
+                    Not public yet · {EDITION_REVIEW_LABELS[reviewStatus]}.
+                  </span>{" "}
+                  <span className="text-(--ed-text-soft)">
+                    Only {isCreator ? "you" : "the creator"} and the NS CAPTURES review team can see
+                    this page.
+                  </span>
+                </p>
+                <Link
+                  to={isCreator ? "/account?tab=nfts" : "/admin"}
+                  className={`${secondaryButtonClass} h-8 shrink-0 px-3 text-xs`}
+                >
+                  {isCreator ? "Manage edition" : "Open review queue"}
+                </Link>
+              </motion.div>
+            )}
+
             <motion.h1
               variants={fadeUpVariants}
               className="text-balance text-[26px] font-medium leading-9 tracking-[0.4px] text-(--ed-text) sm:text-[32px] sm:leading-10"
@@ -484,27 +509,6 @@ export function EditionDetail() {
               </div>
 
               <div className="flex items-center gap-5">
-                {socialLinks.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-5">
-                      {socialLinks.map((link) => (
-                        <a
-                          key={link.label}
-                          href={link.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          aria-label={link.label}
-                          title={link.label}
-                          className={headerIconClass}
-                        >
-                          <MaskIcon src={link.icon} className="size-5" />
-                        </a>
-                      ))}
-                    </div>
-                    <span className="h-6 w-px bg-(--ed-divider)" />
-                  </>
-                )}
-
                 <button
                   type="button"
                   onClick={() => handleCopy(window.location.href, "Page link")}
@@ -639,7 +643,7 @@ export function EditionDetail() {
                     </button>
                     <button
                       type="button"
-                      disabled={isSoldOut || isPurchasing}
+                      disabled={isSoldOut || isPurchasing || !isPublished}
                       onClick={handleExecuteBuy}
                       className={`${primaryButtonClass} h-12 px-6 text-base tracking-[-0.31px] sm:flex-[308_1_0%]`}
                     >

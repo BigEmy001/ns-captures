@@ -28,6 +28,77 @@ export function VerifiedBadge({ className = "size-3.5 shrink-0" }: { className?:
   return <img src={verifiedIcon} alt="Verified" className={className} />;
 }
 
+export function Sparkline({
+  data,
+  className = "h-8 w-24",
+}: {
+  data: number[];
+  className?: string;
+}) {
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const height = 32;
+  const width = 100;
+  const points = data
+    .map((val, i) => {
+      const x = (i / (data.length - 1)) * width;
+      const y = height - ((val - min) / range) * (height - 8) - 4;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const rising = data[data.length - 1] >= data[0];
+
+  return (
+    <svg
+      aria-hidden
+      className={className}
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+    >
+      <polyline
+        fill="none"
+        style={{ stroke: rising ? "var(--ed-positive)" : "var(--ed-negative)" }}
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+        points={points}
+      />
+    </svg>
+  );
+}
+
+export function FilterGroup({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-b border-(--ed-border) py-3">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between py-1 text-left text-sm font-medium text-(--ed-text)"
+      >
+        {title}
+        <MaskIcon
+          src={chevronLeftIcon}
+          className={`size-4 transition-transform ${open ? "rotate-90 text-(--ed-text)" : "-rotate-90 text-(--ed-muted)"}`}
+        />
+      </button>
+      {open && <div className="pt-3">{children}</div>}
+    </div>
+  );
+}
+
 export function Chip({ children, icon }: { children: ReactNode; icon?: string }) {
   return (
     <span className="inline-flex h-[18px] shrink-0 items-center gap-1 rounded border border-(--ed-border) bg-(--ed-surface) px-1.5 font-mono text-xs uppercase leading-[18px] text-(--ed-text)">

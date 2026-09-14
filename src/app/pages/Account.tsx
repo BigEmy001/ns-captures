@@ -31,6 +31,7 @@ import {
   KeyRound,
   LifeBuoy,
   ClipboardList,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Eyebrow, Button, Badge } from "../components/ui";
@@ -44,6 +45,7 @@ import { LicensedWorkTab } from "./account/contributor/LicensedWorkTab";
 import { BonusesTab, PublicationsTab, FeaturedInTab } from "./account/contributor/OpportunityTabs";
 import { SupportTab } from "./account/contributor/SupportTab";
 import { SettlementVaultTab } from "./account/SettlementVaultTab";
+import { NftEditionsTab } from "./account/NftEditionsTab";
 import { SPECIALTIES } from "../data/contributor";
 import { COUNTRIES, currencyForCountry, resolvePayoutCurrency } from "../../lib/countries";
 import { hasCreatorAccess, hasProgrammeAccess, isProgrammeRole } from "../data/roles";
@@ -104,6 +106,7 @@ const photographerNav: NavEntry[] = [
   { id: "portfolio", label: "My Portfolio", icon: ImageIcon },
   { id: "upload", label: "Upload Photos", icon: Upload },
   { id: "submissions", label: "My Submissions", icon: ClipboardList },
+  { id: "nfts", label: "NFT Editions", icon: Sparkles },
 
   { id: "h-earnings", label: "", heading: "Earnings" },
   { id: "licensed", label: "Licensed Photos", icon: KeyRound },
@@ -132,6 +135,7 @@ const contributorNav: NavEntry[] = [
   { id: "portfolio", label: "My Portfolio", icon: ImageIcon },
   { id: "upload", label: "Upload Photos", icon: Upload },
   { id: "submissions", label: "My Submissions", icon: ClipboardList },
+  { id: "nfts", label: "NFT Editions", icon: Sparkles },
 
   { id: "h-earnings", label: "", heading: "Earnings" },
   { id: "licensed", label: "Licensed Photos", icon: KeyRound },
@@ -1547,6 +1551,7 @@ export function Account() {
           )}
 
           {active === "vault" && <SettlementVaultTab />}
+          {canCreate && active === "nfts" && <NftEditionsTab />}
           {active === "earnings" && <EarningsTab />}
           {active === "licensed" && <LicensedWorkTab />}
           {inProgramme && active === "acquisitions" && <AcquisitionsTab />}

@@ -27,6 +27,14 @@ export const selectClass =
 
 export const tableHeadClass = "font-mono text-xs uppercase text-(--ed-muted)";
 
+// Scroll-triggered reveal for page sections
+export const sectionReveal = {
+  initial: { opacity: 0, y: 16 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-80px" },
+  transition: { type: "spring", duration: 0.6, bounce: 0 },
+} as const;
+
 // One-shot entrance: fade up out of a slight blur. Pass a delay via `custom` when used standalone.
 export const fadeUpVariants: Variants = {
   hidden: { opacity: 0, y: 12, filter: "blur(4px)" },

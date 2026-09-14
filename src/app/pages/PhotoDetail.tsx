@@ -31,7 +31,12 @@ import { NotFound } from "./NotFound";
 import { addToCart } from "../data/cart";
 import { useAuth } from "../context/AuthContext";
 import { toggleLike, toggleSave, hasUserLikedPhoto, hasUserSavedPhoto } from "../data/db";
-import { getStoredEditions, isEditionsPublic, type DigitalEdition } from "../data/editions";
+import {
+  getStoredEditions,
+  isEditionPublished,
+  isEditionsPublic,
+  type DigitalEdition,
+} from "../data/editions";
 import { MintEditionModal } from "../components/MintEditionModal";
 
 interface LicenseOption {
@@ -371,9 +376,11 @@ export function PhotoDetail() {
       </div>
 
       {(() => {
-        const matchingEdition = editions.find(
-          (e) => e.photoId === photo.id || e.title.toLowerCase() === photo.title.toLowerCase(),
-        );
+        const matchingEdition = editions
+          .filter(isEditionPublished)
+          .find(
+            (e) => e.photoId === photo.id || e.title.toLowerCase() === photo.title.toLowerCase(),
+          );
         const isOwner =
           user && (photo.photographerId === user.id || (user as any).slug === photo.photographerId);
         const isEditionsVisible = isEditionsPublic() || user?.role === "Admin";

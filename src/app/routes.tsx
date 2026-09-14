@@ -29,6 +29,12 @@ const EditionDetail = lazy(() =>
 const EditionCollection = lazy(() =>
   import("./pages/EditionCollection").then((m) => ({ default: m.EditionCollection })),
 );
+const EditionsLearnArticle = lazy(() =>
+  import("./pages/EditionsLearnArticle").then((m) => ({ default: m.EditionsLearnArticle })),
+);
+const EditionCollectionsIndex = lazy(() =>
+  import("./pages/EditionCollectionsIndex").then((m) => ({ default: m.EditionCollectionsIndex })),
+);
 const Pricing = lazy(() => import("./pages/Pricing").then((m) => ({ default: m.Pricing })));
 const Enterprise = lazy(() =>
   import("./pages/Enterprise").then((m) => ({ default: m.Enterprise })),
@@ -127,10 +133,26 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "editions/collection/:id?",
+        path: "editions/collection",
+        element: (
+          <Suspense fallback={fallback}>
+            <EditionCollectionsIndex />
+          </Suspense>
+        ),
+      },
+      {
+        path: "editions/collection/:id",
         element: (
           <Suspense fallback={fallback}>
             <EditionCollection />
+          </Suspense>
+        ),
+      },
+      {
+        path: "editions/learn/:slug",
+        element: (
+          <Suspense fallback={fallback}>
+            <EditionsLearnArticle />
           </Suspense>
         ),
       },

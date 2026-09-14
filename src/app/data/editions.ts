@@ -7,6 +7,8 @@
 
 export type EditionTier = "genesis_1_of_1" | "limited_series" | "physical_twin";
 export type EditionStatus = "minted" | "listed" | "sold_out" | "archived";
+/** Where an edition sits in the creator → admin publication review. */
+export type EditionReviewStatus = "draft" | "pending_review" | "published" | "rejected";
 
 export interface DigitalEdition {
   id: string;
@@ -42,6 +44,15 @@ export interface DigitalEdition {
   featured?: boolean;
   curatorNote?: string;
   collectionName?: string;
+  /** Auth user id of the creator who made this edition on the platform */
+  createdBy?: string;
+  /** Publication review. Curated seed editions have none and are already public. */
+  reviewStatus?: EditionReviewStatus;
+  /** Admin's note to the creator when changes are requested */
+  reviewNote?: string;
+  submittedAt?: string;
+  reviewedAt?: string;
+  reviewedBy?: string;
 }
 
 export interface EditionOwnership {
@@ -610,14 +621,27 @@ export function purchaseEdition(
 }
 
 /**
- * Mint and publish a new fine-art digital edition
+ * Mint a new fine-art digital edition. It stays private — as a draft, or
+ * straight into the review queue — until an admin approves it.
  */
 export function mintDigitalEdition(
   payload: Omit<
     DigitalEdition,
-    "id" | "tokenId" | "masterHash" | "mintedAt" | "status" | "availableEditions"
+    | "id"
+    | "tokenId"
+    | "masterHash"
+    | "mintedAt"
+    | "status"
+    | "availableEditions"
+    | "reviewStatus"
+    | "reviewNote"
+    | "submittedAt"
+    | "reviewedAt"
+    | "reviewedBy"
   > & {
     customMasterHash?: string;
+    /** Send straight to the admin review queue instead of saving a draft */
+    submitForReview?: boolean;
   },
 ): DigitalEdition {
   const editions = getStoredEditions();
@@ -625,9 +649,11 @@ export function mintDigitalEdition(
   const tokenId =
     payload.tier === "genesis_1_of_1" ? `NSC-GEN-2026-${randomHex}` : `NSC-EDN-2026-${randomHex}`;
 
+  const { customMasterHash, submitForReview = false, ...details } = payload;
+
   // Generate SHA-256 style master hash if not supplied
   const masterHash =
-    payload.customMasterHash ||
+    customMasterHash ||
     "sha256-" +
       Array.from({ length: 32 }, () =>
         Math.floor(Math.random() * 256)
@@ -636,13 +662,15 @@ export function mintDigitalEdition(
       ).join("");
 
   const newEdition: DigitalEdition = {
-    ...payload,
+    ...details,
     id: `edn-${Date.now()}`,
     tokenId,
     masterHash,
     availableEditions: payload.totalEditions,
     mintedAt: new Date().toISOString(),
     status: "listed",
+    reviewStatus: submitForReview ? "pending_review" : "draft",
+    ...(submitForReview ? { submittedAt: new Date().toISOString() } : {}),
   };
 
   editions.unshift(newEdition);
@@ -663,6 +691,148 @@ export function mintDigitalEdition(
   saveStoredActivity(activities);
 
   return newEdition;
+}
+
+// ============================================================
+// PUBLICATION REVIEW (creator submits → admin approves)
+// ============================================================
+
+export const EDITIONS_CHANGED_EVENT = "ns:editions-changed";
+
+export const EDITION_REVIEW_LABELS: Record<EditionReviewStatus, string> = {
+  draft: "Draft",
+  pending_review: "In review",
+  published: "Published",
+  rejected: "Changes requested",
+};
+
+function notifyEditionsChanged() {
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+    window.dispatchEvent(new Event(EDITIONS_CHANGED_EVENT));
+  }
+}
+
+/** Curated seed editions carry no review status and count as published. */
+export function editionReviewStatus(edition: DigitalEdition): EditionReviewStatus {
+  return edition.reviewStatus ?? "published";
+}
+
+export function isEditionPublished(edition: DigitalEdition): boolean {
+  return editionReviewStatus(edition) === "published";
+}
+
+/** Editions the public can see and buy. */
+export function getPublishedEditions(): DigitalEdition[] {
+  return getStoredEditions().filter(isEditionPublished);
+}
+
+/** Whether this signed-in user made the edition (by auth id or photographer profile id). */
+export function isEditionCreator(
+  edition: DigitalEdition,
+  user: { id?: string; slug?: string } | null | undefined,
+): boolean {
+  if (!user) return false;
+  return [user.id, user.slug].some(
+    (value) => !!value && (value === edition.createdBy || value === edition.photographerId),
+  );
+}
+
+/** Every edition a creator made, whatever its review state. */
+export function getEditionsByCreator(creator: { id?: string; slug?: string }): DigitalEdition[] {
+  return getStoredEditions().filter((edition) => isEditionCreator(edition, creator));
+}
+
+export type EditionReviewResult = {
+  success: boolean;
+  /** The updated edition, when the change was applied */
+  edition?: DigitalEdition;
+  /** Why the change was refused, written for the person who asked for it */
+  error?: string;
+};
+
+function updateEditionReview(
+  editionId: string,
+  allowedFrom: EditionReviewStatus[],
+  changes: Partial<DigitalEdition>,
+): EditionReviewResult {
+  const editions = getStoredEditions();
+  const index = editions.findIndex((e) => e.id === editionId);
+  if (index === -1) return { success: false, error: "Edition not found." };
+
+  const current = editionReviewStatus(editions[index]);
+  if (!allowedFrom.includes(current)) {
+    return {
+      success: false,
+      error: `This edition is ${EDITION_REVIEW_LABELS[current].toLowerCase()}, so that isn't possible.`,
+    };
+  }
+
+  const updated: DigitalEdition = { ...editions[index], ...changes };
+  editions[index] = updated;
+  saveStoredEditions(editions);
+  notifyEditionsChanged();
+  return { success: true, edition: updated };
+}
+
+/** Creator sends a draft (or an edition with requested changes) to the review queue. */
+export function submitEditionForReview(editionId: string): EditionReviewResult {
+  return updateEditionReview(editionId, ["draft", "rejected"], {
+    reviewStatus: "pending_review",
+    submittedAt: new Date().toISOString(),
+  });
+}
+
+/** Creator pulls a submission back out of the queue. */
+export function withdrawEditionFromReview(editionId: string): EditionReviewResult {
+  return updateEditionReview(editionId, ["pending_review"], {
+    reviewStatus: "draft",
+    submittedAt: undefined,
+  });
+}
+
+/** Admin publishes an edition on the marketplace. */
+export function approveEdition(editionId: string, reviewer: string): EditionReviewResult {
+  return updateEditionReview(editionId, ["pending_review", "rejected"], {
+    reviewStatus: "published",
+    reviewNote: undefined,
+    reviewedAt: new Date().toISOString(),
+    reviewedBy: reviewer,
+  });
+}
+
+/** Admin sends a submission back — or takes a published edition down — with a note. */
+export function rejectEdition(
+  editionId: string,
+  note: string,
+  reviewer: string,
+): EditionReviewResult {
+  const reason = note.trim();
+  if (!reason) return { success: false, error: "Add a note so the creator knows what to change." };
+  return updateEditionReview(editionId, ["pending_review", "published"], {
+    reviewStatus: "rejected",
+    reviewNote: reason,
+    reviewedAt: new Date().toISOString(),
+    reviewedBy: reviewer,
+  });
+}
+
+/** Creator removes an edition that never went public. */
+export function deleteEditionDraft(editionId: string): { success: boolean; error?: string } {
+  const editions = getStoredEditions();
+  const edition = editions.find((e) => e.id === editionId);
+  if (!edition) return { success: false, error: "Edition not found." };
+
+  const status = editionReviewStatus(edition);
+  if (status !== "draft" && status !== "rejected") {
+    return {
+      success: false,
+      error: "Only drafts and editions with requested changes can be deleted.",
+    };
+  }
+
+  saveStoredEditions(editions.filter((e) => e.id !== editionId));
+  notifyEditionsChanged();
+  return { success: true };
 }
 
 // ============================================================
@@ -700,9 +870,7 @@ export function setEditionsPublic(visible: boolean): void {
   try {
     safeSetItem(EDITIONS_VISIBILITY_KEY, visible ? "true" : "false");
     if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
-      window.dispatchEvent(
-        new CustomEvent(EDITIONS_VISIBILITY_EVENT, { detail: { visible } }),
-      );
+      window.dispatchEvent(new CustomEvent(EDITIONS_VISIBILITY_EVENT, { detail: { visible } }));
     }
   } catch (e) {
     console.error("Failed to set editions visibility:", e);
@@ -753,13 +921,6 @@ export const INITIAL_EDITION_COLLECTIONS: EditionCollectionMeta[] = [
     contractAddress: "0x2B4a971c4D6B21Ac8F01b9E71cA71D925e019E71",
     createdAt: "2026-01-15T00:00:00Z",
     royaltyPercent: 10,
-    socials: {
-      twitter: "https://twitter.com",
-      discord: "https://discord.com",
-      instagram: "https://instagram.com",
-      etherscan: "https://etherscan.io",
-      website: "https://nscaptures.com",
-    },
   },
   {
     id: "korean-peninsula-silences",
@@ -778,11 +939,6 @@ export const INITIAL_EDITION_COLLECTIONS: EditionCollectionMeta[] = [
     contractAddress: "0x89C1a54E0F45963E879B54128D849B11306d15E3",
     createdAt: "2026-02-01T00:00:00Z",
     royaltyPercent: 10,
-    socials: {
-      twitter: "https://twitter.com",
-      discord: "https://discord.com",
-      etherscan: "https://etherscan.io",
-    },
   },
   {
     id: "metropolitan-geometry",
@@ -801,10 +957,6 @@ export const INITIAL_EDITION_COLLECTIONS: EditionCollectionMeta[] = [
     contractAddress: "0x3F2b810D7a1884C9B417eE6997B24d623b092A19",
     createdAt: "2026-02-12T00:00:00Z",
     royaltyPercent: 10,
-    socials: {
-      twitter: "https://twitter.com",
-      etherscan: "https://etherscan.io",
-    },
   },
   {
     id: "namibian-horizons",
@@ -823,10 +975,6 @@ export const INITIAL_EDITION_COLLECTIONS: EditionCollectionMeta[] = [
     contractAddress: "0x11A4cD6b8897E90B427F231Ac96e0019B8641a9B",
     createdAt: "2026-02-20T00:00:00Z",
     royaltyPercent: 10,
-    socials: {
-      twitter: "https://twitter.com",
-      etherscan: "https://etherscan.io",
-    },
   },
 ];
 
@@ -850,11 +998,10 @@ export function getEditionCollection(idOrName: string): EditionCollectionMeta | 
 export function getEditionsByCollection(collectionIdOrName: string): DigitalEdition[] {
   const col = getEditionCollection(collectionIdOrName);
   if (!col) return [];
-  const allEditions = getStoredEditions();
+  const allEditions = getPublishedEditions();
   return allEditions.filter(
     (e) =>
       e.collectionName?.toLowerCase() === col.name.toLowerCase() ||
       e.photographerId === col.photographerId,
   );
 }
-

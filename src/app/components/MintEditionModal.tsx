@@ -153,7 +153,7 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
     }
   };
 
-  const handleMint = () => {
+  const handleMint = (submitForReview: boolean) => {
     if (!isEligible) {
       toast.error("Please fund your Web3 Vault to complete certification.");
       return;
@@ -187,9 +187,20 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
         shutterSpeed: photo.shutterSpeed,
         location: photo.location,
         yearCreated: new Date().getFullYear(),
+        createdBy: user?.id,
+        submitForReview,
       });
 
-      toast.success(`Successfully minted ${newEdition.title} as ${newEdition.tokenId}!`);
+      toast.success(
+        submitForReview
+          ? `“${newEdition.title}” sent for review`
+          : `“${newEdition.title}” saved as a draft`,
+        {
+          description: submitForReview
+            ? "It goes live once the NS CAPTURES team approves it. Track it in Account → NFT Editions."
+            : "Submit it for review from Account → NFT Editions when you're ready.",
+        },
+      );
       if (onSuccess) onSuccess(newEdition);
       onClose();
     } catch (err) {
@@ -504,7 +515,7 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
           </div>
 
           {/* Action Footer */}
-          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-(--ed-border) px-5 py-4">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-(--ed-border) px-5 py-4">
             <button
               type="button"
               onClick={onClose}
@@ -512,24 +523,34 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
             >
               Cancel
             </button>
-            <button
-              type="button"
-              onClick={handleMint}
-              disabled={formLocked || minting}
-              className={`${primaryButtonClass} h-10 px-5 text-sm`}
-            >
-              {minting ? (
-                <>
-                  <RefreshCw className="size-4 animate-spin" />
-                  Certifying…
-                </>
-              ) : (
-                <>
-                  <FileCheck className="size-4" />
-                  Certify & publish edition
-                </>
-              )}
-            </button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => handleMint(false)}
+                disabled={formLocked || minting}
+                className={`${secondaryButtonClass} h-10 px-4 text-sm disabled:pointer-events-none disabled:opacity-50`}
+              >
+                Save draft
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMint(true)}
+                disabled={formLocked || minting}
+                className={`${primaryButtonClass} h-10 px-5 text-sm`}
+              >
+                {minting ? (
+                  <>
+                    <RefreshCw className="size-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <FileCheck className="size-4" />
+                    Submit for review
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </motion.div>
       </motion.div>

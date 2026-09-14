@@ -12,6 +12,14 @@ import {
   getEditionCollections,
   getEditionCollection,
   getEditionsByCollection,
+  approveEdition,
+  deleteEditionDraft,
+  getEditionsByCreator,
+  getPublishedEditions,
+  isEditionPublished,
+  rejectEdition,
+  submitEditionForReview,
+  withdrawEditionFromReview,
 } from "./editions";
 
 describe("Digital Editions Data Engine", () => {
@@ -129,6 +137,73 @@ describe("Digital Editions Data Engine", () => {
       expect(newEdition.masterHash).toMatch(/^sha256-/);
       expect(newEdition.availableEditions).toBe(25);
       expect(newEdition.status).toBe("listed");
+      expect(newEdition.reviewStatus).toBe("draft");
+    });
+  });
+
+  describe("publication review", () => {
+    const mintForCreator = (submitForReview = false) =>
+      mintDigitalEdition({
+        photoId: "photo-review-01",
+        title: "Harbour Fog at Dawn",
+        description: "Test edition for the review workflow.",
+        photographerId: "photog-anna",
+        photographerName: "Anna Holm",
+        createdBy: "user-anna",
+        image: "https://example.com/harbour.jpg",
+        tier: "limited_series",
+        totalEditions: 10,
+        priceGbp: 200,
+        priceUsd: 256,
+        priceEth: 0.08,
+        priceSol: 1.8,
+        royaltyPercent: 10,
+        hasPhysicalTwin: false,
+        camera: "Fujifilm GFX 100S",
+        lens: "GF 45mm f/2.8",
+        iso: 100,
+        yearCreated: 2026,
+        submitForReview,
+      });
+
+    it("treats curated seed editions as published", () => {
+      expect(getPublishedEditions()).toHaveLength(INITIAL_EDITIONS.length);
+    });
+
+    it("keeps a draft off the marketplace until an admin approves it", () => {
+      const draft = mintForCreator();
+      expect(isEditionPublished(draft)).toBe(false);
+      expect(getPublishedEditions().some((e) => e.id === draft.id)).toBe(false);
+
+      expect(submitEditionForReview(draft.id).success).toBe(true);
+      const approved = approveEdition(draft.id, "Review Admin");
+      expect(approved.success).toBe(true);
+      expect(approved.edition?.reviewStatus).toBe("published");
+      expect(getPublishedEditions().some((e) => e.id === draft.id)).toBe(true);
+    });
+
+    it("needs a note to request changes and lets the creator resubmit", () => {
+      const pending = mintForCreator(true);
+      expect(pending.reviewStatus).toBe("pending_review");
+      expect(pending.submittedAt).toBeDefined();
+
+      expect(rejectEdition(pending.id, "   ", "Review Admin").success).toBe(false);
+      const rejected = rejectEdition(
+        pending.id,
+        "Please use the full-resolution master",
+        "Review Admin",
+      );
+      expect(rejected.success).toBe(true);
+      expect(rejected.edition?.reviewNote).toBe("Please use the full-resolution master");
+      expect(submitEditionForReview(pending.id).success).toBe(true);
+      expect(withdrawEditionFromReview(pending.id).success).toBe(true);
+    });
+
+    it("lists a creator's editions and only deletes ones that never went public", () => {
+      const draft = mintForCreator();
+      expect(getEditionsByCreator({ id: "user-anna" }).map((e) => e.id)).toContain(draft.id);
+      expect(deleteEditionDraft("edn-genesis-01").success).toBe(false);
+      expect(deleteEditionDraft(draft.id).success).toBe(true);
     });
   });
 
@@ -180,7 +255,7 @@ describe("Digital Editions Data Engine", () => {
       items.forEach((item) => {
         expect(
           item.collectionName?.toLowerCase() === "kyoto nocturnes" ||
-          item.photographerName === "Haru Tanaka",
+            item.photographerName === "Haru Tanaka",
         ).toBe(true);
       });
     });

@@ -85,11 +85,8 @@ import { SettlementNoticeModal } from "./admin/SettlementNoticeModal";
 import { ViewAsPanel } from "./admin/ViewAsPanel";
 import { CollectionsPanel } from "./admin/CollectionsPanel";
 import { EditionsPanel } from "./admin/EditionsPanel";
-import {
-  isEditionsPublic,
-  setEditionsPublic,
-  EDITIONS_VISIBILITY_EVENT,
-} from "../data/editions";
+import { editionReviewStatus, getStoredEditions } from "../data/editions";
+import { isEditionsPublic, setEditionsPublic, EDITIONS_VISIBILITY_EVENT } from "../data/editions";
 import { CryptoQrCodeModal } from "../components/CryptoQrCodeModal";
 import { GiftNscModal } from "../components/GiftNscModal";
 import {
@@ -1208,6 +1205,7 @@ export function Admin() {
       (s) => s.status === "new" || s.status === "reviewing",
     ).length,
     waitlist: waitlistEntries.filter((w) => w.status === "pending").length,
+    editions: getStoredEditions().filter((e) => editionReviewStatus(e) === "pending_review").length,
   };
 
   const navWithBadges = nav.map((item) => ({

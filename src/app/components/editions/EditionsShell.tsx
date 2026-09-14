@@ -3,7 +3,11 @@ import { Link, useNavigate } from "react-router";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import { Moon, Sun } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { getEditionCollections, getStoredEditions, type DigitalEdition } from "../../data/editions";
+import {
+  getEditionCollections,
+  getPublishedEditions,
+  type DigitalEdition,
+} from "../../data/editions";
 import { MaskIcon } from "../MaskIcon";
 import { NsCapturesLogoBadge } from "../NsCapturesLogoBadge";
 import { formatEth } from "./editionsFormat";
@@ -103,7 +107,7 @@ export function EditionsShell({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
-  const [editions, setEditions] = useState<DigitalEdition[]>(() => getStoredEditions());
+  const [editions, setEditions] = useState<DigitalEdition[]>(() => getPublishedEditions());
   const collections = useMemo(() => getEditionCollections(), []);
   const { theme, setTheme } = useEditionsTheme();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -252,7 +256,7 @@ export function EditionsShell({
                       onChange={(e) => setSearchQuery(e.target.value)}
                       onFocus={() => {
                         setSearchFocused(true);
-                        setEditions(getStoredEditions());
+                        setEditions(getPublishedEditions());
                       }}
                       onBlur={() => setSearchFocused(false)}
                       onKeyDown={(e) => {
