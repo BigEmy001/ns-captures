@@ -39,30 +39,32 @@ import {
   fetchAdminPaymentMethods,
   getOptimizedImageUrl,
 } from "../data/db";
-import { sendPurchaseReceipt, sendLicenseConfirmation, sendCreatorSaleNotification } from "../../lib/email";
+import {
+  sendPurchaseReceipt,
+  sendLicenseConfirmation,
+  sendCreatorSaleNotification,
+} from "../../lib/email";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, UserRole } from "../context/AuthContext";
 import { isEditionsPublic, EDITIONS_VISIBILITY_EVENT } from "../data/editions";
+import { SpaceSwitch } from "./SpaceSwitch";
 
 const publicLinks = [
   { to: "/search", label: "Discover" },
   { to: "/collections", label: "Collections" },
-  { to: "/editions", label: "Editions" },
   { to: "/pricing", label: "Licensing" },
 ];
 
 const photographerLinks = [
   { to: "/search", label: "Discover" },
   { to: "/account", label: "Dashboard" },
-  { to: "/editions", label: "Editions" },
   { to: "/collections", label: "Collections" },
 ];
 
 const buyerLinks = [
   { to: "/search", label: "Discover" },
   { to: "/account", label: "Dashboard" },
-  { to: "/editions", label: "Editions" },
   { to: "/collections", label: "Collections" },
   { to: "/pricing", label: "Licensing" },
 ];
@@ -71,13 +73,11 @@ const enterpriseLinks = [
   { to: "/search", label: "Discover" },
   { to: "/enterprise", label: "Enterprise" },
   { to: "/account", label: "Dashboard" },
-  { to: "/editions", label: "Editions" },
   { to: "/collections", label: "Collections" },
 ];
 
 const adminLinks = [
   { to: "/admin", label: "Admin Console" },
-  { to: "/editions", label: "Editions" },
   { to: "/search", label: "Discover" },
 ];
 
@@ -130,6 +130,7 @@ const getMoreItems = (
   if (role === "Admin") {
     return [
       { label: "Admin Console", icon: Code2, to: "/admin" },
+      { label: "Editions studio", icon: Sparkles, to: "/editions/studio" },
       { label: "Settings", icon: Settings, to: "/admin?tab=settings" },
       { divider: true, label: "d3" },
       { label: "Sign out", icon: LogOut, action: "logout" },
@@ -138,6 +139,7 @@ const getMoreItems = (
   const items: DropdownItem[] = [
     { label: "Dashboard", icon: User, to: "/account" },
     { label: "Public Profile", icon: Camera, to: `/photographer/${user.slug || user.id}` },
+    { label: "Editions studio", icon: Sparkles, to: "/editions/studio" },
     { label: "Settings", icon: Settings, to: "/account?tab=security" },
   ];
   if (role === "Enterprise") {
@@ -195,9 +197,9 @@ export function Navbar() {
   }, []);
 
   const isAdmin = user?.role === "Admin";
-  const rawLinks = getLinksForRole(user?.role || "Guest");
-  const links =
-    isEditionsVisible || isAdmin ? rawLinks : rawLinks.filter((l) => l.to !== "/editions");
+  const links = getLinksForRole(user?.role || "Guest");
+  // The Photography | Editions switch follows the admin's marketplace visibility setting
+  const showSpaceSwitch = isEditionsVisible || isAdmin;
   const exploreItems = getExploreItems(user?.role || "Guest");
   const moreItems = getMoreItems(user?.role || "Guest", user);
 
@@ -410,14 +412,18 @@ export function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-[#ededed] bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-5 py-3.5 sm:px-8 lg:px-12">
-          <Link to="/">
+        <div className="mx-auto flex max-w-[1440px] items-center gap-4 px-5 py-3.5 sm:px-8 lg:px-6 xl:gap-5 xl:px-12">
+          <Link to="/" className="shrink-0">
             <Monogram />
           </Link>
 
+          {showSpaceSwitch && (
+            <SpaceSwitch tone="light" condensed className="hidden md:inline-flex" />
+          )}
+
           <form
             onSubmit={submit}
-            className={`hidden md:flex flex-1 items-center gap-2 rounded-full border bg-[#f5f5f5] transition-all duration-300 ease-in-out origin-center overflow-hidden ${
+            className={`hidden md:flex lg:hidden xl:flex flex-1 items-center gap-2 rounded-full border bg-[#f5f5f5] transition-all duration-300 ease-in-out origin-center overflow-hidden ${
               showSearch
                 ? "max-w-md opacity-100 translate-y-0 scale-100 px-4 py-2.5 border-[#e6e6e6] pointer-events-auto"
                 : "max-w-0 opacity-0 -translate-y-1 scale-95 px-0 py-0 border-transparent pointer-events-none"
@@ -432,7 +438,7 @@ export function Navbar() {
             />
           </form>
 
-          <nav className="ml-auto hidden items-center gap-7 text-sm lg:flex">
+          <nav className="ml-auto hidden items-center gap-4 text-sm lg:flex xl:gap-7">
             {links.map((l) => (
               <NavLink
                 key={l.to}
@@ -503,7 +509,7 @@ export function Navbar() {
             {user?.role !== "Admin" && (
               <Link
                 to="/contribute"
-                className="rounded-full bg-[#1e4a3f] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#123b31]"
+                className="whitespace-nowrap rounded-full bg-[#1e4a3f] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#123b31] xl:px-5"
               >
                 Start a project
               </Link>
@@ -511,7 +517,7 @@ export function Navbar() {
             {!isAuthenticated && !isLoading && (
               <Link
                 to="/signin"
-                className="rounded-full border border-[#111] px-5 py-2 text-sm font-semibold text-[#111] transition hover:bg-[#111] hover:text-white"
+                className="whitespace-nowrap rounded-full border border-[#111] px-4 py-2 text-sm font-semibold text-[#111] transition hover:bg-[#111] hover:text-white xl:px-5"
               >
                 Join
               </Link>
@@ -541,6 +547,13 @@ export function Navbar() {
         </div>
       </header>
 
+      {/* On phones the switch gets its own row right under the header */}
+      {showSpaceSwitch && (
+        <div className="border-b border-[#ededed] bg-white px-5 py-2 sm:px-8 md:hidden">
+          <SpaceSwitch tone="light" size="sm" fullWidth />
+        </div>
+      )}
+
       <AnimatePresence>
         {menu && (
           <motion.div
@@ -563,6 +576,7 @@ export function Navbar() {
                       setMenu(false);
                       setCartOpen(true);
                     }}
+                    aria-label="Shopping Cart"
                     className="relative p-1.5 text-white/80 hover:text-white"
                   >
                     <ShoppingBag className="size-5" />
@@ -575,6 +589,7 @@ export function Navbar() {
                 )}
                 <button
                   onClick={() => setMenu(false)}
+                  aria-label="Close menu"
                   className="p-1 hover:bg-white/10 rounded-full transition-colors cursor-pointer text-white"
                 >
                   <X className="size-6" />
@@ -595,6 +610,10 @@ export function Navbar() {
                 className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40"
               />
             </form>
+
+            {showSpaceSwitch && (
+              <SpaceSwitch tone="dark" fullWidth className="mt-4" onSwitch={() => setMenu(false)} />
+            )}
 
             {/* Navigation Links */}
             <div className="flex-1 flex flex-col justify-center py-8 space-y-10">
@@ -642,7 +661,7 @@ export function Navbar() {
                           onClick={() => setMenu(false)}
                           className="flex items-center gap-3 text-lg text-white/90 hover:text-white transition-colors"
                         >
-                          <Icon className="size-5 text-[#1e4a3f]" />
+                          <Icon className="size-5 text-white/60" />
                           {item.label}
                         </Link>
                       );
@@ -689,7 +708,7 @@ export function Navbar() {
                 <Link
                   to="/contribute"
                   onClick={() => setMenu(false)}
-                  className="w-full rounded-full bg-white px-5 py-3 text-center text-sm font-bold text-[#12231f] hover:bg-white/90 transition-colors"
+                  className="block w-full rounded-full bg-white px-5 py-3 text-center text-sm font-bold text-[#12231f] hover:bg-white/90 transition-colors"
                 >
                   Start a project
                 </Link>

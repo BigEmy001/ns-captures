@@ -11,6 +11,7 @@ import {
 } from "../../data/editions";
 import { MaskIcon } from "../MaskIcon";
 import { NsCapturesLogoBadge } from "../NsCapturesLogoBadge";
+import { SpaceSwitch } from "../SpaceSwitch";
 import { creatorHref, formatEth } from "./editionsFormat";
 import { useEditionsTheme } from "./useEditionsTheme";
 import searchIcon from "../../../assets/edition-detail/search.svg";
@@ -275,6 +276,7 @@ export function EditionsShell({
                 <Link to="/editions" aria-label="NS CAPTURES Editions home" className="md:hidden">
                   <NsCapturesLogoBadge className="size-9" />
                 </Link>
+                <SpaceSwitch tone="editions" className="hidden sm:inline-flex" />
                 <div className="relative w-full max-w-[360px]">
                   <label className="flex h-10 items-center gap-1.5 rounded-md border border-(--ed-divider) bg-(--ed-input) pl-3 pr-2 backdrop-blur-[16px] transition-colors focus-within:border-(--ed-border-strong)">
                     <MaskIcon src={searchIcon} className="size-[18px] text-(--ed-text)" />
@@ -494,6 +496,11 @@ export function EditionsShell({
                 )}
               </div>
             </header>
+
+            {/* On phones the switch gets its own row right under the header */}
+            <div className="border-b border-(--ed-border) bg-(--ed-surface) px-4 py-2 sm:hidden">
+              <SpaceSwitch tone="editions" size="sm" fullWidth />
+            </div>
 
             {children}
           </div>

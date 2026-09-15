@@ -1,5 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router";
+import { motion, useReducedMotion } from "framer-motion";
+import { rememberSpacePath, spaceForPath } from "./spaceSwitchRoutes";
 import { Toaster } from "sonner";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
@@ -10,19 +12,34 @@ import { VerificationWelcomeModal } from "./VerificationWelcomeModal";
 import { MaintenanceGate } from "./MaintenanceGate";
 
 export function RootLayout() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const reduceMotion = useReducedMotion();
 
   // Scroll to top on navigation.
   useEffect(() => {
     requestAnimationFrame(() => window.scrollTo(0, 0));
   }, [pathname]);
 
+  // Remember the last page on each side for the Photography | Editions switch
+  useEffect(() => {
+    rememberSpacePath(pathname, search);
+  }, [pathname, search]);
+
+  // Cross-fade when moving between the photography site and Editions, but not on first load
+  const space = spaceForPath(pathname);
+  const [shownSpace, setShownSpace] = useState(space);
+  const [hasSwitchedSpace, setHasSwitchedSpace] = useState(false);
+  if (shownSpace !== space) {
+    setShownSpace(space);
+    setHasSwitchedSpace(true);
+  }
+
   // Initialize CSRF token
   useEffect(() => {
     setCsrfMeta();
   }, []);
 
-  const isEditions = pathname === "/editions" || pathname.startsWith("/editions/");
+  const isEditions = space === "editions";
   const isPhotoDetail = pathname.startsWith("/photo/");
 
   return (
@@ -41,7 +58,14 @@ export function RootLayout() {
           </a>
           {!isEditions && !isPhotoDetail && <Navbar />}
           <main id="main-content" className="flex-1" tabIndex={-1}>
-            <Outlet />
+            <motion.div
+              key={space}
+              initial={hasSwitchedSpace && !reduceMotion ? { opacity: 0 } : false}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <Outlet />
+            </motion.div>
           </main>
           {!isEditions && !isPhotoDetail && <Footer />}
           <VerificationWelcomeModal />

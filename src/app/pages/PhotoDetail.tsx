@@ -39,6 +39,7 @@ import {
 } from "../data/editions";
 import { MintEditionModal } from "../components/MintEditionModal";
 import { useWeb3Activation } from "../components/editions/useWeb3Activation";
+import { SpaceSwitch } from "../components/SpaceSwitch";
 
 interface LicenseOption {
   id: string;
@@ -148,19 +149,30 @@ export function PhotoDetail() {
   const related: Photo[] = [];
   const categoryHref = `/search?cat=${encodeURIComponent(photo.category)}`;
   const photographerHref = `/photographer/${photo.photographerId}`;
+  // The Photography | Editions switch follows the admin's marketplace visibility setting
+  const showSpaceSwitch = isEditionsPublic() || user?.role === "Admin";
 
   const imageSrc = getOptimizedImageUrl(photo.image || "", 1200);
 
   return (
     <div className="mx-auto min-h-screen max-w-[1600px] px-4 py-8 sm:px-8 lg:px-10">
+      {/* This page has no Navbar, so the Photography | Editions switch lives in its top bar */}
+      {showSpaceSwitch && (
+        <div className="mb-4 md:hidden">
+          <SpaceSwitch tone="light" size="sm" fullWidth />
+        </div>
+      )}
       <div className="mb-6 flex items-center justify-between gap-4">
-        <Link
-          to="/search"
-          className="inline-flex items-center gap-2 text-sm font-medium text-[#1e4a3f] hover:underline"
-        >
-          <ArrowRight className="size-4 rotate-180" />
-          Back to library
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            to="/search"
+            className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-medium text-[#1e4a3f] hover:underline"
+          >
+            <ArrowRight className="size-4 rotate-180" />
+            Back to library
+          </Link>
+          {showSpaceSwitch && <SpaceSwitch tone="light" className="hidden md:inline-flex" />}
+        </div>
 
         <div className="flex items-center gap-2">
           <button
