@@ -40,18 +40,25 @@ export const COLLECTION_MOMENTUM = [
     sparkline: [30, 29, 32, 35, 33, 38, 41, 44],
   },
   {
-    id: "korean-peninsula-silences",
-    change: 14.5,
-    volumeGbp: 68200,
-    sales: 17,
-    sparkline: [20, 21, 19, 22, 23, 21, 26, 29],
-  },
-  {
     id: "metropolitan-geometry",
     change: 9.9,
     volumeGbp: 34800,
     sales: 9,
     sparkline: [15, 16, 14, 18, 17, 20, 22, 24],
+  },
+  {
+    id: "amsterdam-canals",
+    change: 24.1,
+    volumeGbp: 118500,
+    sales: 32,
+    sparkline: [16, 19, 21, 25, 27, 26, 31, 35],
+  },
+  {
+    id: "milano-form",
+    change: 21.6,
+    volumeGbp: 98400,
+    sales: 24,
+    sparkline: [14, 18, 17, 23, 22, 28, 30, 34],
   },
 ];
 

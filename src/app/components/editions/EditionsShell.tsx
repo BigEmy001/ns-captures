@@ -1,7 +1,21 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { Camera, LogOut, Moon, Sparkles, Sun, UserRound } from "lucide-react";
+import {
+  ArrowUpRight,
+  Camera,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  LogOut,
+  Moon,
+  Sparkles,
+  Sun,
+  UserRound,
+  Wallet,
+} from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
 import {
   getPublicEditionCollections,
@@ -12,8 +26,10 @@ import {
 import { MaskIcon } from "../MaskIcon";
 import { NsCapturesLogoBadge } from "../NsCapturesLogoBadge";
 import { SpaceSwitch } from "../SpaceSwitch";
-import { creatorHref, formatEth } from "./editionsFormat";
+import { ConnectWalletModal } from "../ConnectWalletModal";
+import { creatorHref, formatEth, shortHex } from "./editionsFormat";
 import { useEditionsTheme } from "./useEditionsTheme";
+import { useEditionVault } from "./useEditionVault";
 import searchIcon from "../../../assets/edition-detail/search.svg";
 import accountCircleIcon from "../../../assets/edition-detail/account-circle.svg";
 import navDiscoverIcon from "../../../assets/edition-detail/nav-discover.svg";
@@ -142,6 +158,86 @@ export function EditionsShell({
   const collections = useMemo(() => getPublicEditionCollections(), []);
   const { theme, setTheme } = useEditionsTheme();
   const rootRef = useRef<HTMLDivElement>(null);
+
+  const {
+    wallets,
+    balances,
+    primaryEvmAddress,
+    walletLabel: vaultWalletLabel,
+    refresh: refreshVault,
+  } = useEditionVault();
+  const [walletFlyoutOpen, setWalletFlyoutOpen] = useState(false);
+  const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+  const walletFlyoutRef = useRef<HTMLDivElement>(null);
+
+  // Close the wallet flyout on outside click or Escape
+  useEffect(() => {
+    if (!walletFlyoutOpen) return;
+    const handlePointerDown = (e: MouseEvent) => {
+      if (!walletFlyoutRef.current?.contains(e.target as Node)) setWalletFlyoutOpen(false);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setWalletFlyoutOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [walletFlyoutOpen]);
+
+  const evmWallet = useMemo(
+    () =>
+      wallets.find((w) => w.coin === "ETH" || w.network === "ERC20" || w.network === "Base") ||
+      (primaryEvmAddress ? { coin: "ETH", network: "ERC20", address: primaryEvmAddress } : null),
+    [wallets, primaryEvmAddress],
+  );
+
+  const tronWallet = useMemo(
+    () => wallets.find((w) => w.network.includes("TRC") || w.address.startsWith("T")),
+    [wallets],
+  );
+
+  const solanaWallet = useMemo(
+    () => wallets.find((w) => w.coin === "SOL" || w.network === "Solana"),
+    [wallets],
+  );
+
+  const btcWallet = useMemo(
+    () => wallets.find((w) => w.coin === "BTC" || w.network.includes("Bitcoin")),
+    [wallets],
+  );
+
+  const hasLinkedWallets = wallets.length > 0 || Boolean(primaryEvmAddress);
+  const displayWalletLabel =
+    walletLabel !== "Connect Wallet"
+      ? walletLabel
+      : vaultWalletLabel || (primaryEvmAddress ? shortHex(primaryEvmAddress) : "Connect Wallet");
+
+  const handleCopy = async (addr: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(addr);
+      setCopiedAddress(addr);
+      toast.success(`${label} copied`);
+      setTimeout(() => setCopiedAddress(null), 2000);
+    } catch {
+      toast.error("Failed to copy address");
+    }
+  };
+
+  const handleWalletButtonClick = () => {
+    if (!user) {
+      navigate("/signin");
+      return;
+    }
+    if (hasLinkedWallets) {
+      setWalletFlyoutOpen((open) => !open);
+    } else {
+      setConnectModalOpen(true);
+    }
+  };
 
   // Cross-fade colours briefly while switching palettes
   const toggleTheme = () => {
@@ -389,13 +485,262 @@ export function EditionsShell({
 
               <div className="flex shrink-0 items-center gap-1">
                 {headerActions ?? (
-                  <button
-                    type="button"
-                    onClick={() => navigate(user ? "/account?tab=vault" : "/signin")}
-                    className="hidden h-10 items-center rounded-full px-4 text-sm font-medium tracking-[-0.15px] text-(--ed-text) transition-colors hover:bg-(--ed-hover) sm:flex"
-                  >
-                    {walletLabel}
-                  </button>
+                  <div ref={walletFlyoutRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={handleWalletButtonClick}
+                      aria-expanded={walletFlyoutOpen}
+                      aria-haspopup="dialog"
+                      className={`hidden h-10 items-center gap-2 rounded-full px-4 text-sm font-medium tracking-[-0.15px] transition-colors sm:flex border cursor-pointer ${
+                        hasLinkedWallets
+                          ? "border-(--ed-border) bg-(--ed-surface) text-(--ed-text) hover:bg-(--ed-hover)"
+                          : "border-(--ed-primary)/30 bg-(--ed-primary)/10 text-(--ed-primary) hover:bg-(--ed-primary)/20"
+                      }`}
+                    >
+                      {hasLinkedWallets ? (
+                        <>
+                          <span className="size-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                          <span className="font-mono text-xs">{displayWalletLabel}</span>
+                          <ChevronDown
+                            className={`size-3.5 text-(--ed-muted) transition-transform duration-200 ${
+                              walletFlyoutOpen ? "rotate-180" : ""
+                            }`}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <Wallet className="size-4" />
+                          <span>Connect Wallet</span>
+                        </>
+                      )}
+                    </button>
+
+                    <AnimatePresence>
+                      {walletFlyoutOpen && hasLinkedWallets && (
+                        <motion.div
+                          key="wallet-flyout"
+                          initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
+                          transition={{ type: "spring", duration: 0.25, bounce: 0 }}
+                          style={{ transformOrigin: "top right" }}
+                          className="absolute right-0 top-12 z-50 w-80 sm:w-88 rounded-2xl border border-(--ed-border) bg-(--ed-surface) p-4 shadow-(--ed-shadow-lg) text-(--ed-text)"
+                        >
+                          {/* Header Address Card */}
+                          <div className="flex items-center justify-between pb-3 border-b border-(--ed-divider)">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="size-9 rounded-full bg-gradient-to-br from-[#EC4899] via-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-white shadow-inner shrink-0">
+                                {user?.name ? user.name.slice(0, 2).toUpperCase() : "0x"}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 text-xs font-mono font-semibold">
+                                  <span className="truncate">
+                                    {shortHex(primaryEvmAddress || wallets[0]?.address || "")}
+                                  </span>
+                                  {(primaryEvmAddress || wallets[0]?.address) && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleCopy(
+                                          primaryEvmAddress || wallets[0]?.address || "",
+                                          "Primary Address",
+                                        )
+                                      }
+                                      className="text-(--ed-muted) hover:text-(--ed-text) transition-colors p-0.5 cursor-pointer"
+                                      title="Copy Address"
+                                    >
+                                      {copiedAddress ===
+                                      (primaryEvmAddress || wallets[0]?.address) ? (
+                                        <Check className="size-3.5 text-emerald-500" />
+                                      ) : (
+                                        <Copy className="size-3.5" />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                                <span className="text-[11px] font-mono text-(--ed-muted) block truncate">
+                                  {wallets.length} Wallets Linked • $
+                                  {balances?.totalUsd ? balances.totalUsd.toFixed(2) : "0.00"}
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setWalletFlyoutOpen(false);
+                                navigate("/account?tab=vault");
+                              }}
+                              className="text-(--ed-muted) hover:text-(--ed-text) p-1 transition-colors cursor-pointer"
+                              title="Manage Vault"
+                            >
+                              <ChevronRight className="size-4" />
+                            </button>
+                          </div>
+
+                          {/* Sub-Wallets List */}
+                          <div className="space-y-2 py-3">
+                            {/* EVM Wallet Card */}
+                            {evmWallet && (
+                              <div className="p-2.5 bg-(--ed-bg) hover:bg-(--ed-hover) rounded-xl border border-(--ed-border) transition-colors flex items-center justify-between">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="size-7 rounded-lg bg-[#2081E2]/20 border border-[#2081E2]/40 flex items-center justify-center text-xs text-[#2081E2] font-mono font-bold shrink-0">
+                                    ⟠
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="text-xs font-semibold block">EVM Wallet</span>
+                                    <span className="text-[10px] font-mono text-(--ed-muted) block truncate">
+                                      {shortHex(evmWallet.address)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right font-mono shrink-0 pl-2">
+                                  <span className="text-xs font-semibold block">
+                                    {balances?.assets.find((a) => a.coin === "ETH")
+                                      ?.balanceFormatted || "0.00"}{" "}
+                                    ETH
+                                  </span>
+                                  <span className="text-[10px] text-emerald-500 block">
+                                    ● Connected
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* TRON Wallet Card */}
+                            {tronWallet && (
+                              <div className="p-2.5 bg-(--ed-bg) hover:bg-(--ed-hover) rounded-xl border border-(--ed-border) transition-colors flex items-center justify-between">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="size-7 rounded-lg bg-[#EF0027]/20 border border-[#EF0027]/40 flex items-center justify-center text-xs text-[#EF0027] font-mono font-bold shrink-0">
+                                    ⚡
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="text-xs font-semibold block">TRON Wallet</span>
+                                    <span className="text-[10px] font-mono text-(--ed-muted) block truncate">
+                                      {tronWallet.address.slice(0, 4)}...
+                                      {tronWallet.address.slice(-4)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right font-mono shrink-0 pl-2">
+                                  <span className="text-xs font-semibold block">
+                                    {balances?.assets.find(
+                                      (a) => a.coin === "USDT" && a.network.includes("TRC"),
+                                    )?.balanceFormatted ||
+                                      balances?.assets.find((a) => a.coin === "USDT")
+                                        ?.balanceFormatted ||
+                                      "0.00"}{" "}
+                                    USDT
+                                  </span>
+                                  <span className="text-[10px] text-emerald-500 block">
+                                    ● Connected
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Solana Wallet Card */}
+                            {solanaWallet && (
+                              <div className="p-2.5 bg-(--ed-bg) hover:bg-(--ed-hover) rounded-xl border border-(--ed-border) transition-colors flex items-center justify-between">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="size-7 rounded-lg bg-[#9945FF]/20 border border-[#9945FF]/40 flex items-center justify-center text-xs text-[#14F195] font-mono font-bold shrink-0">
+                                    ◎
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="text-xs font-semibold block">
+                                      Solana Wallet
+                                    </span>
+                                    <span className="text-[10px] font-mono text-(--ed-muted) block truncate">
+                                      {solanaWallet.address.slice(0, 4)}...
+                                      {solanaWallet.address.slice(-4)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right font-mono shrink-0 pl-2">
+                                  <span className="text-xs font-semibold block">
+                                    {balances?.assets.find((a) => a.coin === "SOL")
+                                      ?.balanceFormatted || "0.00"}{" "}
+                                    SOL
+                                  </span>
+                                  <span className="text-[10px] text-emerald-500 block">
+                                    ● Connected
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Bitcoin Wallet Card */}
+                            {btcWallet && (
+                              <div className="p-2.5 bg-(--ed-bg) hover:bg-(--ed-hover) rounded-xl border border-(--ed-border) transition-colors flex items-center justify-between">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="size-7 rounded-lg bg-[#F7931A]/20 border border-[#F7931A]/40 flex items-center justify-center text-xs text-[#F7931A] font-mono font-bold shrink-0">
+                                    ₿
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="text-xs font-semibold block">
+                                      Bitcoin Wallet
+                                    </span>
+                                    <span className="text-[10px] font-mono text-(--ed-muted) block truncate">
+                                      {btcWallet.address.slice(0, 6)}...
+                                      {btcWallet.address.slice(-4)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right font-mono shrink-0 pl-2">
+                                  <span className="text-xs font-semibold block">
+                                    {balances?.assets.find((a) => a.coin === "BTC")
+                                      ?.balanceFormatted || "0.00"}{" "}
+                                    BTC
+                                  </span>
+                                  <span className="text-[10px] text-emerald-500 block">
+                                    ● SegWit
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action Links */}
+                          <div className="space-y-1 pt-2.5 border-t border-(--ed-divider) text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setWalletFlyoutOpen(false);
+                                setConnectModalOpen(true);
+                              }}
+                              className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-(--ed-text) hover:bg-(--ed-hover) transition-colors text-left cursor-pointer"
+                            >
+                              <span>Link Wallet / Deposit Crypto</span>
+                              <ArrowUpRight className="size-3.5 text-(--ed-muted)" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setWalletFlyoutOpen(false);
+                                navigate("/account?tab=vault");
+                              }}
+                              className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-(--ed-text) hover:bg-(--ed-hover) transition-colors text-left cursor-pointer"
+                            >
+                              <span>Manage Wallets & Settlement Vault</span>
+                              <ArrowUpRight className="size-3.5 text-(--ed-muted)" />
+                            </button>
+                            {user && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setWalletFlyoutOpen(false);
+                                  navigate(creatorHref(user.slug || user.id));
+                                }}
+                                className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-(--ed-text) hover:bg-(--ed-hover) transition-colors text-left cursor-pointer"
+                              >
+                                <span>Profile & Provenance Portfolio</span>
+                                <ArrowUpRight className="size-3.5 text-(--ed-muted)" />
+                              </button>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 )}
                 <button
                   type="button"
@@ -506,6 +851,17 @@ export function EditionsShell({
           </div>
         </div>
       </div>
+
+      <ConnectWalletModal
+        isOpen={connectModalOpen}
+        onClose={() => setConnectModalOpen(false)}
+        photographerId={user?.slug || user?.id || ""}
+        onWalletConnected={() => {
+          refreshVault();
+          toast.success("Wallet synchronized successfully");
+          setConnectModalOpen(false);
+        }}
+      />
     </MotionConfig>
   );
 }

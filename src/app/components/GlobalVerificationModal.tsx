@@ -51,9 +51,9 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
   const [phone, setPhone] = useState("");
   const [dob, setDob] = useState("");
   const [occupation, setOccupation] = useState("");
-  const [uploadDocType, setUploadDocType] = useState<"passport" | "driver_license" | "national_id">(
-    "passport",
-  );
+  const [uploadDocType, setUploadDocType] = useState<
+    "passport" | "drivers_license" | "driver_license" | "national_id" | "other"
+  >("passport");
   const [uploadDocNumber, setUploadDocNumber] = useState("");
   const [uploadDocFile, setUploadDocFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -471,8 +471,9 @@ export function GlobalVerificationModal({ isOpen, onClose }: GlobalVerificationM
                       className="w-full rounded-xl border border-[#ececec] bg-[#f8f9f7] px-3 sm:px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f]/40"
                     >
                       <option value="passport">Passport</option>
-                      <option value="driver_license">Driver's License</option>
+                      <option value="drivers_license">Driver's License</option>
                       <option value="national_id">National ID</option>
+                      <option value="other">Other Official ID</option>
                     </select>
                   </div>
                   <div>

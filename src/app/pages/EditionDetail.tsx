@@ -1107,10 +1107,7 @@ export function EditionDetail() {
               >
                 Close
               </button>
-              <Link
-                to="/account?tab=settlement"
-                className={`${primaryButtonClass} h-10 px-5 text-sm`}
-              >
+              <Link to="/account?tab=vault" className={`${primaryButtonClass} h-10 px-5 text-sm`}>
                 Go to vault deposit
               </Link>
             </>

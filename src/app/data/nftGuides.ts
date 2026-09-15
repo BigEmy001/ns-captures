@@ -465,8 +465,8 @@ export const NFT_GUIDES: NftGuide[] = [
           "Create or connect a wallet in your Web3 vault. Sales and royalties settle there, so it’s where your earnings arrive.",
           (ctx) =>
             ctx.deposit.enforceDepositGate
-              ? `You’ll also need to hold a minimum balance: at least ${depositAmounts(ctx)}. It isn’t a fee, and the funds stay yours.`
-              : "There’s currently no minimum vault balance needed to start creating.",
+              ? `You’ll also need to fund your vault to cover the platform minting and archival certification fee: at least ${depositAmounts(ctx)}. When you certify and submit an edition, the fee routes directly to the platform treasury.`
+              : "There’s currently no platform minting fee needed to start creating.",
         ],
       },
       {

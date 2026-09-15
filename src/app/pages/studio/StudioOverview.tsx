@@ -73,8 +73,8 @@ export function StudioOverview({
     },
     {
       done: depositMet,
-      title: "Minimum vault deposit",
-      body: `Hold at least ${depositConfig.ethThreshold} ETH, ${depositConfig.solThreshold} SOL, ${depositConfig.usdtThreshold} USDT, ${depositConfig.usdcThreshold} USDC or ${depositConfig.btcThreshold} BTC. The funds stay yours.`,
+      title: "Minting fee deposit",
+      body: `Hold at least ${depositConfig.usdtThreshold} USDT, ${depositConfig.usdcThreshold} USDC, ${depositConfig.ethThreshold} ETH, ${depositConfig.solThreshold} SOL or ${depositConfig.btcThreshold} BTC in your vault to cover archival certification and minting.`,
       action: depositMet
         ? undefined
         : { label: "Deposit", to: "/account?tab=web3", external: true },

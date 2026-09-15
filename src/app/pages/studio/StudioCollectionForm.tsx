@@ -104,7 +104,7 @@ export function StudioCollectionForm({
               value={name}
               maxLength={COLLECTION_LIMITS.nameMax}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Lagos After Dark"
+              placeholder="e.g. Kyoto After Dark"
               className={inputClass}
               required
             />

@@ -90,6 +90,7 @@ export const ACTIVITY_LABELS: Record<EditionActivity["type"], string> = {
   purchased: "Sale",
   transferred: "Transfer",
   royalty_paid: "Royalty",
+  mint_fee_paid: "Minting Fee",
 };
 
 export function tierLabel(edition: DigitalEdition) {

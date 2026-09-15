@@ -1,3 +1,6 @@
+import { Buffer } from "buffer";
+import bs58 from "bs58";
+
 /**
  * On-Chain Balance Tracking & Multi-Chain Explorer Service
  *
@@ -83,36 +86,105 @@ function createTimeoutSignal(ms: number): { signal: AbortSignal; cleanup: () => 
  */
 export async function fetchTronUsdtBalance(address: string): Promise<number> {
   if (!address || !address.startsWith("T")) return 0;
-  const USDT_TRC20_CONTRACT = "TR7NHqjekKQxGTCi8q8ZY4pL8otSzgjLj6";
+  const USDT_TRC20_BASE58 = "TR7NHqJEKQxGTCi8q8ZY4pL8otSzgjLj6t";
+  const USDT_TRC20_CONTRACT_MOCK = "TR7NHqjekKQxGTCi8q8ZY4pL8otSzgjLj6";
 
-  const { signal, cleanup } = createTimeoutSignal(6000);
+  // 1. Check TronGrid v1/accounts (handles accounts with TRX activation and standard API responses)
   try {
+    const { signal, cleanup } = createTimeoutSignal(3500);
     const res = await fetch(`https://api.trongrid.io/v1/accounts/${address}`, {
       headers: { Accept: "application/json" },
       signal,
     });
     cleanup();
 
-    if (!res.ok) return 0;
-    const data = await res.json();
-    if (!data?.data || !Array.isArray(data.data) || data.data.length === 0) {
-      return 0;
-    }
-
-    const account = data.data[0];
-    if (account.trc20 && Array.isArray(account.trc20)) {
-      for (const token of account.trc20) {
-        if (token[USDT_TRC20_CONTRACT]) {
-          const raw = token[USDT_TRC20_CONTRACT];
-          return Number(raw) / 1_000_000;
+    if (res.ok) {
+      const data = await res.json();
+      const account = data?.data?.[0];
+      if (account?.trc20 && Array.isArray(account.trc20)) {
+        for (const token of account.trc20) {
+          const raw =
+            token[USDT_TRC20_BASE58] ||
+            token[USDT_TRC20_CONTRACT_MOCK] ||
+            Object.entries(token).find(([k]) => k.toLowerCase().startsWith("tr7nhq"))?.[1];
+          if (raw) {
+            return Number(raw) / 1_000_000;
+          }
         }
       }
     }
-    return 0;
   } catch {
-    cleanup();
-    return 0;
+    // Proceed to direct smart contract call
   }
+
+  // 2. Direct TRON smart contract query (balanceOf) via official TronGrid JSON-RPC.
+  // Works reliably for ANY address on-chain, whether activated with TRX or not.
+  try {
+    const { signal, cleanup } = createTimeoutSignal(4000);
+    const bs58Decoder =
+      (
+        bs58 as unknown as {
+          default?: { decode: (s: string) => Uint8Array };
+          decode: (s: string) => Uint8Array;
+        }
+      ).default || bs58;
+    const decoded = bs58Decoder.decode(address);
+    if (decoded && decoded.length === 25) {
+      const hex20 = Buffer.from(decoded.slice(1, 21)).toString("hex");
+      const hexParam = hex20.padStart(64, "0");
+
+      const rpcRes = await fetch("https://api.trongrid.io/wallet/triggerconstantcontract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner_address: "410000000000000000000000000000000000000000",
+          contract_address: "41a614f803b6fd780986a42c78ec9c7f77e6ded13c", // TR7NHqJEKQxGTCi8q8ZY4pL8otSzgjLj6t
+          function_selector: "balanceOf(address)",
+          parameter: hexParam,
+        }),
+        signal,
+      });
+      cleanup();
+
+      if (rpcRes.ok) {
+        const json = await rpcRes.json();
+        if (json.constant_result && json.constant_result[0]) {
+          const raw = BigInt("0x" + json.constant_result[0]);
+          const bal = Number(raw) / 1_000_000;
+          if (bal > 0) return bal;
+        }
+      }
+    }
+  } catch {
+    // fallback to Tronscan API
+  }
+
+  // 3. High-reliability fallback to Tronscan API
+  try {
+    const { signal, cleanup } = createTimeoutSignal(4000);
+    const res = await fetch(`https://apilist.tronscanapi.com/api/account?address=${address}`, {
+      headers: { Accept: "application/json" },
+      signal,
+    });
+    cleanup();
+
+    if (res.ok) {
+      const data = await res.json();
+      const token = data.trc20token_balances?.find(
+        (t: { tokenAbbr?: string; symbol?: string; tokenId?: string; balance?: string | number }) =>
+          t.tokenAbbr === "USDT" ||
+          t.symbol === "USDT" ||
+          t.tokenId?.toLowerCase() === USDT_TRC20_BASE58.toLowerCase(),
+      );
+      if (token && token.balance) {
+        return Number(token.balance) / 1_000_000;
+      }
+    }
+  } catch {
+    // all fallbacks completed
+  }
+
+  return 0;
 }
 
 /**
@@ -343,7 +415,15 @@ export async function fetchMultiChainVaultBalances(
     let status: AssetBalance["status"] = "unfunded";
 
     try {
-      if (coin === "NSC") {
+      const explicitLedgerBal =
+        options?.tokenBalances?.[coin.toLowerCase()] ??
+        options?.tokenBalances?.[coin.toUpperCase()];
+
+      if (typeof explicitLedgerBal === "number" && coin !== "NSC") {
+        balance = explicitLedgerBal;
+        status = balance > 0 ? "live" : "unfunded";
+        if (balance > 0) anyLiveSuccess = true;
+      } else if (coin === "NSC") {
         // Native platform token: balance managed through platform treasury & ledger
         const nscHeld =
           options?.tokenBalances?.nsc ??
@@ -369,7 +449,15 @@ export async function fetchMultiChainVaultBalances(
         balance = await fetchBitcoinBalance(w.address);
         status = balance > 0 ? "live" : "unfunded";
         if (balance > 0) anyLiveSuccess = true;
-      } else if (coin === "ETH" || network.includes("ETHEREUM")) {
+      } else if (
+        coin === "ETH" ||
+        network.includes("ETHEREUM") ||
+        network.includes("ERC") ||
+        network.includes("BASE") ||
+        network.includes("POLYGON") ||
+        network.includes("ARBITRUM") ||
+        network.includes("BEP")
+      ) {
         const evm = await fetchEthereumBalances(w.address);
         balance = coin === "ETH" ? evm.eth : evm.usdt;
         status = balance > 0 ? "live" : "unfunded";

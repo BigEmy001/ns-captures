@@ -330,6 +330,16 @@ export function Admin() {
   const [savingPayoutWallet, setSavingPayoutWallet] = useState(false);
   const [settlementNoticeTarget, setSettlementNoticeTarget] = useState<PayoutRequest | null>(null);
   const [waitlistFeatureInput, setWaitlistFeatureInput] = useState("");
+  const [selectedWaitlistVault, setSelectedWaitlistVault] = useState<{
+    subscriberName: string;
+    email: string;
+    role: string;
+    walletAddress?: string;
+    profileId?: string;
+    vault?: any;
+  } | null>(null);
+  const [generatingWaitlistVault, setGeneratingWaitlistVault] = useState(false);
+  const [showWaitlistRecoveryPhrase, setShowWaitlistRecoveryPhrase] = useState(false);
 
   // Digital Editions public visibility state
   const [isEditionsPublicState, setIsEditionsPublicState] = useState(() => isEditionsPublic());
@@ -1097,7 +1107,7 @@ export function Admin() {
   const handleSaveWaitlistWallet = async (id: string, email: string) => {
     setSavingWaitlistWallet(true);
     try {
-      const ok = await updateWeb3WaitlistWalletAddress(id, waitlistWalletDraft);
+      const ok = await updateWeb3WaitlistWalletAddress(id, waitlistWalletDraft, email);
       if (ok) {
         setWaitlistEntries((prev) =>
           prev.map((w) =>
@@ -1127,6 +1137,83 @@ export function Admin() {
       toast.error(err?.message || "Failed to update wallet");
     } finally {
       setSavingWaitlistWallet(false);
+    }
+  };
+
+  const handleAdminGenerateVaultForWaitlist = async () => {
+    if (!selectedWaitlistVault?.profileId) {
+      toast.error("No platform profile found for this subscriber");
+      return;
+    }
+    setGeneratingWaitlistVault(true);
+    try {
+      const generated = generateMultiChainWallet();
+      const newWallets: CryptoWalletEntry[] = generated.wallets.map((w) => ({
+        coin: w.coin,
+        network: w.network,
+        address: w.address,
+      }));
+      const newVault = {
+        wallets: newWallets,
+        recoveryPhrase: generated.mnemonic,
+        addresses: generated.addresses,
+        isUserConnected: false,
+        source: "generated" as const,
+        connectedAt: new Date().toISOString(),
+      };
+      const ok = await saveCreatorWeb3Vault(selectedWaitlistVault.profileId, newVault);
+      if (ok) {
+        const evmAddr = generated.addresses.evm;
+        if (evmAddr) {
+          await updateUserWalletAddress(selectedWaitlistVault.profileId, evmAddr);
+          const matchingWaitlist = waitlistEntries.find(
+            (w) => w.email.toLowerCase() === selectedWaitlistVault.email.toLowerCase(),
+          );
+          if (matchingWaitlist) {
+            await updateWeb3WaitlistWalletAddress(
+              matchingWaitlist.id,
+              evmAddr,
+              selectedWaitlistVault.email,
+            );
+            setWaitlistEntries((prev) =>
+              prev.map((w) =>
+                w.id === matchingWaitlist.id ? { ...w, walletAddress: evmAddr } : w,
+              ),
+            );
+          }
+        }
+        setAdminUsersList((prev) =>
+          prev.map((u) =>
+            u.id === selectedWaitlistVault.profileId
+              ? {
+                  ...u,
+                  walletAddress: generated.addresses.evm,
+                  socialLinks: {
+                    ...(u.socialLinks || {}),
+                    web3_vault: newVault,
+                  } as any,
+                }
+              : u,
+          ),
+        );
+        setSelectedWaitlistVault((prev) =>
+          prev
+            ? {
+                ...prev,
+                walletAddress: generated.addresses.evm,
+                vault: newVault,
+              }
+            : null,
+        );
+        setShowWaitlistRecoveryPhrase(true);
+        toast.success("12-word multi-chain Web3 vault generated successfully!");
+      } else {
+        toast.error("Failed to save Web3 vault");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to generate Web3 vault");
+    } finally {
+      setGeneratingWaitlistVault(false);
     }
   };
 
@@ -4524,161 +4611,249 @@ export function Admin() {
                         </td>
                       </tr>
                     ) : (
-                      filteredWaitlist.map((item) => (
-                        <tr key={item.id} className="hover:bg-[#fafafa] transition">
-                          <td className="px-5 py-3.5">
-                            <div className="flex flex-col">
-                              <span className="font-medium text-[#18211f]">
-                                {item.name || "Anonymous Subscriber"}
-                              </span>
-                              <span className="font-mono text-xs text-[#6b716d]">{item.email}</span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <span
-                              className={`inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-medium capitalize ${
-                                item.role === "photographer"
-                                  ? "bg-[#10b981]/10 text-[#059669] border border-[#10b981]/20"
-                                  : item.role === "collector"
-                                    ? "bg-amber-50 text-amber-800 border border-amber-200"
-                                    : "bg-slate-100 text-slate-700 border border-slate-200"
-                              }`}
-                            >
-                              {item.role}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            {editingWaitlistWalletId === item.id ? (
-                              <div className="flex items-center gap-1.5 min-w-[260px]">
-                                <input
-                                  type="text"
-                                  value={waitlistWalletDraft}
-                                  onChange={(e) => setWaitlistWalletDraft(e.target.value)}
-                                  placeholder="0x... or ENS address"
-                                  className="w-full rounded-lg border border-[#1e4a3f] bg-white px-2.5 py-1 font-mono text-xs text-[#18211f] outline-none shadow-sm focus:ring-1 focus:ring-[#1e4a3f]"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter")
-                                      handleSaveWaitlistWallet(item.id, item.email);
-                                    if (e.key === "Escape") setEditingWaitlistWalletId(null);
-                                  }}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveWaitlistWallet(item.id, item.email)}
-                                  disabled={savingWaitlistWallet}
-                                  className="rounded-lg bg-[#1e4a3f] p-1.5 text-white hover:bg-[#123b31] transition disabled:opacity-50 shrink-0"
-                                  title="Save wallet"
-                                >
-                                  <Check className="size-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingWaitlistWalletId(null)}
-                                  className="rounded-lg border border-[#ececec] bg-white p-1.5 text-[#6b716d] hover:bg-[#fafafa] transition shrink-0"
-                                  title="Cancel"
-                                >
-                                  <X className="size-3.5" />
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2 group">
-                                {item.walletAddress ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="font-mono text-xs text-[#18211f]">
-                                      {item.walletAddress.length > 18
-                                        ? `${item.walletAddress.slice(0, 8)}...${item.walletAddress.slice(-6)}`
-                                        : item.walletAddress}
+                      filteredWaitlist.map((item) => {
+                        const matchingUser = adminUsersList.find(
+                          (u) => u.email.toLowerCase() === item.email.toLowerCase(),
+                        );
+                        const userVault = (matchingUser?.socialLinks as any)?.web3_vault;
+                        const hasVault = Boolean(
+                          userVault &&
+                          (userVault.addresses ||
+                            (userVault.wallets && userVault.wallets.length > 0)),
+                        );
+                        const vaultAddresses = userVault?.addresses || {};
+
+                        return (
+                          <tr key={item.id} className="hover:bg-[#fafafa] transition">
+                            <td className="px-5 py-3.5">
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-medium text-[#18211f]">
+                                    {item.name || "Anonymous Subscriber"}
+                                  </span>
+                                  {hasVault && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
+                                      <ShieldCheck className="size-2.5" />
+                                      {userVault?.isUserConnected
+                                        ? "Connected Vault"
+                                        : "Active Vault"}
                                     </span>
+                                  )}
+                                </div>
+                                <span className="font-mono text-xs text-[#6b716d]">
+                                  {item.email}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <span
+                                className={`inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-medium capitalize ${
+                                  item.role === "photographer"
+                                    ? "bg-[#10b981]/10 text-[#059669] border border-[#10b981]/20"
+                                    : item.role === "collector"
+                                      ? "bg-amber-50 text-amber-800 border border-amber-200"
+                                      : "bg-slate-100 text-slate-700 border border-slate-200"
+                                }`}
+                              >
+                                {item.role}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3.5">
+                              {editingWaitlistWalletId === item.id ? (
+                                <div className="flex items-center gap-1.5 min-w-[260px]">
+                                  <input
+                                    type="text"
+                                    value={waitlistWalletDraft}
+                                    onChange={(e) => setWaitlistWalletDraft(e.target.value)}
+                                    placeholder="0x... or ENS address"
+                                    className="w-full rounded-lg border border-[#1e4a3f] bg-white px-2.5 py-1 font-mono text-xs text-[#18211f] outline-none shadow-sm focus:ring-1 focus:ring-[#1e4a3f]"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter")
+                                        handleSaveWaitlistWallet(item.id, item.email);
+                                      if (e.key === "Escape") setEditingWaitlistWalletId(null);
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveWaitlistWallet(item.id, item.email)}
+                                    disabled={savingWaitlistWallet}
+                                    className="rounded-lg bg-[#1e4a3f] p-1.5 text-white hover:bg-[#123b31] transition disabled:opacity-50 shrink-0"
+                                    title="Save wallet"
+                                  >
+                                    <Check className="size-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingWaitlistWalletId(null)}
+                                    className="rounded-lg border border-[#ececec] bg-white p-1.5 text-[#6b716d] hover:bg-[#fafafa] transition shrink-0"
+                                    title="Cancel"
+                                  >
+                                    <X className="size-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-1.5">
+                                  <div className="flex items-center gap-2 group flex-wrap">
+                                    {item.walletAddress ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-mono text-xs text-[#18211f]">
+                                          {item.walletAddress.length > 18
+                                            ? `${item.walletAddress.slice(0, 8)}...${item.walletAddress.slice(-6)}`
+                                            : item.walletAddress}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(item.walletAddress!);
+                                            toast.success("Wallet address copied to clipboard");
+                                          }}
+                                          className="text-[#8a8f89] hover:text-[#18211f] transition p-1"
+                                          title="Copy wallet address"
+                                        >
+                                          <Copy className="size-3.5" />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-[#8a8f89] italic">
+                                        None provided
+                                      </span>
+                                    )}
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        navigator.clipboard.writeText(item.walletAddress!);
-                                        toast.success("Wallet address copied to clipboard");
+                                        setEditingWaitlistWalletId(item.id);
+                                        setWaitlistWalletDraft(item.walletAddress || "");
                                       }}
-                                      className="text-[#8a8f89] hover:text-[#18211f] transition p-1"
-                                      title="Copy wallet address"
+                                      className="inline-flex items-center gap-1 text-[11px] font-medium text-[#1e4a3f] hover:text-[#123b31] bg-[#f4f7f5] hover:bg-[#e7eee9] px-2 py-0.5 rounded-md transition"
+                                      title="Edit and save wallet address"
                                     >
-                                      <Copy className="size-3.5" />
+                                      <Pencil className="size-3" />
+                                      <span>Edit</span>
                                     </button>
                                   </div>
-                                ) : (
-                                  <span className="text-xs text-[#8a8f89] italic">
-                                    None provided
-                                  </span>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingWaitlistWalletId(item.id);
-                                    setWaitlistWalletDraft(item.walletAddress || "");
-                                  }}
-                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-[#1e4a3f] hover:text-[#123b31] bg-[#f4f7f5] hover:bg-[#e7eee9] px-2 py-0.5 rounded-md transition"
-                                  title="Edit and save wallet address"
-                                >
-                                  <Pencil className="size-3" />
-                                  <span>Edit</span>
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-5 py-3.5 text-xs text-[#6b716d]">
-                            {format(new Date(item.createdAt), "dd MMM yyyy, HH:mm")}
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <select
-                              value={item.status}
-                              onChange={async (e) => {
-                                const nextStatus = e.target.value;
-                                const ok = await updateWeb3WaitlistStatus(item.id, nextStatus);
-                                if (ok) {
-                                  setWaitlistEntries((prev) =>
-                                    prev.map((w) =>
-                                      w.id === item.id ? { ...w, status: nextStatus } : w,
-                                    ),
-                                  );
-                                  toast.success(`Status updated to ${nextStatus}`);
-                                } else {
-                                  toast.error("Failed to update status");
-                                }
-                              }}
-                              className={`border rounded-lg px-2.5 py-1 text-xs font-medium outline-none ${
-                                item.status === "approved"
-                                  ? "border-green-200 bg-green-50 text-green-800"
-                                  : item.status === "invited"
-                                    ? "border-blue-200 bg-blue-50 text-blue-800"
-                                    : "border-amber-200 bg-amber-50 text-amber-800"
-                              }`}
-                            >
-                              <option value="pending">Pending</option>
-                              <option value="approved">Approved</option>
-                              <option value="invited">Invited</option>
-                            </select>
-                          </td>
-                          <td className="px-5 py-3.5 text-right">
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                if (confirm(`Remove ${item.email} from the waitlist?`)) {
-                                  const ok = await deleteWeb3WaitlistEntry(item.id);
+
+                                  {/* Multi-chain badges and drawer trigger */}
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {hasVault ? (
+                                      <>
+                                        {vaultAddresses.evm && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                            EVM
+                                          </span>
+                                        )}
+                                        {vaultAddresses.solana && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                            SOL
+                                          </span>
+                                        )}
+                                        {vaultAddresses.btc && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                            BTC
+                                          </span>
+                                        )}
+                                        {vaultAddresses.tron && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                            TRON
+                                          </span>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setSelectedWaitlistVault({
+                                              subscriberName: item.name || "Subscriber",
+                                              email: item.email,
+                                              role: item.role,
+                                              walletAddress: item.walletAddress,
+                                              profileId: matchingUser?.id,
+                                              vault: userVault,
+                                            })
+                                          }
+                                          className="text-[10px] font-semibold text-[#1e4a3f] hover:underline underline-offset-2 ml-0.5 cursor-pointer"
+                                        >
+                                          View All Chains →
+                                        </button>
+                                      </>
+                                    ) : matchingUser ? (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setSelectedWaitlistVault({
+                                            subscriberName: item.name || "Subscriber",
+                                            email: item.email,
+                                            role: item.role,
+                                            walletAddress: item.walletAddress,
+                                            profileId: matchingUser.id,
+                                            vault: null,
+                                          })
+                                        }
+                                        className="text-[10px] font-medium text-[#1e4a3f] hover:underline underline-offset-2 cursor-pointer"
+                                      >
+                                        + Setup Multi-Chain Vault
+                                      </button>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-5 py-3.5 text-xs text-[#6b716d]">
+                              {format(new Date(item.createdAt), "dd MMM yyyy, HH:mm")}
+                            </td>
+                            <td className="px-5 py-3.5">
+                              <select
+                                value={item.status}
+                                onChange={async (e) => {
+                                  const nextStatus = e.target.value;
+                                  const ok = await updateWeb3WaitlistStatus(item.id, nextStatus);
                                   if (ok) {
                                     setWaitlistEntries((prev) =>
-                                      prev.filter((w) => w.id !== item.id),
+                                      prev.map((w) =>
+                                        w.id === item.id ? { ...w, status: nextStatus } : w,
+                                      ),
                                     );
-                                    toast.success("Subscriber removed from waitlist");
+                                    toast.success(`Status updated to ${nextStatus}`);
                                   } else {
-                                    toast.error("Failed to remove subscriber");
+                                    toast.error("Failed to update status");
                                   }
-                                }
-                              }}
-                              className="text-[#8a8f89] hover:text-[#d4183d] transition p-1.5"
-                              title="Delete entry"
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                                }}
+                                className={`border rounded-lg px-2.5 py-1 text-xs font-medium outline-none ${
+                                  item.status === "approved"
+                                    ? "border-green-200 bg-green-50 text-green-800"
+                                    : item.status === "invited"
+                                      ? "border-blue-200 bg-blue-50 text-blue-800"
+                                      : "border-amber-200 bg-amber-50 text-amber-800"
+                                }`}
+                              >
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="invited">Invited</option>
+                              </select>
+                            </td>
+                            <td className="px-5 py-3.5 text-right">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (confirm(`Remove ${item.email} from the waitlist?`)) {
+                                    const ok = await deleteWeb3WaitlistEntry(item.id);
+                                    if (ok) {
+                                      setWaitlistEntries((prev) =>
+                                        prev.filter((w) => w.id !== item.id),
+                                      );
+                                      toast.success("Subscriber removed from waitlist");
+                                    } else {
+                                      toast.error("Failed to remove subscriber");
+                                    }
+                                  }
+                                }}
+                                className="text-[#8a8f89] hover:text-[#d4183d] transition p-1.5"
+                                title="Delete entry"
+                              >
+                                <Trash2 className="size-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -4687,6 +4862,270 @@ export function Admin() {
           )}
         </div>
       </div>
+      {selectedWaitlistVault && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="relative w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl border border-[#ececec]">
+            <div className="flex items-center justify-between border-b border-[#ececec] pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="grid size-9 place-items-center rounded-xl bg-[#1e4a3f] text-white">
+                  <Wallet className="size-4" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg font-semibold text-[#18211f]">
+                    Multi-Chain Settlement Vault
+                  </h3>
+                  <p className="text-xs text-[#6b716d]">
+                    {selectedWaitlistVault.subscriberName} ·{" "}
+                    <span className="font-mono">{selectedWaitlistVault.email}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedWaitlistVault(null);
+                  setShowWaitlistRecoveryPhrase(false);
+                }}
+                className="rounded-lg p-1.5 text-[#8a8f89] hover:bg-[#f7f7f7] hover:text-[#18211f] transition cursor-pointer"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+              {/* Status banner */}
+              <div className="flex items-center justify-between rounded-xl bg-[#FAF9F5] border border-[#ececec] p-3.5">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="size-4 text-[#1e4a3f]" />
+                  <span className="text-xs font-semibold text-[#18211f]">Vault Status</span>
+                </div>
+                {selectedWaitlistVault.vault?.isUserConnected ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
+                    <Link2 className="size-3" />
+                    User Connected Wallet
+                  </span>
+                ) : selectedWaitlistVault.vault?.addresses ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200">
+                    <Check className="size-3" />
+                    Active Multi-Chain Vault
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 border border-gray-200">
+                    Custom Single Address Only
+                  </span>
+                )}
+              </div>
+
+              {/* Chain Addresses */}
+              {selectedWaitlistVault.vault?.addresses ? (
+                <div className="space-y-3">
+                  {/* EVM */}
+                  <div className="rounded-xl border border-[#ececec] bg-white p-3.5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="size-2 rounded-full bg-blue-500" />
+                        <span className="text-xs font-semibold text-[#18211f]">
+                          Ethereum / Base / Polygon / Arbitrum
+                        </span>
+                        <span className="text-[10px] font-mono text-[#8a8f89]">EVM (ERC-20)</span>
+                      </div>
+                      {selectedWaitlistVault.vault.addresses.evm && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              selectedWaitlistVault.vault.addresses.evm,
+                            );
+                            toast.success("EVM address copied to clipboard");
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-[#1e4a3f] hover:underline cursor-pointer"
+                        >
+                          <Copy className="size-3" /> Copy
+                        </button>
+                      )}
+                    </div>
+                    <p className="font-mono text-xs text-[#18211f] break-all select-all bg-[#f9fafb] p-2 rounded-lg border border-[#f0f0f0]">
+                      {selectedWaitlistVault.vault.addresses.evm || "None"}
+                    </p>
+                  </div>
+
+                  {/* Solana */}
+                  <div className="rounded-xl border border-[#ececec] bg-white p-3.5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="size-2 rounded-full bg-purple-500" />
+                        <span className="text-xs font-semibold text-[#18211f]">Solana</span>
+                        <span className="text-[10px] font-mono text-[#8a8f89]">SOL / SPL</span>
+                      </div>
+                      {selectedWaitlistVault.vault.addresses.solana && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              selectedWaitlistVault.vault.addresses.solana,
+                            );
+                            toast.success("Solana address copied to clipboard");
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-[#1e4a3f] hover:underline cursor-pointer"
+                        >
+                          <Copy className="size-3" /> Copy
+                        </button>
+                      )}
+                    </div>
+                    <p className="font-mono text-xs text-[#18211f] break-all select-all bg-[#f9fafb] p-2 rounded-lg border border-[#f0f0f0]">
+                      {selectedWaitlistVault.vault.addresses.solana || "None"}
+                    </p>
+                  </div>
+
+                  {/* Bitcoin */}
+                  <div className="rounded-xl border border-[#ececec] bg-white p-3.5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="size-2 rounded-full bg-amber-500" />
+                        <span className="text-xs font-semibold text-[#18211f]">Bitcoin</span>
+                        <span className="text-[10px] font-mono text-[#8a8f89]">
+                          Native SegWit (BTC)
+                        </span>
+                      </div>
+                      {selectedWaitlistVault.vault.addresses.btc && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              selectedWaitlistVault.vault.addresses.btc,
+                            );
+                            toast.success("Bitcoin address copied to clipboard");
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-[#1e4a3f] hover:underline cursor-pointer"
+                        >
+                          <Copy className="size-3" /> Copy
+                        </button>
+                      )}
+                    </div>
+                    <p className="font-mono text-xs text-[#18211f] break-all select-all bg-[#f9fafb] p-2 rounded-lg border border-[#f0f0f0]">
+                      {selectedWaitlistVault.vault.addresses.btc || "None"}
+                    </p>
+                  </div>
+
+                  {/* TRON */}
+                  <div className="rounded-xl border border-[#ececec] bg-white p-3.5">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="size-2 rounded-full bg-rose-500" />
+                        <span className="text-xs font-semibold text-[#18211f]">TRON</span>
+                        <span className="text-[10px] font-mono text-[#8a8f89]">TRC-20 (USDT)</span>
+                      </div>
+                      {selectedWaitlistVault.vault.addresses.tron && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              selectedWaitlistVault.vault.addresses.tron,
+                            );
+                            toast.success("TRON address copied to clipboard");
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-[#1e4a3f] hover:underline cursor-pointer"
+                        >
+                          <Copy className="size-3" /> Copy
+                        </button>
+                      )}
+                    </div>
+                    <p className="font-mono text-xs text-[#18211f] break-all select-all bg-[#f9fafb] p-2 rounded-lg border border-[#f0f0f0]">
+                      {selectedWaitlistVault.vault.addresses.tron || "None"}
+                    </p>
+                  </div>
+                </div>
+              ) : selectedWaitlistVault.walletAddress ? (
+                <div className="rounded-xl border border-[#ececec] bg-white p-4">
+                  <span className="text-xs font-medium text-[#6b716d]">
+                    Standalone Wallet Address
+                  </span>
+                  <div className="mt-1 flex items-center justify-between bg-[#f9fafb] p-2.5 rounded-lg border border-[#f0f0f0]">
+                    <span className="font-mono text-xs text-[#18211f] break-all select-all">
+                      {selectedWaitlistVault.walletAddress}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedWaitlistVault.walletAddress!);
+                        toast.success("Address copied");
+                      }}
+                      className="text-[#8a8f89] hover:text-[#18211f] p-1 shrink-0 ml-2 cursor-pointer"
+                    >
+                      <Copy className="size-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-[#ececec] p-6 text-center">
+                  <Wallet className="size-8 text-[#8a8f89] mx-auto mb-2 opacity-50" />
+                  <p className="text-xs font-medium text-[#18211f]">No Web3 Vault configured yet</p>
+                  <p className="text-[11px] text-[#6b716d] mt-1">
+                    This subscriber has not attached or generated a multi-chain settlement vault.
+                  </p>
+                </div>
+              )}
+
+              {/* Recovery phrase if available */}
+              {selectedWaitlistVault.vault?.recoveryPhrase && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 text-xs text-amber-900">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold flex items-center gap-1.5">
+                      <Key className="size-3.5 text-amber-700" />
+                      12-Word Master Recovery Phrase
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowWaitlistRecoveryPhrase((v) => !v)}
+                      className="text-[11px] font-semibold text-amber-800 hover:underline cursor-pointer"
+                    >
+                      {showWaitlistRecoveryPhrase ? "Hide" : "Reveal"}
+                    </button>
+                  </div>
+                  {showWaitlistRecoveryPhrase && (
+                    <div className="mt-2 rounded-lg bg-white p-2.5 font-mono text-xs border border-amber-200 break-words select-all text-slate-900">
+                      {selectedWaitlistVault.vault.recoveryPhrase}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Generate button if no vault exists and profileId is present */}
+              {(!selectedWaitlistVault.vault || !selectedWaitlistVault.vault.addresses) &&
+                selectedWaitlistVault.profileId && (
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      disabled={generatingWaitlistVault}
+                      onClick={handleAdminGenerateVaultForWaitlist}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#1e4a3f] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#123b31] transition cursor-pointer disabled:opacity-50"
+                    >
+                      <Key className="size-4" />
+                      <span>
+                        {generatingWaitlistVault
+                          ? "Generating Multi-Chain Vault..."
+                          : "Generate 12-Word Multi-Chain Web3 Vault"}
+                      </span>
+                    </button>
+                  </div>
+                )}
+            </div>
+
+            <div className="mt-6 flex justify-end border-t border-[#ececec] pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedWaitlistVault(null);
+                  setShowWaitlistRecoveryPhrase(false);
+                }}
+                className="rounded-xl border border-[#ececec] bg-white px-4 py-2 text-xs font-medium text-[#18211f] hover:bg-[#f7f7f7] transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {selectedUser && (
         <AdminUserModal
           key={selectedUser.id}

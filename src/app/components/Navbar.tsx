@@ -438,7 +438,7 @@ export function Navbar() {
             />
           </form>
 
-          <nav className="ml-auto hidden items-center gap-4 text-sm lg:flex xl:gap-7">
+          <nav className="ml-auto hidden items-center gap-3.5 text-sm lg:flex xl:gap-5 min-[1400px]:gap-7">
             {links.map((l) => (
               <NavLink
                 key={l.to}

@@ -52,7 +52,7 @@ Common scale (measured from existing pages):
 - Page container: `mx-auto w-full max-w-[1440px] px-5 sm:px-8 lg:px-12`, vertical rhythm `py-12`–`py-24`.
 - Narrow reading content: `max-w-2xl` / `max-w-3xl`.
 - Account and admin: `bg-[#FAF9F5]` ground, `SideNav` on the left, content column with an `Eyebrow` + serif `h1`, panels inside `mt-8`.
-- Navbar and Footer render for every route except `/editions/*` and `/photo/:id` (see `RootLayout`). The Navbar has no plain "Editions" link: the `SpaceSwitch` sits right after the logo from `md` up (condensed from `lg` up to an icon plus "Editions"; the header search hides between `lg` and `xl` to make room), in a full-width row under the header on phones, and at the top of the phone menu. It only shows when the admin has the Editions marketplace switched on (always for admins). `/photo/:id` has no Navbar, so it puts the switch in its own top bar (after "Back to library" from `md` up, a full-width row above it on phones). Any new page that hides the Navbar needs the switch too.
+- Navbar and Footer render for every route except `/editions/*` and `/photo/:id` (see `RootLayout`). The Navbar has no plain "Editions" link: the `SpaceSwitch` sits right after the logo from `md` up (condensed from `lg` up: less padding and no Web3 tag; the header search hides between `lg` and `xl` to make room), in a full-width row under the header on phones, and at the top of the phone menu. It only shows when the admin has the Editions marketplace switched on (always for admins). `/photo/:id` has no Navbar, so it puts the switch in its own top bar (after "Back to library" from `md` up, a full-width row above it on phones). Any new page that hides the Navbar needs the switch too.
 
 ### Shape and depth
 
@@ -73,7 +73,7 @@ Common scale (measured from existing pages):
 | `Monogram`      | Logo mark + wordmark (`light` on dark backgrounds).                                                                                                                                                  |
 | `PartnerButton` | Marketing CTA with sliding green fill.                                                                                                                                                               |
 
-Other shared pieces: `SpaceSwitch` (Photography | Editions switch used by both sides; `tone` `light` / `dark` / `editions`, `size`, `fullWidth`, `condensed`; pass display classes through `className`), `Navbar`, `Footer`, `SideNav` (account/admin navigation with `items`, `active`, `onSelect`, optional `header`/`footer`), `PhotoCard`, `Dropdown`, `NotificationBell`, `CategoryNav`, `TopicRail`, `HeroSearch`. shadcn primitives live in `src/app/components/ui/` (dialog, sheet, tabs, select, tooltip, sonner…).
+Other shared pieces: `SpaceSwitch` (Photography | Editions switch used by both sides; text labels, no icons; the pill slides to the chosen side, then the page cross-fades; `tone` `light` / `dark` / `editions`, `size`, `fullWidth`, `condensed`; pass display classes through `className`), `Navbar`, `Footer`, `SideNav` (account/admin navigation with `items`, `active`, `onSelect`, optional `header`/`footer`), `PhotoCard`, `Dropdown`, `NotificationBell`, `CategoryNav`, `TopicRail`, `HeroSearch`. shadcn primitives live in `src/app/components/ui/` (dialog, sheet, tabs, select, tooltip, sonner…).
 
 ## Patterns
 

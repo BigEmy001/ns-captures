@@ -1,20 +1,23 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { Check, ExternalLink, Search } from "lucide-react";
+import { Check, Copy, ExternalLink, Search } from "lucide-react";
 import { Badge } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
+import { copyToClipboard } from "../../../lib/clipboard";
 import {
   approveEdition,
   ARTWORK_SOURCE_LABELS,
   editionReviewStatus,
   EDITION_REVIEW_LABELS,
   EDITIONS_CHANGED_EVENT,
+  getCollectedMintingFees,
   getDepositConfig,
   getStoredEditions,
   getStoredOwnerships,
   isEditionPublished,
   isEditionsPublic,
+  PLATFORM_TREASURY_WALLETS,
   rejectEdition,
   saveDepositConfig,
   saveStoredEditions,
@@ -44,7 +47,7 @@ const tableHead =
 const TABS: { id: PanelTab; label: string }[] = [
   { id: "review", label: "Review queue" },
   { id: "catalogue", label: "Catalogue" },
-  { id: "rules", label: "Deposit rules" },
+  { id: "rules", label: "Minting fees & rules" },
   { id: "certificates", label: "Certificates" },
 ];
 
@@ -195,6 +198,18 @@ export function EditionsPanel() {
   const [note, setNote] = useState("");
   const [catalogueSearch, setCatalogueSearch] = useState("");
   const [catalogueFilter, setCatalogueFilter] = useState<"all" | EditionReviewStatus>("all");
+  const [copiedWallet, setCopiedWallet] = useState<string | null>(null);
+
+  const mintingRevenue = getCollectedMintingFees();
+
+  const handleCopyWallet = async (addr: string, label: string) => {
+    const ok = await copyToClipboard(addr);
+    if (ok) {
+      setCopiedWallet(addr);
+      toast.success(`${label} copied`);
+      setTimeout(() => setCopiedWallet(null), 2000);
+    }
+  };
 
   // Stay in step with creators submitting from their account in another tab
   useEffect(() => {
@@ -772,73 +787,222 @@ export function EditionsPanel() {
         </div>
       )}
 
-      {/* ================= Deposit rules ================= */}
+      {/* ================= Minting fees & rules ================= */}
       {activeTab === "rules" && (
-        <div className={`${card} max-w-3xl space-y-6`}>
-          <div>
-            <h3 className="font-serif text-lg text-[#18211f]">Creator deposit requirement</h3>
-            <p className="mt-1 text-sm text-[#6b716d]">
-              Creators need an active deposit in their Web3 vault before they can mint. It keeps the
-              gallery free of spam, and the funds stay in the creator's own wallet.
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between gap-4 rounded-xl bg-[#FAF9F5] p-4">
+        <div className="space-y-6">
+          {/* Section 1: Rules & Fee Configuration */}
+          <div className={`${card} max-w-3xl space-y-6`}>
             <div>
-              <p className="text-sm font-semibold text-[#18211f]">Require a vault deposit</p>
-              <p className="mt-0.5 text-xs text-[#6b716d]">
-                When off, any verified creator can mint without holding a balance.
+              <h3 className="font-serif text-lg text-[#18211f]">
+                Platform Minting Fees & Treasury Rules
+              </h3>
+              <p className="mt-1 text-sm text-[#6b716d]">
+                Creators pay an archival certification & platform minting fee before editions can be
+                minted or submitted for curatorial review. Collected fees are automatically
+                transferred into the NS CAPTURES Platform Treasury.
               </p>
             </div>
-            <Toggle
-              checked={depositConfig.enforceDepositGate}
-              onChange={() =>
-                setDepositConfig((prev) => ({
-                  ...prev,
-                  enforceDepositGate: !prev.enforceDepositGate,
-                }))
-              }
-              label="Require a vault deposit to mint"
-            />
-          </div>
 
-          <div>
-            <p className="text-sm font-semibold text-[#18211f]">Minimum balance</p>
-            <p className="mt-0.5 text-xs text-[#6b716d]">Holding any one of these is enough.</p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {DEPOSIT_FIELDS.map((field) => (
-                <label key={field.key} className="block">
-                  <span className={labelClass}>{field.label}</span>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min={0}
-                    step={field.step}
-                    value={depositConfig[field.key]}
-                    disabled={!depositConfig.enforceDepositGate}
-                    onChange={(e) =>
-                      setDepositConfig((prev) => ({
-                        ...prev,
-                        [field.key]: parseFloat(e.target.value) || 0,
-                      }))
-                    }
-                    className={`${fieldClass} font-mono`}
-                  />
-                  <span className="mt-1 block text-[11px] text-[#8a8f89]">{field.hint}</span>
-                </label>
-              ))}
+            <div className="flex items-center justify-between gap-4 rounded-xl bg-[#FAF9F5] p-4">
+              <div>
+                <p className="text-sm font-semibold text-[#18211f]">Require platform minting fee</p>
+                <p className="mt-0.5 text-xs text-[#6b716d]">
+                  When active, creators must hold enough balance in their Web3 vault to pay the fee
+                  upon certification.
+                </p>
+              </div>
+              <Toggle
+                checked={depositConfig.enforceDepositGate}
+                onChange={() =>
+                  setDepositConfig((prev) => ({
+                    ...prev,
+                    enforceDepositGate: !prev.enforceDepositGate,
+                  }))
+                }
+                label="Require a platform minting fee to mint"
+              />
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold text-[#18211f]">Fee per Cryptocurrency</p>
+              <p className="mt-0.5 text-xs text-[#6b716d]">
+                Creators can pay the minting fee with any one of these supported coins.
+              </p>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {DEPOSIT_FIELDS.map((field) => (
+                  <label key={field.key} className="block">
+                    <span className={labelClass}>{field.label}</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step={field.step}
+                      value={depositConfig[field.key]}
+                      disabled={!depositConfig.enforceDepositGate}
+                      onChange={(e) =>
+                        setDepositConfig((prev) => ({
+                          ...prev,
+                          [field.key]: parseFloat(e.target.value) || 0,
+                        }))
+                      }
+                      className={`${fieldClass} font-mono`}
+                    />
+                    <span className="mt-1 block text-[11px] text-[#8a8f89]">{field.hint}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end border-t border-[#ececec] pt-5">
+              <button
+                type="button"
+                onClick={handleSaveConfig}
+                disabled={savingConfig}
+                className={primaryButton}
+              >
+                {savingConfig ? "Saving…" : "Save rules & fees"}
+              </button>
             </div>
           </div>
 
-          <div className="flex justify-end border-t border-[#ececec] pt-5">
-            <button
-              type="button"
-              onClick={handleSaveConfig}
-              disabled={savingConfig}
-              className={primaryButton}
-            >
-              {savingConfig ? "Saving…" : "Save rules"}
-            </button>
+          {/* Section 2: Platform Treasury Receiving Wallets */}
+          <div className={`${card} max-w-3xl space-y-4`}>
+            <div>
+              <h3 className="font-serif text-lg text-[#18211f]">Platform Treasury Wallets</h3>
+              <p className="mt-1 text-sm text-[#6b716d]">
+                Official receiving addresses where creator minting fees are collected and stored.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                {
+                  label: "EVM Treasury (ETH, Base, Polygon, USDC)",
+                  network: "ERC20 / Base / Polygon",
+                  address: PLATFORM_TREASURY_WALLETS.evm,
+                },
+                {
+                  label: "TRON Treasury (USDT TRC20)",
+                  network: "TRC20",
+                  address: PLATFORM_TREASURY_WALLETS.usdtTrc20,
+                },
+                {
+                  label: "Bitcoin Treasury (Native SegWit)",
+                  network: "Native SegWit",
+                  address: PLATFORM_TREASURY_WALLETS.btc,
+                },
+                {
+                  label: "Solana Treasury (SPL)",
+                  network: "Solana",
+                  address: PLATFORM_TREASURY_WALLETS.sol,
+                },
+              ].map((tw) => {
+                const isCopied = copiedWallet === tw.address;
+                return (
+                  <div
+                    key={tw.label}
+                    className="flex flex-col justify-between rounded-xl border border-[#ececec] bg-[#FAF9F5] p-4"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[#18211f]">{tw.label}</span>
+                        <span className="rounded bg-[#1e4a3f]/10 px-2 py-0.5 font-mono text-[10px] font-medium text-[#1e4a3f]">
+                          {tw.network}
+                        </span>
+                      </div>
+                      <p className="mt-2 select-all break-all rounded border border-[#ececec] bg-white p-2 font-mono text-xs text-[#18211f]">
+                        {tw.address}
+                      </p>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyWallet(tw.address, tw.label)}
+                        className={`${outlineButton} h-8 px-3 text-xs`}
+                      >
+                        {isCopied ? (
+                          <Check className="size-3.5 text-[#1e4a3f]" />
+                        ) : (
+                          <Copy className="size-3.5" />
+                        )}
+                        {isCopied ? "Copied" : "Copy address"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 3: Treasury Revenue Summary & Audit Trail */}
+          <div className={`${card} max-w-3xl space-y-4`}>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif text-lg text-[#18211f]">Collected Minting Fee Revenue</h3>
+                <p className="mt-1 text-sm text-[#6b716d]">
+                  Audit log of all minting certification fees collected from creators.
+                </p>
+              </div>
+              <div className="rounded-xl border border-[#ececec] bg-[#FAF9F5] px-4 py-2 text-right">
+                <p className="font-mono text-[10px] tracking-[0.12em] text-[#758078] uppercase">
+                  Total Collected
+                </p>
+                <p className="font-serif text-lg font-medium text-[#18211f]">
+                  $
+                  {mintingRevenue.totalUsdEquivalent.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  USD
+                </p>
+                <p className="text-[11px] text-[#6b716d]">
+                  {mintingRevenue.totalCount} minting transaction
+                  {mintingRevenue.totalCount === 1 ? "" : "s"}
+                </p>
+              </div>
+            </div>
+
+            {mintingRevenue.activities.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#ececec] py-10 text-center text-sm text-[#6b716d]">
+                No minting fees recorded yet. Fees collected will appear here with cryptographic
+                transaction receipts.
+              </div>
+            ) : (
+              <div className={tableWrap}>
+                <table className="w-full min-w-[700px] text-left text-sm">
+                  <thead>
+                    <tr className={tableHead}>
+                      <th className="px-4 py-3">Timestamp</th>
+                      <th className="px-4 py-3">Creator</th>
+                      <th className="px-4 py-3">Amount</th>
+                      <th className="px-4 py-3">Treasury Recipient</th>
+                      <th className="px-4 py-3">Transaction ID</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#ececec]">
+                    {mintingRevenue.activities.map((act) => (
+                      <tr key={act.id} className="hover:bg-[#faf9f5]">
+                        <td className="px-4 py-3 text-xs text-[#6b716d]">
+                          {formatDate(act.timestamp)}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-[#18211f]">
+                          {act.fromUser || "Creator"}
+                        </td>
+                        <td className="px-4 py-3 font-mono font-semibold text-[#1e4a3f]">
+                          {act.price} {act.currency}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-[#6b716d]">
+                          {act.toUser || "NS CAPTURES Treasury"}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-[#8a8f89]">
+                          <span className="inline-block max-w-[140px] truncate">{act.txHash}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

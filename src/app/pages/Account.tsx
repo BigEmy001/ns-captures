@@ -196,7 +196,9 @@ export function Account() {
     : navItems.find((n) => !n.heading)?.id || "security";
 
   const normalizedRequestedTab =
-    requestedTab === "web3" || requestedTab === "vault" ? "vault" : requestedTab;
+    requestedTab === "web3" || requestedTab === "vault" || requestedTab === "settlement"
+      ? "vault"
+      : requestedTab;
 
   const active = (() => {
     if (!normalizedRequestedTab) return safeDefault;

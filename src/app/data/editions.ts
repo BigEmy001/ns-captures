@@ -5,6 +5,23 @@
  * ownership provenance, secondary reselling, and Web3 crypto deposit verification gating.
  */
 
+import {
+  fetchSupabaseEditions,
+  fetchSupabaseCollections,
+  fetchSupabaseOwnerships,
+  fetchSupabaseActivities,
+  insertSupabaseEdition,
+  insertSupabaseCollection,
+  insertSupabaseOwnership,
+  insertSupabaseActivity,
+  deleteSupabaseEdition,
+  deleteSupabaseCollection,
+  type SupabaseEditionRow,
+  type SupabaseCollectionRow,
+  type SupabaseOwnershipRow,
+  type SupabaseActivityRow,
+} from "./db";
+
 export type EditionTier = "genesis_1_of_1" | "limited_series" | "physical_twin";
 export type EditionStatus = "minted" | "listed" | "sold_out" | "archived";
 /** Where an edition sits in the creator → admin publication review. */
@@ -89,7 +106,7 @@ export interface EditionOwnership {
 export interface EditionActivity {
   id: string;
   editionId: string;
-  type: "minted" | "listed" | "purchased" | "transferred" | "royalty_paid";
+  type: "minted" | "listed" | "purchased" | "transferred" | "royalty_paid" | "mint_fee_paid";
   fromUser?: string;
   toUser?: string;
   price?: number;
@@ -97,6 +114,41 @@ export interface EditionActivity {
   timestamp: string;
   txHash: string;
   details?: string;
+}
+
+export interface MintFeePaymentInfo {
+  coin: string;
+  amount: number;
+  network?: string;
+  txHash: string;
+  treasuryAddress: string;
+  paidBy?: string;
+}
+
+/** Official NS CAPTURES platform treasury wallets receiving minting fees */
+export const PLATFORM_TREASURY_WALLETS = {
+  evm: "0xcD24721Afef7C969e0d8B8472e1e6c5292214fD8",
+  usdtTrc20: "TUMWvNB8sxztU3t3exumc2e3CkX2FkFsfm",
+  btc: "bc1qshkdt4xrmny58h67eka2qucqva7wznnq2pq86d",
+  sol: "5Ybv7n8Z9dK4uV8e1fQ9xW2s3b5T7g4h6k8m0n2p4r6s",
+};
+
+export function getTreasuryWalletForCoin(
+  coin: string,
+  network?: string,
+): { address: string; network: string } {
+  const c = (coin || "").toUpperCase();
+  const n = (network || "").toUpperCase();
+  if (c === "BTC" || n.includes("BITCOIN") || n.includes("SEGWIT")) {
+    return { address: PLATFORM_TREASURY_WALLETS.btc, network: "Bitcoin (Native SegWit)" };
+  }
+  if (n.includes("TRC") || (c === "USDT" && !n.includes("ERC"))) {
+    return { address: PLATFORM_TREASURY_WALLETS.usdtTrc20, network: "TRC20" };
+  }
+  if (c === "SOL" || n.includes("SOLANA")) {
+    return { address: PLATFORM_TREASURY_WALLETS.sol, network: "Solana" };
+  }
+  return { address: PLATFORM_TREASURY_WALLETS.evm, network: "ERC20 / Base" };
 }
 
 export interface DepositGateConfig {
@@ -159,44 +211,8 @@ export const INITIAL_EDITIONS: DigitalEdition[] = [
     featured: true,
     curatorNote:
       "Featured Genesis Master: Exquisite low-light isolation, unmatched analogue warmth.",
+    collectionId: "kyoto-nocturnes",
     collectionName: "Kyoto Nocturnes",
-  },
-  {
-    id: "edn-numbered-02",
-    tokenId: "NSC-EDN-2026-0014",
-    photoId: "p-sung-02",
-    title: "Monolith & Silence, Gangwon Mist",
-    description:
-      "Curated limited series of 15 archival digital editions. Captured at dawn in the remote mountain passes of Gangwon province.",
-    photographerId: "junghoon-sung-e85d599d",
-    photographerName: "Junghoon Sung",
-    photographerSlug: "junghoon-sung-e85d599d",
-    photographerAvatar:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
-    image:
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600&auto=format&fit=crop&q=85",
-    masterHash: "sha256-9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b",
-    tier: "limited_series",
-    totalEditions: 15,
-    availableEditions: 11,
-    priceGbp: 450,
-    priceUsd: 580,
-    priceEth: 0.18,
-    priceSol: 4.2,
-    royaltyPercent: 10,
-    hasPhysicalTwin: false,
-    camera: "Hasselblad X2D 100C",
-    lens: "XCD 55mm f/2.5 V",
-    iso: 64,
-    aperture: "f/8.0",
-    shutterSpeed: "1/60s",
-    location: "Gangwon-do, South Korea",
-    yearCreated: 2025,
-    mintedAt: "2026-02-18T09:15:00Z",
-    status: "listed",
-    featured: true,
-    curatorNote: "100-megapixel medium-format master capturing ethereal atmospheric transitions.",
-    collectionName: "Korean Peninsula Silences",
   },
   {
     id: "edn-numbered-03",
@@ -234,6 +250,7 @@ export const INITIAL_EDITIONS: DigitalEdition[] = [
     featured: false,
     curatorNote:
       "Rigorous formal composition highlighting post-war British modernist architecture.",
+    collectionId: "metropolitan-geometry",
     collectionName: "Metropolitan Geometry",
   },
   {
@@ -274,7 +291,166 @@ export const INITIAL_EDITIONS: DigitalEdition[] = [
     featured: true,
     curatorNote:
       "Remarkable sculptural minimalism created by natural shadow cast across centuries-old dunes.",
+    collectionId: "namibian-horizons",
     collectionName: "Namibian Horizons",
+  },
+  {
+    id: "edn-lex-02",
+    tokenId: "NSC-EDN-2026-0033",
+    photoId: "amsterdam-canal-twilight",
+    title: "Herengracht at Blue Hour",
+    description:
+      "Curated series of 25 archival editions capturing calm reflections and golden lamp light along Amsterdam's historic canal ring.",
+    photographerId: "lexmond-dennis",
+    photographerName: "Lexmond Dennis",
+    photographerSlug: "lexmond-dennis",
+    photographerAvatar:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    image:
+      "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=1600&auto=format&fit=crop&q=85",
+    masterHash: "sha256-223344556677889900aabbccddeeff11223344556677889900aabbccddeeff11",
+    tier: "limited_series",
+    totalEditions: 25,
+    availableEditions: 21,
+    priceGbp: 340,
+    priceUsd: 435,
+    priceEth: 0.14,
+    priceSol: 3.1,
+    royaltyPercent: 10,
+    hasPhysicalTwin: false,
+    camera: "Sony A7R V",
+    lens: "FE 16-35mm f/2.8 GM II",
+    iso: 100,
+    aperture: "f/8.0",
+    shutterSpeed: "15s",
+    location: "Amsterdam, Netherlands",
+    yearCreated: 2025,
+    mintedAt: "2026-02-14T19:20:00Z",
+    status: "listed",
+    featured: true,
+    curatorNote: "Atmospheric long-exposure capturing water glassiness and Golden Age façades.",
+    collectionId: "amsterdam-canals",
+    collectionName: "Amsterdam Canals & Lowland Horizons",
+  },
+  {
+    id: "edn-elena-01",
+    tokenId: "NSC-GEN-2026-0019",
+    photoId: "milano-duomo-light",
+    title: "Milano Study No. 3, Duomo Marble and Dawn",
+    description:
+      "Unique 1-of-1 Genesis fine-art digital master capturing morning sunlight illuminating Gothic spires and pink Candoglia marble.",
+    photographerId: "elena-rossi",
+    photographerName: "Elena Rossi",
+    photographerSlug: "elena-rossi",
+    photographerAvatar:
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
+    image:
+      "https://images.unsplash.com/photo-1513584684374-8bab748fbf90?w=1600&auto=format&fit=crop&q=85",
+    masterHash: "sha256-3344556677889900aabbccddeeff11223344556677889900aabbccddeeff22",
+    tier: "genesis_1_of_1",
+    totalEditions: 1,
+    availableEditions: 1,
+    priceGbp: 1750,
+    priceUsd: 2240,
+    priceEth: 0.7,
+    priceSol: 15.6,
+    royaltyPercent: 10,
+    hasPhysicalTwin: true,
+    physicalPrintDetails: "Includes 24x36” Hahnemühle Museum Etching print signed by Elena Rossi.",
+    camera: "Canon EOS R5",
+    lens: "RF 24-70mm f/2.8L IS USM",
+    iso: 100,
+    aperture: "f/5.6",
+    shutterSpeed: "1/160s",
+    location: "Milan, Italy",
+    yearCreated: 2025,
+    mintedAt: "2026-02-24T07:15:00Z",
+    status: "listed",
+    featured: true,
+    curatorNote:
+      "Genesis Master: Luminous natural dawn illumination across Candoglia marble spires.",
+    collectionId: "milano-form",
+    collectionName: "Milano Form & Shadow",
+  },
+  {
+    id: "edn-patrick-02",
+    tokenId: "NSC-EDN-2026-0061",
+    photoId: "am-downtown-skyline-a-1",
+    title: "AM Downtown Skyline & Cloud Elevation",
+    description:
+      "Archival limited series of 20 editions capturing cool dawn geometry and low stratocumulus banks sweeping through downtown towers.",
+    photographerId: "patrick-watson-quine",
+    photographerName: "Patrick Watson-Quine",
+    photographerSlug: "patrick-watson-quine",
+    photographerAvatar:
+      "https://res.cloudinary.com/odu5iecy/image/upload/v1784203446/ns-captures/AM%20Downtown%20Closeup%20C-1.jpg",
+    image:
+      "https://res.cloudinary.com/odu5iecy/image/upload/v1784203467/ns-captures/AM%20Downtown%20Skyline%20A-1.jpg",
+    masterHash: "sha256-5566778899aabbccddeeff00112233445566778899aabbccddeeff0011223344",
+    tier: "limited_series",
+    totalEditions: 20,
+    availableEditions: 17,
+    priceGbp: 390,
+    priceUsd: 500,
+    priceEth: 0.16,
+    priceSol: 3.6,
+    royaltyPercent: 10,
+    hasPhysicalTwin: false,
+    camera: "Leica M11",
+    lens: "28mm f/2 Summicron-M ASPH",
+    iso: 160,
+    aperture: "f/4.0",
+    shutterSpeed: "1/500s",
+    location: "Montreal, Canada",
+    yearCreated: 2025,
+    mintedAt: "2026-03-06T09:00:00Z",
+    status: "listed",
+    featured: false,
+    curatorNote:
+      "Cool architectural gradation balancing glass curtain walls and northern cloud cover.",
+    collectionId: "metropolitan-geometry",
+    collectionName: "Metropolitan Geometry",
+  },
+  {
+    id: "edn-patrick-03",
+    tokenId: "NSC-GEN-2026-0021",
+    photoId: "am-rooftop-b-1",
+    title: "AM Rooftop Silhouette at Dawn",
+    description:
+      "Unique 1-of-1 Genesis edition studying architectural solitude from an elevated rooftop vantage before city transit awakens.",
+    photographerId: "patrick-watson-quine",
+    photographerName: "Patrick Watson-Quine",
+    photographerSlug: "patrick-watson-quine",
+    photographerAvatar:
+      "https://res.cloudinary.com/odu5iecy/image/upload/v1784203446/ns-captures/AM%20Downtown%20Closeup%20C-1.jpg",
+    image:
+      "https://res.cloudinary.com/odu5iecy/image/upload/v1784203532/ns-captures/AM%20Rooftop%20B-1.jpg",
+    masterHash: "sha256-66778899aabbccddeeff00112233445566778899aabbccddeeff001122334455",
+    tier: "genesis_1_of_1",
+    totalEditions: 1,
+    availableEditions: 1,
+    priceGbp: 1950,
+    priceUsd: 2500,
+    priceEth: 0.78,
+    priceSol: 17.5,
+    royaltyPercent: 10,
+    hasPhysicalTwin: true,
+    physicalPrintDetails:
+      "Includes custom framed 24x36” metallic pearl archival print with artist certificate.",
+    camera: "Leica M11",
+    lens: "35mm f/1.4 Summilux-M ASPH",
+    iso: 200,
+    aperture: "f/2.8",
+    shutterSpeed: "1/320s",
+    location: "Montreal, Canada",
+    yearCreated: 2026,
+    mintedAt: "2026-03-07T08:30:00Z",
+    status: "listed",
+    featured: true,
+    curatorNote:
+      "Genesis Master: Intimate aerial solitude over sprawling North American urban grid.",
+    collectionId: "metropolitan-geometry",
+    collectionName: "Metropolitan Geometry",
   },
 ];
 
@@ -282,36 +458,6 @@ export const INITIAL_EDITIONS: DigitalEdition[] = [
 export const INITIAL_OWNERSHIPS: EditionOwnership[] = [
   {
     id: "own-001",
-    editionId: "edn-numbered-02",
-    serialNumber: 1,
-    serialDisplay: "#01 / 15",
-    ownerId: "collector-marcus",
-    ownerName: "Marcus Vance",
-    ownerEmail: "marcus.vance@vanceart.co.uk",
-    ownerWalletAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD78",
-    acquiredAt: "2026-02-19T10:14:00Z",
-    purchasePriceGbp: 450,
-    purchaseCurrency: "GBP",
-    certificateNumber: "COA-NSC-2026-0014-01",
-    isListedForResale: false,
-  },
-  {
-    id: "own-002",
-    editionId: "edn-numbered-02",
-    serialNumber: 2,
-    serialDisplay: "#02 / 15",
-    ownerId: "collector-elena",
-    ownerName: "Elena Rostova",
-    ownerEmail: "elena@rostovagallery.ch",
-    ownerWalletAddress: "0x5fe17c1dEb702ba15B88E8d04F0CaD7a64B803a7",
-    acquiredAt: "2026-02-21T16:22:00Z",
-    purchasePriceGbp: 450,
-    purchaseCurrency: "ETH",
-    certificateNumber: "COA-NSC-2026-0014-02",
-    isListedForResale: false,
-  },
-  {
-    id: "own-003",
     editionId: "edn-numbered-03",
     serialNumber: 1,
     serialDisplay: "#01 / 25",
@@ -323,6 +469,36 @@ export const INITIAL_OWNERSHIPS: EditionOwnership[] = [
     purchasePriceGbp: 280,
     purchaseCurrency: "USDT",
     certificateNumber: "COA-NSC-2026-0029-01",
+    isListedForResale: false,
+  },
+  {
+    id: "own-002",
+    editionId: "edn-patrick-02",
+    serialNumber: 1,
+    serialDisplay: "#01 / 20",
+    ownerId: "collector-marcus",
+    ownerName: "Marcus Vance",
+    ownerEmail: "marcus.vance@vanceart.co.uk",
+    ownerWalletAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD78",
+    acquiredAt: "2026-03-06T11:45:00Z",
+    purchasePriceGbp: 390,
+    purchaseCurrency: "GBP",
+    certificateNumber: "COA-NSC-2026-0061-01",
+    isListedForResale: false,
+  },
+  {
+    id: "own-003",
+    editionId: "edn-lex-02",
+    serialNumber: 1,
+    serialDisplay: "#01 / 25",
+    ownerId: "collector-sophia",
+    ownerName: "Sophia Laurent",
+    ownerEmail: "sophia@laurentfineart.fr",
+    ownerWalletAddress: "0x3F2b810D7a1884C9B417eE6997B24d623b092A19",
+    acquiredAt: "2026-02-16T14:30:00Z",
+    purchasePriceGbp: 340,
+    purchaseCurrency: "ETH",
+    certificateNumber: "COA-NSC-2026-0033-01",
     isListedForResale: false,
   },
 ];
@@ -340,26 +516,36 @@ export const INITIAL_ACTIVITY: EditionActivity[] = [
   },
   {
     id: "act-02",
-    editionId: "edn-numbered-02",
+    editionId: "edn-patrick-02",
     type: "purchased",
-    fromUser: "Junghoon Sung",
+    fromUser: "Patrick Watson-Quine",
     toUser: "Marcus Vance",
-    price: 450,
+    price: 390,
     currency: "GBP",
-    timestamp: "2026-02-19T10:14:00Z",
-    txHash: "0x4b78c912ef65a0b94389cdef128938aa",
-    details: "Acquired Edition #01 / 15. Certificate of Authenticity COA-NSC-2026-0014-01 issued.",
+    timestamp: "2026-03-06T11:45:00Z",
+    txHash: "0x55aa66bb77cc88dd99ee00ff11aa22bb",
+    details: "Acquired Edition #01 / 20. Authenticity certificate COA-NSC-2026-0061-01 issued.",
   },
   {
     id: "act-03",
-    editionId: "edn-numbered-02",
-    type: "royalty_paid",
-    toUser: "Junghoon Sung",
-    price: 45,
-    currency: "GBP",
-    timestamp: "2026-02-19T10:14:00Z",
-    txHash: "0x2e8f1920acb91048e9a2b049d819c901",
-    details: "10% primary creator cut disbursed to creator earnings.",
+    editionId: "edn-lex-02",
+    type: "purchased",
+    fromUser: "Lexmond Dennis",
+    toUser: "Sophia Laurent",
+    price: 340,
+    currency: "ETH",
+    timestamp: "2026-02-16T14:30:00Z",
+    txHash: "0x66bb77cc88dd99ee00ff11aa22bb33cc",
+    details: "Acquired Edition #01 / 25. Authenticity certificate COA-NSC-2026-0033-01 issued.",
+  },
+  {
+    id: "act-04",
+    editionId: "edn-elena-01",
+    type: "minted",
+    fromUser: "Elena Rossi",
+    timestamp: "2026-02-24T07:15:00Z",
+    txHash: "0x77cc88dd99ee00ff11aa22bb33cc44dd",
+    details: "Genesis 1-of-1 master 'Milano Study No. 3' certified with physical print twin.",
   },
 ];
 
@@ -386,7 +572,7 @@ function safeGetItem(key: string): string | null {
     ) {
       return localStorage.getItem(key);
     }
-  } catch (_e) {
+  } catch {
     // ignore
   }
   return memoryStore[key] || null;
@@ -402,11 +588,270 @@ function safeSetItem(key: string, val: string): void {
       localStorage.setItem(key, val);
       return;
     }
-  } catch (_e) {
+  } catch {
     // ignore
   }
   memoryStore[key] = val;
 }
+
+// ============================================================
+// PURGE / SCRUB HELPER FOR NON-NIGERIAN FINE-ART PLATFORM
+// ============================================================
+
+export function isNigerianEdition(e: DigitalEdition): boolean {
+  const loc = (e.location || "").toLowerCase();
+  const title = (e.title || "").toLowerCase();
+  const name = (e.photographerName || "").toLowerCase();
+  const id = (e.id || "").toLowerCase();
+  const collId = (e.collectionId || "").toLowerCase();
+  return (
+    loc.includes("nigeria") ||
+    loc.includes("lagos") ||
+    title.includes("lagos") ||
+    title.includes("nigeria") ||
+    name.includes("james adebayo") ||
+    name.includes("prince kalu") ||
+    name.includes("adebayo") ||
+    name.includes("akachi") ||
+    name.includes("namnso") ||
+    name.includes("godfred") ||
+    id === "edn-james-01" ||
+    id === "edn-james-02" ||
+    id === "edn-prince-01" ||
+    id === "edn-prince-02" ||
+    id === "edn-godfred-01" ||
+    id === "lagos-meridian" ||
+    id === "edn-numbered-02" ||
+    collId === "korean-peninsula-silences"
+  );
+}
+
+export function isNigerianCollection(c: EditionCollectionMeta): boolean {
+  const id = (c.id || "").toLowerCase();
+  const name = (c.name || "").toLowerCase();
+  const desc = (c.description || "").toLowerCase();
+  return (
+    id.includes("lagos") ||
+    id.includes("nigeria") ||
+    id === "lagos-meridian" ||
+    id === "ceremony-and-ochre" ||
+    id === "accra-radiance" ||
+    id === "korean-peninsula-silences" ||
+    name.includes("lagos") ||
+    name.includes("nigeria") ||
+    name.includes("korean peninsula silences") ||
+    desc.includes("nigeria") ||
+    desc.includes("lagos")
+  );
+}
+
+// ============================================================
+// SUPABASE ROW TRANSFORMERS
+// ============================================================
+
+export function editionToSupabaseRow(e: DigitalEdition): SupabaseEditionRow {
+  return {
+    id: e.id,
+    token_id: e.tokenId,
+    photo_id: e.photoId || null,
+    title: e.title,
+    description: e.description || null,
+    photographer_id: e.photographerId,
+    photographer_name: e.photographerName,
+    photographer_slug: e.photographerSlug || null,
+    photographer_avatar: e.photographerAvatar || null,
+    image: e.image,
+    master_hash: e.masterHash,
+    tier: e.tier,
+    total_editions: e.totalEditions,
+    available_editions: e.availableEditions,
+    price_gbp: e.priceGbp,
+    price_usd: e.priceUsd,
+    price_eth: e.priceEth,
+    price_sol: e.priceSol,
+    royalty_percent: e.royaltyPercent,
+    has_physical_twin: e.hasPhysicalTwin,
+    physical_print_details: e.physicalPrintDetails || null,
+    camera: e.camera || null,
+    lens: e.lens || null,
+    iso: e.iso ?? null,
+    aperture: e.aperture || null,
+    shutter_speed: e.shutterSpeed || null,
+    location: e.location || null,
+    year_created: e.yearCreated ?? null,
+    minted_at: e.mintedAt,
+    status: e.status,
+    featured: e.featured ?? false,
+    curator_note: e.curatorNote || null,
+    collection_id: e.collectionId || null,
+    collection_name: e.collectionName || null,
+    artwork_source: e.artworkSource || null,
+    sales_paused: e.salesPaused ?? false,
+    created_by: e.createdBy || null,
+    review_status: e.reviewStatus || null,
+    review_note: e.reviewNote || null,
+    submitted_at: e.submittedAt || null,
+    reviewed_at: e.reviewedAt || null,
+    reviewed_by: e.reviewedBy || null,
+  };
+}
+
+export function supabaseRowToEdition(r: SupabaseEditionRow): DigitalEdition {
+  return {
+    id: r.id,
+    tokenId: r.token_id,
+    photoId: r.photo_id || "",
+    title: r.title,
+    description: r.description || "",
+    photographerId: r.photographer_id,
+    photographerName: r.photographer_name,
+    photographerSlug: r.photographer_slug || undefined,
+    photographerAvatar: r.photographer_avatar || undefined,
+    image: r.image,
+    masterHash: r.master_hash,
+    tier: (r.tier as EditionTier) || "limited_series",
+    totalEditions: r.total_editions,
+    availableEditions: r.available_editions,
+    priceGbp: Number(r.price_gbp),
+    priceUsd: Number(r.price_usd),
+    priceEth: Number(r.price_eth),
+    priceSol: Number(r.price_sol),
+    royaltyPercent: Number(r.royalty_percent),
+    hasPhysicalTwin: r.has_physical_twin,
+    physicalPrintDetails: r.physical_print_details || undefined,
+    camera: r.camera || "",
+    lens: r.lens || "",
+    iso: r.iso ?? 0,
+    aperture: r.aperture || undefined,
+    shutterSpeed: r.shutter_speed || undefined,
+    location: r.location || undefined,
+    yearCreated: r.year_created || 2026,
+    mintedAt: r.minted_at,
+    status: (r.status as EditionStatus) || "listed",
+    featured: r.featured || false,
+    curatorNote: r.curator_note || undefined,
+    collectionId: r.collection_id || undefined,
+    collectionName: r.collection_name || undefined,
+    artworkSource: (r.artwork_source as ArtworkSource) || undefined,
+    salesPaused: r.sales_paused || false,
+    createdBy: r.created_by || undefined,
+    reviewStatus: (r.review_status as EditionReviewStatus) || undefined,
+    reviewNote: r.review_note || undefined,
+    submittedAt: r.submitted_at || undefined,
+    reviewedAt: r.reviewed_at || undefined,
+    reviewedBy: r.reviewed_by || undefined,
+  };
+}
+
+export function collectionToSupabaseRow(c: EditionCollectionMeta): SupabaseCollectionRow {
+  return {
+    id: c.id,
+    name: c.name,
+    description: c.description || null,
+    curator_statement: c.curatorStatement || null,
+    banner_image: c.bannerImage,
+    avatar_image: c.avatarImage,
+    photographer_id: c.photographerId,
+    photographer_name: c.photographerName,
+    chain: c.chain,
+    contract_address: c.contractAddress,
+    royalty_percent: c.royaltyPercent,
+    created_by: c.createdBy || null,
+    created_at: c.createdAt,
+    socials: c.socials || undefined,
+  };
+}
+
+export function supabaseRowToCollection(r: SupabaseCollectionRow): EditionCollectionMeta {
+  return {
+    id: r.id,
+    name: r.name,
+    description: r.description || "",
+    curatorStatement: r.curator_statement || undefined,
+    bannerImage: r.banner_image,
+    avatarImage: r.avatar_image,
+    photographerId: r.photographer_id,
+    photographerName: r.photographer_name,
+    chain: r.chain,
+    contractAddress: r.contract_address,
+    royaltyPercent: Number(r.royalty_percent),
+    createdAt: r.created_at,
+    createdBy: r.created_by || undefined,
+    socials: r.socials,
+  };
+}
+
+export function ownershipToSupabaseRow(o: EditionOwnership): SupabaseOwnershipRow {
+  return {
+    id: o.id,
+    edition_id: o.editionId,
+    serial_number: o.serialNumber,
+    serial_display: o.serialDisplay,
+    owner_id: o.ownerId,
+    owner_name: o.ownerName,
+    owner_email: o.ownerEmail || null,
+    owner_wallet_address: o.ownerWalletAddress || null,
+    acquired_at: o.acquiredAt,
+    purchase_price_gbp: o.purchasePriceGbp,
+    purchase_currency: o.purchaseCurrency,
+    certificate_number: o.certificateNumber,
+    is_listed_for_resale: o.isListedForResale,
+    resale_price_gbp: o.resalePriceGbp ?? null,
+  };
+}
+
+export function supabaseRowToOwnership(r: SupabaseOwnershipRow): EditionOwnership {
+  return {
+    id: r.id,
+    editionId: r.edition_id,
+    serialNumber: r.serial_number,
+    serialDisplay: r.serial_display,
+    ownerId: r.owner_id,
+    ownerName: r.owner_name,
+    ownerEmail: r.owner_email || undefined,
+    ownerWalletAddress: r.owner_wallet_address || undefined,
+    acquiredAt: r.acquired_at,
+    purchasePriceGbp: Number(r.purchase_price_gbp),
+    purchaseCurrency: (r.purchase_currency as "GBP" | "ETH" | "USDT" | "SOL") || "GBP",
+    certificateNumber: r.certificate_number,
+    isListedForResale: r.is_listed_for_resale,
+    resalePriceGbp: r.resale_price_gbp != null ? Number(r.resale_price_gbp) : undefined,
+  };
+}
+
+export function activityToSupabaseRow(a: EditionActivity): SupabaseActivityRow {
+  return {
+    id: a.id,
+    edition_id: a.editionId,
+    type: a.type,
+    from_user: a.fromUser || null,
+    to_user: a.toUser || null,
+    price: a.price ?? null,
+    currency: a.currency || null,
+    timestamp: a.timestamp,
+    tx_hash: a.txHash,
+    details: a.details || null,
+  };
+}
+
+export function supabaseRowToActivity(r: SupabaseActivityRow): EditionActivity {
+  return {
+    id: r.id,
+    editionId: r.edition_id,
+    type: (r.type as EditionActivity["type"]) || "minted",
+    fromUser: r.from_user || undefined,
+    toUser: r.to_user || undefined,
+    price: r.price != null ? Number(r.price) : undefined,
+    currency: r.currency || undefined,
+    timestamp: r.timestamp,
+    txHash: r.tx_hash,
+    details: r.details || undefined,
+  };
+}
+
+// ============================================================
+// STORAGE HELPERS WITH AUTOMATIC NIGERIAN PURGE & SUPABASE SYNC
+// ============================================================
 
 export function getStoredEditions(): DigitalEdition[] {
   try {
@@ -415,8 +860,27 @@ export function getStoredEditions(): DigitalEdition[] {
       safeSetItem(STORAGE_KEYS.EDITIONS, JSON.stringify(INITIAL_EDITIONS));
       return INITIAL_EDITIONS;
     }
-    return JSON.parse(raw);
-  } catch (_e) {
+    let stored = JSON.parse(raw) as DigitalEdition[];
+    let changed = false;
+
+    // Filter out any legacy Nigerian data or deleted seed IDs
+    if (stored.some(isNigerianEdition)) {
+      stored = stored.filter((e) => !isNigerianEdition(e));
+      changed = true;
+    }
+
+    const storedIds = new Set(stored.map((e) => e.id));
+    const missing = INITIAL_EDITIONS.filter((e) => !storedIds.has(e.id));
+    if (missing.length > 0) {
+      stored = [...stored, ...missing];
+      changed = true;
+    }
+
+    if (changed) {
+      safeSetItem(STORAGE_KEYS.EDITIONS, JSON.stringify(stored));
+    }
+    return stored;
+  } catch {
     return INITIAL_EDITIONS;
   }
 }
@@ -436,8 +900,34 @@ export function getStoredOwnerships(): EditionOwnership[] {
       safeSetItem(STORAGE_KEYS.OWNERSHIPS, JSON.stringify(INITIAL_OWNERSHIPS));
       return INITIAL_OWNERSHIPS;
     }
-    return JSON.parse(raw);
-  } catch (_e) {
+    let stored = JSON.parse(raw) as EditionOwnership[];
+    let changed = false;
+
+    // Clean out Nigerian-linked ownerships and excluded seed records
+    const isNigerianOwnership = (o: EditionOwnership) =>
+      o.editionId === "edn-james-01" ||
+      o.editionId === "edn-james-02" ||
+      o.editionId === "edn-prince-01" ||
+      o.editionId === "edn-prince-02" ||
+      o.editionId === "edn-godfred-01" ||
+      o.editionId === "edn-numbered-02";
+
+    if (stored.some(isNigerianOwnership)) {
+      stored = stored.filter((o) => !isNigerianOwnership(o));
+      changed = true;
+    }
+
+    const storedIds = new Set(stored.map((o) => o.id));
+    const missing = INITIAL_OWNERSHIPS.filter((o) => !storedIds.has(o.id));
+    if (missing.length > 0) {
+      stored = [...stored, ...missing];
+      changed = true;
+    }
+    if (changed) {
+      safeSetItem(STORAGE_KEYS.OWNERSHIPS, JSON.stringify(stored));
+    }
+    return stored;
+  } catch {
     return INITIAL_OWNERSHIPS;
   }
 }
@@ -457,8 +947,40 @@ export function getStoredActivity(): EditionActivity[] {
       safeSetItem(STORAGE_KEYS.ACTIVITY, JSON.stringify(INITIAL_ACTIVITY));
       return INITIAL_ACTIVITY;
     }
-    return JSON.parse(raw);
-  } catch (_e) {
+    let stored = JSON.parse(raw) as EditionActivity[];
+    let changed = false;
+
+    const isNigerianActivity = (a: EditionActivity) =>
+      a.editionId === "edn-james-01" ||
+      a.editionId === "edn-james-02" ||
+      a.editionId === "edn-prince-01" ||
+      a.editionId === "edn-prince-02" ||
+      a.editionId === "edn-godfred-01" ||
+      a.editionId === "edn-numbered-02" ||
+      (a.fromUser || "").toLowerCase().includes("adebayo") ||
+      (a.fromUser || "").toLowerCase().includes("kalu") ||
+      (a.fromUser || "").toLowerCase().includes("godfred") ||
+      (a.toUser || "").toLowerCase().includes("adebayo") ||
+      (a.toUser || "").toLowerCase().includes("kalu") ||
+      (a.fromUser || "").toLowerCase().includes("junghoon") ||
+      (a.toUser || "").toLowerCase().includes("junghoon");
+
+    if (stored.some(isNigerianActivity)) {
+      stored = stored.filter((a) => !isNigerianActivity(a));
+      changed = true;
+    }
+
+    const storedIds = new Set(stored.map((a) => a.id));
+    const missing = INITIAL_ACTIVITY.filter((a) => !storedIds.has(a.id));
+    if (missing.length > 0) {
+      stored = [...stored, ...missing];
+      changed = true;
+    }
+    if (changed) {
+      safeSetItem(STORAGE_KEYS.ACTIVITY, JSON.stringify(stored));
+    }
+    return stored;
+  } catch {
     return INITIAL_ACTIVITY;
   }
 }
@@ -471,12 +993,123 @@ export function saveStoredActivity(activities: EditionActivity[]): void {
   }
 }
 
+// ============================================================
+// SUPABASE REALTIME / ASYNC SYNC ENGINE
+// ============================================================
+
+let hasInitiatedSync = false;
+
+export async function syncEditionsWithSupabase(): Promise<void> {
+  if (typeof window === "undefined") return;
+  try {
+    const [supabaseEditions, supabaseCollections, supabaseOwnerships, supabaseActivities] =
+      await Promise.all([
+        fetchSupabaseEditions(),
+        fetchSupabaseCollections(),
+        fetchSupabaseOwnerships(),
+        fetchSupabaseActivities(),
+      ]);
+
+    // 1. Sync Editions
+    if (supabaseEditions.length > 0) {
+      const remoteEditions = supabaseEditions
+        .map(supabaseRowToEdition)
+        .filter((e) => !isNigerianEdition(e));
+      const local = getStoredEditions();
+      const localMap = new Map(local.map((e) => [e.id, e]));
+
+      let changed = false;
+      for (const remote of remoteEditions) {
+        if (!localMap.has(remote.id)) {
+          localMap.set(remote.id, remote);
+          changed = true;
+        }
+      }
+      if (changed) {
+        saveStoredEditions(Array.from(localMap.values()));
+        notifyEditionsChanged();
+      }
+    }
+
+    // 2. Sync Collections
+    if (supabaseCollections.length > 0) {
+      const remoteCollections = supabaseCollections
+        .map(supabaseRowToCollection)
+        .filter((c) => !isNigerianCollection(c));
+      const local = getStoredUserCollections();
+      const localMap = new Map(local.map((c) => [c.id, c]));
+
+      let changed = false;
+      for (const remote of remoteCollections) {
+        if (
+          !INITIAL_EDITION_COLLECTIONS.some((c) => c.id === remote.id) &&
+          !localMap.has(remote.id)
+        ) {
+          localMap.set(remote.id, remote);
+          changed = true;
+        }
+      }
+      if (changed) {
+        saveStoredUserCollections(Array.from(localMap.values()));
+        notifyEditionsChanged();
+      }
+    }
+
+    // 3. Sync Ownerships
+    if (supabaseOwnerships.length > 0) {
+      const remoteOwnerships = supabaseOwnerships.map(supabaseRowToOwnership);
+      const local = getStoredOwnerships();
+      const localMap = new Map(local.map((o) => [o.id, o]));
+      let changed = false;
+      for (const remote of remoteOwnerships) {
+        if (!localMap.has(remote.id)) {
+          localMap.set(remote.id, remote);
+          changed = true;
+        }
+      }
+      if (changed) {
+        saveStoredOwnerships(Array.from(localMap.values()));
+        notifyEditionsChanged();
+      }
+    }
+
+    // 4. Sync Activities
+    if (supabaseActivities.length > 0) {
+      const remoteActivities = supabaseActivities.map(supabaseRowToActivity);
+      const local = getStoredActivity();
+      const localMap = new Map(local.map((a) => [a.id, a]));
+      let changed = false;
+      for (const remote of remoteActivities) {
+        if (!localMap.has(remote.id)) {
+          localMap.set(remote.id, remote);
+          changed = true;
+        }
+      }
+      if (changed) {
+        saveStoredActivity(Array.from(localMap.values()));
+        notifyEditionsChanged();
+      }
+    }
+  } catch (err) {
+    console.error("Failed to sync editions with Supabase:", err);
+  }
+}
+
+if (typeof window !== "undefined") {
+  setTimeout(() => {
+    if (!hasInitiatedSync) {
+      hasInitiatedSync = true;
+      syncEditionsWithSupabase();
+    }
+  }, 100);
+}
+
 export function getDepositConfig(): DepositGateConfig {
   try {
     const raw = safeGetItem(STORAGE_KEYS.CONFIG);
     if (!raw) return DEFAULT_DEPOSIT_CONFIG;
     return { ...DEFAULT_DEPOSIT_CONFIG, ...JSON.parse(raw) };
-  } catch (_e) {
+  } catch {
     return DEFAULT_DEPOSIT_CONFIG;
   }
 }
@@ -484,13 +1117,7 @@ export function getDepositConfig(): DepositGateConfig {
 export function saveDepositConfig(cfg: Partial<DepositGateConfig>): DepositGateConfig {
   const current = getDepositConfig();
   const updated = { ...current, ...cfg };
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(updated));
-    } catch (e) {
-      console.error("Failed to save deposit config:", e);
-    }
-  }
+  safeSetItem(STORAGE_KEYS.CONFIG, JSON.stringify(updated));
   return updated;
 }
 
@@ -610,7 +1237,7 @@ export function purchaseEdition(
   const txHash =
     "0x" + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
 
-  activities.unshift({
+  const purchaseActivity: EditionActivity = {
     id: `act-${Date.now()}`,
     editionId,
     type: "purchased",
@@ -621,11 +1248,12 @@ export function purchaseEdition(
     timestamp: new Date().toISOString(),
     txHash,
     details: `Acquired ${serialDisplay}. Authenticity certificate ${certNumber} registered.`,
-  });
+  };
+  activities.unshift(purchaseActivity);
 
   // Calculate and log creator royalty
   const creatorCut = Math.round(edition.priceGbp * (edition.royaltyPercent / 100));
-  activities.unshift({
+  const royaltyActivity: EditionActivity = {
     id: `act-${Date.now() + 1}`,
     editionId,
     type: "royalty_paid",
@@ -636,9 +1264,24 @@ export function purchaseEdition(
     txHash:
       "0x" + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join(""),
     details: `${edition.royaltyPercent}% creator royalty (£${creatorCut.toFixed(2)}) credited to photographer earnings.`,
-  });
+  };
+  activities.unshift(royaltyActivity);
 
   saveStoredActivity(activities);
+
+  // Write through to Supabase backend asynchronously
+  insertSupabaseEdition(editionToSupabaseRow(edition)).catch((err) =>
+    console.error("Supabase purchase update edition error:", err),
+  );
+  insertSupabaseOwnership(ownershipToSupabaseRow(ownership)).catch((err) =>
+    console.error("Supabase purchase insert ownership error:", err),
+  );
+  insertSupabaseActivity(activityToSupabaseRow(purchaseActivity)).catch((err) =>
+    console.error("Supabase purchase insert activity error:", err),
+  );
+  insertSupabaseActivity(activityToSupabaseRow(royaltyActivity)).catch((err) =>
+    console.error("Supabase purchase insert royalty error:", err),
+  );
 
   return { success: true, ownership };
 }
@@ -665,6 +1308,8 @@ export function mintDigitalEdition(
     customMasterHash?: string;
     /** Send straight to the admin review queue instead of saving a draft */
     submitForReview?: boolean;
+    /** Optional fee payment routed to NS Captures Treasury upon minting */
+    mintFeePayment?: MintFeePaymentInfo;
   },
 ): DigitalEdition {
   const editions = getStoredEditions();
@@ -672,7 +1317,7 @@ export function mintDigitalEdition(
   const tokenId =
     payload.tier === "genesis_1_of_1" ? `NSC-GEN-2026-${randomHex}` : `NSC-EDN-2026-${randomHex}`;
 
-  const { customMasterHash, submitForReview = false, ...details } = payload;
+  const { customMasterHash, submitForReview = false, mintFeePayment, ...details } = payload;
 
   // Generate SHA-256 style master hash if not supplied
   const masterHash =
@@ -702,20 +1347,86 @@ export function mintDigitalEdition(
 
   // Log activity
   const activities = getStoredActivity();
-  activities.unshift({
+  const mintActivity: EditionActivity = {
     id: `act-${Date.now()}`,
     editionId: newEdition.id,
     type: "minted",
     fromUser: payload.photographerName,
     timestamp: new Date().toISOString(),
     txHash:
+      mintFeePayment?.txHash ||
       "0x" + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join(""),
     details: `${payload.tier === "genesis_1_of_1" ? "Genesis 1 of 1 Master" : `Limited Series of ${payload.totalEditions}`} certified with archival SHA-256 fingerprint.`,
-  });
+  };
+  activities.unshift(mintActivity);
+
+  // If a minting fee was paid to platform treasury, record immutable fee activity
+  if (mintFeePayment) {
+    const feeActivity: EditionActivity = {
+      id: `act-fee-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      editionId: newEdition.id,
+      type: "mint_fee_paid",
+      fromUser: mintFeePayment.paidBy || payload.photographerName,
+      toUser: `NS CAPTURES Treasury (${mintFeePayment.treasuryAddress})`,
+      price: mintFeePayment.amount,
+      currency: mintFeePayment.coin,
+      timestamp: new Date().toISOString(),
+      txHash: mintFeePayment.txHash,
+      details: `Archival certification & platform minting fee paid via ${mintFeePayment.coin} (${mintFeePayment.network || "Crypto"}). Funds routed to platform treasury.`,
+    };
+    activities.unshift(feeActivity);
+    insertSupabaseActivity(activityToSupabaseRow(feeActivity)).catch((err) =>
+      console.error("Supabase fee activity insert error:", err),
+    );
+  }
+
   saveStoredActivity(activities);
+
+  // Write through to Supabase backend asynchronously
+  insertSupabaseEdition(editionToSupabaseRow(newEdition)).catch((err) =>
+    console.error("Supabase mint insert edition error:", err),
+  );
+  insertSupabaseActivity(activityToSupabaseRow(mintActivity)).catch((err) =>
+    console.error("Supabase mint insert activity error:", err),
+  );
+
   notifyEditionsChanged();
 
   return newEdition;
+}
+
+/**
+ * Aggregates all minting fees collected across the platform for admin treasury reporting.
+ */
+export function getCollectedMintingFees(): {
+  totalCount: number;
+  totalUsdEquivalent: number;
+  feesByCurrency: Record<string, number>;
+  activities: EditionActivity[];
+} {
+  const activities = getStoredActivity().filter((a) => a.type === "mint_fee_paid");
+  const feesByCurrency: Record<string, number> = {};
+  let totalUsd = 0;
+  const rates: Record<string, number> = {
+    USDT: 1.0,
+    USDC: 1.0,
+    ETH: 3300.0,
+    SOL: 140.0,
+    BTC: 68000.0,
+  };
+  for (const act of activities) {
+    const curr = (act.currency || "USDT").toUpperCase();
+    const amt = act.price || 0;
+    feesByCurrency[curr] = (feesByCurrency[curr] || 0) + amt;
+    const rate = rates[curr] || 1.0;
+    totalUsd += amt * rate;
+  }
+  return {
+    totalCount: activities.length,
+    totalUsdEquivalent: totalUsd,
+    feesByCurrency,
+    activities,
+  };
 }
 
 // ============================================================
@@ -795,6 +1506,12 @@ function updateEditionReview(
   const updated: DigitalEdition = { ...editions[index], ...changes };
   editions[index] = updated;
   saveStoredEditions(editions);
+
+  // Write through to Supabase backend asynchronously
+  insertSupabaseEdition(editionToSupabaseRow(updated)).catch((err) =>
+    console.error("Supabase update edition review error:", err),
+  );
+
   notifyEditionsChanged();
   return { success: true, edition: updated };
 }
@@ -856,6 +1573,12 @@ export function deleteEditionDraft(editionId: string): { success: boolean; error
   }
 
   saveStoredEditions(editions.filter((e) => e.id !== editionId));
+
+  // Write through to Supabase backend asynchronously
+  deleteSupabaseEdition(editionId).catch((err) =>
+    console.error("Supabase delete edition error:", err),
+  );
+
   notifyEditionsChanged();
   return { success: true };
 }
@@ -1309,24 +2032,6 @@ export const INITIAL_EDITION_COLLECTIONS: EditionCollectionMeta[] = [
     royaltyPercent: 10,
   },
   {
-    id: "korean-peninsula-silences",
-    name: "Korean Peninsula Silences",
-    description:
-      "100-megapixel medium-format masterworks documenting morning mists and monolith ridges across Gangwon-do. An ode to solitude, geological patience, and silent mountain passes.",
-    curatorStatement:
-      "Captured on Hasselblad X2D 100C with extreme resolution, preserving delicate tonal gradation across alpine mountain passes.",
-    bannerImage:
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=2400&auto=format&fit=crop&q=85",
-    avatarImage:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=250&auto=format&fit=crop&q=80",
-    photographerId: "junghoon-sung-e85d599d",
-    photographerName: "Junghoon Sung",
-    chain: "Ethereum",
-    contractAddress: "0x89C1a54E0F45963E879B54128D849B11306d15E3",
-    createdAt: "2026-02-01T00:00:00Z",
-    royaltyPercent: 10,
-  },
-  {
     id: "metropolitan-geometry",
     name: "Metropolitan Geometry",
     description:
@@ -1362,6 +2067,42 @@ export const INITIAL_EDITION_COLLECTIONS: EditionCollectionMeta[] = [
     createdAt: "2026-02-20T00:00:00Z",
     royaltyPercent: 10,
   },
+  {
+    id: "amsterdam-canals",
+    name: "Amsterdam Canals & Lowland Horizons",
+    description:
+      "Atmospheric twilight reflections, historic canal bridges, and dramatic North Sea cloud banks across the Netherlands. Large-format dynamic range preserved in uncompressed archival masters.",
+    curatorStatement:
+      "Curator Spotlight: Exquisite long-exposure water stillness and classic Dutch architectural framing.",
+    bannerImage:
+      "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=2400&auto=format&fit=crop&q=85",
+    avatarImage:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=250&auto=format&fit=crop&q=80",
+    photographerId: "lexmond-dennis",
+    photographerName: "Lexmond Dennis",
+    chain: "Ethereum",
+    contractAddress: "0x55EE66FF77AA88BB99CC00DD11EE22FF33AA44BB",
+    createdAt: "2026-02-14T00:00:00Z",
+    royaltyPercent: 10,
+  },
+  {
+    id: "milano-form",
+    name: "Milano Form & Shadow",
+    description:
+      "Architectural contrast, warm Lombardian daylight, and refined studio minimalism captured in Milan by Elena Rossi.",
+    curatorStatement:
+      "Curatorial Feature: Flawless balance of golden hour shadows and neoclassical Italian stonework.",
+    bannerImage:
+      "https://images.unsplash.com/photo-1513584684374-8bab748fbf90?w=2400&auto=format&fit=crop&q=85",
+    avatarImage:
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=250&auto=format&fit=crop&q=80",
+    photographerId: "elena-rossi",
+    photographerName: "Elena Rossi",
+    chain: "Ethereum",
+    contractAddress: "0xAA11BB22CC33DD44EE55FF66AA77BB88CC99DD00",
+    createdAt: "2026-02-24T00:00:00Z",
+    royaltyPercent: 10,
+  },
 ];
 
 export const COLLECTION_CHAINS = ["Ethereum", "Base", "Solana"] as const;
@@ -1387,7 +2128,12 @@ export type EditionCollectionResult = {
 function getStoredUserCollections(): EditionCollectionMeta[] {
   try {
     const parsed: unknown = JSON.parse(safeGetItem(STORAGE_KEYS.COLLECTIONS) ?? "[]");
-    return Array.isArray(parsed) ? (parsed as EditionCollectionMeta[]) : [];
+    let collections = Array.isArray(parsed) ? (parsed as EditionCollectionMeta[]) : [];
+    if (collections.some(isNigerianCollection)) {
+      collections = collections.filter((c) => !isNigerianCollection(c));
+      safeSetItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(collections));
+    }
+    return collections;
   } catch {
     return [];
   }
@@ -1513,6 +2259,10 @@ export function createEditionCollection(
     createdBy: creator.id,
   };
   saveStoredUserCollections([...getStoredUserCollections(), collection]);
+  // Write through to Supabase backend asynchronously
+  insertSupabaseCollection(collectionToSupabaseRow(collection)).catch((err) =>
+    console.error("Supabase create collection error:", err),
+  );
   notifyEditionsChanged();
   return { success: true, collection };
 }
@@ -1542,6 +2292,11 @@ export function updateEditionCollection(
   };
   collections[index] = updated;
   saveStoredUserCollections(collections);
+
+  // Write through to Supabase backend asynchronously
+  insertSupabaseCollection(collectionToSupabaseRow(updated)).catch((err) =>
+    console.error("Supabase update collection error:", err),
+  );
 
   // Editions carry the collection name for display, so keep it in step
   const editions = getStoredEditions();
@@ -1582,6 +2337,12 @@ export function deleteEditionCollection(
   }
 
   saveStoredUserCollections(collections.filter((c) => c.id !== collectionId));
+
+  // Write through to Supabase backend asynchronously
+  deleteSupabaseCollection(collectionId).catch((err) =>
+    console.error("Supabase delete collection error:", err),
+  );
+
   if (members.length > 0) {
     saveStoredEditions(
       editions.map((e) =>

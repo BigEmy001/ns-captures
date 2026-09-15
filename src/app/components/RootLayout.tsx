@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router";
-import { motion, useReducedMotion } from "framer-motion";
 import { rememberSpacePath, spaceForPath } from "./spaceSwitchRoutes";
 import { Toaster } from "sonner";
 import { Navbar } from "./Navbar";
@@ -13,7 +12,6 @@ import { MaintenanceGate } from "./MaintenanceGate";
 
 export function RootLayout() {
   const { pathname, search } = useLocation();
-  const reduceMotion = useReducedMotion();
 
   // Scroll to top on navigation.
   useEffect(() => {
@@ -25,21 +23,12 @@ export function RootLayout() {
     rememberSpacePath(pathname, search);
   }, [pathname, search]);
 
-  // Cross-fade when moving between the photography site and Editions, but not on first load
-  const space = spaceForPath(pathname);
-  const [shownSpace, setShownSpace] = useState(space);
-  const [hasSwitchedSpace, setHasSwitchedSpace] = useState(false);
-  if (shownSpace !== space) {
-    setShownSpace(space);
-    setHasSwitchedSpace(true);
-  }
-
   // Initialize CSRF token
   useEffect(() => {
     setCsrfMeta();
   }, []);
 
-  const isEditions = space === "editions";
+  const isEditions = spaceForPath(pathname) === "editions";
   const isPhotoDetail = pathname.startsWith("/photo/");
 
   return (
@@ -58,14 +47,9 @@ export function RootLayout() {
           </a>
           {!isEditions && !isPhotoDetail && <Navbar />}
           <main id="main-content" className="flex-1" tabIndex={-1}>
-            <motion.div
-              key={space}
-              initial={hasSwitchedSpace && !reduceMotion ? { opacity: 0 } : false}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
-              <Outlet />
-            </motion.div>
+            {/* Don't key this by side: a remount shows the lazy-route "Loading..." fallback
+                inside the SpaceSwitch view transition instead of the new page */}
+            <Outlet />
           </main>
           {!isEditions && !isPhotoDetail && <Footer />}
           <VerificationWelcomeModal />

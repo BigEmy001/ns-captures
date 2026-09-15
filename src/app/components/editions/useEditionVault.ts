@@ -16,7 +16,10 @@ export function useEditionVault() {
   const { user } = useAuth();
   const [wallets, setWallets] = useState<CryptoWalletEntry[]>([]);
   const [balances, setBalances] = useState<MultiChainVaultBalance | null>(null);
+  const [refreshIndex, setRefreshIndex] = useState(0);
   const depositConfig = useMemo(() => getDepositConfig(), []);
+
+  const refresh = () => setRefreshIndex((i) => i + 1);
 
   useEffect(() => {
     if (!user) return;
@@ -45,7 +48,7 @@ export function useEditionVault() {
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [user, refreshIndex]);
 
   const primaryEvmAddress = useMemo(
     () =>
@@ -80,5 +83,6 @@ export function useEditionVault() {
     primaryEvmAddress,
     walletLabel,
     checkPurchaseGate,
+    refresh,
   };
 }

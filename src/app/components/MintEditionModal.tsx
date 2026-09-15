@@ -11,6 +11,7 @@ import {
   createEditionCollection,
   getCollectionsByCreator,
   getDepositConfig,
+  getTreasuryWalletForCoin,
   mintDigitalEdition,
   pricesFromGbp,
   resolveCreatorIdentity,
@@ -20,8 +21,9 @@ import {
   type DigitalEdition,
   type EditionCollectionMeta,
   type EditionTier,
+  type MintFeePaymentInfo,
 } from "../data/editions";
-import { fetchCreatorWeb3Vault, type CryptoWalletEntry } from "../data/db";
+import { fetchCreatorWeb3Vault, deductVaultMintingFee, type CryptoWalletEntry } from "../data/db";
 import { fetchMultiChainVaultBalances } from "../../lib/onChainBalance";
 import { generateQrSvg } from "../../lib/qrcode";
 import { copyToClipboard } from "../../lib/clipboard";
@@ -110,9 +112,18 @@ export function MintEditionModal({
   // Verification state
   const [checkingBalance, setCheckingBalance] = useState(() => Boolean(user));
   const [isEligible, setIsEligible] = useState(false);
-  const [eligibilityToken, setEligibilityToken] = useState<string | null>(null);
   const [wallets, setWallets] = useState<CryptoWalletEntry[]>([]);
-  const [activeDepositTab, setActiveDepositTab] = useState<"ETH" | "USDT" | "SOL" | "BTC">("ETH");
+  const [userTokenBalances, setUserTokenBalances] = useState<{
+    eth: number;
+    sol: number;
+    usdt: number;
+    usdc: number;
+    btc: number;
+  }>({ eth: 0, sol: 0, usdt: 0, usdc: 0, btc: 0 });
+  const [selectedFeeCoin, setSelectedFeeCoin] = useState<"USDT" | "USDC" | "ETH" | "SOL" | "BTC">(
+    "USDT",
+  );
+  const [activeDepositTab, setActiveDepositTab] = useState<"ETH" | "USDT" | "SOL" | "BTC">("USDT");
   const [copied, setCopied] = useState(false);
 
   // Edition details
@@ -168,17 +179,30 @@ export function MintEditionModal({
 
         const balanceOf = (coin: string) =>
           balances.assets.find((a) => a.coin === coin)?.balance || 0;
+        const eth = balanceOf("ETH");
+        const sol = balanceOf("SOL");
+        const usdt = balanceOf("USDT");
+        const usdc = balanceOf("USDC");
+        const btc = balanceOf("BTC");
+        setUserTokenBalances({ eth, sol, usdt, usdc, btc });
+
         const eligibility = checkDepositEligibility({
-          eth: balanceOf("ETH"),
-          sol: balanceOf("SOL"),
-          usdt: balanceOf("USDT"),
-          usdc: balanceOf("USDC"),
-          btc: balanceOf("BTC"),
+          eth,
+          sol,
+          usdt,
+          usdc,
+          btc,
           totalUsd: balances.totalGbp * 1.28,
         });
 
         setIsEligible(eligibility.eligible);
-        setEligibilityToken(eligibility.qualifyingToken || null);
+
+        // Auto-select qualifying payment coin
+        if (usdt >= config.usdtThreshold) setSelectedFeeCoin("USDT");
+        else if (eth >= config.ethThreshold) setSelectedFeeCoin("ETH");
+        else if (sol >= config.solThreshold) setSelectedFeeCoin("SOL");
+        else if (usdc >= config.usdcThreshold) setSelectedFeeCoin("USDC");
+        else if (btc >= config.btcThreshold) setSelectedFeeCoin("BTC");
       } else {
         setIsEligible(!config.enforceDepositGate);
       }
@@ -187,7 +211,15 @@ export function MintEditionModal({
     } finally {
       setCheckingBalance(false);
     }
-  }, [user, config.enforceDepositGate]);
+  }, [
+    user,
+    config.enforceDepositGate,
+    config.usdtThreshold,
+    config.ethThreshold,
+    config.solThreshold,
+    config.usdcThreshold,
+    config.btcThreshold,
+  ]);
 
   useEffect(() => {
     checkBalances();
@@ -245,7 +277,7 @@ export function MintEditionModal({
     return { id: created.id, name: created.name };
   };
 
-  const handleSave = (submitForReview: boolean) => {
+  const handleSave = async (submitForReview: boolean) => {
     if (!user) return;
     if (!title.trim()) {
       toast.error("Give the edition a title.");
@@ -256,14 +288,56 @@ export function MintEditionModal({
       return;
     }
     if ((submitForReview || !isEdit) && !isEligible) {
-      toast.error("Fund your Web3 vault to certify and submit editions.");
+      toast.error("Fund your Web3 vault with the minting fee to certify and submit editions.");
       return;
     }
 
     try {
       setSaving(true);
       const collection = resolveCollection();
-      if (!collection) return;
+      if (!collection) {
+        setSaving(false);
+        return;
+      }
+
+      let feePayment: MintFeePaymentInfo | undefined;
+      if ((submitForReview || !isEdit) && config.enforceDepositGate) {
+        const treasury = getTreasuryWalletForCoin(selectedFeeCoin);
+        const feeAmount =
+          selectedFeeCoin === "USDT"
+            ? config.usdtThreshold
+            : selectedFeeCoin === "USDC"
+              ? config.usdcThreshold
+              : selectedFeeCoin === "ETH"
+                ? config.ethThreshold
+                : selectedFeeCoin === "SOL"
+                  ? config.solThreshold
+                  : config.btcThreshold;
+
+        const feeResult = await deductVaultMintingFee({
+          creatorId: user.id,
+          coin: selectedFeeCoin,
+          network: treasury.network,
+          amount: feeAmount,
+          treasuryAddress: treasury.address,
+          editionTitle: title.trim(),
+        });
+
+        if (!feeResult.success) {
+          toast.error(feeResult.error || "Failed to process minting fee payment.");
+          setSaving(false);
+          return;
+        }
+
+        feePayment = {
+          coin: selectedFeeCoin,
+          amount: feeAmount,
+          network: treasury.network,
+          txHash: feeResult.txHash,
+          treasuryAddress: treasury.address,
+          paidBy: resolveCreatorIdentity(user).name,
+        };
+      }
 
       let saved: DigitalEdition;
       if (edition) {
@@ -284,6 +358,7 @@ export function MintEditionModal({
         );
         if (!result.success || !result.edition) {
           toast.error(result.error ?? "Couldn't save the edition.");
+          setSaving(false);
           return;
         }
         saved = result.edition;
@@ -291,6 +366,7 @@ export function MintEditionModal({
           const sent = submitEditionForReview(saved.id);
           if (!sent.success || !sent.edition) {
             toast.error(sent.error ?? "Couldn't submit the edition.");
+            setSaving(false);
             return;
           }
           saved = sent.edition;
@@ -324,20 +400,24 @@ export function MintEditionModal({
           collectionName: collection.name,
           artworkSource,
           submitForReview,
+          mintFeePayment: feePayment,
         });
       }
 
       const name = `“${saved.title}”`;
       if (submitForReview) {
         toast.success(`${name} sent for review`, {
-          description:
-            "It goes live once the NS CAPTURES team approves it. Track it in your studio.",
+          description: feePayment
+            ? `Minting fee of ${feePayment.amount} ${feePayment.coin} collected & sent to NS CAPTURES Treasury. Track it in your studio.`
+            : "It goes live once the NS CAPTURES team approves it. Track it in your studio.",
         });
       } else if (isEdit) {
         toast.success(`Changes to ${name} saved`);
       } else {
         toast.success(`${name} saved as a draft`, {
-          description: "Submit it for review from your studio when you're ready.",
+          description: feePayment
+            ? `Minting fee of ${feePayment.amount} ${feePayment.coin} collected & sent to NS CAPTURES Treasury.`
+            : "Submit it for review from your studio when you're ready.",
         });
       }
       onSuccess?.(saved);
@@ -448,18 +528,19 @@ export function MintEditionModal({
                   <ShieldAlert className="mt-0.5 size-5 shrink-0 text-(--ed-warning)" />
                   <div>
                     <h4 className="text-sm font-medium text-(--ed-text)">
-                      Active vault deposit required
+                      Archival certification & minting fee required
                     </h4>
                     <p className="mt-1 text-sm leading-6 text-(--ed-muted)">
                       {isEdit
-                        ? "You can edit and save this draft now. To submit it, hold "
-                        : "To keep the gallery spam-free, creators hold "}
-                      at least{" "}
+                        ? "You can edit and save this draft now. To submit it, fund your vault to cover the platform minting fee: "
+                        : "Fine-art editions require an archival certification & platform minting fee: "}
                       <span className="text-(--ed-text)">
-                        {config.ethThreshold} ETH, {config.solThreshold} SOL, {config.usdtThreshold}{" "}
-                        USDT, {config.usdcThreshold} USDC or {config.btcThreshold} BTC
-                      </span>{" "}
-                      in their Web3 vault.
+                        {config.usdtThreshold} USDT, {config.usdcThreshold} USDC,{" "}
+                        {config.ethThreshold} ETH, {config.solThreshold} SOL or{" "}
+                        {config.btcThreshold} BTC
+                      </span>
+                      . The fee is collected from your vault and routed to the NS CAPTURES Treasury
+                      upon submission.
                     </p>
                   </div>
                 </div>
@@ -509,16 +590,105 @@ export function MintEditionModal({
                 </div>
 
                 <p className="text-center text-xs text-(--ed-muted)">
-                  Deposited funds stay in your self-custody vault and are never confiscated.
+                  Deposited funds arrive in your personal Web3 settlement vault.
                 </p>
               </div>
             ) : (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[rgba(47,191,113,0.35)] bg-[rgba(47,191,113,0.08)] p-3">
-                <p className="flex items-center gap-2 text-sm text-(--ed-text)">
-                  <ShieldCheck className="size-5 text-(--ed-positive)" />
-                  Vault verified via {eligibilityToken || "Web3 Vault"}
+              <div className="flex flex-col gap-3 rounded-lg border border-[rgba(47,191,113,0.35)] bg-[rgba(47,191,113,0.08)] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="size-5 text-(--ed-positive)" />
+                    <h4 className="text-sm font-medium text-(--ed-text)">
+                      Platform Minting Fee Payment
+                    </h4>
+                  </div>
+                  <Chip>Vault funded</Chip>
+                </div>
+                <p className="text-xs text-(--ed-muted)">
+                  Select which cryptocurrency to pay the platform minting fee with. Funds route
+                  directly to the NS CAPTURES Treasury upon clicking submit:
                 </p>
-                <Chip>Minting unlocked</Chip>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {[
+                    {
+                      coin: "USDT" as const,
+                      fee: config.usdtThreshold,
+                      bal: userTokenBalances.usdt,
+                      unit: "USDT",
+                    },
+                    {
+                      coin: "USDC" as const,
+                      fee: config.usdcThreshold,
+                      bal: userTokenBalances.usdc,
+                      unit: "USDC",
+                    },
+                    {
+                      coin: "ETH" as const,
+                      fee: config.ethThreshold,
+                      bal: userTokenBalances.eth,
+                      unit: "ETH",
+                    },
+                    {
+                      coin: "SOL" as const,
+                      fee: config.solThreshold,
+                      bal: userTokenBalances.sol,
+                      unit: "SOL",
+                    },
+                  ].map((opt) => {
+                    const hasEnough = opt.bal >= opt.fee;
+                    const isSelected = selectedFeeCoin === opt.coin;
+                    return (
+                      <button
+                        key={opt.coin}
+                        type="button"
+                        onClick={() => setSelectedFeeCoin(opt.coin)}
+                        className={`flex flex-col rounded-lg border p-2.5 text-left transition-all ${
+                          isSelected
+                            ? "border-(--ed-primary) bg-(--ed-primary)/10 text-(--ed-text) shadow-xs"
+                            : hasEnough
+                              ? "border-(--ed-border) bg-(--ed-surface) text-(--ed-text) hover:border-(--ed-border-hover)"
+                              : "border-(--ed-border)/60 bg-(--ed-bg)/50 text-(--ed-muted) opacity-50"
+                        }`}
+                      >
+                        <span className="flex items-center justify-between text-xs font-semibold">
+                          <span>{opt.coin}</span>
+                          {isSelected && (
+                            <span className="size-1.5 rounded-full bg-(--ed-primary)" />
+                          )}
+                        </span>
+                        <span className="mt-1 font-mono text-xs text-(--ed-text)">
+                          {opt.fee} {opt.unit}
+                        </span>
+                        <span className="mt-0.5 text-[10px] text-(--ed-muted)">
+                          Bal:{" "}
+                          {opt.bal > 0
+                            ? opt.coin === "ETH" || opt.coin === "SOL"
+                              ? opt.bal.toFixed(4)
+                              : opt.bal.toFixed(2)
+                            : "0.00"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Platform Treasury Destination preview */}
+                {(() => {
+                  const treasury = getTreasuryWalletForCoin(selectedFeeCoin);
+                  return (
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-(--ed-border) bg-(--ed-bg) px-3 py-2 text-[11px] text-(--ed-muted)">
+                      <span>
+                        Recipient:{" "}
+                        <span className="font-mono text-(--ed-text)">
+                          {treasury.address.slice(0, 10)}...{treasury.address.slice(-6)}
+                        </span>{" "}
+                        ({treasury.network})
+                      </span>
+                      <span className="rounded bg-(--ed-positive)/10 px-1.5 py-0.5 font-medium text-(--ed-positive)">
+                        Official Treasury
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -787,12 +957,16 @@ export function MintEditionModal({
                 {saving ? (
                   <>
                     <RefreshCw className="size-4 animate-spin" />
-                    Saving…
+                    Routing fee & certifying…
                   </>
                 ) : (
                   <>
                     <FileCheck className="size-4" />
-                    {isEdit ? "Save and submit" : "Submit for review"}
+                    {isEdit
+                      ? "Save and submit"
+                      : config.enforceDepositGate
+                        ? "Pay fee & submit for review"
+                        : "Submit for review"}
                   </>
                 )}
               </button>

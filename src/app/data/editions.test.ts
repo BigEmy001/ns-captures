@@ -8,7 +8,6 @@ import {
   isEditionsPublic,
   setEditionsPublic,
   INITIAL_EDITIONS,
-  INITIAL_EDITION_COLLECTIONS,
   getEditionCollections,
   getEditionCollection,
   getEditionsByCollection,
@@ -34,6 +33,11 @@ import {
   getCreatorPageData,
   getWeb3Activation,
   isWeb3Activated,
+  getCollectedMintingFees,
+  PLATFORM_TREASURY_WALLETS,
+  getTreasuryWalletForCoin,
+  getDepositConfig,
+  saveDepositConfig,
 } from "./editions";
 
 describe("Digital Editions Data Engine", () => {
@@ -83,7 +87,7 @@ describe("Digital Editions Data Engine", () => {
   describe("purchaseEdition", () => {
     it("purchases a numbered edition and issues a serial & certificate", () => {
       const result = purchaseEdition(
-        "edn-numbered-02",
+        "edn-numbered-03",
         {
           id: "buyer-01",
           name: "Sophia Taylor",
@@ -95,13 +99,13 @@ describe("Digital Editions Data Engine", () => {
 
       expect(result.success).toBe(true);
       expect(result.ownership).toBeDefined();
-      expect(result.ownership?.serialDisplay).toContain("/ 15");
+      expect(result.ownership?.serialDisplay).toContain("/ 25");
       expect(result.ownership?.certificateNumber).toMatch(/^COA-NSC-/);
       expect(result.ownership?.ownerName).toBe("Sophia Taylor");
 
       // Verify inventory decremented
-      const updated = getStoredEditions().find((e) => e.id === "edn-numbered-02");
-      expect(updated?.availableEditions).toBe(10); // was 11
+      const updated = getStoredEditions().find((e) => e.id === "edn-numbered-03");
+      expect(updated?.availableEditions).toBe(18); // was 19
     });
 
     it("handles Genesis 1 of 1 master purchase and marks sold out", () => {
@@ -223,16 +227,16 @@ describe("Digital Editions Data Engine", () => {
 
   describe("creator tools", () => {
     const creator = {
-      id: "user-kemi",
-      slug: "kemi-adeyemi",
-      name: "Kemi Adeyemi",
-      avatar: "https://example.com/kemi.jpg",
+      id: "user-elena",
+      slug: "elena-rossi",
+      name: "Elena Rossi",
+      avatar: "https://example.com/elena.jpg",
     };
     let sequence = 0;
     const uniqueName = (base: string) => `${base} ${Date.now()}-${(sequence += 1)}`;
     const collectionInput = (name: string) => ({
       name,
-      description: "Lagos after dark.",
+      description: "Atmospheric architectural studies after dark.",
       avatarImage: "https://example.com/logo.jpg",
       chain: "Ethereum",
       royaltyPercent: 10,
@@ -264,7 +268,7 @@ describe("Digital Editions Data Engine", () => {
     };
 
     it("creates a collection with a unique name", () => {
-      const name = uniqueName("Lagos Nights");
+      const name = uniqueName("Alpine Nocturnes");
       const created = createEditionCollection(collectionInput(name), creator);
       expect(created.success).toBe(true);
       expect(created.collection?.bannerImage).toBe("https://example.com/logo.jpg");
@@ -336,14 +340,16 @@ describe("Digital Editions Data Engine", () => {
           .success,
       ).toBe(false);
       expect(
-        saveEditionCreatorProfile({ displayName: "Kemi", bio: "", avatarSource: "upload" }, creator)
-          .success,
+        saveEditionCreatorProfile(
+          { displayName: "Elena", bio: "", avatarSource: "upload" },
+          creator,
+        ).success,
       ).toBe(false);
 
       const saved = saveEditionCreatorProfile(
         {
-          displayName: "Kemi A.",
-          bio: "Lagos street scenes",
+          displayName: "Elena R.",
+          bio: "Alpine morning scenes",
           avatarSource: "upload",
           avatarUrl: "https://example.com/character.png",
         },
@@ -351,7 +357,7 @@ describe("Digital Editions Data Engine", () => {
       );
       expect(saved.success).toBe(true);
       expect(resolveCreatorIdentity(creator)).toEqual({
-        name: "Kemi A.",
+        name: "Elena R.",
         avatar: "https://example.com/character.png",
       });
       expect(getStoredEditions().find((e) => e.id === edition.id)?.photographerAvatar).toBe(
@@ -492,6 +498,141 @@ describe("Digital Editions Data Engine", () => {
 
       const items = getEditionsByCollection("non-existent-collection-id");
       expect(items).toEqual([]);
+    });
+
+    it("includes platform photographer collections with published editions", () => {
+      const platformCollectionIds = [
+        "amsterdam-canals",
+        "milano-form",
+        "metropolitan-geometry",
+        "namibian-horizons",
+        "kyoto-nocturnes",
+      ];
+
+      for (const id of platformCollectionIds) {
+        const col = getEditionCollection(id);
+        expect(col, `Collection ${id} should exist`).toBeDefined();
+        const editions = getEditionsByCollection(id);
+        expect(editions.length, `Collection ${id} should have editions`).toBeGreaterThan(0);
+      }
+    });
+
+    it("verifies Junghoon Sung has zero pre-seeded editions or collections (registers and mints in studio)", () => {
+      const allEditions = getStoredEditions();
+      const allCollections = getEditionCollections();
+
+      const sungEditions = allEditions.filter(
+        (e) =>
+          e.photographerId === "junghoon-sung-e85d599d" ||
+          e.photographerName.toLowerCase().includes("junghoon") ||
+          e.collectionId === "korean-peninsula-silences",
+      );
+      expect(sungEditions).toHaveLength(0);
+
+      const sungCollections = allCollections.filter(
+        (c) =>
+          c.id === "korean-peninsula-silences" ||
+          c.photographerId === "junghoon-sung-e85d599d" ||
+          c.name.toLowerCase().includes("korean peninsula silences"),
+      );
+      expect(sungCollections).toHaveLength(0);
+    });
+
+    it("contains strictly non-Nigerian fine-art photography and collections", () => {
+      const allEditions = getStoredEditions();
+      const allCollections = getEditionCollections();
+
+      for (const edition of allEditions) {
+        expect(edition.location?.toLowerCase()).not.toContain("nigeria");
+        expect(edition.location?.toLowerCase()).not.toContain("lagos");
+        expect(edition.title.toLowerCase()).not.toContain("lagos");
+        expect(edition.photographerName.toLowerCase()).not.toContain("james adebayo");
+        expect(edition.photographerName.toLowerCase()).not.toContain("prince kalu");
+      }
+
+      for (const collection of allCollections) {
+        expect(collection.name.toLowerCase()).not.toContain("lagos");
+        expect(collection.name.toLowerCase()).not.toContain("nigeria");
+        expect(collection.id.toLowerCase()).not.toContain("lagos");
+        expect(collection.id).not.toBe("ceremony-and-ochre");
+        expect(collection.id).not.toBe("accra-radiance");
+      }
+    });
+  });
+
+  describe("Platform Minting Fee & Treasury Routing", () => {
+    it("provides valid official platform treasury addresses across networks", () => {
+      expect(PLATFORM_TREASURY_WALLETS.evm).toBe("0xcD24721Afef7C969e0d8B8472e1e6c5292214fD8");
+      expect(PLATFORM_TREASURY_WALLETS.usdtTrc20).toBe("TUMWvNB8sxztU3t3exumc2e3CkX2FkFsfm");
+      expect(PLATFORM_TREASURY_WALLETS.btc).toBe("bc1qshkdt4xrmny58h67eka2qucqva7wznnq2pq86d");
+
+      const usdt = getTreasuryWalletForCoin("USDT", "TRC20");
+      expect(usdt.address).toBe(PLATFORM_TREASURY_WALLETS.usdtTrc20);
+
+      const eth = getTreasuryWalletForCoin("ETH", "ERC20");
+      expect(eth.address).toBe(PLATFORM_TREASURY_WALLETS.evm);
+
+      const btc = getTreasuryWalletForCoin("BTC", "Native SegWit");
+      expect(btc.address).toBe(PLATFORM_TREASURY_WALLETS.btc);
+    });
+
+    it("records mint_fee_paid activity when minting fee is provided", () => {
+      const minted = mintDigitalEdition({
+        photoId: "test-photo-fee-01",
+        title: "Nocturne in Silver",
+        description: "Test description",
+        photographerId: "test-artist",
+        photographerName: "Test Artist",
+        image: "https://example.com/art.jpg",
+        tier: "limited_series",
+        totalEditions: 10,
+        priceGbp: 300,
+        priceUsd: 380,
+        priceEth: 0.12,
+        priceSol: 2.7,
+        royaltyPercent: 10,
+        hasPhysicalTwin: false,
+        camera: "Leica SL2",
+        lens: "50mm",
+        iso: 100,
+        yearCreated: 2026,
+        submitForReview: true,
+        mintFeePayment: {
+          coin: "USDT",
+          amount: 20,
+          network: "TRC20",
+          txHash: "0xfee1234567890abcdef",
+          treasuryAddress: PLATFORM_TREASURY_WALLETS.usdtTrc20,
+          paidBy: "Test Artist",
+        },
+      });
+
+      expect(minted.id).toBeDefined();
+
+      const collected = getCollectedMintingFees();
+      expect(collected.totalCount).toBeGreaterThan(0);
+      const feeActivity = collected.activities.find((a) => a.editionId === minted.id);
+      expect(feeActivity).toBeDefined();
+      expect(feeActivity?.type).toBe("mint_fee_paid");
+      expect(feeActivity?.price).toBe(20);
+      expect(feeActivity?.currency).toBe("USDT");
+      expect(feeActivity?.toUser).toContain(PLATFORM_TREASURY_WALLETS.usdtTrc20);
+    });
+
+    it("allows admin to update deposit and minting fee thresholds", () => {
+      const updated = saveDepositConfig({
+        usdtThreshold: 25,
+        ethThreshold: 0.008,
+      });
+      expect(updated.usdtThreshold).toBe(25);
+      expect(updated.ethThreshold).toBe(0.008);
+
+      const readBack = getDepositConfig();
+      expect(readBack.usdtThreshold).toBe(25);
+      expect(readBack.ethThreshold).toBe(0.008);
+
+      // Restore defaults
+      saveDepositConfig({ usdtThreshold: 20, ethThreshold: 0.006 });
     });
   });
 });
