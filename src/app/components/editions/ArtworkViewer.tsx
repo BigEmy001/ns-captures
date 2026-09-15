@@ -39,13 +39,19 @@ export function ArtworkPreview({
     rotateY.set(0);
   };
 
-  const captureSettings = [
-    { label: "Camera", value: edition.camera },
-    { label: "Lens", value: edition.lens },
-    { label: "Aperture", value: edition.aperture },
-    { label: "Shutter", value: edition.shutterSpeed },
-    { label: "ISO", value: String(edition.iso) },
-  ].filter((item): item is { label: string; value: string } => Boolean(item.value));
+  // Uploaded artwork and profile pictures have no camera data to show
+  const isArtwork = Boolean(edition.artworkSource) && edition.artworkSource !== "portfolio";
+  const captureSettings = (
+    isArtwork
+      ? [{ label: "Medium", value: "Digital artwork" }]
+      : [
+          { label: "Camera", value: edition.camera },
+          { label: "Lens", value: edition.lens },
+          { label: "Aperture", value: edition.aperture },
+          { label: "Shutter", value: edition.shutterSpeed },
+          { label: "ISO", value: edition.iso ? String(edition.iso) : undefined },
+        ]
+  ).filter((item): item is { label: string; value: string } => Boolean(item.value));
 
   return (
     <div className="relative isolate flex flex-col overflow-hidden lg:h-[calc(100dvh-4rem)]">

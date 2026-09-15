@@ -1,4 +1,5 @@
 import {
+  editionBelongsToCollection,
   getEditionCollections,
   type DigitalEdition,
   type EditionCollectionMeta,
@@ -98,11 +99,7 @@ export function buildCollectionRows(
   const scale = TIMEFRAME_SCALE[timeframe];
   return getEditionCollections().flatMap((meta) => {
     // Same membership rule as getEditionsByCollection, so counts match the collection page
-    const items = editions.filter(
-      (e) =>
-        e.collectionName?.toLowerCase() === meta.name.toLowerCase() ||
-        e.photographerId === meta.photographerId,
-    );
+    const items = editions.filter((e) => editionBelongsToCollection(e, meta));
     if (items.length === 0) return [];
     const editionIds = new Set(items.map((e) => e.id));
     const momentum = COLLECTION_MOMENTUM.find((entry) => entry.id === meta.id);

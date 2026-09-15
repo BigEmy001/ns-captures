@@ -172,7 +172,7 @@ export const NFT_GUIDES: NftGuide[] = [
         id: "before-you-start",
         heading: "Before you start",
         paragraphs: [
-          "You’ll need an NS CAPTURES account. Sign in, or create an account if you’re new.",
+          "You’ll need an NS CAPTURES account. Sign in, or create an account if you’re new. The first time you buy, you switch on Web3 for that account in one quick step. There’s no second sign-up.",
           (ctx) =>
             ctx.deposit.enforceDepositGate
               ? `Buying needs a minimum balance in your Web3 vault: at least ${depositAmounts(ctx)}. It’s a check, not a fee, and the funds stay yours.`
@@ -344,7 +344,7 @@ export const NFT_GUIDES: NftGuide[] = [
     cta: {
       prompt: "Are you a photographer? Mint your own edition.",
       label: "Start creating",
-      to: "/account?tab=nfts",
+      to: "/editions/studio?section=create",
     },
   },
   {
@@ -441,14 +441,14 @@ export const NFT_GUIDES: NftGuide[] = [
     glow: ["#2f86f5", "#8b5cf6"],
     image: createNftImage,
     summary:
-      "Turn your approved photographs into limited editions that collectors can own. This guide walks through every step, from getting verified to going live.",
+      "Turn your approved photographs or your own artwork into limited editions that collectors can own. This guide walks through every step, from getting verified to going live.",
     sections: [
       {
         id: "who-can-create",
         heading: "Who can create editions",
         paragraphs: [
-          "Editions are created by verified photographers and contributors, from photos that have already been approved on NS CAPTURES.",
-          "Everything happens in the NFT Editions tab of your account, which includes a checklist that tracks your progress.",
+          "Editions are created by verified photographers and contributors, from photos already approved on NS CAPTURES or from artwork they upload.",
+          "Everything happens in your Editions studio. The first time you open it, you switch on Web3 for your NS CAPTURES account (there’s no second sign-up), and the studio’s checklist tracks your progress from there.",
         ],
       },
       {
@@ -472,7 +472,9 @@ export const NFT_GUIDES: NftGuide[] = [
       {
         id: "create-your-edition",
         heading: "3. Create your edition",
-        paragraphs: ["Choose an approved photo and select Create edition. Then decide on:"],
+        paragraphs: [
+          "Open Create in your studio and pick an approved photo, upload artwork or use your profile picture. Choose a collection or list the edition on its own, then decide on:",
+        ],
         bullets: [
           {
             term: "Edition type",
@@ -519,7 +521,7 @@ export const NFT_GUIDES: NftGuide[] = [
       },
     ],
     takeaways: [
-      "Get verified and set up your Web3 vault first.",
+      "Get verified, switch on Web3 and set up your vault first.",
       "Choose the edition type, number of copies, price and royalty.",
       "Curators review every edition before it goes live.",
       "Sales and royalties settle to your vault.",
@@ -538,8 +540,8 @@ export const NFT_GUIDES: NftGuide[] = [
     ],
     cta: {
       prompt: "Turn your best work into an edition.",
-      label: "Open NFT Editions",
-      to: "/account?tab=nfts",
+      label: "Open your studio",
+      to: "/editions/studio?section=create",
     },
   },
 ];

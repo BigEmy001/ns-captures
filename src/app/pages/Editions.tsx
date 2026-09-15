@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import {
   getPublishedEditions,
   getStoredOwnerships,
+  isEditionForSale,
   getStoredActivity,
-  getEditionCollection,
   purchaseEdition,
   isEditionsPublic,
   EDITIONS_VISIBILITY_EVENT,
@@ -15,7 +15,7 @@ import {
   type EditionOwnership,
 } from "../data/editions";
 import { CertificateOfAuthenticityModal } from "../components/CertificateOfAuthenticityModal";
-import { MintEditionModal } from "../components/MintEditionModal";
+import { useWeb3Activation } from "../components/editions/useWeb3Activation";
 import { NsCapturesLogoBadge } from "../components/NsCapturesLogoBadge";
 import { MaskIcon } from "../components/MaskIcon";
 import { EditionsShell } from "../components/editions/EditionsShell";
@@ -32,7 +32,7 @@ import {
   VerifiedBadge,
 } from "../components/editions/editionsUi";
 import {
-  collectionSlugFor,
+  collectionHrefFor,
   formatEth,
   formatGbp,
   initials,
@@ -48,9 +48,8 @@ import {
 } from "../components/editions/editionsFormat";
 import { Nft101Section } from "../components/editions/Nft101Section";
 import {
-  COLLECTION_MOMENTUM,
   TIMEFRAMES,
-  TIMEFRAME_SCALE,
+  buildCollectionRows,
   type Timeframe,
 } from "../components/editions/collectionStats";
 import { useEditionVault } from "../components/editions/useEditionVault";
@@ -58,7 +57,6 @@ import { useEditionsTheme } from "../components/editions/useEditionsTheme";
 import { useAuth } from "../context/AuthContext";
 import { copyToClipboard } from "../../lib/clipboard";
 import { generateQrSvg } from "../../lib/qrcode";
-import { photos, type Photo } from "../data/photos";
 import contentCopyIcon from "../../assets/edition-detail/content-copy.svg";
 import chevronLeftIcon from "../../assets/edition-detail/chevron-left.svg";
 
@@ -105,7 +103,7 @@ const formatCompactGbp = (value: number) =>
 
 export function Editions() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { user, logout } = useAuth();
   const { wallets, balances } = useEditionVault();
   const { theme } = useEditionsTheme();
@@ -146,17 +144,20 @@ export function Editions() {
     useState<DigitalEdition | null>(null);
   const [purchasing, setPurchasing] = useState(false);
   const [paymentCurrency, setPaymentCurrency] = useState<"GBP" | "ETH" | "USDT" | "SOL">("ETH");
-  const [isMintModalOpen, setIsMintModalOpen] = useState(() => searchParams.get("mint") === "1");
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [depositWalletIndex, setDepositWalletIndex] = useState(0);
+  const { requireWeb3, activationModal } = useWeb3Activation();
 
-  // Rail "Mint" links from other editions pages arrive as ?mint=1 — consume the flag once
+  // Signed-in collectors switch Web3 on before their first purchase
+  const openPurchase = (edition: DigitalEdition) =>
+    requireWeb3("collector", () => setSelectedEditionForPurchase(edition));
+
+  // Older "?mint=1" links now open the creator studio
   useEffect(() => {
-    if (searchParams.get("mint") !== "1") return;
-    const next = new URLSearchParams(searchParams);
-    next.delete("mint");
-    setSearchParams(next, { replace: true });
-  }, [searchParams, setSearchParams]);
+    if (searchParams.get("mint") === "1") {
+      navigate("/editions/studio?section=create", { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   // Close the wallet menu on outside click or Escape
   useEffect(() => {
@@ -219,24 +220,14 @@ export function Editions() {
     });
   }, [editions, selectedCategory, selectedChain]);
 
+  const ownerships = useMemo(() => getStoredOwnerships(), []);
+
   const trendingCollections = useMemo(
     () =>
-      COLLECTION_MOMENTUM.flatMap((entry) => {
-        const meta = getEditionCollection(entry.id);
-        if (!meta) return [];
-        const items = editions.filter((e) => e.collectionName === meta.name);
-        if (items.length === 0) return [];
-        return [
-          {
-            ...entry,
-            meta,
-            image: items[0].image,
-            floorEth: Math.min(...items.map((e) => e.priceEth)),
-            floorGbp: Math.min(...items.map((e) => e.priceGbp)),
-          },
-        ];
-      }),
-    [editions],
+      buildCollectionRows(editions, ownerships, timeframe).sort(
+        (a, b) => b.volumeGbp - a.volumeGbp,
+      ),
+    [editions, ownerships, timeframe],
   );
 
   const handleCopy = (text: string, label: string) => {
@@ -289,34 +280,6 @@ export function Editions() {
     setCatalogTab("activity");
     catalogRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-
-  // Sample photo to supply to MintEditionModal
-  const demoMintPhoto: Photo = useMemo(() => {
-    return (
-      photos[0] || {
-        id: "demo-photo",
-        title: "Fine Art Master Study",
-        photographerId: user?.id || "artist-1",
-        photographer: user?.name || "Elena Vance",
-        category: "Fine Art",
-        image:
-          "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1600&auto=format&fit=crop&q=85",
-        price: 250,
-        license: "EXCLUSIVE",
-        location: "Studio",
-        color: "Dark",
-        orientation: "landscape",
-        ratio: "aspect-[4/3]",
-        downloads: 0,
-        views: 0,
-        likes: 0,
-        camera: "Leica M11",
-        lens: "50mm f/0.95",
-        iso: 100,
-        keywords: ["fine-art", "digital-edition"],
-      }
-    );
-  }, [user]);
 
   // Public Visibility Guard: If editions room is toggled OFF by admin, hide from public
   if (!isPublic && !isAdmin) {
@@ -527,7 +490,6 @@ export function Editions() {
     <EditionsShell
       activeRail={catalogTab === "activity" ? "activity" : "discover"}
       onActivity={openActivity}
-      onMint={() => setIsMintModalOpen(true)}
       onCertificates={() => editions[0] && openCertificate(editions[0])}
       headerActions={walletControl}
       banner={adminBanner}
@@ -614,7 +576,7 @@ export function Editions() {
                     {activeHero.hasPhysicalTwin && <Chip>Print twin</Chip>}
                   </div>
                   <Link
-                    to={`/editions/collection/${collectionSlugFor(activeHero)}`}
+                    to={collectionHrefFor(activeHero)}
                     className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium tracking-[-0.15px] text-(--ed-text) transition-colors hover:text-(--ed-text-soft)"
                   >
                     {activeHero.collectionName ?? activeHero.photographerName}
@@ -642,11 +604,15 @@ export function Editions() {
                   <div className="mt-4 flex gap-2">
                     <button
                       type="button"
-                      onClick={() => setSelectedEditionForPurchase(activeHero)}
-                      disabled={activeHero.availableEditions === 0}
+                      onClick={() => openPurchase(activeHero)}
+                      disabled={!isEditionForSale(activeHero)}
                       className={`${primaryButtonClass} h-10 flex-1 text-sm`}
                     >
-                      {activeHero.availableEditions === 0 ? "Sold out" : "Buy now"}
+                      {activeHero.availableEditions === 0
+                        ? "Sold out"
+                        : activeHero.salesPaused
+                          ? "Not for sale"
+                          : "Buy now"}
                     </button>
                     <Link
                       to={`/editions/${activeHero.id}`}
@@ -711,7 +677,7 @@ export function Editions() {
               <tbody>
                 {trendingCollections.map((col, idx) => (
                   <tr
-                    key={col.id}
+                    key={col.meta.id}
                     className="border-t border-(--ed-border) transition-colors hover:bg-(--ed-hover)"
                   >
                     <td className="hidden px-4 py-3 font-mono text-(--ed-muted) sm:table-cell">
@@ -719,7 +685,7 @@ export function Editions() {
                     </td>
                     <td className="w-full max-w-0 px-4 py-3">
                       <Link
-                        to={`/editions/collection/${col.id}`}
+                        to={`/editions/collection/${col.meta.id}`}
                         className="flex min-w-0 items-center gap-3"
                       >
                         <img
@@ -744,10 +710,10 @@ export function Editions() {
                       {currencyMode === "eth" ? formatEth(col.floorEth) : formatGbp(col.floorGbp)}
                     </td>
                     <td className="hidden whitespace-nowrap px-4 py-3 text-right font-mono text-(--ed-positive) min-[480px]:table-cell">
-                      +{(col.change * TIMEFRAME_SCALE[timeframe]).toFixed(1)}%
+                      +{col.change.toFixed(1)}%
                     </td>
                     <td className="hidden whitespace-nowrap px-4 py-3 text-right font-mono text-(--ed-text) sm:table-cell">
-                      {formatCompactGbp(col.volumeGbp * TIMEFRAME_SCALE[timeframe])}
+                      {formatCompactGbp(col.volumeGbp)}
                     </td>
                     <td className="hidden px-4 py-3 md:table-cell">
                       <Sparkline data={col.sparkline} className="ml-auto h-8 w-28" />
@@ -864,7 +830,7 @@ export function Editions() {
                       key={item.id}
                       edition={item}
                       currency={currencyMode}
-                      onBuy={setSelectedEditionForPurchase}
+                      onBuy={openPurchase}
                       onInspectCertificate={openCertificate}
                     />
                   ))}
@@ -1064,17 +1030,7 @@ export function Editions() {
         </EditionsModal>
       )}
 
-      {isMintModalOpen && (
-        <MintEditionModal
-          photo={demoMintPhoto}
-          onClose={() => setIsMintModalOpen(false)}
-          onSuccess={() => {
-            setEditions(getPublishedEditions());
-            setActivity(getStoredActivity());
-            setIsMintModalOpen(false);
-          }}
-        />
-      )}
+      {activationModal}
 
       {activeCertData && (
         <CertificateOfAuthenticityModal

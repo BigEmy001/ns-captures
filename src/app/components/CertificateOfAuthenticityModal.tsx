@@ -75,7 +75,9 @@ export function CertificateOfAuthenticityModal({
     },
     { label: "Current owner", value: ownership.ownerName },
     { label: "Date certified", value: formatDate(ownership.acquiredAt), mono: true },
-    { label: "Camera system", value: edition.camera },
+    edition.artworkSource && edition.artworkSource !== "portfolio"
+      ? { label: "Medium", value: "Digital artwork" }
+      : { label: "Camera system", value: edition.camera },
   ];
 
   const cornerClass = "absolute size-3 border-(--ed-muted)/60";

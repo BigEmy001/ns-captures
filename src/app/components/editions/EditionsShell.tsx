@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { Moon, Sun } from "lucide-react";
+import { Camera, LogOut, Moon, Sparkles, Sun, UserRound } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import {
-  getEditionCollections,
+  getPublicEditionCollections,
   getPublishedEditions,
+  isWeb3Activated,
   type DigitalEdition,
 } from "../../data/editions";
 import { MaskIcon } from "../MaskIcon";
 import { NsCapturesLogoBadge } from "../NsCapturesLogoBadge";
-import { formatEth } from "./editionsFormat";
+import { creatorHref, formatEth } from "./editionsFormat";
 import { useEditionsTheme } from "./useEditionsTheme";
 import searchIcon from "../../../assets/edition-detail/search.svg";
 import accountCircleIcon from "../../../assets/edition-detail/account-circle.svg";
@@ -23,7 +24,7 @@ import navProfileIcon from "../../../assets/edition-detail/nav-profile.svg";
 import navSettingsIcon from "../../../assets/edition-detail/nav-settings.svg";
 import navHelpIcon from "../../../assets/edition-detail/nav-help.svg";
 
-export type EditionsRailKey = "discover" | "collections" | "activity" | "mint" | "certificates";
+export type EditionsRailKey = "discover" | "collections" | "activity" | "studio" | "certificates";
 
 const railItemClass = (active: boolean) =>
   `flex size-9 items-center justify-center rounded-full transition-colors ${
@@ -78,7 +79,6 @@ interface EditionsShellProps {
   /** Where the Collections rail item points (defaults to the collections index). */
   collectionHref?: string;
   onActivity?: () => void;
-  onMint?: () => void;
   onCertificates?: () => void;
   walletLabel?: string;
   /** Replaces the default "Connect Wallet" button, e.g. with a wallet menu. */
@@ -96,19 +96,49 @@ export function EditionsShell({
   activeRail,
   collectionHref = "/editions/collection",
   onActivity,
-  onMint,
   onCertificates,
   walletLabel = "Connect Wallet",
   headerActions,
   banner,
 }: EditionsShellProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+
+  // Close the account menu on outside click or Escape
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const handlePointerDown = (e: MouseEvent) => {
+      if (!accountMenuRef.current?.contains(e.target as Node)) setAccountMenuOpen(false);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAccountMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [accountMenuOpen]);
+
+  const accountLinks = user
+    ? [
+        { label: "Your studio", to: "/editions/studio", icon: Sparkles },
+        ...(isWeb3Activated(user.id)
+          ? [{ label: "Your public page", to: creatorHref(user.slug || user.id), icon: UserRound }]
+          : []),
+        { label: "Photography account", to: "/account", icon: Camera },
+      ]
+    : [];
+  const menuItemClass =
+    "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm text-(--ed-text) outline-none transition-colors hover:bg-(--ed-hover) focus-visible:bg-(--ed-hover)";
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [editions, setEditions] = useState<DigitalEdition[]>(() => getPublishedEditions());
-  const collections = useMemo(() => getEditionCollections(), []);
+  const collections = useMemo(() => getPublicEditionCollections(), []);
   const { theme, setTheme } = useEditionsTheme();
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -210,16 +240,11 @@ export function EditionsShell({
                   active={activeRail === "activity"}
                 />
               )}
-              {onMint ? (
-                <RailItem
-                  label="Mint an edition"
-                  icon={navMintIcon}
-                  onClick={onMint}
-                  active={activeRail === "mint"}
-                />
-              ) : (
-                <RailItem label="Mint an edition" icon={navMintIcon} to="/editions?mint=1" />
-              )}
+              <RailItem
+                label="Create an edition"
+                icon={navMintIcon}
+                to="/editions/studio?section=create"
+              />
               {onCertificates && (
                 <RailItem
                   label="Certificates of authenticity"
@@ -228,10 +253,15 @@ export function EditionsShell({
                   active={activeRail === "certificates"}
                 />
               )}
-              <RailItem label="Profile & vault" icon={navProfileIcon} to="/account?tab=vault" />
+              <RailItem
+                label="Your studio"
+                icon={navProfileIcon}
+                to="/editions/studio"
+                active={activeRail === "studio"}
+              />
             </nav>
             <div className="flex flex-col items-center gap-2">
-              <RailItem label="Settings" icon={navSettingsIcon} to="/account" />
+              <RailItem label="Account settings" icon={navSettingsIcon} to="/account" />
               <RailItem label="Help" icon={navHelpIcon} to="/contact" />
             </div>
           </aside>
@@ -390,13 +420,78 @@ export function EditionsShell({
                   </AnimatePresence>
                 </button>
                 <span className="hidden h-6 w-px bg-(--ed-divider) sm:block" />
-                <Link
-                  to={user ? "/account" : "/signin"}
-                  aria-label={user ? "Your account" : "Sign in"}
-                  className="flex size-10 items-center justify-center rounded-full text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
-                >
-                  <MaskIcon src={accountCircleIcon} className="size-5" />
-                </Link>
+                {user ? (
+                  <div ref={accountMenuRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setAccountMenuOpen((open) => !open)}
+                      aria-label="Account menu"
+                      aria-haspopup="menu"
+                      aria-expanded={accountMenuOpen}
+                      title="Account"
+                      className="flex size-10 items-center justify-center rounded-full text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
+                    >
+                      <MaskIcon src={accountCircleIcon} className="size-5" />
+                    </button>
+                    <AnimatePresence>
+                      {accountMenuOpen && (
+                        <motion.div
+                          key="account-menu"
+                          role="menu"
+                          aria-label="Account"
+                          initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
+                          transition={{ type: "spring", duration: 0.25, bounce: 0 }}
+                          style={{ transformOrigin: "top right" }}
+                          className="absolute right-0 top-12 z-40 w-64 overflow-hidden rounded-lg border border-(--ed-border) bg-(--ed-surface) p-1 shadow-(--ed-shadow)"
+                        >
+                          <div className="px-3 py-2">
+                            <p className="truncate text-sm font-medium text-(--ed-text)">
+                              {user.name}
+                            </p>
+                            <p className="truncate text-xs text-(--ed-muted)">{user.email}</p>
+                          </div>
+                          <div className="my-1 h-px bg-(--ed-divider)" />
+                          {accountLinks.map(({ label, to, icon: Icon }) => (
+                            <Link
+                              key={to}
+                              to={to}
+                              role="menuitem"
+                              onClick={() => setAccountMenuOpen(false)}
+                              className={menuItemClass}
+                            >
+                              <Icon aria-hidden className="size-4 text-(--ed-muted)" />
+                              {label}
+                            </Link>
+                          ))}
+                          <div className="my-1 h-px bg-(--ed-divider)" />
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setAccountMenuOpen(false);
+                              logout();
+                            }}
+                            className={menuItemClass}
+                          >
+                            <LogOut aria-hidden className="size-4 text-(--ed-muted)" />
+                            Sign out
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <Link
+                    to="/signin"
+                    aria-label="Sign in"
+                    title="Sign in"
+                    className="flex size-10 items-center justify-center rounded-full text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
+                  >
+                    <MaskIcon src={accountCircleIcon} className="size-5" />
+                  </Link>
+                )}
               </div>
             </header>
 

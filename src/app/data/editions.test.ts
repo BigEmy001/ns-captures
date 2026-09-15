@@ -20,6 +20,20 @@ import {
   rejectEdition,
   submitEditionForReview,
   withdrawEditionFromReview,
+  createEditionCollection,
+  deleteEditionCollection,
+  getCollectionsByCreator,
+  getCreatorSalesSummary,
+  getPublicEditionCollections,
+  pricesFromGbp,
+  resolveCreatorIdentity,
+  saveEditionCreatorProfile,
+  setEditionSalesPaused,
+  updateEditionDetails,
+  activateWeb3,
+  getCreatorPageData,
+  getWeb3Activation,
+  isWeb3Activated,
 } from "./editions";
 
 describe("Digital Editions Data Engine", () => {
@@ -204,6 +218,218 @@ describe("Digital Editions Data Engine", () => {
       expect(getEditionsByCreator({ id: "user-anna" }).map((e) => e.id)).toContain(draft.id);
       expect(deleteEditionDraft("edn-genesis-01").success).toBe(false);
       expect(deleteEditionDraft(draft.id).success).toBe(true);
+    });
+  });
+
+  describe("creator tools", () => {
+    const creator = {
+      id: "user-kemi",
+      slug: "kemi-adeyemi",
+      name: "Kemi Adeyemi",
+      avatar: "https://example.com/kemi.jpg",
+    };
+    let sequence = 0;
+    const uniqueName = (base: string) => `${base} ${Date.now()}-${(sequence += 1)}`;
+    const collectionInput = (name: string) => ({
+      name,
+      description: "Lagos after dark.",
+      avatarImage: "https://example.com/logo.jpg",
+      chain: "Ethereum",
+      royaltyPercent: 10,
+    });
+    const mintFor = (overrides: Partial<Parameters<typeof mintDigitalEdition>[0]> = {}) =>
+      mintDigitalEdition({
+        photoId: "upload-01",
+        title: "Night Market",
+        description: "Uploaded character artwork.",
+        photographerId: creator.slug,
+        photographerName: creator.name,
+        createdBy: creator.id,
+        image: "https://example.com/night-market.png",
+        tier: "limited_series",
+        totalEditions: 10,
+        ...pricesFromGbp(300),
+        royaltyPercent: 10,
+        hasPhysicalTwin: false,
+        camera: "Digital artwork",
+        lens: "Not applicable",
+        iso: 0,
+        yearCreated: 2026,
+        artworkSource: "upload",
+        ...overrides,
+      });
+    const publish = (editionId: string) => {
+      submitEditionForReview(editionId);
+      approveEdition(editionId, "Review Admin");
+    };
+
+    it("creates a collection with a unique name", () => {
+      const name = uniqueName("Lagos Nights");
+      const created = createEditionCollection(collectionInput(name), creator);
+      expect(created.success).toBe(true);
+      expect(created.collection?.bannerImage).toBe("https://example.com/logo.jpg");
+      expect(getCollectionsByCreator(creator).map((c) => c.id)).toContain(created.collection?.id);
+      expect(createEditionCollection(collectionInput(name.toUpperCase()), creator).success).toBe(
+        false,
+      );
+      expect(createEditionCollection(collectionInput("Kyoto Nocturnes"), creator).success).toBe(
+        false,
+      );
+    });
+
+    it("only holds editions added to it and stays private until one is published", () => {
+      const { collection } = createEditionCollection(
+        collectionInput(uniqueName("Harbour")),
+        creator,
+      );
+      const inside = mintFor({ collectionId: collection!.id, collectionName: collection!.name });
+      publish(mintFor().id); // listed on its own
+      expect(getPublicEditionCollections().some((c) => c.id === collection!.id)).toBe(false);
+
+      publish(inside.id);
+      expect(getEditionsByCollection(collection!.id).map((e) => e.id)).toEqual([inside.id]);
+      expect(getPublicEditionCollections().some((c) => c.id === collection!.id)).toBe(true);
+    });
+
+    it("lets the creator edit a draft but not a published edition", () => {
+      const draft = mintFor();
+      const changes = {
+        title: "Night Market II",
+        description: "Edited",
+        tier: "genesis_1_of_1" as const,
+        totalEditions: 10,
+        priceGbp: 520,
+        royaltyPercent: 12,
+        hasPhysicalTwin: false,
+        collectionId: null,
+      };
+      expect(updateEditionDetails(draft.id, changes, { id: "someone-else" }).success).toBe(false);
+
+      const edited = updateEditionDetails(draft.id, changes, creator);
+      expect(edited.success).toBe(true);
+      expect(edited.edition?.totalEditions).toBe(1);
+      expect(edited.edition?.tokenId).toMatch(/^NSC-GEN-/);
+      expect(edited.edition?.priceEth).toBe(0.2);
+
+      publish(draft.id);
+      expect(updateEditionDetails(draft.id, changes, creator).success).toBe(false);
+    });
+
+    it("refuses sales of unpublished or paused editions", () => {
+      const buyer = { id: "buyer-ada", name: "Ada" };
+      const edition = mintFor();
+      expect(purchaseEdition(edition.id, buyer).success).toBe(false);
+
+      publish(edition.id);
+      expect(setEditionSalesPaused(edition.id, true, creator).success).toBe(true);
+      expect(purchaseEdition(edition.id, buyer).success).toBe(false);
+
+      expect(setEditionSalesPaused(edition.id, false, creator).success).toBe(true);
+      expect(purchaseEdition(edition.id, buyer).success).toBe(true);
+      expect(getCreatorSalesSummary(creator).salesCount).toBeGreaterThanOrEqual(1);
+    });
+
+    it("saves a creator profile and shows it on their editions", () => {
+      const edition = mintFor();
+      expect(
+        saveEditionCreatorProfile({ displayName: " ", bio: "", avatarSource: "account" }, creator)
+          .success,
+      ).toBe(false);
+      expect(
+        saveEditionCreatorProfile({ displayName: "Kemi", bio: "", avatarSource: "upload" }, creator)
+          .success,
+      ).toBe(false);
+
+      const saved = saveEditionCreatorProfile(
+        {
+          displayName: "Kemi A.",
+          bio: "Lagos street scenes",
+          avatarSource: "upload",
+          avatarUrl: "https://example.com/character.png",
+        },
+        creator,
+      );
+      expect(saved.success).toBe(true);
+      expect(resolveCreatorIdentity(creator)).toEqual({
+        name: "Kemi A.",
+        avatar: "https://example.com/character.png",
+      });
+      expect(getStoredEditions().find((e) => e.id === edition.id)?.photographerAvatar).toBe(
+        "https://example.com/character.png",
+      );
+    });
+
+    it("only deletes a collection with nothing live or in review", () => {
+      const { collection } = createEditionCollection(
+        collectionInput(uniqueName("Archive")),
+        creator,
+      );
+      const draft = mintFor({ collectionId: collection!.id, collectionName: collection!.name });
+      submitEditionForReview(draft.id);
+      expect(deleteEditionCollection(collection!.id, creator).success).toBe(false);
+
+      withdrawEditionFromReview(draft.id);
+      expect(deleteEditionCollection(collection!.id, creator).success).toBe(true);
+      expect(getStoredEditions().find((e) => e.id === draft.id)?.collectionId).toBeUndefined();
+    });
+  });
+
+  describe("web3 activation and public pages", () => {
+    it("switches Web3 on once and only upgrades collectors to creators", () => {
+      const userId = `user-web3-${Date.now()}`;
+      expect(isWeb3Activated(userId)).toBe(false);
+
+      const first = activateWeb3(userId, "collector");
+      expect(isWeb3Activated(userId)).toBe(true);
+      expect(isWeb3Activated(userId, "creator")).toBe(false);
+
+      activateWeb3(userId, "creator");
+      expect(isWeb3Activated(userId, "creator")).toBe(true);
+      expect(activateWeb3(userId, "collector").role).toBe("creator");
+      expect(getWeb3Activation(userId)?.activatedAt).toBe(first.activatedAt);
+    });
+
+    it("builds a public page from a creator's slug and hides drafts", () => {
+      const stamp = Date.now();
+      const creator = { id: `user-page-${stamp}`, slug: `page-creator-${stamp}`, name: "Tobi" };
+      saveEditionCreatorProfile(
+        {
+          displayName: "Tobi P.",
+          bio: "Rooftops",
+          avatarSource: "upload",
+          avatarUrl: "https://example.com/tobi.png",
+        },
+        creator,
+      );
+      const edition = mintDigitalEdition({
+        photoId: "upload-page",
+        title: "Rooftop",
+        description: "Test",
+        photographerId: creator.slug,
+        photographerName: "Tobi P.",
+        createdBy: creator.id,
+        image: "https://example.com/rooftop.png",
+        tier: "genesis_1_of_1",
+        totalEditions: 1,
+        ...pricesFromGbp(900),
+        royaltyPercent: 10,
+        hasPhysicalTwin: false,
+        camera: "Digital artwork",
+        lens: "Not applicable",
+        iso: 0,
+        yearCreated: 2026,
+        artworkSource: "upload",
+      });
+      expect(getCreatorPageData(creator.slug)?.created).toHaveLength(0);
+
+      submitEditionForReview(edition.id);
+      approveEdition(edition.id, "Review Admin");
+      const page = getCreatorPageData(creator.slug);
+      expect(page?.name).toBe("Tobi P.");
+      expect(page?.avatar).toBe("https://example.com/tobi.png");
+      expect(page?.created.map((e) => e.id)).toEqual([edition.id]);
+      expect(getCreatorPageData(creator.id)?.userId).toBe(creator.id);
+      expect(getCreatorPageData("nobody-here")).toBeNull();
     });
   });
 

@@ -5,10 +5,20 @@ import { X, ShieldAlert, ShieldCheck, Copy, Check, RefreshCw, FileCheck } from "
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import {
+  ARTWORK_SOURCE_LABELS,
+  ROYALTY_LIMITS,
   checkDepositEligibility,
-  mintDigitalEdition,
+  createEditionCollection,
+  getCollectionsByCreator,
   getDepositConfig,
+  mintDigitalEdition,
+  pricesFromGbp,
+  resolveCreatorIdentity,
+  submitEditionForReview,
+  updateEditionDetails,
+  type ArtworkSource,
   type DigitalEdition,
+  type EditionCollectionMeta,
   type EditionTier,
 } from "../data/editions";
 import { fetchCreatorWeb3Vault, type CryptoWalletEntry } from "../data/db";
@@ -16,6 +26,7 @@ import { fetchMultiChainVaultBalances } from "../../lib/onChainBalance";
 import { generateQrSvg } from "../../lib/qrcode";
 import { copyToClipboard } from "../../lib/clipboard";
 import type { Photo } from "../data/photos";
+import { MaskIcon } from "./MaskIcon";
 import { NsCapturesLogoBadge } from "./NsCapturesLogoBadge";
 import { Chip, SegmentedControl } from "./editions/editionsUi";
 import { useBodyScrollLock } from "./editions/useBodyScrollLock";
@@ -25,13 +36,41 @@ import {
   monoLabelClass,
   primaryButtonClass,
   secondaryButtonClass,
+  selectClass,
 } from "./editions/editionsFormat";
+import chevronLeftIcon from "../../assets/edition-detail/chevron-left.svg";
+
+/** The artwork an edition is made from. Portfolio photos also carry their capture details. */
+export type MintArtwork = Pick<Photo, "image" | "title"> &
+  Partial<
+    Pick<
+      Photo,
+      | "id"
+      | "description"
+      | "camera"
+      | "lens"
+      | "iso"
+      | "aperture"
+      | "shutterSpeed"
+      | "location"
+      | "price"
+      | "photographer"
+      | "photographerId"
+    >
+  >;
 
 interface MintEditionModalProps {
-  photo: Photo;
+  photo: MintArtwork;
+  /** Where the artwork came from; defaults to an approved portfolio photo */
+  artworkSource?: ArtworkSource;
+  /** Edit this draft (or edition with requested changes) instead of minting a new one */
+  edition?: DigitalEdition;
   onClose: () => void;
   onSuccess?: (edition: DigitalEdition) => void;
 }
+
+const NO_COLLECTION = "";
+const NEW_COLLECTION = "__new__";
 
 const DEPOSIT_COINS = [
   { id: "ETH", label: "ETH" },
@@ -53,11 +92,20 @@ const TIER_CHOICES: { id: EditionTier; title: string; description: string }[] = 
   },
 ];
 
-export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModalProps) {
+export function MintEditionModal({
+  photo,
+  artworkSource = "portfolio",
+  edition,
+  onClose,
+  onSuccess,
+}: MintEditionModalProps) {
   const { user } = useAuth();
   const { theme } = useEditionsTheme();
   const config = getDepositConfig();
   useBodyScrollLock();
+
+  const isEdit = Boolean(edition);
+  const isPhotograph = artworkSource === "portfolio";
 
   // Verification state
   const [checkingBalance, setCheckingBalance] = useState(() => Boolean(user));
@@ -67,18 +115,34 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
   const [activeDepositTab, setActiveDepositTab] = useState<"ETH" | "USDT" | "SOL" | "BTC">("ETH");
   const [copied, setCopied] = useState(false);
 
+  // Edition details
+  const [title, setTitle] = useState(edition?.title ?? photo.title);
+  const [description, setDescription] = useState(edition?.description ?? photo.description ?? "");
+  const [collections, setCollections] = useState<EditionCollectionMeta[]>(() =>
+    user ? getCollectionsByCreator(user) : [],
+  );
+  const [collectionChoice, setCollectionChoice] = useState(edition?.collectionId ?? NO_COLLECTION);
+  const [newCollectionName, setNewCollectionName] = useState("");
+  // Portfolio photos already carry a copyright declaration from their submission
+  const [rightsConfirmed, setRightsConfirmed] = useState(isPhotograph || isEdit);
+
   // Minting form state
-  const [tier, setTier] = useState<EditionTier>("limited_series");
-  const [totalEditions, setTotalEditions] = useState<number>(25);
+  const [tier, setTier] = useState<EditionTier>(edition?.tier ?? "limited_series");
+  const [totalEditions, setTotalEditions] = useState<number>(
+    edition && edition.tier !== "genesis_1_of_1" ? edition.totalEditions : 25,
+  );
   const [priceGbp, setPriceGbp] = useState<number>(
-    photo.price ? Math.max(photo.price * 2, 150) : 250,
+    edition?.priceGbp ?? (photo.price ? Math.max(photo.price * 2, 150) : 250),
   );
-  const [royaltyPercent, setRoyaltyPercent] = useState<number>(10);
-  const [hasPhysicalTwin, setHasPhysicalTwin] = useState<boolean>(false);
+  const [royaltyPercent, setRoyaltyPercent] = useState<number>(edition?.royaltyPercent ?? 10);
+  const [hasPhysicalTwin, setHasPhysicalTwin] = useState<boolean>(
+    edition?.hasPhysicalTwin ?? false,
+  );
   const [physicalDetails, setPhysicalDetails] = useState<string>(
-    "Includes 20x30” signed museum-grade Hahnemühle Photo Rag print.",
+    edition?.physicalPrintDetails ??
+      "Includes 20x30” signed museum-grade Hahnemühle Photo Rag print.",
   );
-  const [minting, setMinting] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -153,64 +217,142 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
     }
   };
 
-  const handleMint = (submitForReview: boolean) => {
-    if (!isEligible) {
-      toast.error("Please fund your Web3 Vault to complete certification.");
+  /** The collection the edition goes into, creating one first when asked. Null means stop. */
+  const resolveCollection = (): { id: string | null; name?: string } | null => {
+    if (!user || collectionChoice === NO_COLLECTION) return { id: null };
+    if (collectionChoice !== NEW_COLLECTION) {
+      const chosen = collections.find((c) => c.id === collectionChoice);
+      return chosen ? { id: chosen.id, name: chosen.name } : { id: null };
+    }
+    const result = createEditionCollection(
+      {
+        name: newCollectionName,
+        description: "",
+        avatarImage: resolveCreatorIdentity(user).avatar || photo.image,
+        bannerImage: photo.image,
+        chain: "Ethereum",
+        royaltyPercent,
+      },
+      user,
+    );
+    if (!result.success || !result.collection) {
+      toast.error(result.error ?? "Couldn't create the collection.");
+      return null;
+    }
+    const created = result.collection;
+    setCollections((prev) => [...prev, created]);
+    setCollectionChoice(created.id);
+    return { id: created.id, name: created.name };
+  };
+
+  const handleSave = (submitForReview: boolean) => {
+    if (!user) return;
+    if (!title.trim()) {
+      toast.error("Give the edition a title.");
+      return;
+    }
+    if (!rightsConfirmed) {
+      toast.error("Confirm you have the rights to sell this artwork.");
+      return;
+    }
+    if ((submitForReview || !isEdit) && !isEligible) {
+      toast.error("Fund your Web3 vault to certify and submit editions.");
       return;
     }
 
     try {
-      setMinting(true);
+      setSaving(true);
+      const collection = resolveCollection();
+      if (!collection) return;
 
-      const newEdition = mintDigitalEdition({
-        photoId: photo.id,
-        title: photo.title,
-        description: photo.description || `Fine-art digital edition by ${photo.photographer}.`,
-        photographerId: photo.photographerId || user?.id || "photog",
-        photographerName: photo.photographer || user?.name || "Anonymous",
-        photographerAvatar: user?.avatar,
-        image: photo.image,
-        tier,
-        totalEditions: tier === "genesis_1_of_1" ? 1 : totalEditions,
-        priceGbp,
-        priceUsd: Math.round(priceGbp * 1.28),
-        priceEth: Number((priceGbp / 2600).toFixed(3)),
-        priceSol: Number((priceGbp / 110).toFixed(2)),
-        royaltyPercent,
-        hasPhysicalTwin: tier === "physical_twin" || hasPhysicalTwin,
-        physicalPrintDetails:
-          hasPhysicalTwin || tier === "physical_twin" ? physicalDetails : undefined,
-        camera: photo.camera || "Leica M11",
-        lens: photo.lens || "50mm Prime",
-        iso: photo.iso || 100,
-        aperture: photo.aperture,
-        shutterSpeed: photo.shutterSpeed,
-        location: photo.location,
-        yearCreated: new Date().getFullYear(),
-        createdBy: user?.id,
-        submitForReview,
-      });
+      let saved: DigitalEdition;
+      if (edition) {
+        const result = updateEditionDetails(
+          edition.id,
+          {
+            title,
+            description,
+            tier,
+            totalEditions,
+            priceGbp,
+            royaltyPercent,
+            hasPhysicalTwin,
+            physicalPrintDetails: physicalDetails,
+            collectionId: collection.id,
+          },
+          user,
+        );
+        if (!result.success || !result.edition) {
+          toast.error(result.error ?? "Couldn't save the edition.");
+          return;
+        }
+        saved = result.edition;
+        if (submitForReview) {
+          const sent = submitEditionForReview(saved.id);
+          if (!sent.success || !sent.edition) {
+            toast.error(sent.error ?? "Couldn't submit the edition.");
+            return;
+          }
+          saved = sent.edition;
+        }
+      } else {
+        const identity = resolveCreatorIdentity(user);
+        saved = mintDigitalEdition({
+          photoId: photo.id ?? `artwork-${Date.now()}`,
+          title: title.trim(),
+          description: description.trim() || `Digital edition by ${identity.name}.`,
+          photographerId: photo.photographerId || user.slug || user.id,
+          photographerName: identity.name,
+          photographerAvatar: identity.avatar,
+          image: photo.image,
+          tier,
+          totalEditions: tier === "genesis_1_of_1" ? 1 : totalEditions,
+          ...pricesFromGbp(priceGbp),
+          royaltyPercent,
+          hasPhysicalTwin: tier === "physical_twin" || hasPhysicalTwin,
+          physicalPrintDetails:
+            hasPhysicalTwin || tier === "physical_twin" ? physicalDetails : undefined,
+          camera: isPhotograph ? photo.camera || "Not recorded" : "Digital artwork",
+          lens: isPhotograph ? photo.lens || "Not recorded" : "Not applicable",
+          iso: isPhotograph ? photo.iso || 0 : 0,
+          aperture: isPhotograph ? photo.aperture : undefined,
+          shutterSpeed: isPhotograph ? photo.shutterSpeed : undefined,
+          location: photo.location,
+          yearCreated: new Date().getFullYear(),
+          createdBy: user.id,
+          collectionId: collection.id ?? undefined,
+          collectionName: collection.name,
+          artworkSource,
+          submitForReview,
+        });
+      }
 
-      toast.success(
-        submitForReview
-          ? `“${newEdition.title}” sent for review`
-          : `“${newEdition.title}” saved as a draft`,
-        {
-          description: submitForReview
-            ? "It goes live once the NS CAPTURES team approves it. Track it in Account → NFT Editions."
-            : "Submit it for review from Account → NFT Editions when you're ready.",
-        },
-      );
-      if (onSuccess) onSuccess(newEdition);
+      const name = `“${saved.title}”`;
+      if (submitForReview) {
+        toast.success(`${name} sent for review`, {
+          description:
+            "It goes live once the NS CAPTURES team approves it. Track it in your studio.",
+        });
+      } else if (isEdit) {
+        toast.success(`Changes to ${name} saved`);
+      } else {
+        toast.success(`${name} saved as a draft`, {
+          description: "Submit it for review from your studio when you're ready.",
+        });
+      }
+      onSuccess?.(saved);
       onClose();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to mint digital edition.");
+      toast.error(err instanceof Error ? err.message : "Couldn't save the edition.");
     } finally {
-      setMinting(false);
+      setSaving(false);
     }
   };
 
-  const formLocked = !user || !isEligible;
+  const formLocked = !user || (!isEdit && !isEligible);
+  const canSaveDraft = Boolean(user) && (isEdit || isEligible) && rightsConfirmed && !saving;
+  const canSubmit = Boolean(user) && isEligible && rightsConfirmed && !saving;
+  const heading = isEdit ? "Edit edition" : "Certify & mint edition";
 
   return (
     <MotionConfig reducedMotion="user">
@@ -225,7 +367,7 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
         <motion.div
           role="dialog"
           aria-modal="true"
-          aria-label="Certify and mint edition"
+          aria-label={heading}
           onClick={(e) => e.stopPropagation()}
           initial={{ opacity: 0, y: 32, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -238,10 +380,12 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
               <NsCapturesLogoBadge className="size-9" />
               <div className="min-w-0">
                 <h2 className="truncate text-lg font-medium leading-7 text-(--ed-text)">
-                  Certify & mint edition
+                  {heading}
                 </h2>
                 <p className="truncate text-sm text-(--ed-muted)">
-                  On-platform provenance and numbered scarcity
+                  {isEdit
+                    ? "Changes stay private until you submit for review"
+                    : "On-platform provenance and numbered scarcity"}
                 </p>
               </div>
             </div>
@@ -260,17 +404,23 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
             <div className="flex items-center gap-4 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-3">
               <img
                 src={photo.image}
-                alt={photo.title}
+                alt=""
                 className="size-16 shrink-0 rounded object-cover outline outline-1 -outline-offset-1 outline-(--ed-image-outline)"
               />
               <div className="min-w-0 flex-1">
-                <p className={monoLabelClass}>Original master file</p>
-                <h3 className="truncate pt-1 text-base font-medium text-(--ed-text)">
-                  {photo.title}
-                </h3>
-                <p className="truncate text-xs text-(--ed-muted)">
-                  {photo.camera} · {photo.lens} · ISO {photo.iso}
+                <p className={monoLabelClass}>
+                  {isPhotograph ? "Original master file" : ARTWORK_SOURCE_LABELS[artworkSource]}
                 </p>
+                <h3 className="truncate pt-1 text-base font-medium text-(--ed-text)">
+                  {title.trim() || photo.title}
+                </h3>
+                {isPhotograph && (photo.camera || photo.lens) && (
+                  <p className="truncate text-xs text-(--ed-muted)">
+                    {[photo.camera, photo.lens, photo.iso ? `ISO ${photo.iso}` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -301,9 +451,15 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
                       Active vault deposit required
                     </h4>
                     <p className="mt-1 text-sm leading-6 text-(--ed-muted)">
-                      To keep the gallery spam-free, creators need an active deposit in their Web3
-                      vault (minimum <span className="text-(--ed-text)">£15 / $20 equivalent</span>{" "}
-                      in ETH, SOL, USDT or BTC).
+                      {isEdit
+                        ? "You can edit and save this draft now. To submit it, hold "
+                        : "To keep the gallery spam-free, creators hold "}
+                      at least{" "}
+                      <span className="text-(--ed-text)">
+                        {config.ethThreshold} ETH, {config.solThreshold} SOL, {config.usdtThreshold}{" "}
+                        USDT, {config.usdcThreshold} USDC or {config.btcThreshold} BTC
+                      </span>{" "}
+                      in their Web3 vault.
                     </p>
                   </div>
                 </div>
@@ -370,6 +526,77 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
             <div
               className={`flex flex-col gap-5 transition-opacity duration-200 ${formLocked ? "pointer-events-none opacity-40" : "opacity-100"}`}
             >
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label htmlFor="mint-title" className={`${monoLabelClass} mb-2 block`}>
+                    Title
+                  </label>
+                  <input
+                    id="mint-title"
+                    type="text"
+                    value={title}
+                    maxLength={120}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className={`${inputClass} text-sm`}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="mint-description" className={`${monoLabelClass} mb-2 block`}>
+                    Description
+                  </label>
+                  <textarea
+                    id="mint-description"
+                    value={description}
+                    maxLength={1000}
+                    rows={3}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="The story behind the work"
+                    className="w-full rounded-lg border border-(--ed-border) bg-(--ed-bg) p-3 text-sm leading-6 text-(--ed-text) outline-none transition-colors placeholder:text-(--ed-muted) focus:border-(--ed-primary)"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="mint-collection" className={`${monoLabelClass} mb-2 block`}>
+                    Collection
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="mint-collection"
+                      value={collectionChoice}
+                      onChange={(e) => setCollectionChoice(e.target.value)}
+                      className={`${selectClass} w-full`}
+                    >
+                      <option value={NO_COLLECTION}>No collection, list it on its own</option>
+                      {collections.map((collection) => (
+                        <option key={collection.id} value={collection.id}>
+                          {collection.name}
+                        </option>
+                      ))}
+                      <option value={NEW_COLLECTION}>Create a new collection…</option>
+                    </select>
+                    <MaskIcon
+                      src={chevronLeftIcon}
+                      className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 -rotate-90 text-(--ed-muted)"
+                    />
+                  </div>
+                  {collectionChoice === NEW_COLLECTION && (
+                    <input
+                      type="text"
+                      value={newCollectionName}
+                      maxLength={60}
+                      onChange={(e) => setNewCollectionName(e.target.value)}
+                      aria-label="New collection name"
+                      placeholder="Collection name"
+                      className={`${inputClass} mt-2 text-sm`}
+                    />
+                  )}
+                  <p className="mt-1.5 text-xs leading-5 text-(--ed-muted)">
+                    {collectionChoice === NEW_COLLECTION
+                      ? "Uses your avatar as the logo and this artwork as the banner. You can change both in your studio’s Collections."
+                      : "Collections group related editions under one name, logo and banner."}
+                  </p>
+                </div>
+              </div>
+
               <div>
                 <span className={`${monoLabelClass} mb-2 block`}>Scarcity tier</span>
                 <div
@@ -445,7 +672,7 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
                     <input
                       id="mint-price"
                       type="number"
-                      min={50}
+                      min={1}
                       step={10}
                       value={priceGbp}
                       onChange={(e) => setPriceGbp(Math.max(1, Number(e.target.value)))}
@@ -453,7 +680,7 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
                     />
                   </div>
                   <p className="mt-1.5 font-mono text-xs text-(--ed-muted)">
-                    ≈ ${(priceGbp * 1.28).toFixed(0)} · {(priceGbp / 2600).toFixed(3)} ETH
+                    ≈ ${pricesFromGbp(priceGbp).priceUsd} · {pricesFromGbp(priceGbp).priceEth} ETH
                   </p>
                 </div>
 
@@ -465,8 +692,8 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
                     <input
                       id="mint-royalty"
                       type="number"
-                      min={5}
-                      max={20}
+                      min={ROYALTY_LIMITS.min}
+                      max={ROYALTY_LIMITS.max}
                       value={royaltyPercent}
                       onChange={(e) => setRoyaltyPercent(Number(e.target.value))}
                       className={`${inputClass} pr-8 font-mono`}
@@ -476,7 +703,7 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
                     </span>
                   </div>
                   <p className="mt-1.5 text-xs text-(--ed-muted)">
-                    Credited automatically on secondary sales.
+                    {ROYALTY_LIMITS.min}–{ROYALTY_LIMITS.max}%, credited on each sale.
                   </p>
                 </div>
               </div>
@@ -511,6 +738,25 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
                   />
                 )}
               </div>
+
+              {!isPhotograph && !isEdit && (
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-4">
+                  <input
+                    type="checkbox"
+                    checked={rightsConfirmed}
+                    onChange={(e) => setRightsConfirmed(e.target.checked)}
+                    className="mt-0.5 size-4 shrink-0 accent-(--ed-primary)"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-(--ed-text)">
+                      I own this artwork or have the rights to sell it
+                    </span>
+                    <span className="block text-xs leading-5 text-(--ed-muted)">
+                      The review team checks rights before an edition goes live.
+                    </span>
+                  </span>
+                </label>
+              )}
             </div>
           </div>
 
@@ -526,19 +772,19 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
             <div className="flex flex-wrap items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={() => handleMint(false)}
-                disabled={formLocked || minting}
+                onClick={() => handleSave(false)}
+                disabled={!canSaveDraft}
                 className={`${secondaryButtonClass} h-10 px-4 text-sm disabled:pointer-events-none disabled:opacity-50`}
               >
-                Save draft
+                {isEdit ? "Save changes" : "Save draft"}
               </button>
               <button
                 type="button"
-                onClick={() => handleMint(true)}
-                disabled={formLocked || minting}
+                onClick={() => handleSave(true)}
+                disabled={!canSubmit}
                 className={`${primaryButtonClass} h-10 px-5 text-sm`}
               >
-                {minting ? (
+                {saving ? (
                   <>
                     <RefreshCw className="size-4 animate-spin" />
                     Saving…
@@ -546,7 +792,7 @@ export function MintEditionModal({ photo, onClose, onSuccess }: MintEditionModal
                 ) : (
                   <>
                     <FileCheck className="size-4" />
-                    Submit for review
+                    {isEdit ? "Save and submit" : "Submit for review"}
                   </>
                 )}
               </button>

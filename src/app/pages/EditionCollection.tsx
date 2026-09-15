@@ -6,8 +6,11 @@ import {
   getStoredOwnerships,
   getStoredActivity,
   getEditionCollection,
-  getEditionCollections,
   getEditionsByCollection,
+  getPublicEditionCollections,
+  isCollectionCreator,
+  isEditionForSale,
+  isWeb3Activated,
   purchaseEdition,
   type DigitalEdition,
   type EditionOwnership,
@@ -28,6 +31,7 @@ import {
   VerifiedBadge,
 } from "../components/editions/editionsUi";
 import {
+  creatorHref,
   fadeUpVariants,
   formatEth,
   inputClass,
@@ -39,6 +43,8 @@ import {
   shortHex,
 } from "../components/editions/editionsFormat";
 import { useEditionVault } from "../components/editions/useEditionVault";
+import { useWeb3Activation } from "../components/editions/useWeb3Activation";
+import { useAuth } from "../context/AuthContext";
 import { copyToClipboard } from "../../lib/clipboard";
 import contentCopyIcon from "../../assets/edition-detail/content-copy.svg";
 import favoriteIcon from "../../assets/edition-detail/favorite.svg";
@@ -136,15 +142,49 @@ function CheckboxList({
 }
 
 export function EditionCollection() {
-  const { id } = useParams<{ id: string }>();
+  const { id = "" } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const collection = getEditionCollection(id);
+  // Creator collections stay private until one of their editions is published
+  const visible =
+    !!collection &&
+    (!collection.createdBy ||
+      isCollectionCreator(collection, user) ||
+      user?.role === "Admin" ||
+      getEditionsByCollection(collection.id).length > 0);
+
+  if (!collection || !visible) {
+    return (
+      <EditionsShell activeRail="collections">
+        <main className="flex flex-1 items-center justify-center p-6">
+          <div className="w-full max-w-md">
+            <EmptyState
+              title="Collection not found"
+              description="This collection doesn't exist or isn't public yet."
+              action={
+                <Link
+                  to="/editions/collection"
+                  className={`${primaryButtonClass} h-10 px-5 text-sm`}
+                >
+                  Browse collections
+                </Link>
+              }
+            />
+          </div>
+        </main>
+      </EditionsShell>
+    );
+  }
+
+  return <CollectionPage key={collection.id} collection={collection} />;
+}
+
+function CollectionPage({ collection }: { collection: EditionCollectionMeta }) {
   const navigate = useNavigate();
   const { user, walletLabel, primaryEvmAddress, checkPurchaseGate } = useEditionVault();
+  const { requireWeb3, activationModal } = useWeb3Activation();
 
-  const collection: EditionCollectionMeta = useMemo(
-    () => getEditionCollection(id || "kyoto-nocturnes") || getEditionCollections()[0],
-    [id],
-  );
-  const allCollections = useMemo(() => getEditionCollections(), []);
+  const allCollections = useMemo(() => getPublicEditionCollections(), []);
 
   // Inventory for this collection: re-read from storage on route change or after a purchase
   const [inventory, setInventory] = useState(() => ({
@@ -245,7 +285,7 @@ export function EditionCollection() {
         ) {
           return false;
         }
-        if (statusFilter === "buy_now" && item.availableEditions === 0) return false;
+        if (statusFilter === "buy_now" && !isEditionForSale(item)) return false;
         if (statusFilter === "has_offers" && item.tier !== "genesis_1_of_1") return false;
 
         const price = priceCurrency === "ETH" ? item.priceEth : item.priceGbp;
@@ -358,9 +398,18 @@ export function EditionCollection() {
       toast.error("This numbered edition has already been acquired.");
       return;
     }
+    if (item.salesPaused) {
+      toast.error("The creator has paused sales of this edition.");
+      return;
+    }
     if (!user) {
       toast.error("Please sign in or connect your wallet to acquire digital editions.");
       navigate("/signin");
+      return;
+    }
+    // First purchase: switch Web3 on for this account, then carry on
+    if (!isWeb3Activated(user.id)) {
+      requireWeb3("collector", () => handleInstantCollect(item));
       return;
     }
 
@@ -456,7 +505,7 @@ export function EditionCollection() {
                 <p className="text-sm tracking-[-0.15px] text-(--ed-muted)">
                   By{" "}
                   <Link
-                    to={`/photographer/${collection.photographerId}`}
+                    to={creatorHref(collection.photographerId)}
                     className="font-medium text-(--ed-text) transition-colors hover:text-(--ed-text-soft)"
                   >
                     {collection.photographerName}
@@ -942,6 +991,7 @@ export function EditionCollection() {
           onClose={() => setActiveCertData(null)}
         />
       )}
+      {activationModal}
     </EditionsShell>
   );
 }

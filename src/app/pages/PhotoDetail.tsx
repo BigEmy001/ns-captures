@@ -38,6 +38,7 @@ import {
   type DigitalEdition,
 } from "../data/editions";
 import { MintEditionModal } from "../components/MintEditionModal";
+import { useWeb3Activation } from "../components/editions/useWeb3Activation";
 
 interface LicenseOption {
   id: string;
@@ -58,6 +59,7 @@ export function PhotoDetail() {
   const [saved, setSaved] = useState(false);
   const [liked, setLiked] = useState(false);
   const [showMintModal, setShowMintModal] = useState(false);
+  const { requireWeb3, activationModal } = useWeb3Activation();
   const [editions, setEditions] = useState<DigitalEdition[]>(() => getStoredEditions());
 
   useEffect(() => {
@@ -435,7 +437,7 @@ export function PhotoDetail() {
                 Certify this master as a limited digital edition on the NS CAPTURES platform.
               </p>
               <button
-                onClick={() => setShowMintModal(true)}
+                onClick={() => requireWeb3("creator", () => setShowMintModal(true))}
                 className="mt-5 inline-flex h-10 items-center gap-2 rounded-full bg-[#0786ff] px-5 text-sm font-medium text-white transition-colors hover:bg-[#0070e0]"
               >
                 <ShieldCheck className="size-4" />
@@ -448,6 +450,7 @@ export function PhotoDetail() {
         return null;
       })()}
 
+      {activationModal}
       {showMintModal && (
         <MintEditionModal
           photo={photo}

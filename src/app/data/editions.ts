@@ -9,6 +9,14 @@ export type EditionTier = "genesis_1_of_1" | "limited_series" | "physical_twin";
 export type EditionStatus = "minted" | "listed" | "sold_out" | "archived";
 /** Where an edition sits in the creator → admin publication review. */
 export type EditionReviewStatus = "draft" | "pending_review" | "published" | "rejected";
+/** Where an edition's artwork came from: an approved portfolio photo, an upload or the profile picture. */
+export type ArtworkSource = "portfolio" | "upload" | "profile";
+
+export const ARTWORK_SOURCE_LABELS: Record<ArtworkSource, string> = {
+  portfolio: "Approved photo",
+  upload: "Uploaded artwork",
+  profile: "Profile picture",
+};
 
 export interface DigitalEdition {
   id: string;
@@ -44,6 +52,8 @@ export interface DigitalEdition {
   featured?: boolean;
   curatorNote?: string;
   collectionName?: string;
+  /** Creator-made collection this edition belongs to. Curated seed editions match by name instead. */
+  collectionId?: string;
   /** Auth user id of the creator who made this edition on the platform */
   createdBy?: string;
   /** Publication review. Curated seed editions have none and are already public. */
@@ -53,6 +63,10 @@ export interface DigitalEdition {
   submittedAt?: string;
   reviewedAt?: string;
   reviewedBy?: string;
+  /** Missing on older editions, which were all made from approved photos */
+  artworkSource?: ArtworkSource;
+  /** Creator has taken a published edition off sale for now */
+  salesPaused?: boolean;
 }
 
 export interface EditionOwnership {
@@ -354,6 +368,9 @@ const STORAGE_KEYS = {
   OWNERSHIPS: "ns_edition_ownerships_v1",
   ACTIVITY: "ns_edition_activity_v1",
   CONFIG: "ns_edition_deposit_config_v1",
+  COLLECTIONS: "ns_edition_user_collections_v1",
+  CREATOR_PROFILES: "ns_edition_creator_profiles_v1",
+  WEB3_ACTIVATIONS: "ns_edition_web3_activations_v1",
 };
 
 // Storage helper functions
@@ -540,6 +557,12 @@ export function purchaseEdition(
   }
 
   const edition = editions[editionIndex];
+  if (!isEditionPublished(edition)) {
+    return { success: false, error: "This edition isn't on sale yet." };
+  }
+  if (edition.salesPaused) {
+    return { success: false, error: "The creator has paused sales of this edition." };
+  }
   if (edition.availableEditions <= 0) {
     return { success: false, error: "This edition is completely sold out." };
   }
@@ -663,7 +686,8 @@ export function mintDigitalEdition(
 
   const newEdition: DigitalEdition = {
     ...details,
-    id: `edn-${Date.now()}`,
+    // Suffix keeps ids unique when several editions are made in the same millisecond
+    id: `edn-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     tokenId,
     masterHash,
     availableEditions: payload.totalEditions,
@@ -689,6 +713,7 @@ export function mintDigitalEdition(
     details: `${payload.tier === "genesis_1_of_1" ? "Genesis 1 of 1 Master" : `Limited Series of ${payload.totalEditions}`} certified with archival SHA-256 fingerprint.`,
   });
   saveStoredActivity(activities);
+  notifyEditionsChanged();
 
   return newEdition;
 }
@@ -836,6 +861,365 @@ export function deleteEditionDraft(editionId: string): { success: boolean; error
 }
 
 // ============================================================
+// CREATOR TOOLS (edit drafts, pause sales, identity, sales)
+// ============================================================
+
+export const ROYALTY_LIMITS = { min: 0, max: 20 } as const;
+
+/** Marketplace prices in the other currencies, derived from the GBP list price. */
+export function pricesFromGbp(
+  priceGbp: number,
+): Pick<DigitalEdition, "priceGbp" | "priceUsd" | "priceEth" | "priceSol"> {
+  return {
+    priceGbp,
+    priceUsd: Math.round(priceGbp * 1.28),
+    priceEth: Number((priceGbp / 2600).toFixed(3)),
+    priceSol: Number((priceGbp / 110).toFixed(2)),
+  };
+}
+
+/** Whether a collector can buy this edition right now. */
+export function isEditionForSale(edition: DigitalEdition): boolean {
+  return isEditionPublished(edition) && !edition.salesPaused && edition.availableEditions > 0;
+}
+
+export type EditionDetailsChanges = {
+  title: string;
+  description: string;
+  tier: EditionTier;
+  totalEditions: number;
+  priceGbp: number;
+  royaltyPercent: number;
+  hasPhysicalTwin: boolean;
+  physicalPrintDetails?: string;
+  /** One of the creator's own collections, or null to list the edition on its own */
+  collectionId: string | null;
+};
+
+/** Creator edits an edition that isn't public: a draft, or one with requested changes. */
+export function updateEditionDetails(
+  editionId: string,
+  changes: EditionDetailsChanges,
+  creator: { id?: string; slug?: string },
+): EditionReviewResult {
+  const edition = getStoredEditions().find((e) => e.id === editionId);
+  if (!edition) return { success: false, error: "Edition not found." };
+  if (!isEditionCreator(edition, creator)) {
+    return { success: false, error: "Only the creator can edit this edition." };
+  }
+
+  const title = changes.title.trim();
+  if (!title) return { success: false, error: "Give the edition a title." };
+  if (!(changes.priceGbp >= 1)) return { success: false, error: "Set a price of at least £1." };
+  if (!(
+    changes.royaltyPercent >= ROYALTY_LIMITS.min && changes.royaltyPercent <= ROYALTY_LIMITS.max
+  )) {
+    return {
+      success: false,
+      error: `Royalty must be between ${ROYALTY_LIMITS.min}% and ${ROYALTY_LIMITS.max}%.`,
+    };
+  }
+
+  const totalEditions = changes.tier === "genesis_1_of_1" ? 1 : Math.round(changes.totalEditions);
+  // An edition taken down after going live may already have collectors
+  const sold = edition.totalEditions - edition.availableEditions;
+  if (sold > 0 && changes.tier !== edition.tier) {
+    return { success: false, error: "Editions that have sold can't change type." };
+  }
+  if (totalEditions < Math.max(sold, 1)) {
+    return {
+      success: false,
+      error:
+        sold > 0
+          ? `${sold} copies have already sold, so keep at least ${sold}.`
+          : "An edition needs at least one copy.",
+    };
+  }
+
+  let collectionName: string | undefined;
+  if (changes.collectionId) {
+    const collection = getEditionCollection(changes.collectionId);
+    if (!collection || !isCollectionCreator(collection, creator)) {
+      return { success: false, error: "Choose one of your own collections." };
+    }
+    collectionName = collection.name;
+  }
+
+  const tokenPrefix = changes.tier === "genesis_1_of_1" ? "NSC-GEN-" : "NSC-EDN-";
+  return updateEditionReview(editionId, ["draft", "rejected"], {
+    title,
+    description: changes.description.trim(),
+    tier: changes.tier,
+    totalEditions,
+    availableEditions: totalEditions - sold,
+    ...pricesFromGbp(changes.priceGbp),
+    royaltyPercent: changes.royaltyPercent,
+    hasPhysicalTwin: changes.hasPhysicalTwin,
+    physicalPrintDetails: changes.hasPhysicalTwin
+      ? changes.physicalPrintDetails?.trim() || undefined
+      : undefined,
+    collectionId: changes.collectionId ?? undefined,
+    collectionName,
+    tokenId: sold > 0 ? edition.tokenId : edition.tokenId.replace(/^NSC-(GEN|EDN)-/, tokenPrefix),
+  });
+}
+
+/** Creator takes a published edition off sale, or puts it back on sale. */
+export function setEditionSalesPaused(
+  editionId: string,
+  paused: boolean,
+  creator: { id?: string; slug?: string },
+): EditionReviewResult {
+  const edition = getStoredEditions().find((e) => e.id === editionId);
+  if (!edition) return { success: false, error: "Edition not found." };
+  if (!isEditionCreator(edition, creator)) {
+    return { success: false, error: "Only the creator can change sales for this edition." };
+  }
+  return updateEditionReview(editionId, ["published"], { salesPaused: paused || undefined });
+}
+
+export interface EditionCreatorProfile {
+  userId: string;
+  /** Photographer slug when saved, so public pages can find the profile by slug */
+  slug?: string;
+  displayName: string;
+  bio: string;
+  /** "account" follows the account profile picture; "upload" uses avatarUrl (an avatar or character) */
+  avatarSource: "account" | "upload";
+  avatarUrl?: string;
+  updatedAt: string;
+}
+
+export const CREATOR_PROFILE_LIMITS = { name: 60, bio: 280 } as const;
+
+function getStoredCreatorProfiles(): Record<string, EditionCreatorProfile> {
+  try {
+    const parsed: unknown = JSON.parse(safeGetItem(STORAGE_KEYS.CREATOR_PROFILES) ?? "{}");
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, EditionCreatorProfile>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+export function getEditionCreatorProfile(userId: string): EditionCreatorProfile | null {
+  return getStoredCreatorProfiles()[userId] ?? null;
+}
+
+/** The name and avatar collectors see for a creator. */
+export function resolveCreatorIdentity(
+  user: { id: string; name?: string; avatar?: string },
+  profile: EditionCreatorProfile | null = getEditionCreatorProfile(user.id),
+): { name: string; avatar?: string } {
+  return {
+    name: profile?.displayName || user.name || "NS CAPTURES creator",
+    avatar:
+      profile?.avatarSource === "upload" && profile.avatarUrl
+        ? profile.avatarUrl
+        : user.avatar || profile?.avatarUrl || undefined,
+  };
+}
+
+/** Saves the creator's NFT identity and shows it on their existing editions and collections. */
+export function saveEditionCreatorProfile(
+  input: {
+    displayName: string;
+    bio: string;
+    avatarSource: "account" | "upload";
+    avatarUrl?: string;
+  },
+  user: { id: string; slug?: string; name?: string; avatar?: string },
+): { success: boolean; profile?: EditionCreatorProfile; error?: string } {
+  const displayName = input.displayName.trim();
+  const bio = input.bio.trim();
+  if (!displayName) return { success: false, error: "Add the name collectors will see." };
+  if (displayName.length > CREATOR_PROFILE_LIMITS.name) {
+    return {
+      success: false,
+      error: `Keep your name to ${CREATOR_PROFILE_LIMITS.name} characters.`,
+    };
+  }
+  if (bio.length > CREATOR_PROFILE_LIMITS.bio) {
+    return { success: false, error: `Keep your bio to ${CREATOR_PROFILE_LIMITS.bio} characters.` };
+  }
+  if (input.avatarSource === "upload" && !input.avatarUrl) {
+    return { success: false, error: "Upload an avatar or choose your profile picture." };
+  }
+
+  const profile: EditionCreatorProfile = {
+    userId: user.id,
+    slug: user.slug,
+    displayName,
+    bio,
+    avatarSource: input.avatarSource,
+    // Keep a copy of the account picture too, for public pages that only have the profile
+    avatarUrl: input.avatarSource === "upload" ? input.avatarUrl : user.avatar || undefined,
+    updatedAt: new Date().toISOString(),
+  };
+  safeSetItem(
+    STORAGE_KEYS.CREATOR_PROFILES,
+    JSON.stringify({ ...getStoredCreatorProfiles(), [user.id]: profile }),
+  );
+
+  const identity = resolveCreatorIdentity(user, profile);
+  const editions = getStoredEditions();
+  if (editions.some((e) => isEditionCreator(e, user))) {
+    saveStoredEditions(
+      editions.map((e) =>
+        isEditionCreator(e, user)
+          ? { ...e, photographerName: identity.name, photographerAvatar: identity.avatar }
+          : e,
+      ),
+    );
+  }
+  const collections = getStoredUserCollections();
+  if (collections.some((c) => isCollectionCreator(c, user))) {
+    saveStoredUserCollections(
+      collections.map((c) =>
+        isCollectionCreator(c, user) ? { ...c, photographerName: identity.name } : c,
+      ),
+    );
+  }
+
+  notifyEditionsChanged();
+  return { success: true, profile };
+}
+
+/** Sales of a creator's editions and the royalties credited to them. */
+export function getCreatorSalesSummary(creator: { id?: string; slug?: string }) {
+  const editionIds = new Set(getEditionsByCreator(creator).map((e) => e.id));
+  const sales = getStoredOwnerships().filter((o) => editionIds.has(o.editionId));
+  return {
+    salesCount: sales.length,
+    grossGbp: sales.reduce((sum, o) => sum + o.purchasePriceGbp, 0),
+    royaltiesGbp: getStoredActivity()
+      .filter((a) => a.type === "royalty_paid" && editionIds.has(a.editionId))
+      .reduce((sum, a) => sum + (a.price ?? 0), 0),
+    collectors: new Set(sales.map((o) => o.ownerId)).size,
+  };
+}
+
+/** Editions a collector owns, newest first. */
+export function getOwnershipsByOwner(ownerId: string): EditionOwnership[] {
+  return getStoredOwnerships().filter((o) => o.ownerId === ownerId);
+}
+
+// ============================================================
+// WEB3 ACTIVATION (one account, switched on for NFTs) + PUBLIC PAGES
+// ============================================================
+
+export type Web3Role = "collector" | "creator";
+
+export interface Web3Activation {
+  userId: string;
+  role: Web3Role;
+  termsAcceptedAt: string;
+  activatedAt: string;
+}
+
+function getStoredActivations(): Record<string, Web3Activation> {
+  try {
+    const parsed: unknown = JSON.parse(safeGetItem(STORAGE_KEYS.WEB3_ACTIVATIONS) ?? "{}");
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, Web3Activation>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function getWeb3Activation(userId?: string | null): Web3Activation | null {
+  return userId ? (getStoredActivations()[userId] ?? null) : null;
+}
+
+/** Whether the account has Web3 switched on. Creator tools also need the creator role. */
+export function isWeb3Activated(userId: string | null | undefined, role: Web3Role = "collector") {
+  const activation = getWeb3Activation(userId);
+  return Boolean(activation) && (role === "collector" || activation?.role === "creator");
+}
+
+/** Switches Web3 on for an existing account. Collectors can become creators, never the reverse. */
+export function activateWeb3(userId: string, role: Web3Role): Web3Activation {
+  const existing = getWeb3Activation(userId);
+  const now = new Date().toISOString();
+  const activation: Web3Activation = {
+    userId,
+    role: existing?.role === "creator" ? "creator" : role,
+    termsAcceptedAt: now,
+    activatedAt: existing?.activatedAt ?? now,
+  };
+  safeSetItem(
+    STORAGE_KEYS.WEB3_ACTIVATIONS,
+    JSON.stringify({ ...getStoredActivations(), [userId]: activation }),
+  );
+  notifyEditionsChanged();
+  return activation;
+}
+
+export type CreatorPageData = {
+  key: string;
+  userId?: string;
+  name: string;
+  avatar?: string;
+  bio: string;
+  joinedAt?: string;
+  created: DigitalEdition[];
+  collections: EditionCollectionMeta[];
+  collected: { edition: DigitalEdition; ownership: EditionOwnership }[];
+  collectors: number;
+};
+
+/** A public creator or collector page, looked up by photographer slug/id or user id. Public data only. */
+export function getCreatorPageData(key: string): CreatorPageData | null {
+  if (!key) return null;
+  const published = getPublishedEditions();
+  const profile =
+    Object.values(getStoredCreatorProfiles()).find((p) => p.userId === key || p.slug === key) ??
+    null;
+  const userId =
+    profile?.userId ??
+    published.find((e) => e.createdBy && (e.photographerId === key || e.createdBy === key))
+      ?.createdBy ??
+    (getOwnershipsByOwner(key).length > 0 ? key : undefined);
+  const keys = new Set([key, userId, profile?.slug].filter((v): v is string => Boolean(v)));
+
+  const created = published.filter(
+    (e) => keys.has(e.photographerId) || (Boolean(e.createdBy) && keys.has(e.createdBy ?? "")),
+  );
+  const collections = getPublicEditionCollections().filter(
+    (c) => keys.has(c.photographerId) || (Boolean(c.createdBy) && keys.has(c.createdBy ?? "")),
+  );
+  const byId = new Map(published.map((e) => [e.id, e]));
+  const ownerships = userId ? getOwnershipsByOwner(userId) : [];
+  const collected = ownerships.flatMap((ownership) => {
+    const edition = byId.get(ownership.editionId);
+    return edition ? [{ edition, ownership }] : [];
+  });
+  if (!profile && created.length === 0 && collected.length === 0) return null;
+
+  const createdIds = new Set(created.map((e) => e.id));
+  return {
+    key,
+    userId,
+    name:
+      profile?.displayName ||
+      created[0]?.photographerName ||
+      ownerships[0]?.ownerName ||
+      "NS CAPTURES member",
+    avatar: profile?.avatarUrl ?? created[0]?.photographerAvatar,
+    bio: profile?.bio ?? "",
+    joinedAt: getWeb3Activation(userId)?.activatedAt,
+    created,
+    collections,
+    collected,
+    collectors: new Set(
+      getStoredOwnerships()
+        .filter((o) => createdIds.has(o.editionId))
+        .map((o) => o.ownerId),
+    ).size,
+  };
+}
+
+// ============================================================
 // PUBLIC MARKETPLACE VISIBILITY (Admin Toggle)
 // ============================================================
 
@@ -894,6 +1278,8 @@ export interface EditionCollectionMeta {
   contractAddress: string;
   createdAt: string;
   royaltyPercent: number;
+  /** Auth user id of the creator who made it. Curated collections have none. */
+  createdBy?: string;
   socials?: {
     twitter?: string;
     discord?: string;
@@ -978,15 +1364,49 @@ export const INITIAL_EDITION_COLLECTIONS: EditionCollectionMeta[] = [
   },
 ];
 
+export const COLLECTION_CHAINS = ["Ethereum", "Base", "Solana"] as const;
+export const COLLECTION_LIMITS = { nameMin: 3, nameMax: 60, description: 1000 } as const;
+
+export type EditionCollectionInput = {
+  name: string;
+  description: string;
+  /** Logo shown beside the collection name */
+  avatarImage: string;
+  /** Wide banner; the logo is used when it's left empty */
+  bannerImage?: string;
+  chain: string;
+  royaltyPercent: number;
+};
+
+export type EditionCollectionResult = {
+  success: boolean;
+  collection?: EditionCollectionMeta;
+  error?: string;
+};
+
+function getStoredUserCollections(): EditionCollectionMeta[] {
+  try {
+    const parsed: unknown = JSON.parse(safeGetItem(STORAGE_KEYS.COLLECTIONS) ?? "[]");
+    return Array.isArray(parsed) ? (parsed as EditionCollectionMeta[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredUserCollections(collections: EditionCollectionMeta[]): void {
+  safeSetItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(collections));
+}
+
+/** Curated collections plus every collection creators have made. */
 export function getEditionCollections(): EditionCollectionMeta[] {
-  return INITIAL_EDITION_COLLECTIONS;
+  return [...INITIAL_EDITION_COLLECTIONS, ...getStoredUserCollections()];
 }
 
 export function getEditionCollection(idOrName: string): EditionCollectionMeta | null {
   if (!idOrName) return null;
   const norm = idOrName.toLowerCase().replace(/-/g, " ");
   return (
-    INITIAL_EDITION_COLLECTIONS.find(
+    getEditionCollections().find(
       (c) =>
         c.id === idOrName ||
         c.name.toLowerCase() === norm ||
@@ -995,13 +1415,182 @@ export function getEditionCollection(idOrName: string): EditionCollectionMeta | 
   );
 }
 
+export function isCollectionCreator(
+  collection: EditionCollectionMeta,
+  user: { id?: string } | null | undefined,
+): boolean {
+  return !!user?.id && collection.createdBy === user.id;
+}
+
+export function editionBelongsToCollection(
+  edition: DigitalEdition,
+  collection: EditionCollectionMeta,
+): boolean {
+  if (edition.collectionId) return edition.collectionId === collection.id;
+  // Creator-made collections only hold editions explicitly added to them
+  if (collection.createdBy) return false;
+  return (
+    edition.collectionName?.toLowerCase() === collection.name.toLowerCase() ||
+    edition.photographerId === collection.photographerId
+  );
+}
+
 export function getEditionsByCollection(collectionIdOrName: string): DigitalEdition[] {
   const col = getEditionCollection(collectionIdOrName);
   if (!col) return [];
-  const allEditions = getPublishedEditions();
-  return allEditions.filter(
-    (e) =>
-      e.collectionName?.toLowerCase() === col.name.toLowerCase() ||
-      e.photographerId === col.photographerId,
+  return getPublishedEditions().filter((e) => editionBelongsToCollection(e, col));
+}
+
+/** Curated collections, and creator collections once one of their editions is published. */
+export function getPublicEditionCollections(): EditionCollectionMeta[] {
+  const published = getPublishedEditions();
+  return getEditionCollections().filter(
+    (c) => !c.createdBy || published.some((e) => editionBelongsToCollection(e, c)),
   );
+}
+
+export function getCollectionsByCreator(creator: { id?: string }): EditionCollectionMeta[] {
+  return getStoredUserCollections().filter((c) => isCollectionCreator(c, creator));
+}
+
+function validateCollectionInput(input: EditionCollectionInput, excludeId?: string): string | null {
+  const name = input.name.trim();
+  if (name.length < COLLECTION_LIMITS.nameMin) {
+    return `Collection names need at least ${COLLECTION_LIMITS.nameMin} characters.`;
+  }
+  if (name.length > COLLECTION_LIMITS.nameMax) {
+    return `Keep the collection name to ${COLLECTION_LIMITS.nameMax} characters.`;
+  }
+  const taken = getEditionCollections().some(
+    (c) => c.id !== excludeId && c.name.toLowerCase() === name.toLowerCase(),
+  );
+  if (taken) return "A collection with that name already exists. Try another name.";
+  if (input.description.trim().length > COLLECTION_LIMITS.description) {
+    return "Keep the description to 1,000 characters.";
+  }
+  if (!input.avatarImage) return "Add a logo for the collection.";
+  if (!(COLLECTION_CHAINS as readonly string[]).includes(input.chain)) return "Choose a chain.";
+  if (!(input.royaltyPercent >= ROYALTY_LIMITS.min && input.royaltyPercent <= ROYALTY_LIMITS.max)) {
+    return `Royalty must be between ${ROYALTY_LIMITS.min}% and ${ROYALTY_LIMITS.max}%.`;
+  }
+  return null;
+}
+
+function uniqueCollectionSlug(name: string): string {
+  const base =
+    name
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "collection";
+  const taken = new Set(getEditionCollections().map((c) => c.id));
+  let slug = base;
+  for (let n = 2; taken.has(slug); n += 1) slug = `${base}-${n}`;
+  return slug;
+}
+
+/** A creator starts a collection. It stays off the marketplace until one of its editions is published. */
+export function createEditionCollection(
+  input: EditionCollectionInput,
+  creator: { id: string; slug?: string; name?: string; avatar?: string },
+): EditionCollectionResult {
+  const error = validateCollectionInput(input);
+  if (error) return { success: false, error };
+
+  const collection: EditionCollectionMeta = {
+    id: uniqueCollectionSlug(input.name),
+    name: input.name.trim(),
+    description: input.description.trim(),
+    avatarImage: input.avatarImage,
+    bannerImage: input.bannerImage || input.avatarImage,
+    photographerId: creator.slug || creator.id,
+    photographerName: resolveCreatorIdentity(creator).name,
+    chain: input.chain,
+    contractAddress: `0x${Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
+    createdAt: new Date().toISOString(),
+    royaltyPercent: input.royaltyPercent,
+    createdBy: creator.id,
+  };
+  saveStoredUserCollections([...getStoredUserCollections(), collection]);
+  notifyEditionsChanged();
+  return { success: true, collection };
+}
+
+export function updateEditionCollection(
+  collectionId: string,
+  input: EditionCollectionInput,
+  creator: { id?: string },
+): EditionCollectionResult {
+  const collections = getStoredUserCollections();
+  const index = collections.findIndex((c) => c.id === collectionId);
+  if (index === -1) return { success: false, error: "Collection not found." };
+  if (!isCollectionCreator(collections[index], creator)) {
+    return { success: false, error: "Only the creator can edit this collection." };
+  }
+  const error = validateCollectionInput(input, collectionId);
+  if (error) return { success: false, error };
+
+  const updated: EditionCollectionMeta = {
+    ...collections[index],
+    name: input.name.trim(),
+    description: input.description.trim(),
+    avatarImage: input.avatarImage,
+    bannerImage: input.bannerImage || input.avatarImage,
+    chain: input.chain,
+    royaltyPercent: input.royaltyPercent,
+  };
+  collections[index] = updated;
+  saveStoredUserCollections(collections);
+
+  // Editions carry the collection name for display, so keep it in step
+  const editions = getStoredEditions();
+  if (editions.some((e) => e.collectionId === collectionId)) {
+    saveStoredEditions(
+      editions.map((e) =>
+        e.collectionId === collectionId ? { ...e, collectionName: updated.name } : e,
+      ),
+    );
+  }
+  notifyEditionsChanged();
+  return { success: true, collection: updated };
+}
+
+/** Deletes a creator collection that has nothing live or in review; its drafts are listed on their own. */
+export function deleteEditionCollection(
+  collectionId: string,
+  creator: { id?: string },
+): { success: boolean; error?: string } {
+  const collections = getStoredUserCollections();
+  const collection = collections.find((c) => c.id === collectionId);
+  if (!collection) return { success: false, error: "Collection not found." };
+  if (!isCollectionCreator(collection, creator)) {
+    return { success: false, error: "Only the creator can delete this collection." };
+  }
+
+  const editions = getStoredEditions();
+  const members = editions.filter((e) => e.collectionId === collectionId);
+  const locked = members.some((e) => {
+    const status = editionReviewStatus(e);
+    return status === "published" || status === "pending_review";
+  });
+  if (locked) {
+    return {
+      success: false,
+      error: "Collections with live or in-review editions can't be deleted.",
+    };
+  }
+
+  saveStoredUserCollections(collections.filter((c) => c.id !== collectionId));
+  if (members.length > 0) {
+    saveStoredEditions(
+      editions.map((e) =>
+        e.collectionId === collectionId
+          ? { ...e, collectionId: undefined, collectionName: undefined }
+          : e,
+      ),
+    );
+  }
+  notifyEditionsChanged();
+  return { success: true };
 }

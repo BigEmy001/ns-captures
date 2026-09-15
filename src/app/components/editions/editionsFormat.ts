@@ -27,6 +27,11 @@ export const selectClass =
 
 export const tableHeadClass = "font-mono text-xs uppercase text-(--ed-muted)";
 
+/** Public creator or collector page (photographer slug/id or user id). */
+export const creatorHref = (key: string) => `/editions/creator/${encodeURIComponent(key)}`;
+export const creatorHrefFor = (edition: Pick<DigitalEdition, "photographerId">) =>
+  creatorHref(edition.photographerId);
+
 // Scroll-triggered reveal for page sections
 export const sectionReveal = {
   initial: { opacity: 0, y: 16 },
@@ -93,12 +98,17 @@ export function tierLabel(edition: DigitalEdition) {
   return "Series";
 }
 
-export function collectionSlugFor(edition: Pick<DigitalEdition, "collectionName">) {
-  if (!edition.collectionName) return "kyoto-nocturnes";
-  return (
-    getEditionCollection(edition.collectionName)?.id ??
-    edition.collectionName.toLowerCase().replace(/\s+/g, "-")
-  );
+/** An edition's collection page, or the collections index when it's listed on its own. */
+export function collectionHrefFor(
+  edition: Pick<DigitalEdition, "collectionName" | "collectionId">,
+): string {
+  const slug =
+    edition.collectionId ??
+    (edition.collectionName
+      ? (getEditionCollection(edition.collectionName)?.id ??
+        edition.collectionName.toLowerCase().replace(/\s+/g, "-"))
+      : null);
+  return slug ? `/editions/collection/${slug}` : "/editions/collection";
 }
 
 // Placeholder ownership used to preview a certificate before an edition has been collected

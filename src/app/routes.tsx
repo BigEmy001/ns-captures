@@ -35,6 +35,12 @@ const EditionsLearnArticle = lazy(() =>
 const EditionCollectionsIndex = lazy(() =>
   import("./pages/EditionCollectionsIndex").then((m) => ({ default: m.EditionCollectionsIndex })),
 );
+const EditionsStudio = lazy(() =>
+  import("./pages/EditionsStudio").then((m) => ({ default: m.EditionsStudio })),
+);
+const EditionsCreator = lazy(() =>
+  import("./pages/EditionsCreator").then((m) => ({ default: m.EditionsCreator })),
+);
 const Pricing = lazy(() => import("./pages/Pricing").then((m) => ({ default: m.Pricing })));
 const Enterprise = lazy(() =>
   import("./pages/Enterprise").then((m) => ({ default: m.Enterprise })),
@@ -145,6 +151,22 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={fallback}>
             <EditionCollection />
+          </Suspense>
+        ),
+      },
+      {
+        path: "editions/studio",
+        element: (
+          <Suspense fallback={fallback}>
+            <EditionsStudio />
+          </Suspense>
+        ),
+      },
+      {
+        path: "editions/creator/:id",
+        element: (
+          <Suspense fallback={fallback}>
+            <EditionsCreator />
           </Suspense>
         ),
       },

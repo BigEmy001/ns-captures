@@ -6,6 +6,7 @@ import { Badge } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import {
   approveEdition,
+  ARTWORK_SOURCE_LABELS,
   editionReviewStatus,
   EDITION_REVIEW_LABELS,
   EDITIONS_CHANGED_EVENT,
@@ -412,7 +413,7 @@ export function EditionsPanel() {
             <div className="rounded-2xl border border-dashed border-[#ececec] bg-white py-16 text-center">
               <p className="font-serif text-2xl text-[#18211f]">No editions to review.</p>
               <p className="mt-2 text-sm text-[#6b716d]">
-                Creators submit editions from Account → NFT Editions.
+                Creators submit editions from their Editions studio.
               </p>
             </div>
           ) : (
@@ -437,6 +438,11 @@ export function EditionsPanel() {
                         <span className="rounded-full bg-[#dce8df] px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-[#1e4a3f]">
                           {tierLabel(edition)}
                         </span>
+                        {edition.artworkSource && edition.artworkSource !== "portfolio" && (
+                          <span className="rounded-full bg-[#fdf3e1] px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-[#8a5a00]">
+                            {ARTWORK_SOURCE_LABELS[edition.artworkSource]} · check rights
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-[#4a534e]">
                         By{" "}
@@ -449,6 +455,11 @@ export function EditionsPanel() {
                           {formatGbp(edition.priceGbp)} · ≈ {edition.priceEth} ETH
                         </span>
                         <span>{edition.royaltyPercent}% royalty</span>
+                        <span>
+                          {edition.collectionName
+                            ? `Collection: ${edition.collectionName}`
+                            : "No collection"}
+                        </span>
                         {edition.hasPhysicalTwin && <span>Includes print twin</span>}
                         <span>Submitted {formatDate(edition.submittedAt)}</span>
                       </div>
@@ -661,6 +672,11 @@ export function EditionsPanel() {
                             >
                               {EDITION_REVIEW_LABELS[status].toUpperCase()}
                             </Badge>
+                            {published && edition.salesPaused && (
+                              <Badge tone="muted" size="sm" className="ml-1.5 whitespace-nowrap">
+                                SALES PAUSED
+                              </Badge>
+                            )}
                           </td>
                           <td className="whitespace-nowrap px-4 py-4 text-xs text-[#6b716d]">
                             {edition.availableEditions} of {edition.totalEditions} left

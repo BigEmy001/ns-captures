@@ -8,6 +8,7 @@ import {
   getStoredOwnerships,
   getStoredActivity,
   getEditionCollection,
+  isWeb3Activated,
   purchaseEdition,
   EDITION_REVIEW_LABELS,
   editionReviewStatus,
@@ -33,7 +34,8 @@ import {
   VerifiedBadge,
 } from "../components/editions/editionsUi";
 import {
-  collectionSlugFor,
+  collectionHrefFor,
+  creatorHrefFor,
   fadeUpVariants,
   formatDate,
   formatEth,
@@ -50,6 +52,7 @@ import {
   traitTone,
 } from "../components/editions/editionsFormat";
 import { useEditionVault } from "../components/editions/useEditionVault";
+import { useWeb3Activation } from "../components/editions/useWeb3Activation";
 import { copyToClipboard } from "../../lib/clipboard";
 
 // Icons exported from the Figma "photo details" frame (node 18:2)
@@ -92,6 +95,7 @@ export function EditionDetail() {
   const navigate = useNavigate();
   const { user, walletLabel, primaryEvmAddress, depositConfig, checkPurchaseGate } =
     useEditionVault();
+  const { requireWeb3, activationModal } = useWeb3Activation();
 
   const [editions, setEditions] = useState<DigitalEdition[]>(() => getStoredEditions());
   const [ownerships, setOwnerships] = useState<EditionOwnership[]>(() => getStoredOwnerships());
@@ -105,10 +109,10 @@ export function EditionDetail() {
   // Only public editions count towards trait rarity and "more from this collection"
   const publishedEditions = useMemo(() => editions.filter(isEditionPublished), [editions]);
 
-  const collection = useMemo(
-    () => (edition?.collectionName ? getEditionCollection(edition.collectionName) : null),
-    [edition],
-  );
+  const collection = useMemo(() => {
+    const key = edition?.collectionId ?? edition?.collectionName;
+    return key ? getEditionCollection(key) : null;
+  }, [edition]);
 
   // Ownerships for this specific edition (newest first)
   const editionOwnerships = useMemo(() => {
@@ -183,20 +187,32 @@ export function EditionDetail() {
   const traits = useMemo(() => {
     if (!edition) return [];
     const total = publishedEditions.length || 1;
-    const defs: { type: string; value: string; matches: (e: DigitalEdition) => boolean }[] = [
-      { type: "Camera", value: edition.camera, matches: (e) => e.camera === edition.camera },
-      { type: "Lens", value: edition.lens, matches: (e) => e.lens === edition.lens },
-      { type: "ISO", value: `ISO ${edition.iso}`, matches: (e) => e.iso === edition.iso },
-      {
-        type: "Aperture",
-        value: edition.aperture ?? "—",
-        matches: (e) => e.aperture === edition.aperture,
-      },
-      {
-        type: "Shutter speed",
-        value: edition.shutterSpeed ?? "—",
-        matches: (e) => e.shutterSpeed === edition.shutterSpeed,
-      },
+    type TraitDef = { type: string; value: string; matches: (e: DigitalEdition) => boolean };
+    const isArtwork = (e: DigitalEdition) => !!e.artworkSource && e.artworkSource !== "portfolio";
+    // Uploaded artwork has no camera data, so it gets a medium trait instead
+    const captureDefs: TraitDef[] = isArtwork(edition)
+      ? [{ type: "Medium", value: "Digital artwork", matches: isArtwork }]
+      : [
+          { type: "Camera", value: edition.camera, matches: (e) => e.camera === edition.camera },
+          { type: "Lens", value: edition.lens, matches: (e) => e.lens === edition.lens },
+          {
+            type: "ISO",
+            value: edition.iso ? `ISO ${edition.iso}` : "—",
+            matches: (e) => e.iso === edition.iso,
+          },
+          {
+            type: "Aperture",
+            value: edition.aperture ?? "—",
+            matches: (e) => e.aperture === edition.aperture,
+          },
+          {
+            type: "Shutter speed",
+            value: edition.shutterSpeed ?? "—",
+            matches: (e) => e.shutterSpeed === edition.shutterSpeed,
+          },
+        ];
+    const defs: TraitDef[] = [
+      ...captureDefs,
       {
         type: "Location",
         value: edition.location ?? "—",
@@ -284,6 +300,11 @@ export function EditionDetail() {
       navigate("/signin");
       return;
     }
+    // First purchase: switch Web3 on for this account, then carry on
+    if (!isWeb3Activated(user.id)) {
+      requireWeb3("collector", handleExecuteBuy);
+      return;
+    }
 
     const gateCheck = checkPurchaseGate();
     if (!gateCheck.eligible) {
@@ -365,7 +386,7 @@ export function EditionDetail() {
   }
 
   const isSoldOut = edition.availableEditions <= 0;
-  const collectionSlug = collectionSlugFor(edition);
+  const collectionHref = collectionHrefFor(edition);
   const collectionAvatar = collection?.avatarImage ?? edition.photographerAvatar;
   const contractAddress =
     collection?.contractAddress ?? "0x29f8a32490b6c12c98d7b4c9103e5a7b8e9104f1";
@@ -441,7 +462,7 @@ export function EditionDetail() {
                   </span>
                 </p>
                 <Link
-                  to={isCreator ? "/account?tab=nfts" : "/admin"}
+                  to={isCreator ? "/editions/studio?section=editions" : "/admin"}
                   className={`${secondaryButtonClass} h-8 shrink-0 px-3 text-xs`}
                 >
                   {isCreator ? "Manage edition" : "Open review queue"}
@@ -463,7 +484,7 @@ export function EditionDetail() {
             >
               <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
                 <Link
-                  to={`/editions/collection/${collectionSlug}`}
+                  to={collectionHref}
                   className="flex min-w-0 items-center gap-2 text-sm font-medium tracking-[-0.15px] text-(--ed-text) transition-colors hover:text-(--ed-text-soft)"
                 >
                   {collectionAvatar && (
@@ -496,7 +517,7 @@ export function EditionDetail() {
                   )}
                   {ownerIsArtist ? (
                     <Link
-                      to={`/photographer/${edition.photographerSlug || edition.photographerId}`}
+                      to={creatorHrefFor(edition)}
                       className="truncate font-medium text-(--ed-text) transition-colors hover:text-(--ed-text-soft)"
                     >
                       {ownerName}
@@ -570,7 +591,7 @@ export function EditionDetail() {
                           { label: "Share", onSelect: handleShare },
                           {
                             label: "View collection",
-                            onSelect: () => navigate(`/editions/collection/${collectionSlug}`),
+                            onSelect: () => navigate(collectionHref),
                           },
                         ].map((item) => (
                           <button
@@ -628,7 +649,9 @@ export function EditionDetail() {
                       <Chip>
                         {isSoldOut
                           ? "Sold out"
-                          : `${edition.availableEditions} of ${edition.totalEditions} available`}
+                          : edition.salesPaused
+                            ? "Sales paused"
+                            : `${edition.availableEditions} of ${edition.totalEditions} available`}
                       </Chip>
                     </div>
                   </div>
@@ -643,11 +666,17 @@ export function EditionDetail() {
                     </button>
                     <button
                       type="button"
-                      disabled={isSoldOut || isPurchasing || !isPublished}
+                      disabled={isSoldOut || isPurchasing || !isPublished || !!edition.salesPaused}
                       onClick={handleExecuteBuy}
                       className={`${primaryButtonClass} h-12 px-6 text-base tracking-[-0.31px] sm:flex-[308_1_0%]`}
                     >
-                      {isPurchasing ? "Processing…" : isSoldOut ? "Sold Out" : "Buy Now"}
+                      {isPurchasing
+                        ? "Processing…"
+                        : isSoldOut
+                          ? "Sold Out"
+                          : edition.salesPaused
+                            ? "Not for sale"
+                            : "Buy Now"}
                     </button>
                   </div>
                 </div>
@@ -870,7 +899,7 @@ export function EditionDetail() {
                             </div>
                           </div>
                           <Link
-                            to={`/photographer/${edition.photographerSlug || edition.photographerId}`}
+                            to={creatorHrefFor(edition)}
                             className={`${secondaryButtonClass} h-9 shrink-0 px-4 text-sm`}
                           >
                             View profile
@@ -1123,6 +1152,7 @@ export function EditionDetail() {
           </div>
         </EditionsModal>
       )}
+      {activationModal}
     </EditionsShell>
   );
 }

@@ -399,6 +399,7 @@ export function EditionCard({
   onInspectCertificate?: (edition: DigitalEdition) => void;
 }) {
   const soldOut = edition.availableEditions <= 0;
+  const paused = !soldOut && !!edition.salesPaused;
 
   return (
     <article className="group flex min-w-0 flex-col overflow-hidden rounded-lg border border-(--ed-border) bg-(--ed-surface) transition-[border-color,translate,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:border-(--ed-border-strong) hover:shadow-(--ed-shadow) motion-reduce:hover:translate-y-0">
@@ -444,7 +445,11 @@ export function EditionCard({
             </p>
           </div>
           <p className="shrink-0 font-mono text-xs text-(--ed-muted)">
-            {soldOut ? "Sold out" : `${edition.availableEditions}/${edition.totalEditions} left`}
+            {soldOut
+              ? "Sold out"
+              : paused
+                ? "Sales paused"
+                : `${edition.availableEditions}/${edition.totalEditions} left`}
           </p>
         </div>
 
@@ -454,10 +459,10 @@ export function EditionCard({
               <button
                 type="button"
                 onClick={() => onBuy(edition)}
-                disabled={soldOut}
+                disabled={soldOut || paused}
                 className={`${primaryButtonClass} h-9 flex-1 text-sm`}
               >
-                {soldOut ? "Sold out" : "Buy now"}
+                {soldOut ? "Sold out" : paused ? "Not for sale" : "Buy now"}
               </button>
             )}
             {onInspectCertificate && (

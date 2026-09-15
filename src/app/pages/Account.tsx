@@ -89,6 +89,7 @@ const buyerNav: NavEntry[] = [
   { id: "collections", label: "Collections", icon: FolderHeart },
   { id: "downloads", label: "Downloads", icon: Download },
   { id: "licenses", label: "Licenses", icon: FileText },
+  { id: "nfts", label: "NFT Editions", icon: Sparkles },
   { id: "vault", label: "Web3", icon: ShieldCheck },
   { id: "security", label: "Settings", icon: Settings },
   { id: "billing", label: "Billing", icon: CreditCard },
@@ -1551,7 +1552,7 @@ export function Account() {
           )}
 
           {active === "vault" && <SettlementVaultTab />}
-          {canCreate && active === "nfts" && <NftEditionsTab />}
+          {active === "nfts" && <NftEditionsTab canCreate={canCreate} />}
           {active === "earnings" && <EarningsTab />}
           {active === "licensed" && <LicensedWorkTab />}
           {inProgramme && active === "acquisitions" && <AcquisitionsTab />}
