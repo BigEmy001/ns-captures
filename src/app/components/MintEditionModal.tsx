@@ -553,9 +553,9 @@ export function MintEditionModal({
                 Verifying your Web3 vault deposit…
               </div>
             ) : !isEligible ? (
-              <div className="flex flex-col gap-4 rounded-lg border border-[rgba(255,138,0,0.35)] bg-[rgba(255,138,0,0.08)] p-4">
+              <div className="flex flex-col gap-4 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-4">
                 <div className="flex items-start gap-3">
-                  <ShieldAlert className="mt-0.5 size-5 shrink-0 text-(--ed-warning)" />
+                  <ShieldAlert className="mt-0.5 size-5 shrink-0 text-(--ed-muted)" />
                   <div>
                     <h4 className="text-sm font-medium text-(--ed-text)">
                       Archival certification &amp; minting fee required
@@ -578,10 +578,10 @@ export function MintEditionModal({
                 </div>
 
                 {/* 1-Click Swap CTA to obtain NSC */}
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-lg border border-(--ed-primary)/30 bg-(--ed-primary)/10 p-3.5">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-3.5">
                   <div className="space-y-0.5">
-                    <p className="text-xs font-semibold text-(--ed-text) flex items-center gap-1.5">
-                      <Sparkles className="size-3.5 text-(--ed-primary)" />
+                    <p className="text-xs font-medium text-(--ed-text) flex items-center gap-1.5">
+                      <Sparkles className="size-3.5 text-(--ed-muted)" />
                       Need NSC coin or ETH for minting?
                     </p>
                     <p className="text-[11px] text-(--ed-muted)">
@@ -591,7 +591,7 @@ export function MintEditionModal({
                   <button
                     type="button"
                     onClick={() => setIsPresaleModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-(--ed-primary) px-4 py-2 text-xs font-semibold text-black transition-opacity hover:opacity-90 shrink-0"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-(--ed-primary) px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 shrink-0"
                   >
                     <Sparkles className="size-3.5" />
                     Swap ETH / Crypto to NSC
@@ -601,9 +601,9 @@ export function MintEditionModal({
                 {userTokenBalances.usdt > 0 &&
                   userTokenBalances.nsc < (config.nscThreshold ?? 20) &&
                   userTokenBalances.eth < config.ethThreshold && (
-                    <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-(--ed-text) space-y-1.5">
-                      <div className="flex items-center gap-1.5 font-semibold text-blue-400">
-                        <Info className="size-3.5 shrink-0" />
+                    <div className="rounded-lg border border-(--ed-border) bg-(--ed-surface) p-3 text-xs text-(--ed-text) space-y-1.5">
+                      <div className="flex items-center gap-1.5 font-medium text-(--ed-text)">
+                        <Info className="size-3.5 shrink-0 text-(--ed-muted)" />
                         <span>Notice for USDT Holders:</span>
                       </div>
                       <p className="text-(--ed-muted) leading-relaxed">
@@ -657,7 +657,7 @@ export function MintEditionModal({
                       <button
                         type="button"
                         onClick={checkBalances}
-                        className={`${primaryButtonClass} h-8 px-3 text-xs`}
+                        className={`${secondaryButtonClass} h-8 px-3 text-xs`}
                       >
                         <RefreshCw className="size-3.5" />
                         Verify on-chain

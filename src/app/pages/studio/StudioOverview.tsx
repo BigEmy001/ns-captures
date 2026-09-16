@@ -67,17 +67,13 @@ export function StudioOverview({
       done: hasWallet,
       title: "Web3 vault wallet",
       body: "Create or connect a wallet in your vault. Sales and royalties settle there.",
-      action: hasWallet
-        ? undefined
-        : { label: "Open vault", to: "/account?tab=web3", external: true },
+      action: hasWallet ? undefined : { label: "Open vault", to: "/account?tab=web3" },
     },
     {
       done: depositMet,
       title: "Minting fee deposit",
       body: `Hold at least ${depositConfig.usdtThreshold} USDT, ${depositConfig.usdcThreshold} USDC, ${depositConfig.ethThreshold} ETH, ${depositConfig.solThreshold} SOL or ${depositConfig.btcThreshold} BTC in your vault to cover archival certification and minting.`,
-      action: depositMet
-        ? undefined
-        : { label: "Deposit", to: "/account?tab=web3", external: true },
+      action: depositMet ? undefined : { label: "Deposit", to: "/account?tab=web3" },
     },
     {
       done: Boolean(profile),

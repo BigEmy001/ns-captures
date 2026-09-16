@@ -1057,7 +1057,7 @@ export async function sendNscConversionNotification({
   fiatAmount,
   currency = "GBP",
   nscAmount,
-  vaultAddress,
+  vaultAddress: _vaultAddress,
 }: {
   to: string;
   userName?: string;
@@ -1068,7 +1068,6 @@ export async function sendNscConversionNotification({
 }) {
   const safeName = escapeHtml(userName || "Collector");
   const safeCurrency = escapeHtml(currency);
-  const safeAddress = vaultAddress ? escapeHtml(vaultAddress) : "";
 
   const subject = `Web2 to Web3 Conversion: ${nscAmount} NSC Credited — NS CAPTURES`;
   const html = `
@@ -1081,12 +1080,7 @@ export async function sendNscConversionNotification({
   <p style="margin:4px 0 0 0;font-size:13px;color:#758078;">Deducted from Web2 Balance: ${safeCurrency} ${fiatAmount}</p>
   <hr style="border:none;border-top:1px solid #dce8df;margin:16px 0;"/>
   <p style="margin:0;font-size:13px;color:#555555;"><strong>Exchange Rate:</strong> 1.00 ${safeCurrency} = 1.00 NSC (1:1 Web3 Bridge)</p>
-  ${
-    safeAddress
-      ? `<p style="margin:8px 0 0 0;font-size:13px;color:#555555;"><strong>Vault EVM Address:</strong></p>
-  <p style="margin:4px 0 0 0;font-size:12px;font-family:monospace;color:#18211f;word-break:break-all;background:#ffffff;padding:8px 12px;border-radius:6px;border:1px solid #dce8df;">${safeAddress}</p>`
-      : ""
-  }
+  <p style="margin:8px 0 0 0;font-size:13px;color:#555555;"><strong>Destination:</strong> Web3 Settlement Vault</p>
 </div>
 <p style="${P}">Your live Web3 vault balance is updated and ready to be used or transferred.</p>
 <p style="margin:24px 0 0;">${btn("https://www.nscaptures.com/account?tab=web3", "View Web3 Vault")}</p>

@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from "react";
 import {
   X,
   Sparkles,
-  Flame,
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
@@ -489,11 +488,11 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
         <div className="shrink-0 border-b border-(--ed-border) px-4 sm:px-5 pt-3.5 pb-3 bg-(--ed-surface)">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-mono font-semibold text-amber-500 border border-amber-500/30 shrink-0">
-                <Flame className="size-3 fill-amber-500 animate-pulse" />
-                Presale • 1:1 Peg
+              <span className="inline-flex items-center gap-1 rounded-full bg-(--ed-raised) px-2.5 py-0.5 text-[11px] font-mono font-medium text-(--ed-muted) border border-(--ed-border) shrink-0">
+                <Sparkles className="size-3 text-(--ed-muted)" />
+                Presale · 1:1 Peg
               </span>
-              <h2 className="text-base font-bold tracking-tight text-(--ed-text) truncate">
+              <h2 className="text-base font-medium tracking-tight text-(--ed-text) truncate">
                 Acquire NSC Tokens
               </h2>
             </div>
@@ -508,17 +507,17 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
           </div>
 
           {/* Micro Progress Strip */}
-          <div className="mt-2.5 pt-2 border-t border-(--ed-divider)/50 space-y-1">
+          <div className="mt-2.5 pt-2 border-t border-(--ed-divider) space-y-1">
             <div className="flex justify-between items-center text-[11px] font-mono">
               <span className="text-(--ed-muted)">Presale Allocation</span>
-              <span className="font-semibold text-(--ed-text)">
+              <span className="font-medium text-(--ed-text)">
                 {presaleMetrics.totalNscSold.toLocaleString()} /{" "}
                 {presaleConfig.hardCapNsc.toLocaleString()} NSC ({presaleMetrics.percentFilled}%)
               </span>
             </div>
             <div className="h-1 w-full overflow-hidden rounded-full bg-(--ed-divider)">
               <div
-                className="h-full bg-gradient-to-r from-amber-500 via-emerald-500 to-teal-500 transition-all duration-500"
+                className="h-full bg-(--ed-primary) transition-all duration-500"
                 style={{ width: `${Math.max(4, presaleMetrics.percentFilled)}%` }}
               />
             </div>
@@ -530,12 +529,12 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
           {completedOrder ? (
             /* SUCCESS CONFIRMATION RECEIPT */
             <div className="text-center py-3 space-y-4 animate-in zoom-in-95 duration-200">
-              <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 shadow-md">
-                <CheckCircle2 className="size-8" />
+              <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-(--ed-surface) border border-(--ed-border) text-(--ed-text) shadow-sm">
+                <CheckCircle2 className="size-8 text-(--ed-primary)" />
               </div>
 
               <div className="space-y-1">
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-mono font-medium text-emerald-500 border border-emerald-500/20">
+                <span className="inline-flex items-center gap-1 rounded-full bg-(--ed-raised) px-2.5 py-0.5 text-[11px] font-mono font-medium text-(--ed-muted) border border-(--ed-border)">
                   <Sparkles className="size-3" />
                   Presale Swap Certified • Zero Gas
                 </span>
@@ -564,7 +563,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                 </div>
                 <div className="flex justify-between items-center text-(--ed-muted)">
                   <span>Tokens Credited:</span>
-                  <span className="text-emerald-500 font-bold">
+                  <span className="text-(--ed-text) font-bold">
                     +{completedOrder.nscAmount.toLocaleString()} NSC (1:1 Peg)
                   </span>
                 </div>
@@ -632,30 +631,30 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                 <button
                   type="button"
                   onClick={() => setPaymentMode("direct_treasury")}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     paymentMode === "direct_treasury"
                       ? "bg-(--ed-surface) text-(--ed-text) shadow-sm border border-(--ed-border)"
                       : "text-(--ed-muted) hover:text-(--ed-text)"
                   }`}
                 >
-                  <Building2 className="size-3.5 text-emerald-500 shrink-0" />
+                  <Building2 className="size-3.5 text-(--ed-muted) shrink-0" />
                   <span className="truncate">Direct to Treasury</span>
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-500 font-bold hidden sm:inline-block">
+                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-(--ed-raised) text-(--ed-muted) border border-(--ed-border) hidden sm:inline-block">
                     Recommended
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPaymentMode("vault_swap")}
-                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     paymentMode === "vault_swap"
                       ? "bg-(--ed-surface) text-(--ed-text) shadow-sm border border-(--ed-border)"
                       : "text-(--ed-muted) hover:text-(--ed-text)"
                   }`}
                 >
-                  <Wallet className="size-3.5 text-amber-500 shrink-0" />
+                  <Wallet className="size-3.5 text-(--ed-muted) shrink-0" />
                   <span className="truncate">Pay from Vault</span>
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/10 text-amber-500 font-bold hidden sm:inline-block">
+                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-(--ed-raised) text-(--ed-muted) border border-(--ed-border) hidden sm:inline-block">
                     0 Gas
                   </span>
                 </button>
@@ -682,7 +681,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                         }}
                         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono transition-all shrink-0 cursor-pointer ${
                           isSelected
-                            ? "border-amber-500/50 bg-amber-500/15 text-(--ed-text) shadow-sm ring-1 ring-amber-500/30 font-semibold"
+                            ? "border-(--ed-border-strong) bg-(--ed-raised) text-(--ed-text) shadow-sm font-semibold"
                             : "border-(--ed-border) bg-(--ed-bg) text-(--ed-muted) hover:bg-(--ed-hover) hover:text-(--ed-text)"
                         }`}
                       >
@@ -711,13 +710,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                         {userVaultCoinBalance.toFixed(4)} {selectedCoin}
                       </span>
                       {userTronAddress && selectedCoin === "USDT" && (
-                        <span
-                          className={`text-[9px] px-1 py-0.2 rounded font-mono ${
-                            (tronTrxBalance ?? 0) < 15
-                              ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                              : "bg-emerald-500/10 text-emerald-500"
-                          }`}
-                        >
+                        <span className="text-[9px] px-1 py-0.2 rounded font-mono bg-(--ed-raised) text-(--ed-muted) border border-(--ed-border)">
                           {isCheckingTrx ? "Checking…" : `${tronTrxBalance ?? 0} TRX`}
                         </span>
                       )}
@@ -730,7 +723,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                       </button>
                     </div>
                   ) : (
-                    <span className="text-[10px] text-emerald-500 font-mono">
+                    <span className="text-[10px] text-(--ed-muted) font-mono">
                       Direct External Transfer
                     </span>
                   )}
@@ -767,7 +760,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                     ))}
                   </div>
                   {selectedCoin !== "USDT" && parsedAmount > 0 && (
-                    <span className="font-mono text-emerald-500 font-medium text-[11px]">
+                    <span className="font-mono text-(--ed-muted) font-medium text-[11px]">
                       ≈ ${fiatValueUsd.toFixed(2)} USD
                     </span>
                   )}
@@ -775,16 +768,16 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
               </div>
 
               {/* Conversion Preview Card */}
-              <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25">
+              <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-(--ed-bg) border border-(--ed-border)">
                 <div className="flex items-center gap-1.5 text-xs font-mono text-(--ed-muted)">
-                  <ArrowRight className="size-3 text-amber-500 shrink-0" />
+                  <ArrowRight className="size-3 text-(--ed-muted) shrink-0" />
                   <span>You Receive (1:1 Rate):</span>
                 </div>
                 <div className="flex items-center gap-1.5 font-mono">
-                  <span className="text-base font-bold text-amber-400">
+                  <span className="text-base font-semibold text-(--ed-text)">
                     +{nscToReceive.toLocaleString()} NSC
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-400 font-semibold">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-(--ed-surface) border border-(--ed-border) text-(--ed-muted) font-medium">
                     0 Gas
                   </span>
                 </div>
@@ -794,34 +787,34 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
               {paymentMode === "direct_treasury" ? (
                 <form onSubmit={handleDirectTreasurySubmit} className="space-y-3 pt-1">
                   {/* Treasury Destination Card */}
-                  <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-2.5 space-y-2 text-xs">
+                  <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-2.5 space-y-2 text-xs">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-semibold text-(--ed-text) flex items-center gap-1">
-                        <ShieldCheck className="size-3.5 text-emerald-500" />
+                      <span className="font-medium text-(--ed-text) flex items-center gap-1">
+                        <ShieldCheck className="size-3.5 text-(--ed-muted)" />
                         Treasury ({treasuryWallet.network})
                       </span>
                       <button
                         type="button"
                         onClick={() => setShowInlineQr(!showInlineQr)}
-                        className="text-emerald-500 hover:underline flex items-center gap-1 font-mono text-[10px] cursor-pointer"
+                        className="text-(--ed-muted) hover:text-(--ed-text) flex items-center gap-1 font-mono text-[10px] cursor-pointer"
                       >
                         <QrCode className="size-3" />
                         {showInlineQr ? "Hide QR" : "Show QR"}
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-(--ed-bg) border border-(--ed-border) font-mono">
+                    <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-(--ed-surface) border border-(--ed-border) font-mono">
                       <span className="text-[11px] text-(--ed-text) truncate flex-1 select-all">
                         {treasuryWallet.address}
                       </span>
                       <button
                         type="button"
                         onClick={handleCopyTreasury}
-                        className="px-2 py-0.5 rounded bg-(--ed-surface) hover:bg-(--ed-hover) border border-(--ed-border) text-[11px] font-semibold text-(--ed-text) shrink-0 flex items-center gap-1 cursor-pointer"
+                        className="px-2 py-0.5 rounded bg-(--ed-raised) hover:bg-(--ed-hover) border border-(--ed-border) text-[11px] font-medium text-(--ed-text) shrink-0 flex items-center gap-1 cursor-pointer"
                       >
                         {copiedTreasury ? (
                           <>
-                            <Check className="size-3 text-emerald-500" />
+                            <Check className="size-3 text-(--ed-text)" />
                             <span>Copied</span>
                           </>
                         ) : (
@@ -845,8 +838,8 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                       </div>
                     )}
 
-                    <div className="flex items-start gap-1 text-[10px] text-(--ed-muted) pt-1 border-t border-emerald-500/20">
-                      <Info className="size-3 text-emerald-500 shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-1 text-[10px] text-(--ed-muted) pt-1 border-t border-(--ed-divider)">
+                      <Info className="size-3 text-(--ed-muted) shrink-0 mt-0.5" />
                       <p className="leading-tight">{gasAdvice.text}</p>
                     </div>
                   </div>
@@ -895,7 +888,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                   </button>
 
                   <p className="text-center text-[10px] text-(--ed-muted) flex items-center justify-center gap-1">
-                    <ShieldCheck className="size-3 text-emerald-500" />
+                    <ShieldCheck className="size-3 text-(--ed-muted)" />
                     Direct Treasury Route • Non-Custodial Verification
                   </p>
                 </form>
@@ -904,11 +897,11 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                 <form onSubmit={handleVaultSwap} className="space-y-3 pt-1">
                   {/* Option B: Tron 0 TRX Gas Notice */}
                   {hasZeroTrxOnTron && (
-                    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-2.5 space-y-2 text-xs text-(--ed-text)">
+                    <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-2.5 space-y-2 text-xs text-(--ed-text)">
                       <div className="flex items-start gap-2">
-                        <AlertCircle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+                        <AlertCircle className="size-4 text-(--ed-muted) shrink-0 mt-0.5" />
                         <div className="space-y-1 flex-1">
-                          <span className="font-bold text-amber-500 block">
+                          <span className="font-semibold text-(--ed-text) block">
                             Tron Gas Energy Needed: ~15 TRX (~$3.75 USD)
                           </span>
                           <p className="text-[11px] text-(--ed-muted) leading-snug">
@@ -921,7 +914,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                         <button
                           type="button"
                           onClick={handleOpenDepositTrx}
-                          className="flex-1 py-1.5 px-2 rounded-lg bg-amber-500 text-black font-semibold text-xs flex items-center justify-center gap-1 cursor-pointer"
+                          className="flex-1 py-1.5 px-2 rounded-lg bg-(--ed-primary) text-white font-medium text-xs flex items-center justify-center gap-1 cursor-pointer"
                         >
                           <QrCode className="size-3" />
                           Deposit 15 TRX
@@ -929,7 +922,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                         <button
                           type="button"
                           onClick={() => setPaymentMode("direct_treasury")}
-                          className="flex-1 py-1.5 px-2 rounded-lg border border-(--ed-border) bg-(--ed-surface) text-(--ed-text) font-semibold text-xs flex items-center justify-center gap-1 cursor-pointer"
+                          className="flex-1 py-1.5 px-2 rounded-lg border border-(--ed-border) bg-(--ed-surface) text-(--ed-text) font-medium text-xs flex items-center justify-center gap-1 cursor-pointer"
                         >
                           Use Direct Treasury
                         </button>
@@ -939,11 +932,13 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
 
                   {/* Insufficient Balance Prompt */}
                   {isInsufficientVault && (
-                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 flex items-start gap-2 text-xs text-amber-500">
-                      <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                    <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-2.5 flex items-start gap-2 text-xs text-(--ed-text)">
+                      <AlertCircle className="size-4 text-(--ed-muted) shrink-0 mt-0.5" />
                       <div className="space-y-1 flex-1">
-                        <p className="font-semibold">Insufficient {selectedCoin} in Vault</p>
-                        <p className="text-[11px] opacity-90 leading-tight">
+                        <p className="font-medium text-(--ed-text)">
+                          Insufficient {selectedCoin} in Vault
+                        </p>
+                        <p className="text-[11px] text-(--ed-muted) leading-tight">
                           Need {parsedAmount} {selectedCoin}, available:{" "}
                           {userVaultCoinBalance.toFixed(4)}. Switch to Direct to Treasury to pay
                           directly from Binance/Trust Wallet.
@@ -952,7 +947,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                           <button
                             type="button"
                             onClick={handleOpenRegularDeposit}
-                            className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500 text-black font-semibold text-[11px] cursor-pointer"
+                            className="mt-1 inline-flex items-center gap-1 px-2.5 py-1 rounded bg-(--ed-surface) hover:bg-(--ed-hover) border border-(--ed-border) text-(--ed-text) font-medium text-[11px] cursor-pointer"
                           >
                             <QrCode className="size-3" />
                             Deposit {selectedCoin}
@@ -988,7 +983,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                   </button>
 
                   <p className="text-center text-[10px] text-(--ed-muted) flex items-center justify-center gap-1">
-                    <ShieldCheck className="size-3 text-emerald-500" />
+                    <ShieldCheck className="size-3 text-(--ed-muted)" />
                     Zero Gas Fees • Instant Settlement Vault Balance Update
                   </p>
                 </form>

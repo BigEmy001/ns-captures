@@ -532,12 +532,12 @@ export function EditionsShell({
                     >
                       {hasLinkedWallets ? (
                         <>
-                          <span className="size-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                          <span className="font-mono text-xs font-semibold text-amber-400">
+                          <span className="size-1.5 rounded-full bg-(--ed-text) shrink-0" />
+                          <span className="font-mono text-xs font-semibold text-(--ed-text)">
                             {nscBalance > 0 ? `${nscBalance.toFixed(0)} NSC` : "0 NSC"}
                           </span>
                           <span className="hidden sm:inline text-(--ed-border-strong)">·</span>
-                          <span className="hidden sm:inline font-mono text-xs">
+                          <span className="hidden sm:inline font-mono text-xs text-(--ed-muted)">
                             {displayWalletLabel}
                           </span>
                           <ChevronDown
@@ -569,7 +569,7 @@ export function EditionsShell({
                           {/* Header User + Address Bar */}
                           <div className="flex items-center justify-between pb-2.5 border-b border-(--ed-divider)">
                             <div className="flex items-center gap-2 min-w-0">
-                              <div className="size-7 rounded-full bg-gradient-to-br from-amber-500 via-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white shadow-inner shrink-0">
+                              <div className="size-7 rounded-full bg-(--ed-raised) border border-(--ed-border) flex items-center justify-center text-[10px] font-mono font-medium text-(--ed-text) shrink-0">
                                 {user?.name ? user.name.slice(0, 2).toUpperCase() : "0x"}
                               </div>
                               <div className="min-w-0">
@@ -591,7 +591,7 @@ export function EditionsShell({
                                     >
                                       {copiedAddress ===
                                       (primaryEvmAddress || wallets[0]?.address) ? (
-                                        <Check className="size-3 text-emerald-500" />
+                                        <Check className="size-3 text-(--ed-text)" />
                                       ) : (
                                         <Copy className="size-3" />
                                       )}
@@ -607,7 +607,7 @@ export function EditionsShell({
                               type="button"
                               onClick={() => {
                                 setWalletFlyoutOpen(false);
-                                navigate("/account?tab=vault");
+                                navigate("/account?tab=web3");
                               }}
                               className="text-(--ed-muted) hover:text-(--ed-text) p-1 transition-colors cursor-pointer"
                               title="Open Settlement Vault"
@@ -616,16 +616,16 @@ export function EditionsShell({
                             </button>
                           </div>
 
-                          {/* Primary Balance Display (Quiet Luxury Obsidian & Amber) */}
-                          <div className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-(--ed-bg) to-(--ed-bg) p-2.5 space-y-1">
+                          {/* Primary Balance Display */}
+                          <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-3 space-y-1">
                             <div className="flex items-center justify-between text-[10px] font-mono text-(--ed-muted)">
                               <span>NSC Platform Balance</span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-400 font-semibold">
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-(--ed-surface) border border-(--ed-border) text-(--ed-muted) font-medium">
                                 1:1 Peg
                               </span>
                             </div>
                             <div className="flex items-baseline justify-between">
-                              <span className="text-lg font-bold font-mono text-amber-400">
+                              <span className="text-lg font-semibold font-mono text-(--ed-text)">
                                 {nscBalance.toFixed(2)} NSC
                               </span>
                               <span className="text-[11px] font-mono text-(--ed-muted)">
@@ -648,9 +648,9 @@ export function EditionsShell({
                                 setWalletFlyoutOpen(false);
                                 setPresaleModalOpen(true);
                               }}
-                              className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-400 text-[11px] font-semibold transition-colors cursor-pointer"
+                              className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-(--ed-bg) hover:bg-(--ed-hover) border border-(--ed-border) text-(--ed-text) text-[11px] font-medium transition-colors cursor-pointer"
                             >
-                              <Flame className="size-3.5 mb-0.5 fill-amber-500/30 animate-pulse" />
+                              <Sparkles className="size-3.5 mb-0.5 text-(--ed-muted)" />
                               <span>Buy NSC</span>
                             </button>
                             <button
@@ -668,7 +668,7 @@ export function EditionsShell({
                               type="button"
                               onClick={() => {
                                 setWalletFlyoutOpen(false);
-                                navigate("/account?tab=vault");
+                                navigate("/account?tab=web3");
                               }}
                               className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-(--ed-bg) hover:bg-(--ed-hover) border border-(--ed-border) text-(--ed-text) text-[11px] font-medium transition-colors cursor-pointer"
                             >
@@ -707,8 +707,8 @@ export function EditionsShell({
                                         ?.balanceFormatted || "0.00"}{" "}
                                       ETH
                                     </span>
-                                    <span className="text-[9px] text-emerald-500 block">
-                                      ● Connected
+                                    <span className="text-[9px] text-(--ed-muted) block">
+                                      Connected
                                     </span>
                                   </div>
                                 </div>
@@ -741,8 +741,8 @@ export function EditionsShell({
                                         "0.00"}{" "}
                                       USDT
                                     </span>
-                                    <span className="text-[9px] text-emerald-500 block">
-                                      ● Connected
+                                    <span className="text-[9px] text-(--ed-muted) block">
+                                      Connected
                                     </span>
                                   </div>
                                 </div>
@@ -771,8 +771,8 @@ export function EditionsShell({
                                         ?.balanceFormatted || "0.00"}{" "}
                                       SOL
                                     </span>
-                                    <span className="text-[9px] text-emerald-500 block">
-                                      ● Connected
+                                    <span className="text-[9px] text-(--ed-muted) block">
+                                      Connected
                                     </span>
                                   </div>
                                 </div>
@@ -801,8 +801,8 @@ export function EditionsShell({
                                         ?.balanceFormatted || "0.00"}{" "}
                                       BTC
                                     </span>
-                                    <span className="text-[9px] text-emerald-500 block">
-                                      ● SegWit
+                                    <span className="text-[9px] text-(--ed-muted) block">
+                                      SegWit
                                     </span>
                                   </div>
                                 </div>
