@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { ArrowUpRight, Copy, Flame, Sparkles } from "lucide-react";
+import { ArrowUpRight, Copy } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -473,45 +473,60 @@ export function Editions() {
           <motion.section
             {...sectionReveal}
             aria-label="NSC token presale"
-            className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 via-(--ed-surface) to-(--ed-bg) p-5 sm:p-6 shadow-(--ed-shadow)"
+            className="relative overflow-hidden rounded-2xl border border-(--ed-border) bg-(--ed-surface) p-5 shadow-(--ed-shadow) sm:p-6"
           >
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-start gap-4">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/20 text-amber-500 shadow-inner">
-                  <Flame className="size-6 animate-pulse fill-amber-500" />
-                </span>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs font-semibold uppercase tracking-wider text-amber-500">
-                      Official Presale Live
-                    </span>
-                    <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 font-mono text-[11px] font-medium text-emerald-400">
-                      1:1 Parity ($1.00 USD)
-                    </span>
-                    <span className="rounded-full border border-(--ed-border) bg-(--ed-bg)/60 px-2 py-0.5 font-mono text-[11px] text-(--ed-muted)">
-                      Listing Target: $1.30
-                    </span>
-                  </div>
-                  <h2 className="mt-1 text-lg font-medium text-(--ed-text) sm:text-xl">
-                    NSC Platform Coin & Native Fuel
-                  </h2>
-                  <p className="mt-1 max-w-xl text-sm leading-6 text-(--ed-muted)">
-                    Zero-gas native fuel for minting, Web3 vault activation, and collector
-                    acquisitions. Swap ETH, USDT, TRX, SOL, or BTC directly into NSC tokens with
-                    immediate treasury routing.
-                  </p>
-                </div>
+            {/* One soft accent in the marketplace's own primary, so the banner belongs to the page */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/2 bg-gradient-to-l from-(--ed-primary)/10 to-transparent lg:block"
+            />
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
+              <div className="min-w-0">
+                <p className={`flex items-center gap-2 ${monoLabelClass}`}>
+                  <span aria-hidden className="size-1.5 rounded-full bg-(--ed-positive)" />
+                  {presaleConfig.symbol} presale · live
+                </p>
+                <h2 className="mt-2 text-lg font-medium tracking-[-0.2px] text-(--ed-text) sm:text-xl">
+                  The platform coin for minting and collecting
+                </h2>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-(--ed-muted)">
+                  {presaleConfig.symbol} covers mint fees, Web3 vault activation and edition
+                  purchases, with no gas. Swap ETH, USDT, TRX, SOL or BTC for it at a fixed presale
+                  rate.
+                </p>
+                <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-3">
+                  {[
+                    {
+                      label: "Presale price",
+                      value: `$${presaleConfig.priceUsd.toFixed(2)}`,
+                    },
+                    {
+                      label: "Listing target",
+                      value: `$${presaleConfig.launchPriceUsd.toFixed(2)}`,
+                    },
+                    {
+                      label: "Minimum buy",
+                      value: `$${presaleConfig.minPurchaseUsd.toFixed(2)}`,
+                    },
+                    {
+                      label: "Allocation",
+                      value: `${presaleConfig.hardCapNsc.toLocaleString()} ${presaleConfig.symbol}`,
+                    },
+                  ].map((fact) => (
+                    <div key={fact.label}>
+                      <dt className={monoLabelClass}>{fact.label}</dt>
+                      <dd className="mt-1 font-mono text-sm text-(--ed-text)">{fact.value}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsPresaleModalOpen(true)}
-                  className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 font-mono text-xs font-bold uppercase tracking-wider text-black shadow-lg shadow-amber-500/20 transition-transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                >
-                  <Sparkles className="size-4" />
-                  <span>Join NSC Presale</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsPresaleModalOpen(true)}
+                className={`${primaryButtonClass} h-11 w-full shrink-0 px-6 text-sm sm:w-auto`}
+              >
+                Join the presale
+              </button>
             </div>
           </motion.section>
         )}

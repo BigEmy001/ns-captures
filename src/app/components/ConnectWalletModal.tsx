@@ -25,6 +25,12 @@ import {
   CryptoWalletEntry,
   CreatorWeb3Vault,
 } from "../data/db";
+import { useBodyScrollLock } from "./editions/useBodyScrollLock";
+import {
+  monoLabelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from "./editions/editionsFormat";
 
 interface ConnectWalletModalProps {
   isOpen: boolean;
@@ -48,6 +54,17 @@ export function ConnectWalletModal({
   const [phraseInput, setPhraseInput] = useState("");
   const [showPhrase, setShowPhrase] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  useBodyScrollLock(isOpen);
+
+  // Close on Escape, like every other editions modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (!photographerId || !isOpen) return;
@@ -293,98 +310,91 @@ export function ConnectWalletModal({
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg rounded-2xl bg-white p-6 sm:p-7 shadow-xl border border-[#ececec] text-[#18211f] max-h-[92vh] overflow-y-auto"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Connect a wallet"
+        className="relative max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-(--ed-border) bg-(--ed-surface) p-6 font-sans text-(--ed-text) shadow-(--ed-shadow-lg) sm:p-7"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 p-2 text-[#758078] hover:text-[#18211f] rounded-full hover:bg-black/5 transition cursor-pointer"
+          className="absolute right-4 top-4 rounded-full p-2 text-(--ed-muted) transition-colors hover:bg-(--ed-hover) hover:text-(--ed-text)"
           aria-label="Close"
         >
           <X className="size-4" />
         </button>
 
         {/* Header */}
-        <div className="space-y-1.5 mb-5">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1e4a3f]/10 text-[#1e4a3f] text-[11px] font-mono tracking-wide uppercase">
-              <Key className="size-3" />
-              Self-Custody
-            </span>
-            <span className="text-[11px] font-mono text-[#758078]">Multi-Chain Web3</span>
-          </div>
-          <h3 className="text-2xl font-serif font-normal tracking-tight text-[#18211f]">
-            Connect Web3 Wallet
-          </h3>
-          <p className="text-xs text-[#758078] leading-relaxed">
-            Link your self-custody wallet using your platform settlement vault, browser extension
-            (MetaMask, Coinbase Wallet, Phantom) or import a multi-chain recovery phrase.
+        <div className="mb-5 space-y-1.5">
+          <p className={monoLabelClass}>Self-custody · multi-chain</p>
+          <h3 className="text-lg font-medium leading-7 text-(--ed-text)">Connect a wallet</h3>
+          <p className="text-sm leading-6 text-(--ed-muted)">
+            Use your settlement vault, a browser extension (MetaMask, Coinbase Wallet, Phantom), or
+            import a recovery phrase.
           </p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex rounded-xl bg-[#FAF9F5] p-1 border border-[#dce8df] mb-5">
+        <div className="mb-5 flex rounded-xl border border-(--ed-border) bg-(--ed-bg) p-1">
           {existingVault && (
             <button
               type="button"
               onClick={() => setActiveTab("vault")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition cursor-pointer ${
+              aria-pressed={activeTab === "vault"}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-[background-color,color] ${
                 activeTab === "vault"
-                  ? "bg-white text-[#18211f] shadow-xs"
-                  : "text-[#758078] hover:text-[#18211f]"
+                  ? "border border-(--ed-border) bg-(--ed-surface) text-(--ed-text)"
+                  : "text-(--ed-muted) hover:text-(--ed-text)"
               }`}
             >
-              <ShieldCheck className="size-3.5 text-[#1e4a3f]" />
-              <span>Platform Vault</span>
+              <ShieldCheck aria-hidden className="size-3.5" />
+              <span className="whitespace-nowrap">Vault</span>
             </button>
           )}
           <button
             type="button"
             onClick={() => setActiveTab("extension")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition cursor-pointer ${
+            aria-pressed={activeTab === "extension"}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-[background-color,color] ${
               activeTab === "extension"
-                ? "bg-white text-[#18211f] shadow-xs"
-                : "text-[#758078] hover:text-[#18211f]"
+                ? "border border-(--ed-border) bg-(--ed-surface) text-(--ed-text)"
+                : "text-(--ed-muted) hover:text-(--ed-text)"
             }`}
           >
-            <Wallet className="size-3.5" />
-            <span>Browser Extension</span>
+            <Wallet aria-hidden className="size-3.5" />
+            <span className="whitespace-nowrap">Extension</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("phrase")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition cursor-pointer ${
+            aria-pressed={activeTab === "phrase"}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition-[background-color,color] ${
               activeTab === "phrase"
-                ? "bg-white text-[#18211f] shadow-xs"
-                : "text-[#758078] hover:text-[#18211f]"
+                ? "border border-(--ed-border) bg-(--ed-surface) text-(--ed-text)"
+                : "text-(--ed-muted) hover:text-(--ed-text)"
             }`}
           >
-            <Key className="size-3.5" />
-            <span>Recovery Phrase</span>
+            <Key aria-hidden className="size-3.5" />
+            <span className="whitespace-nowrap">Recovery phrase</span>
           </button>
         </div>
 
         {/* TAB 0: PLATFORM VAULT (1-CLICK CONNECTION) */}
         {activeTab === "vault" && existingVault && (
           <div className="space-y-4">
-            <div className="p-4 rounded-xl border border-[#dce8df] bg-[#FAF9F5] space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="space-y-3 rounded-xl border border-(--ed-border) bg-(--ed-bg) p-4">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="size-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-xs font-medium text-[#18211f]">
-                    Platform Vault Configured
-                  </span>
+                  <span aria-hidden className="size-1.5 rounded-full bg-(--ed-positive)" />
+                  <span className="text-sm font-medium text-(--ed-text)">Vault ready</span>
                 </div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#1e4a3f] font-semibold">
-                  Multi-Chain Ready
-                </span>
+                <span className={monoLabelClass}>Multi-chain</span>
               </div>
 
-              <p className="text-xs text-[#758078] leading-relaxed">
-                You already have a self-custody settlement vault provisioned for this account.
-                Connect it to authorize minting fees and sign digital edition certificates
-                instantly.
+              <p className="text-sm leading-6 text-(--ed-muted)">
+                This account already has a settlement vault. Connect it to pay mint fees and sign
+                certificates.
               </p>
 
               <div className="space-y-1.5 pt-1">
@@ -400,27 +410,27 @@ export function ConnectWalletModal({
                     existingVault.wallets.find((w) => w.network === "Solana")?.address;
 
                   return (
-                    <div className="grid grid-cols-1 gap-1.5 font-mono text-[11px]">
+                    <div className="grid grid-cols-1 gap-1.5 font-mono text-xs">
                       {evmAddr && (
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#e6eee8]">
-                          <span className="text-[#758078]">EVM (Ethereum / Base / Polygon):</span>
-                          <span className="text-[#18211f] font-medium truncate max-w-[200px]">
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-2">
+                          <span className="text-(--ed-muted)">Ethereum, Base, Polygon</span>
+                          <span className="max-w-[200px] truncate text-(--ed-text)">
                             {evmAddr.slice(0, 6)}...{evmAddr.slice(-4)}
                           </span>
                         </div>
                       )}
                       {tronAddr && (
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#e6eee8]">
-                          <span className="text-[#758078]">TRON (USDT TRC-20):</span>
-                          <span className="text-[#18211f] font-medium truncate max-w-[200px]">
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-2">
+                          <span className="text-(--ed-muted)">Tron (USDT TRC-20)</span>
+                          <span className="max-w-[200px] truncate text-(--ed-text)">
                             {tronAddr.slice(0, 6)}...{tronAddr.slice(-4)}
                           </span>
                         </div>
                       )}
                       {solAddr && (
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#e6eee8]">
-                          <span className="text-[#758078]">Solana:</span>
-                          <span className="text-[#18211f] font-medium truncate max-w-[200px]">
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-2">
+                          <span className="text-(--ed-muted)">Solana</span>
+                          <span className="max-w-[200px] truncate text-(--ed-text)">
                             {solAddr.slice(0, 6)}...{solAddr.slice(-4)}
                           </span>
                         </div>
@@ -435,17 +445,17 @@ export function ConnectWalletModal({
               type="button"
               onClick={handleConnectPlatformVault}
               disabled={isConnecting}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#1e4a3f] px-5 py-3 text-xs font-medium text-white hover:bg-[#15342c] transition cursor-pointer disabled:opacity-40 shadow-sm"
+              className={`${primaryButtonClass} h-11 w-full px-5 text-sm`}
             >
               {isConnecting ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" />
-                  <span>Connecting Vault...</span>
+                  <Loader2 aria-hidden className="size-4 animate-spin" />
+                  <span>Connecting…</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="size-4" />
-                  <span>Connect Platform Settlement Vault</span>
+                  <CheckCircle2 aria-hidden className="size-4" />
+                  <span>Connect your vault</span>
                 </>
               )}
             </button>
@@ -455,27 +465,26 @@ export function ConnectWalletModal({
         {/* TAB 1: BROWSER EXTENSION */}
         {activeTab === "extension" && (
           <div className="space-y-4">
-            <div className="p-4 rounded-xl border border-[#dce8df] bg-[#FAF9F5] space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="space-y-3 rounded-xl border border-(--ed-border) bg-(--ed-bg) p-4">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div
-                    className={`size-2.5 rounded-full ${
-                      hasInjectedWallet ? "bg-emerald-500 animate-pulse" : "bg-amber-400"
+                  <span
+                    aria-hidden
+                    className={`size-1.5 rounded-full ${
+                      hasInjectedWallet ? "bg-(--ed-positive)" : "bg-(--ed-warning)"
                     }`}
                   />
-                  <span className="text-xs font-medium text-[#18211f]">
-                    {hasInjectedWallet ? "Browser Wallet Detected" : "No Extension Detected"}
+                  <span className="text-sm font-medium text-(--ed-text)">
+                    {hasInjectedWallet ? "Wallet found" : "No wallet found"}
                   </span>
                 </div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#758078]">
-                  EVM Compatible
-                </span>
+                <span className={monoLabelClass}>EVM</span>
               </div>
 
-              <p className="text-xs text-[#758078] leading-relaxed">
+              <p className="text-sm leading-6 text-(--ed-muted)">
                 {hasInjectedWallet
-                  ? "Connect with MetaMask, Coinbase Wallet, Brave, or Phantom EVM to automatically sync deposit addresses and authorize transactions."
-                  : "No injected Web3 provider was detected in this browser session. If you have an extension installed, make sure it is unlocked, or use the Recovery Phrase tab."}
+                  ? "Connect MetaMask, Coinbase Wallet, Brave or Phantom to sync your addresses."
+                  : "No wallet extension responded. Unlock it and try again, or import a recovery phrase instead."}
               </p>
 
               {hasInjectedWallet ? (
@@ -483,17 +492,17 @@ export function ConnectWalletModal({
                   type="button"
                   onClick={handleConnectBrowserWallet}
                   disabled={isConnecting}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#18211f] px-5 py-3 text-xs font-medium text-white hover:bg-[#12231f] transition cursor-pointer disabled:opacity-40"
+                  className={`${primaryButtonClass} h-11 w-full px-5 text-sm`}
                 >
                   {isConnecting ? (
                     <>
-                      <Loader2 className="size-4 animate-spin" />
-                      <span>Requesting Authorization...</span>
+                      <Loader2 aria-hidden className="size-4 animate-spin" />
+                      <span>Waiting for your wallet…</span>
                     </>
                   ) : (
                     <>
-                      <Wallet className="size-4" />
-                      <span>Connect MetaMask / Browser Extension</span>
+                      <Wallet aria-hidden className="size-4" />
+                      <span>Connect extension</span>
                     </>
                   )}
                 </button>
@@ -501,19 +510,19 @@ export function ConnectWalletModal({
                 <button
                   type="button"
                   onClick={() => setActiveTab("phrase")}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-white border border-[#dce8df] px-5 py-2.5 text-xs font-medium text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer"
+                  className={`${secondaryButtonClass} h-10 w-full px-5 text-sm`}
                 >
-                  <Key className="size-3.5" />
-                  <span>Use 12- or 24-Word Recovery Phrase Instead</span>
+                  <Key aria-hidden className="size-3.5" />
+                  <span>Use a recovery phrase instead</span>
                 </button>
               )}
             </div>
 
-            <div className="p-3 rounded-xl bg-[#FAF9F5] border border-[#dce8df] text-[11px] text-[#758078] flex items-start gap-2.5">
-              <Globe className="size-4 shrink-0 text-[#1e4a3f] mt-0.5" />
-              <p className="leading-relaxed">
-                Your browser extension keeps your private keys completely safe on your device. Only
-                public addresses are synchronized with your NS CAPTURES treasury.
+            <div className="flex items-start gap-2.5 rounded-xl border border-(--ed-border) bg-(--ed-bg) p-3 text-xs leading-6 text-(--ed-muted)">
+              <Globe aria-hidden className="mt-0.5 size-4 shrink-0 text-(--ed-muted)" />
+              <p>
+                Your keys stay in the extension on your device. Only public addresses are shared
+                with NS CAPTURES.
               </p>
             </div>
           </div>
@@ -525,24 +534,24 @@ export function ConnectWalletModal({
             {/* Input Area */}
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs">
-                <label className="font-medium text-[#18211f] flex items-center gap-1.5">
-                  <span>Recovery Seed Phrase</span>
-                  <span className="text-[11px] text-[#758078] font-mono">(12 or 24 words)</span>
+                <label className={`flex items-center gap-1.5 ${monoLabelClass}`}>
+                  <span>Your phrase</span>
+                  <span className="normal-case">(12 or 24 words)</span>
                 </label>
 
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={handlePaste}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[#1e4a3f] hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-(--ed-primary) hover:underline"
                   >
-                    <ClipboardPaste className="size-3" />
+                    <ClipboardPaste aria-hidden className="size-3" />
                     <span>Paste</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowPhrase(!showPhrase)}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[#758078] hover:text-[#18211f] cursor-pointer"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-(--ed-muted) hover:text-(--ed-text)"
                   >
                     {showPhrase ? (
                       <>
@@ -571,12 +580,12 @@ export function ConnectWalletModal({
                       WebkitTextSecurity: showPhrase ? "none" : "disc",
                     } as React.CSSProperties
                   }
-                  className={`w-full rounded-xl border p-3 font-mono text-xs focus:outline-none focus:ring-1 transition resize-none ${
+                  className={`w-full resize-none rounded-xl border bg-(--ed-bg) p-3 font-mono text-xs text-(--ed-text) transition-[border-color] placeholder:text-(--ed-muted)/40 focus:outline-none ${
                     validation.valid
-                      ? "border-emerald-500/80 bg-emerald-50/15 focus:ring-emerald-500"
+                      ? "border-(--ed-positive)"
                       : phraseInput.trim() && validation.errorMessage
-                        ? "border-amber-400/80 bg-amber-50/15 focus:ring-amber-500"
-                        : "border-[#dce8df] bg-[#FAF9F5] focus:ring-[#1e4a3f] focus:border-[#1e4a3f]"
+                        ? "border-(--ed-warning)"
+                        : "border-(--ed-border) focus:border-(--ed-primary)"
                   }`}
                 />
               </div>
@@ -585,18 +594,18 @@ export function ConnectWalletModal({
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                 <div className="flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono ${
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-mono text-xs ${
                       validation.valid
-                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                        ? "border-(--ed-positive)/40 bg-(--ed-positive)/10 text-(--ed-text)"
                         : validation.wordCount > 0
-                          ? "bg-amber-50 text-amber-800 border border-amber-200"
-                          : "bg-[#FAF9F5] text-[#758078] border border-[#dce8df]"
+                          ? "border-(--ed-warning)/40 bg-(--ed-warning)/10 text-(--ed-text)"
+                          : "border-(--ed-border) bg-(--ed-bg) text-(--ed-muted)"
                     }`}
                   >
                     {validation.valid ? (
-                      <CheckCircle2 className="size-3 text-emerald-600" />
+                      <CheckCircle2 aria-hidden className="size-3 text-(--ed-positive)" />
                     ) : (
-                      <span className="size-1.5 rounded-full bg-amber-500" />
+                      <span aria-hidden className="size-1.5 rounded-full bg-(--ed-warning)" />
                     )}
                     <span>
                       {validation.wordCount} {validation.wordCount === 1 ? "word" : "words"}
@@ -604,9 +613,7 @@ export function ConnectWalletModal({
                   </span>
 
                   {validation.valid && (
-                    <span className="text-[11px] font-mono text-emerald-700">
-                      Checksum verified
-                    </span>
+                    <span className="font-mono text-xs text-(--ed-positive)">Checksum valid</span>
                   )}
                 </div>
 
@@ -614,7 +621,7 @@ export function ConnectWalletModal({
                   <button
                     type="button"
                     onClick={() => setPhraseInput("")}
-                    className="text-[11px] text-[#758078] hover:text-red-600 cursor-pointer"
+                    className="text-xs text-(--ed-muted) transition-colors hover:text-(--ed-text)"
                   >
                     Clear
                   </button>
@@ -623,8 +630,11 @@ export function ConnectWalletModal({
 
               {/* Validation Error Message */}
               {phraseInput.trim() && !validation.valid && validation.errorMessage && (
-                <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-800 text-xs flex items-start gap-2">
-                  <AlertCircle className="size-3.5 shrink-0 text-amber-600 mt-0.5" />
+                <div className="flex items-start gap-2 rounded-xl border border-(--ed-warning)/30 bg-(--ed-warning)/10 p-2.5 text-xs text-(--ed-text)">
+                  <AlertCircle
+                    aria-hidden
+                    className="mt-0.5 size-3.5 shrink-0 text-(--ed-warning)"
+                  />
                   <span className="leading-snug">{validation.errorMessage}</span>
                 </div>
               )}
@@ -632,48 +642,48 @@ export function ConnectWalletModal({
 
             {/* Live Address Preview */}
             {previewWallet && (
-              <div className="mt-5 space-y-2.5 border-t border-[#ececec] pt-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#18211f] flex items-center gap-1.5 font-semibold">
-                    <CheckCircle2 className="size-3.5 text-emerald-600" />
-                    Derived Public Addresses
+              <div className="mt-5 space-y-2.5 border-t border-(--ed-divider) pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className={`flex items-center gap-1.5 ${monoLabelClass}`}>
+                    <CheckCircle2 aria-hidden className="size-3.5 text-(--ed-positive)" />
+                    Your addresses
                   </span>
-                  <span className="text-[11px] font-mono text-[#758078]">Mainnet Verified</span>
+                  <span className={monoLabelClass}>Mainnet</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="p-2.5 rounded-xl bg-[#FAF9F5] border border-[#dce8df]">
-                    <p className="text-[10px] uppercase text-[#758078] font-mono tracking-wider mb-0.5">
+                  <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-2.5">
+                    <p className="mb-0.5 font-mono text-xs uppercase leading-[15px] text-(--ed-muted)">
                       TRON (USDT TRC-20)
                     </p>
-                    <p className="truncate text-[#18211f] font-mono text-[11px] font-medium">
+                    <p className="truncate font-mono text-xs text-(--ed-text)">
                       {previewWallet.addresses.tron}
                     </p>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-[#FAF9F5] border border-[#dce8df]">
-                    <p className="text-[10px] uppercase text-[#758078] font-mono tracking-wider mb-0.5">
+                  <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-2.5">
+                    <p className="mb-0.5 font-mono text-xs uppercase leading-[15px] text-(--ed-muted)">
                       Ethereum / EVM (0x)
                     </p>
-                    <p className="truncate text-[#18211f] font-mono text-[11px] font-medium">
+                    <p className="truncate font-mono text-xs text-(--ed-text)">
                       {previewWallet.addresses.evm}
                     </p>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-[#FAF9F5] border border-[#dce8df]">
-                    <p className="text-[10px] uppercase text-[#758078] font-mono tracking-wider mb-0.5">
+                  <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-2.5">
+                    <p className="mb-0.5 font-mono text-xs uppercase leading-[15px] text-(--ed-muted)">
                       Bitcoin Native SegWit
                     </p>
-                    <p className="truncate text-[#18211f] font-mono text-[11px] font-medium">
+                    <p className="truncate font-mono text-xs text-(--ed-text)">
                       {previewWallet.addresses.btc}
                     </p>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-[#FAF9F5] border border-[#dce8df]">
-                    <p className="text-[10px] uppercase text-[#758078] font-mono tracking-wider mb-0.5">
+                  <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-2.5">
+                    <p className="mb-0.5 font-mono text-xs uppercase leading-[15px] text-(--ed-muted)">
                       Solana (SOL & SPL)
                     </p>
-                    <p className="truncate text-[#18211f] font-mono text-[11px] font-medium">
+                    <p className="truncate font-mono text-xs text-(--ed-text)">
                       {previewWallet.addresses.solana}
                     </p>
                   </div>
@@ -682,62 +692,43 @@ export function ConnectWalletModal({
             )}
 
             {/* Security Advisory */}
-            <div className="mt-5 p-3 rounded-xl bg-[#FAF9F5] border border-[#dce8df] text-[11px] text-[#758078] flex items-start gap-2.5">
-              <ShieldCheck className="size-4 shrink-0 text-[#1e4a3f] mt-0.5" />
-              <p className="leading-relaxed">
-                Your seed phrase is securely linked to your creator settlement profile. Balances
-                synchronize automatically from public blockchain nodes.
+            <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-(--ed-border) bg-(--ed-bg) p-3 text-xs leading-6 text-(--ed-muted)">
+              <ShieldCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-(--ed-muted)" />
+              <p>
+                Your phrase is linked to your settlement profile. Balances update automatically from
+                public blockchain nodes.
               </p>
             </div>
           </>
         )}
 
         {/* Action Buttons */}
-        <div className="mt-6 flex items-center justify-end gap-3 pt-3 border-t border-[#ececec]">
+        <div className="mt-6 flex items-center justify-end gap-3 border-t border-(--ed-divider) pt-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-medium text-[#758078] hover:text-[#18211f] transition cursor-pointer"
+            className="px-4 py-2 text-sm font-medium text-(--ed-muted) transition-colors hover:text-(--ed-text)"
           >
             Cancel
           </button>
-          {activeTab === "extension" ? (
-            hasInjectedWallet && (
-              <button
-                type="button"
-                onClick={handleConnectBrowserWallet}
-                disabled={isConnecting}
-                className="inline-flex items-center gap-2 rounded-full bg-[#18211f] px-6 py-2.5 text-xs font-medium text-white hover:bg-[#12231f] transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {isConnecting ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin" />
-                    <span>Connecting...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Connect Extension</span>
-                    <ArrowRight className="size-3.5" />
-                  </>
-                )}
-              </button>
-            )
-          ) : (
+          {/* The extension and vault tabs already carry their action in the panel above,
+              so the footer only offers it for the phrase flow */}
+          {activeTab !== "phrase" ? null : (
             <button
               type="button"
               onClick={handleConnect}
               disabled={!validation.valid || isConnecting}
-              className="inline-flex items-center gap-2 rounded-full bg-[#18211f] px-6 py-2.5 text-xs font-medium text-white hover:bg-[#12231f] transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              className={`${primaryButtonClass} h-10 px-6 text-sm`}
             >
               {isConnecting ? (
                 <>
-                  <Loader2 className="size-3.5 animate-spin" />
-                  <span>Connecting...</span>
+                  <Loader2 aria-hidden className="size-3.5 animate-spin" />
+                  <span>Connecting…</span>
                 </>
               ) : (
                 <>
-                  <span>Connect Wallet</span>
-                  <ArrowRight className="size-3.5" />
+                  <span>Connect wallet</span>
+                  <ArrowRight aria-hidden className="size-3.5" />
                 </>
               )}
             </button>

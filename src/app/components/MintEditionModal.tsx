@@ -1,17 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { MotionConfig, motion } from "framer-motion";
-import {
-  X,
-  ShieldAlert,
-  ShieldCheck,
-  Copy,
-  Check,
-  RefreshCw,
-  FileCheck,
-  Info,
-  Sparkles,
-} from "lucide-react";
+import { X, ShieldAlert, ShieldCheck, Copy, Check, RefreshCw, FileCheck, Info } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { PresaleBuyModal } from "./PresaleBuyModal";
@@ -581,19 +571,17 @@ export function MintEditionModal({
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-3.5">
                   <div className="space-y-0.5">
                     <p className="text-xs font-medium text-(--ed-text) flex items-center gap-1.5">
-                      <Sparkles className="size-3.5 text-(--ed-muted)" />
                       Need NSC coin or ETH for minting?
                     </p>
-                    <p className="text-[11px] text-(--ed-muted)">
-                      Swap your deposited crypto or ETH into NSC instantly with zero extra gas.
+                    <p className="text-xs leading-6 text-(--ed-muted)">
+                      Swap crypto you have deposited into NSC, with no extra gas.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsPresaleModalOpen(true)}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-(--ed-primary) px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 shrink-0"
+                    className={`${primaryButtonClass} h-9 shrink-0 px-4 text-xs`}
                   >
-                    <Sparkles className="size-3.5" />
                     Swap ETH / Crypto to NSC
                   </button>
                 </div>
@@ -748,14 +736,14 @@ export function MintEditionModal({
                           )}
                         </div>
                         {opt.badge && (
-                          <span className="mt-0.5 text-[9px] font-medium text-(--ed-primary)">
+                          <span className="mt-0.5 text-xs font-medium text-(--ed-primary)">
                             {opt.badge}
                           </span>
                         )}
                         <span className="mt-1 font-mono text-xs text-(--ed-text)">
                           {opt.fee} {opt.unit}
                         </span>
-                        <span className="mt-0.5 text-[10px] text-(--ed-muted)">
+                        <span className="mt-0.5 text-xs text-(--ed-muted)">
                           Bal:{" "}
                           {opt.bal > 0
                             ? opt.coin === "ETH" || opt.coin === "SOL" || opt.coin === "BTC"
@@ -771,7 +759,7 @@ export function MintEditionModal({
                 {(() => {
                   const treasury = getTreasuryWalletForCoin(selectedFeeCoin);
                   return (
-                    <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-(--ed-border) bg-(--ed-bg) px-3 py-2 text-[11px] text-(--ed-muted)">
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-(--ed-border) bg-(--ed-bg) px-3 py-2 text-xs text-(--ed-muted)">
                       <span>
                         Recipient:{" "}
                         <span className="font-mono text-(--ed-text)">
@@ -917,7 +905,7 @@ export function MintEditionModal({
                     onChange={(e) => setTotalEditions(Number(e.target.value))}
                     className="mt-3 w-full accent-(--ed-primary)"
                   />
-                  <div className="mt-1 flex justify-between font-mono text-[10px] text-(--ed-muted)">
+                  <div className="mt-1 flex justify-between font-mono text-xs text-(--ed-muted)">
                     <span>5 · ultra rare</span>
                     <span>25 · standard</span>
                     <span>50</span>

@@ -65,7 +65,7 @@ describe("ConnectWalletModal", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders modal with Browser Extension and Recovery Phrase tabs when open", () => {
+  it("renders the extension and recovery phrase tabs when open", () => {
     render(
       <ConnectWalletModal
         isOpen={true}
@@ -75,12 +75,12 @@ describe("ConnectWalletModal", () => {
       />,
     );
 
-    expect(screen.getByText("Connect Web3 Wallet")).toBeDefined();
-    expect(screen.getByText("Browser Extension")).toBeDefined();
-    expect(screen.getByText("Recovery Phrase")).toBeDefined();
+    expect(screen.getByText("Connect a wallet")).toBeDefined();
+    expect(screen.getByText("Extension")).toBeDefined();
+    expect(screen.getByText("Recovery phrase")).toBeDefined();
   });
 
-  it("switches to Recovery Phrase tab when clicked", () => {
+  it("switches to the recovery phrase tab when clicked", () => {
     render(
       <ConnectWalletModal
         isOpen={true}
@@ -90,9 +90,9 @@ describe("ConnectWalletModal", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Recovery Phrase"));
+    fireEvent.click(screen.getByText("Recovery phrase"));
     expect(screen.getByPlaceholderText(/abandon abandon abandon/i)).toBeDefined();
-    expect(screen.getByText("Recovery Seed Phrase")).toBeDefined();
+    expect(screen.getByText("Your phrase")).toBeDefined();
   });
 
   it("connects browser wallet when window.ethereum is available", async () => {
@@ -110,9 +110,9 @@ describe("ConnectWalletModal", () => {
       />,
     );
 
-    expect(screen.getByText("Browser Wallet Detected")).toBeDefined();
+    expect(screen.getByText("Wallet found")).toBeDefined();
 
-    const connectButton = screen.getByText("Connect MetaMask / Browser Extension");
+    const connectButton = screen.getByText("Connect extension");
     fireEvent.click(connectButton);
 
     await waitFor(() => {
@@ -136,7 +136,7 @@ describe("ConnectWalletModal", () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("Recovery Phrase"));
+    fireEvent.click(screen.getByText("Recovery phrase"));
 
     const textarea = screen.getByPlaceholderText(/abandon abandon abandon/i);
     const valid12WordPhrase =
@@ -145,9 +145,9 @@ describe("ConnectWalletModal", () => {
     fireEvent.change(textarea, { target: { value: valid12WordPhrase } });
 
     expect(screen.getByText("12 words")).toBeDefined();
-    expect(screen.getByText("Checksum verified")).toBeDefined();
+    expect(screen.getByText("Checksum valid")).toBeDefined();
 
-    const connectButton = screen.getByText("Connect Wallet");
+    const connectButton = screen.getByText("Connect wallet");
     fireEvent.click(connectButton);
 
     await waitFor(() => {
@@ -187,11 +187,11 @@ describe("ConnectWalletModal", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Platform Vault")).toBeDefined();
-      expect(screen.getByText("Connect Platform Settlement Vault")).toBeDefined();
+      expect(screen.getByText("Vault")).toBeDefined();
+      expect(screen.getByText("Connect your vault")).toBeDefined();
     });
 
-    fireEvent.click(screen.getByText("Connect Platform Settlement Vault"));
+    fireEvent.click(screen.getByText("Connect your vault"));
 
     await waitFor(() => {
       expect(mockOnWalletConnected).toHaveBeenCalled();

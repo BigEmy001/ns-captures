@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
   X,
-  Sparkles,
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
@@ -20,8 +19,12 @@ import { useAuth } from "../context/AuthContext";
 import { useEditionVault } from "./editions/useEditionVault";
 import { useBodyScrollLock } from "./editions/useBodyScrollLock";
 import {
+  monoLabelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from "./editions/editionsFormat";
+import {
   getPresaleConfig,
-  getPresaleMetrics,
   executePresaleSwap,
   executePresaleDirectPayment,
   getTreasuryWalletForCoin,
@@ -139,7 +142,6 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
   const [isCheckingTrx, setIsCheckingTrx] = useState<boolean>(false);
 
   const presaleConfig = getPresaleConfig();
-  const presaleMetrics = getPresaleMetrics();
 
   const activeCoinMeta = useMemo(
     () => SUPPORTED_COINS.find((c) => c.coin === selectedCoin) || SUPPORTED_COINS[0],
@@ -484,44 +486,44 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
         onClick={(e) => e.stopPropagation()}
         className="w-full max-h-[92dvh] sm:max-h-[86vh] sm:max-w-[480px] rounded-t-3xl sm:rounded-2xl border-t sm:border border-(--ed-border) bg-(--ed-surface) shadow-2xl text-(--ed-text) flex flex-col overflow-hidden"
       >
-        {/* Sticky Header Bar */}
-        <div className="shrink-0 border-b border-(--ed-border) px-4 sm:px-5 pt-3.5 pb-3 bg-(--ed-surface)">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="inline-flex items-center gap-1 rounded-full bg-(--ed-raised) px-2.5 py-0.5 text-[11px] font-mono font-medium text-(--ed-muted) border border-(--ed-border) shrink-0">
-                <Sparkles className="size-3 text-(--ed-muted)" />
-                Presale · 1:1 Peg
-              </span>
-              <h2 className="text-base font-medium tracking-tight text-(--ed-text) truncate">
-                Acquire NSC Tokens
+        {/* Header — same chrome as the shared EditionsModal: eyebrow, title, close.
+            The old "x / 1,000,000 NSC (0%)" bar was fed by a per-browser order cache,
+            so it read 0% for everyone; the real presale terms sit here instead. */}
+        <div className="shrink-0 border-b border-(--ed-border) bg-(--ed-surface) px-5 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className={monoLabelClass}>{presaleConfig.symbol} presale</p>
+              <h2 className="truncate pt-1 text-lg font-medium leading-7 text-(--ed-text)">
+                Acquire {presaleConfig.symbol} tokens
               </h2>
             </div>
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close modal"
-              className="-mr-1.5 size-8 flex items-center justify-center rounded-full text-(--ed-muted) transition-colors hover:bg-(--ed-hover) hover:text-(--ed-text) cursor-pointer"
+              aria-label="Close"
+              className="-mr-1.5 rounded-full p-1.5 text-(--ed-muted) transition-colors hover:bg-(--ed-hover) hover:text-(--ed-text)"
             >
-              <X className="size-4" />
+              <X className="size-5" />
             </button>
           </div>
-
-          {/* Micro Progress Strip */}
-          <div className="mt-2.5 pt-2 border-t border-(--ed-divider) space-y-1">
-            <div className="flex justify-between items-center text-[11px] font-mono">
-              <span className="text-(--ed-muted)">Presale Allocation</span>
-              <span className="font-medium text-(--ed-text)">
-                {presaleMetrics.totalNscSold.toLocaleString()} /{" "}
-                {presaleConfig.hardCapNsc.toLocaleString()} NSC ({presaleMetrics.percentFilled}%)
-              </span>
-            </div>
-            <div className="h-1 w-full overflow-hidden rounded-full bg-(--ed-divider)">
-              <div
-                className="h-full bg-(--ed-primary) transition-all duration-500"
-                style={{ width: `${Math.max(4, presaleMetrics.percentFilled)}%` }}
-              />
-            </div>
-          </div>
+          <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-2 border-t border-(--ed-divider) pt-3">
+            {[
+              {
+                label: "Rate",
+                value: `1 ${presaleConfig.symbol} = $${presaleConfig.priceUsd.toFixed(2)}`,
+              },
+              {
+                label: "Allocation",
+                value: `${presaleConfig.hardCapNsc.toLocaleString()} ${presaleConfig.symbol}`,
+              },
+              { label: "Minimum", value: `$${presaleConfig.minPurchaseUsd.toFixed(2)}` },
+            ].map((fact) => (
+              <div key={fact.label} className="flex items-baseline gap-2">
+                <dt className={monoLabelClass}>{fact.label}</dt>
+                <dd className="font-mono text-xs text-(--ed-text)">{fact.value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
 
         {/* Scrollable Modal Content */}
@@ -534,66 +536,68 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
               </div>
 
               <div className="space-y-1">
-                <span className="inline-flex items-center gap-1 rounded-full bg-(--ed-raised) px-2.5 py-0.5 text-[11px] font-mono font-medium text-(--ed-muted) border border-(--ed-border)">
-                  <Sparkles className="size-3" />
-                  Presale Swap Certified • Zero Gas
+                <span className="inline-flex items-center gap-1 rounded-full border border-(--ed-border) bg-(--ed-raised) px-2.5 py-0.5 font-mono text-xs text-(--ed-muted)">
+                  Confirmed
                 </span>
-                <h3 className="text-xl font-bold tracking-tight text-(--ed-text)">
-                  +{completedOrder.nscAmount.toLocaleString()} NSC Credited
+                <h3 className="text-xl font-medium tracking-[-0.2px] text-(--ed-text)">
+                  {completedOrder.nscAmount.toLocaleString()} {presaleConfig.symbol} added to your
+                  vault
                 </h3>
-                <p className="text-xs text-(--ed-muted) max-w-xs mx-auto">
-                  Payment of {completedOrder.amountPaid} {completedOrder.coinPaid} routed to NS
-                  CAPTURES Treasury. NSC is live in your vault.
+                <p className="mx-auto max-w-xs text-sm leading-6 text-(--ed-muted)">
+                  Your {completedOrder.amountPaid} {completedOrder.coinPaid} reached the treasury.
                 </p>
               </div>
 
               {/* Receipt Details Card */}
               <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-3 text-left space-y-2 text-xs font-mono">
-                <div className="flex justify-between items-center text-(--ed-muted)">
-                  <span>Route:</span>
-                  <span className="text-(--ed-text) font-semibold">
+                <div className="flex items-center justify-between gap-3 text-(--ed-muted)">
+                  <span>Paid by</span>
+                  <span className="text-(--ed-text)">
                     {completedOrder.paymentMethod === "direct_treasury"
-                      ? "Direct Treasury Transfer"
-                      : "Vault Balance Swap"}
+                      ? "Transfer to treasury"
+                      : "Vault balance"}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-(--ed-muted)">
-                  <span>Order Ref:</span>
-                  <span className="text-(--ed-text) font-semibold">{completedOrder.id}</span>
-                </div>
-                <div className="flex justify-between items-center text-(--ed-muted)">
-                  <span>Tokens Credited:</span>
-                  <span className="text-(--ed-text) font-bold">
-                    +{completedOrder.nscAmount.toLocaleString()} NSC (1:1 Peg)
+                <div className="flex items-center justify-between gap-3 text-(--ed-muted)">
+                  <span>Order</span>
+                  <span className="max-w-[180px] truncate text-(--ed-text)">
+                    {completedOrder.id}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-(--ed-muted)">
-                  <span>Amount Paid:</span>
+                <div className="flex items-center justify-between gap-3 text-(--ed-muted)">
+                  <span>Added</span>
+                  <span className="text-(--ed-text)">
+                    {completedOrder.nscAmount.toLocaleString()} {presaleConfig.symbol}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-(--ed-muted)">
+                  <span>You paid</span>
                   <span className="text-(--ed-text)">
                     {completedOrder.amountPaid} {completedOrder.coinPaid} ($
-                    {completedOrder.fiatValueUsd.toFixed(2)} USD)
+                    {completedOrder.fiatValueUsd.toFixed(2)})
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-(--ed-muted)">
-                  <span>Treasury:</span>
-                  <span className="text-(--ed-text) truncate max-w-[160px]">
+                <div className="flex items-center justify-between gap-3 text-(--ed-muted)">
+                  <span>Treasury</span>
+                  <span className="max-w-[160px] truncate text-(--ed-text)">
                     {completedOrder.treasuryAddress}
                   </span>
                 </div>
-                <div className="pt-1.5 border-t border-(--ed-divider) flex justify-between items-center text-(--ed-muted)">
-                  <span>Tx Hash:</span>
+                <div className="flex items-center justify-between gap-3 border-t border-(--ed-divider) pt-1.5 text-(--ed-muted)">
+                  <span>Transaction</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-[11px] text-(--ed-text) truncate max-w-[140px]">
+                    <span className="max-w-[140px] truncate text-xs text-(--ed-text)">
                       {completedOrder.txHash}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleCopyTx(completedOrder.txHash)}
-                      className="text-(--ed-muted) hover:text-(--ed-text) p-0.5 cursor-pointer"
-                      title="Copy Hash"
+                      className="p-0.5 text-(--ed-muted) transition-colors hover:text-(--ed-text)"
+                      aria-label="Copy transaction hash"
+                      title="Copy transaction hash"
                     >
                       {copiedTx ? (
-                        <Check className="size-3 text-emerald-500" />
+                        <Check className="size-3 text-(--ed-positive)" />
                       ) : (
                         <Copy className="size-3" />
                       )}
@@ -610,16 +614,16 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                     setPayAmount("");
                     setTxHashInput("");
                   }}
-                  className="flex-1 py-2.5 px-3 rounded-xl border border-(--ed-border) bg-(--ed-hover) text-xs font-medium text-(--ed-text) transition-colors hover:bg-(--ed-divider) cursor-pointer"
+                  className={`${secondaryButtonClass} h-10 flex-1 px-3 text-sm`}
                 >
-                  Buy More NSC
+                  Buy more
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 py-2.5 px-3 rounded-xl bg-(--ed-primary) text-xs font-semibold text-white transition-opacity hover:opacity-95 cursor-pointer"
+                  className={`${primaryButtonClass} h-10 flex-1 px-3 text-sm`}
                 >
-                  Done / View Vault
+                  Done
                 </button>
               </div>
             </div>
@@ -637,11 +641,8 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                       : "text-(--ed-muted) hover:text-(--ed-text)"
                   }`}
                 >
-                  <Building2 className="size-3.5 text-(--ed-muted) shrink-0" />
-                  <span className="truncate">Direct to Treasury</span>
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-(--ed-raised) text-(--ed-muted) border border-(--ed-border) hidden sm:inline-block">
-                    Recommended
-                  </span>
+                  <Building2 aria-hidden className="size-3.5 shrink-0 text-(--ed-muted)" />
+                  <span className="whitespace-nowrap">Direct to treasury</span>
                 </button>
                 <button
                   type="button"
@@ -652,20 +653,17 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                       : "text-(--ed-muted) hover:text-(--ed-text)"
                   }`}
                 >
-                  <Wallet className="size-3.5 text-(--ed-muted) shrink-0" />
-                  <span className="truncate">Pay from Vault</span>
-                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-(--ed-raised) text-(--ed-muted) border border-(--ed-border) hidden sm:inline-block">
-                    0 Gas
-                  </span>
+                  <Wallet aria-hidden className="size-3.5 shrink-0 text-(--ed-muted)" />
+                  <span className="whitespace-nowrap">Pay from vault</span>
                 </button>
               </div>
 
               {/* Modern Horizontal Token Selector Pill Bar */}
               <div className="space-y-1">
-                <div className="flex items-center justify-between text-[11px] text-(--ed-muted)">
-                  <span>Select Payment Currency</span>
-                  <span className="font-mono text-[10px]">
-                    1 {selectedCoin} = ${activeCoinMeta.rateUsd.toLocaleString()} USD
+                <div className="flex items-center justify-between gap-3">
+                  <span className={monoLabelClass}>Pay with</span>
+                  <span className="font-mono text-xs text-(--ed-muted)">
+                    1 {selectedCoin} = ${activeCoinMeta.rateUsd.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] pb-0.5">
@@ -698,34 +696,30 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
               {/* DEX-Style Swap Input Card */}
               <div className="rounded-2xl border border-(--ed-border) bg-(--ed-bg) p-3 space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-(--ed-muted) font-medium">
-                    {paymentMode === "direct_treasury"
-                      ? `You Send (${selectedCoin})`
-                      : `You Pay from Vault`}
+                  <span className={monoLabelClass}>
+                    {paymentMode === "direct_treasury" ? "You send" : "You pay from vault"}
                   </span>
                   {paymentMode === "vault_swap" ? (
-                    <div className="flex items-center gap-1 font-mono text-[11px]">
-                      <span className="text-(--ed-muted)">Vault:</span>
-                      <span className="font-semibold text-(--ed-text)">
+                    <div className="flex items-center gap-1.5 font-mono text-xs">
+                      <span className="text-(--ed-muted)">Vault</span>
+                      <span className="text-(--ed-text)">
                         {userVaultCoinBalance.toFixed(4)} {selectedCoin}
                       </span>
                       {userTronAddress && selectedCoin === "USDT" && (
-                        <span className="text-[9px] px-1 py-0.2 rounded font-mono bg-(--ed-raised) text-(--ed-muted) border border-(--ed-border)">
+                        <span className="rounded border border-(--ed-border) bg-(--ed-raised) px-1.5 py-0.5 font-mono text-xs text-(--ed-muted)">
                           {isCheckingTrx ? "Checking…" : `${tronTrxBalance ?? 0} TRX`}
                         </span>
                       )}
                       <button
                         type="button"
                         onClick={handleSetMaxVault}
-                        className="px-1 py-0.2 rounded bg-(--ed-divider) text-[9px] font-bold text-(--ed-primary) hover:bg-(--ed-primary) hover:text-white transition-colors cursor-pointer"
+                        className="rounded px-1.5 py-0.5 font-mono text-xs font-medium text-(--ed-primary) transition-colors hover:bg-(--ed-hover)"
                       >
-                        MAX
+                        Max
                       </button>
                     </div>
                   ) : (
-                    <span className="text-[10px] text-(--ed-muted) font-mono">
-                      Direct External Transfer
-                    </span>
+                    <span className="font-mono text-xs text-(--ed-muted)">External transfer</span>
                   )}
                 </div>
 
@@ -737,7 +731,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                     placeholder="0.00"
                     value={payAmount}
                     onChange={(e) => setPayAmount(e.target.value)}
-                    className="w-full bg-transparent text-2xl font-bold font-mono text-(--ed-text) placeholder:text-(--ed-muted)/30 focus:outline-none"
+                    className="w-full bg-transparent font-mono text-xl font-medium text-(--ed-text) placeholder:text-(--ed-muted)/40 focus:outline-none"
                   />
                   <div className="flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-xl bg-(--ed-surface) border border-(--ed-border) font-mono text-xs font-semibold">
                     <span style={{ color: activeCoinMeta.color }}>{activeCoinMeta.iconSymbol}</span>
@@ -746,22 +740,22 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                 </div>
 
                 {/* Quick Presets & Valuation */}
-                <div className="flex items-center justify-between pt-1.5 border-t border-(--ed-divider)/50 text-[11px]">
+                <div className="flex items-center justify-between gap-3 border-t border-(--ed-divider)/50 pt-2 text-xs">
                   <div className="flex items-center gap-1">
                     {[25, 50, 100, 250, 500].map((val) => (
                       <button
                         key={val}
                         type="button"
                         onClick={() => handleAddPresetUsd(val)}
-                        className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-(--ed-surface) hover:bg-(--ed-hover) border border-(--ed-border) text-(--ed-text) cursor-pointer"
+                        className="rounded border border-(--ed-border) bg-(--ed-surface) px-2 py-1 font-mono text-xs text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
                       >
                         ${val}
                       </button>
                     ))}
                   </div>
                   {selectedCoin !== "USDT" && parsedAmount > 0 && (
-                    <span className="font-mono text-(--ed-muted) font-medium text-[11px]">
-                      ≈ ${fiatValueUsd.toFixed(2)} USD
+                    <span className="font-mono text-xs text-(--ed-muted)">
+                      ≈ ${fiatValueUsd.toFixed(2)}
                     </span>
                   )}
                 </div>
@@ -769,16 +763,16 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
 
               {/* Conversion Preview Card */}
               <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-(--ed-bg) border border-(--ed-border)">
-                <div className="flex items-center gap-1.5 text-xs font-mono text-(--ed-muted)">
-                  <ArrowRight className="size-3 text-(--ed-muted) shrink-0" />
-                  <span>You Receive (1:1 Rate):</span>
+                <div className="flex items-center gap-1.5">
+                  <ArrowRight aria-hidden className="size-3 shrink-0 text-(--ed-muted)" />
+                  <span className={monoLabelClass}>You receive</span>
                 </div>
-                <div className="flex items-center gap-1.5 font-mono">
-                  <span className="text-base font-semibold text-(--ed-text)">
-                    +{nscToReceive.toLocaleString()} NSC
+                <div className="flex items-center gap-2 font-mono">
+                  <span className="text-base font-medium text-(--ed-text)">
+                    {nscToReceive.toLocaleString()} {presaleConfig.symbol}
                   </span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded bg-(--ed-surface) border border-(--ed-border) text-(--ed-muted) font-medium">
-                    0 Gas
+                  <span className="rounded-full border border-(--ed-border) bg-(--ed-surface) px-2 py-0.5 text-xs text-(--ed-muted)">
+                    No gas
                   </span>
                 </div>
               </div>
@@ -788,29 +782,30 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                 <form onSubmit={handleDirectTreasurySubmit} className="space-y-3 pt-1">
                   {/* Treasury Destination Card */}
                   <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-2.5 space-y-2 text-xs">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-medium text-(--ed-text) flex items-center gap-1">
-                        <ShieldCheck className="size-3.5 text-(--ed-muted)" />
-                        Treasury ({treasuryWallet.network})
+                    <div className="flex items-center justify-between gap-3">
+                      <span className={`flex items-center gap-1.5 ${monoLabelClass}`}>
+                        <ShieldCheck aria-hidden className="size-3.5" />
+                        Treasury · {treasuryWallet.network}
                       </span>
                       <button
                         type="button"
                         onClick={() => setShowInlineQr(!showInlineQr)}
-                        className="text-(--ed-muted) hover:text-(--ed-text) flex items-center gap-1 font-mono text-[10px] cursor-pointer"
+                        aria-expanded={showInlineQr}
+                        className="flex items-center gap-1 text-xs text-(--ed-muted) transition-colors hover:text-(--ed-text)"
                       >
-                        <QrCode className="size-3" />
+                        <QrCode aria-hidden className="size-3" />
                         {showInlineQr ? "Hide QR" : "Show QR"}
                       </button>
                     </div>
 
                     <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-(--ed-surface) border border-(--ed-border) font-mono">
-                      <span className="text-[11px] text-(--ed-text) truncate flex-1 select-all">
+                      <span className="flex-1 select-all truncate text-xs text-(--ed-text)">
                         {treasuryWallet.address}
                       </span>
                       <button
                         type="button"
                         onClick={handleCopyTreasury}
-                        className="px-2 py-0.5 rounded bg-(--ed-raised) hover:bg-(--ed-hover) border border-(--ed-border) text-[11px] font-medium text-(--ed-text) shrink-0 flex items-center gap-1 cursor-pointer"
+                        className="flex shrink-0 items-center gap-1 rounded border border-(--ed-border) bg-(--ed-raised) px-2 py-1 text-xs font-medium text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
                       >
                         {copiedTreasury ? (
                           <>
@@ -832,31 +827,29 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                           className="inline-block p-1.5 rounded-lg bg-white shadow"
                           dangerouslySetInnerHTML={{ __html: treasuryQrSvg }}
                         />
-                        <p className="text-[10px] text-(--ed-muted) mt-1">
-                          Scan to deposit from mobile wallet or exchange
+                        <p className="mt-1 text-xs text-(--ed-muted)">
+                          Scan this from your wallet app or exchange
                         </p>
                       </div>
                     )}
 
-                    <div className="flex items-start gap-1 text-[10px] text-(--ed-muted) pt-1 border-t border-(--ed-divider)">
-                      <Info className="size-3 text-(--ed-muted) shrink-0 mt-0.5" />
-                      <p className="leading-tight">{gasAdvice.text}</p>
+                    <div className="flex items-start gap-1.5 border-t border-(--ed-divider) pt-2 text-xs text-(--ed-muted)">
+                      <Info aria-hidden className="mt-0.5 size-3 shrink-0" />
+                      <p className="leading-6">{gasAdvice.text}</p>
                     </div>
                   </div>
 
                   {/* Transaction Hash Input */}
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <label className="text-(--ed-muted) font-medium">
-                        Transaction Hash (TxID)
-                      </label>
+                      <label className={monoLabelClass}>Transaction hash</label>
                       <button
                         type="button"
                         onClick={handlePasteTxHash}
-                        className="text-[11px] text-(--ed-primary) hover:underline flex items-center gap-1 cursor-pointer"
+                        className="flex items-center gap-1 text-xs text-(--ed-primary) hover:underline"
                       >
-                        <ClipboardPaste className="size-3" />
-                        Paste Hash
+                        <ClipboardPaste aria-hidden className="size-3" />
+                        Paste
                       </button>
                     </div>
                     <input
@@ -872,24 +865,26 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                   <button
                     type="submit"
                     disabled={isSubmitting || parsedAmount <= 0 || !txHashInput.trim()}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-(--ed-primary) text-sm font-semibold text-white transition-opacity hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
+                    className={`${primaryButtonClass} h-11 w-full px-4 text-sm`}
                   >
                     {isSubmitting ? (
                       <>
-                        <Loader2 className="size-4 animate-spin" />
-                        <span>Verifying & Crediting NSC…</span>
+                        <Loader2 aria-hidden className="size-4 animate-spin" />
+                        <span>Verifying…</span>
                       </>
                     ) : (
                       <>
-                        <span>Confirm & Claim {nscToReceive.toLocaleString()} NSC</span>
-                        <ArrowRight className="size-4" />
+                        <span>
+                          Confirm and claim {nscToReceive.toLocaleString()} {presaleConfig.symbol}
+                        </span>
+                        <ArrowRight aria-hidden className="size-4" />
                       </>
                     )}
                   </button>
 
-                  <p className="text-center text-[10px] text-(--ed-muted) flex items-center justify-center gap-1">
-                    <ShieldCheck className="size-3 text-(--ed-muted)" />
-                    Direct Treasury Route • Non-Custodial Verification
+                  <p className="flex items-center justify-center gap-1.5 text-center text-xs text-(--ed-muted)">
+                    <ShieldCheck aria-hidden className="size-3" />
+                    Sent straight to the treasury · verified from your transaction hash
                   </p>
                 </form>
               ) : (
@@ -901,12 +896,12 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                       <div className="flex items-start gap-2">
                         <AlertCircle className="size-4 text-(--ed-muted) shrink-0 mt-0.5" />
                         <div className="space-y-1 flex-1">
-                          <span className="font-semibold text-(--ed-text) block">
-                            Tron Gas Energy Needed: ~15 TRX (~$3.75 USD)
+                          <span className="block font-medium text-(--ed-text)">
+                            You need about 15 TRX for gas
                           </span>
-                          <p className="text-[11px] text-(--ed-muted) leading-snug">
-                            Sweeping TRC-20 USDT on Tron requires native TRX energy. Either deposit
-                            15 TRX or use Direct to Treasury (0 TRX needed).
+                          <p className="text-xs leading-6 text-(--ed-muted)">
+                            Moving USDT on Tron costs TRX. Deposit about 15 TRX, or pay the treasury
+                            directly instead, which needs none.
                           </p>
                         </div>
                       </div>
@@ -914,17 +909,17 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                         <button
                           type="button"
                           onClick={handleOpenDepositTrx}
-                          className="flex-1 py-1.5 px-2 rounded-lg bg-(--ed-primary) text-white font-medium text-xs flex items-center justify-center gap-1 cursor-pointer"
+                          className={`${primaryButtonClass} h-9 flex-1 px-3 text-xs`}
                         >
-                          <QrCode className="size-3" />
-                          Deposit 15 TRX
+                          <QrCode aria-hidden className="size-3" />
+                          Deposit TRX
                         </button>
                         <button
                           type="button"
                           onClick={() => setPaymentMode("direct_treasury")}
-                          className="flex-1 py-1.5 px-2 rounded-lg border border-(--ed-border) bg-(--ed-surface) text-(--ed-text) font-medium text-xs flex items-center justify-center gap-1 cursor-pointer"
+                          className={`${secondaryButtonClass} h-9 flex-1 px-3 text-xs`}
                         >
-                          Use Direct Treasury
+                          Pay treasury instead
                         </button>
                       </div>
                     </div>
@@ -936,20 +931,20 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                       <AlertCircle className="size-4 text-(--ed-muted) shrink-0 mt-0.5" />
                       <div className="space-y-1 flex-1">
                         <p className="font-medium text-(--ed-text)">
-                          Insufficient {selectedCoin} in Vault
+                          Not enough {selectedCoin} in your vault
                         </p>
-                        <p className="text-[11px] text-(--ed-muted) leading-tight">
-                          Need {parsedAmount} {selectedCoin}, available:{" "}
-                          {userVaultCoinBalance.toFixed(4)}. Switch to Direct to Treasury to pay
-                          directly from Binance/Trust Wallet.
+                        <p className="text-xs leading-6 text-(--ed-muted)">
+                          You need {parsedAmount} {selectedCoin} and have{" "}
+                          {userVaultCoinBalance.toFixed(4)}. Pay the treasury directly instead, from
+                          an exchange or another wallet.
                         </p>
                         {userVaultAddress && (
                           <button
                             type="button"
                             onClick={handleOpenRegularDeposit}
-                            className="mt-1 inline-flex items-center gap-1 px-2.5 py-1 rounded bg-(--ed-surface) hover:bg-(--ed-hover) border border-(--ed-border) text-(--ed-text) font-medium text-[11px] cursor-pointer"
+                            className={`${secondaryButtonClass} mt-1 h-9 px-3 text-xs`}
                           >
-                            <QrCode className="size-3" />
+                            <QrCode aria-hidden className="size-3" />
                             Deposit {selectedCoin}
                           </button>
                         )}
@@ -963,28 +958,30 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                     disabled={
                       isSubmitting || parsedAmount <= 0 || isInsufficientVault || hasZeroTrxOnTron
                     }
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-(--ed-primary) text-sm font-semibold text-white transition-opacity hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
+                    className={`${primaryButtonClass} h-11 w-full px-4 text-sm`}
                   >
                     {isSubmitting ? (
                       <>
-                        <Loader2 className="size-4 animate-spin" />
-                        <span>Swapping on Ledger…</span>
+                        <Loader2 aria-hidden className="size-4 animate-spin" />
+                        <span>Swapping…</span>
                       </>
                     ) : isInsufficientVault ? (
-                      <span>Insufficient Vault Balance</span>
+                      <span>Not enough {selectedCoin} in your vault</span>
                     ) : hasZeroTrxOnTron ? (
-                      <span>Requires ~15 TRX Gas in Vault</span>
+                      <span>Needs about 15 TRX for gas</span>
                     ) : (
                       <>
-                        <span>Confirm Vault Swap • {nscToReceive.toLocaleString()} NSC</span>
-                        <ArrowRight className="size-4" />
+                        <span>
+                          Swap for {nscToReceive.toLocaleString()} {presaleConfig.symbol}
+                        </span>
+                        <ArrowRight aria-hidden className="size-4" />
                       </>
                     )}
                   </button>
 
-                  <p className="text-center text-[10px] text-(--ed-muted) flex items-center justify-center gap-1">
-                    <ShieldCheck className="size-3 text-(--ed-muted)" />
-                    Zero Gas Fees • Instant Settlement Vault Balance Update
+                  <p className="flex items-center justify-center gap-1.5 text-center text-xs text-(--ed-muted)">
+                    <ShieldCheck aria-hidden className="size-3" />
+                    No gas · credited to your vault straight away
                   </p>
                 </form>
               )}

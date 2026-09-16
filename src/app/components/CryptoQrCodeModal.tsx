@@ -1,9 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, Copy, Check, ExternalLink, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { generateQrSvg } from "../../lib/qrcode";
 import { getExplorerUrl } from "../../lib/onChainBalance";
 import { copyToClipboard } from "../../lib/clipboard";
+import { useBodyScrollLock } from "./editions/useBodyScrollLock";
+import {
+  monoLabelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from "./editions/editionsFormat";
 
 interface CryptoQrCodeModalProps {
   isOpen: boolean;
@@ -21,6 +27,16 @@ export function CryptoQrCodeModal({
   address,
 }: CryptoQrCodeModalProps) {
   const [copied, setCopied] = useState(false);
+  useBodyScrollLock(isOpen);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen || !address) return null;
 
@@ -31,76 +47,76 @@ export function CryptoQrCodeModal({
     const ok = await copyToClipboard(address);
     if (ok) {
       setCopied(true);
-      toast.success("Deposit address copied to clipboard");
+      toast.success("Deposit address copied");
       setTimeout(() => setCopied(false), 2000);
     } else {
-      toast.error("Failed to copy address to clipboard");
+      toast.error("Couldn't copy the address");
     }
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-[#ececec] text-[#18211f]"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Deposit ${coin}`}
+        className="flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border border-(--ed-border) bg-(--ed-surface) font-sans text-(--ed-text) shadow-(--ed-shadow-lg) sm:max-w-md sm:rounded-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 p-2 text-[#758078] hover:text-[#18211f] rounded-full hover:bg-black/5 transition"
-          aria-label="Close"
-        >
-          <X className="size-5" />
-        </button>
-
-        {/* Header */}
-        <div className="text-center space-y-1 mb-5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1e4a3f]/10 text-[#1e4a3f] text-xs font-semibold">
-            <span>{coin}</span>
-            <span className="text-[#1e4a3f]/40">•</span>
-            <span>{network}</span>
-          </div>
-          <h3 className="text-lg font-bold tracking-tight text-[#18211f]">
-            Deposit Address & QR Code
-          </h3>
-          <p className="text-xs text-[#758078]">
-            Scan with your mobile wallet (Binance, Trust Wallet, MetaMask, Phantom, TronLink)
-          </p>
-        </div>
-
-        {/* QR Code Container */}
-        <div className="flex justify-center my-4">
-          <div className="p-3 bg-white border-2 border-[#1e4a3f]/20 rounded-2xl max-w-[240px] w-full aspect-square flex items-center justify-center">
-            <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
-          </div>
-        </div>
-
-        {/* Address Box */}
-        <div className="space-y-3">
-          <div className="p-3 bg-[#FAF9F5] border border-[#dce8df] rounded-xl">
-            <p className="text-[10px] uppercase font-semibold text-[#758078] tracking-wider mb-1">
-              Deposit Address ({network})
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-(--ed-border) px-5 py-4">
+          <div className="min-w-0">
+            <p className={monoLabelClass}>
+              {coin} · {network}
             </p>
-            <p className="text-xs font-mono break-all font-semibold text-[#18211f]">{address}</p>
+            <h3 className="truncate pt-1 text-lg font-medium leading-7 text-(--ed-text)">
+              Deposit address
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="-mr-1.5 rounded-full p-1.5 text-(--ed-muted) transition-colors hover:bg-(--ed-hover) hover:text-(--ed-text)"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-5">
+          <p className="text-sm leading-6 text-(--ed-muted)">
+            Scan this with your wallet app, or copy the address below.
+          </p>
+
+          {/* The QR plate stays white whatever the theme — codes need a light ground to scan */}
+          <div className="flex justify-center">
+            <div className="flex aspect-square w-full max-w-[240px] items-center justify-center rounded-xl bg-white p-3">
+              <div className="size-full" dangerouslySetInnerHTML={{ __html: svgContent }} />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-3">
+            <p className={monoLabelClass}>Address</p>
+            <p className="mt-1 break-all font-mono text-xs text-(--ed-text)">{address}</p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleCopy}
-              className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#1e4a3f] text-white text-xs font-semibold hover:bg-[#163830] transition cursor-pointer"
+              className={`${primaryButtonClass} h-10 flex-1 px-4 text-sm`}
             >
               {copied ? (
                 <>
-                  <Check className="size-3.5 text-emerald-300" />
-                  <span>Copied to Clipboard</span>
+                  <Check aria-hidden className="size-4" />
+                  <span>Copied</span>
                 </>
               ) : (
                 <>
-                  <Copy className="size-3.5" />
-                  <span>Copy Address</span>
+                  <Copy aria-hidden className="size-4" />
+                  <span>Copy address</span>
                 </>
               )}
             </button>
@@ -109,19 +125,18 @@ export function CryptoQrCodeModal({
               href={explorerUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-[#ececec] text-[#18211f] text-xs font-semibold hover:bg-[#FAF9F5] transition cursor-pointer"
+              className={`${secondaryButtonClass} h-10 px-4 text-sm`}
             >
-              <ExternalLink className="size-3.5 text-[#758078]" />
+              <ExternalLink aria-hidden className="size-4 text-(--ed-muted)" />
               <span>Explorer</span>
             </a>
           </div>
 
-          {/* Caution Advisory */}
-          <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-900 text-[11px] leading-relaxed">
-            <ShieldAlert className="size-4 shrink-0 text-amber-600 mt-0.5" />
+          <div className="flex items-start gap-2 rounded-lg border border-(--ed-warning)/30 bg-(--ed-warning)/10 p-3 text-xs leading-6 text-(--ed-text)">
+            <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-(--ed-warning)" />
             <span>
-              Send only <strong>{coin}</strong> ({network}) to this address. Sending any other token
-              will result in loss of funds. Deposits credit automatically upon block confirmation.
+              Send only {coin} on {network} to this address. Anything else is lost. Deposits appear
+              once the network confirms them.
             </span>
           </div>
         </div>
