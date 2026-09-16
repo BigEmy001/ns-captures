@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 import {
+  ArrowDownToLine,
   ArrowUpRight,
   Camera,
   Check,
@@ -523,7 +524,7 @@ export function EditionsShell({
                       onClick={handleWalletButtonClick}
                       aria-expanded={walletFlyoutOpen}
                       aria-haspopup="dialog"
-                      className={`hidden h-10 items-center gap-2 rounded-full px-4 text-sm font-medium tracking-[-0.15px] transition-colors sm:flex border cursor-pointer ${
+                      className={`flex h-9 sm:h-10 items-center gap-1.5 sm:gap-2 rounded-full px-2.5 sm:px-3.5 text-xs sm:text-sm font-medium tracking-[-0.15px] transition-colors border cursor-pointer ${
                         hasLinkedWallets
                           ? "border-(--ed-border) bg-(--ed-surface) text-(--ed-text) hover:bg-(--ed-hover)"
                           : "border-(--ed-primary)/30 bg-(--ed-primary)/10 text-(--ed-primary) hover:bg-(--ed-primary)/20"
@@ -535,18 +536,21 @@ export function EditionsShell({
                           <span className="font-mono text-xs font-semibold text-amber-400">
                             {nscBalance > 0 ? `${nscBalance.toFixed(0)} NSC` : "0 NSC"}
                           </span>
-                          <span className="text-(--ed-border-strong)">·</span>
-                          <span className="font-mono text-xs">{displayWalletLabel}</span>
+                          <span className="hidden sm:inline text-(--ed-border-strong)">·</span>
+                          <span className="hidden sm:inline font-mono text-xs">
+                            {displayWalletLabel}
+                          </span>
                           <ChevronDown
-                            className={`size-3.5 text-(--ed-muted) transition-transform duration-200 ${
+                            className={`size-3 sm:size-3.5 text-(--ed-muted) transition-transform duration-200 ${
                               walletFlyoutOpen ? "rotate-180" : ""
                             }`}
                           />
                         </>
                       ) : (
                         <>
-                          <Wallet className="size-4" />
-                          <span>Connect Wallet</span>
+                          <Wallet className="size-3.5 sm:size-4" />
+                          <span className="hidden sm:inline">Connect Wallet</span>
+                          <span className="sm:hidden text-xs">Connect</span>
                         </>
                       )}
                     </button>
@@ -560,16 +564,16 @@ export function EditionsShell({
                           exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
                           transition={{ type: "spring", duration: 0.25, bounce: 0 }}
                           style={{ transformOrigin: "top right" }}
-                          className="absolute right-0 top-12 z-50 w-80 sm:w-88 rounded-2xl border border-(--ed-border) bg-(--ed-surface) p-4 shadow-(--ed-shadow-lg) text-(--ed-text)"
+                          className="absolute right-0 top-11 sm:top-12 z-50 w-[calc(100vw-1.5rem)] max-w-[340px] sm:w-84 rounded-2xl border border-(--ed-border) bg-(--ed-surface) p-3 sm:p-3.5 shadow-(--ed-shadow-lg) text-(--ed-text) space-y-2.5"
                         >
-                          {/* Header Address Card */}
-                          <div className="flex items-center justify-between pb-3 border-b border-(--ed-divider)">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="size-9 rounded-full bg-gradient-to-br from-[#EC4899] via-[#8B5CF6] to-[#3B82F6] flex items-center justify-center text-xs font-bold text-white shadow-inner shrink-0">
+                          {/* Header User + Address Bar */}
+                          <div className="flex items-center justify-between pb-2.5 border-b border-(--ed-divider)">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="size-7 rounded-full bg-gradient-to-br from-amber-500 via-purple-500 to-blue-500 flex items-center justify-center text-[10px] font-bold text-white shadow-inner shrink-0">
                                 {user?.name ? user.name.slice(0, 2).toUpperCase() : "0x"}
                               </div>
                               <div className="min-w-0">
-                                <div className="flex items-center gap-1.5 text-xs font-mono font-semibold">
+                                <div className="flex items-center gap-1 text-xs font-mono font-semibold">
                                   <span className="truncate">
                                     {shortHex(primaryEvmAddress || wallets[0]?.address || "")}
                                   </span>
@@ -587,16 +591,15 @@ export function EditionsShell({
                                     >
                                       {copiedAddress ===
                                       (primaryEvmAddress || wallets[0]?.address) ? (
-                                        <Check className="size-3.5 text-emerald-500" />
+                                        <Check className="size-3 text-emerald-500" />
                                       ) : (
-                                        <Copy className="size-3.5" />
+                                        <Copy className="size-3" />
                                       )}
                                     </button>
                                   )}
                                 </div>
-                                <span className="text-[11px] font-mono text-(--ed-muted) block truncate">
-                                  {nscBalance.toFixed(0)} NSC • {wallets.length} Wallets Linked • $
-                                  {balances?.totalUsd ? balances.totalUsd.toFixed(2) : "0.00"}
+                                <span className="text-[10px] font-mono text-(--ed-muted) block">
+                                  {wallets.length} Networks Linked
                                 </span>
                               </div>
                             </div>
@@ -607,204 +610,59 @@ export function EditionsShell({
                                 navigate("/account?tab=vault");
                               }}
                               className="text-(--ed-muted) hover:text-(--ed-text) p-1 transition-colors cursor-pointer"
-                              title="Manage Vault"
+                              title="Open Settlement Vault"
                             >
                               <ChevronRight className="size-4" />
                             </button>
                           </div>
 
-                          {/* Sub-Wallets List */}
-                          <div className="space-y-2 py-3">
-                            {/* NSC Native Platform Coin Card */}
-                            <div className="p-2.5 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent hover:from-amber-500/20 rounded-xl border border-amber-500/30 transition-colors flex items-center justify-between">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="size-7 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xs text-amber-400 font-mono font-bold shrink-0">
-                                  🪙
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-semibold block">NSC Coin</span>
-                                    <span className="rounded bg-amber-500/20 px-1 py-0.2 font-mono text-[9px] font-semibold text-amber-400">
-                                      Native Fuel
-                                    </span>
-                                  </div>
-                                  <span className="text-[10px] font-mono text-(--ed-muted) block">
-                                    Universal Platform Currency
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="text-right font-mono shrink-0 pl-2">
-                                <span className="text-xs font-bold block text-amber-400">
-                                  {nscBalance.toFixed(2)} NSC
-                                </span>
-                                <span className="text-[10px] text-(--ed-muted) block">
-                                  ≈ £{nscBalance.toFixed(2)} GBP
-                                </span>
-                              </div>
+                          {/* Primary Balance Display (Quiet Luxury Obsidian & Amber) */}
+                          <div className="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-(--ed-bg) to-(--ed-bg) p-2.5 space-y-1">
+                            <div className="flex items-center justify-between text-[10px] font-mono text-(--ed-muted)">
+                              <span>NSC Platform Balance</span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-400 font-semibold">
+                                1:1 Peg
+                              </span>
                             </div>
-
-                            {/* EVM Wallet Card */}
-                            {evmWallet && (
-                              <div className="p-2.5 bg-(--ed-bg) hover:bg-(--ed-hover) rounded-xl border border-(--ed-border) transition-colors flex items-center justify-between">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="size-7 rounded-lg bg-[#2081E2]/20 border border-[#2081E2]/40 flex items-center justify-center text-xs text-[#2081E2] font-mono font-bold shrink-0">
-                                    ⟠
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="text-xs font-semibold block">EVM Wallet</span>
-                                    <span className="text-[10px] font-mono text-(--ed-muted) block truncate">
-                                      {shortHex(evmWallet.address)}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="text-right font-mono shrink-0 pl-2">
-                                  <span className="text-xs font-semibold block">
-                                    {balances?.assets.find((a) => a.coin === "ETH")
-                                      ?.balanceFormatted || "0.00"}{" "}
-                                    ETH
-                                  </span>
-                                  <span className="text-[10px] text-emerald-500 block">
-                                    ● Connected
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* TRON Wallet Card */}
-                            {tronWallet && (
-                              <div className="p-2.5 bg-(--ed-bg) hover:bg-(--ed-hover) rounded-xl border border-(--ed-border) transition-colors flex items-center justify-between">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="size-7 rounded-lg bg-[#EF0027]/20 border border-[#EF0027]/40 flex items-center justify-center text-xs text-[#EF0027] font-mono font-bold shrink-0">
-                                    ⚡
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="text-xs font-semibold block">TRON Wallet</span>
-                                    <span className="text-[10px] font-mono text-(--ed-muted) block truncate">
-                                      {tronWallet.address.slice(0, 4)}...
-                                      {tronWallet.address.slice(-4)}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="text-right font-mono shrink-0 pl-2">
-                                  <span className="text-xs font-semibold block">
-                                    {balances?.assets.find(
-                                      (a) => a.coin === "USDT" && a.network.includes("TRC"),
-                                    )?.balanceFormatted ||
-                                      balances?.assets.find((a) => a.coin === "USDT")
-                                        ?.balanceFormatted ||
-                                      "0.00"}{" "}
-                                    USDT
-                                  </span>
-                                  <span className="text-[10px] text-emerald-500 block">
-                                    ● Connected
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Solana Wallet Card */}
-                            {solanaWallet && (
-                              <div className="p-2.5 bg-(--ed-bg) hover:bg-(--ed-hover) rounded-xl border border-(--ed-border) transition-colors flex items-center justify-between">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="size-7 rounded-lg bg-[#9945FF]/20 border border-[#9945FF]/40 flex items-center justify-center text-xs text-[#14F195] font-mono font-bold shrink-0">
-                                    ◎
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="text-xs font-semibold block">
-                                      Solana Wallet
-                                    </span>
-                                    <span className="text-[10px] font-mono text-(--ed-muted) block truncate">
-                                      {solanaWallet.address.slice(0, 4)}...
-                                      {solanaWallet.address.slice(-4)}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="text-right font-mono shrink-0 pl-2">
-                                  <span className="text-xs font-semibold block">
-                                    {balances?.assets.find((a) => a.coin === "SOL")
-                                      ?.balanceFormatted || "0.00"}{" "}
-                                    SOL
-                                  </span>
-                                  <span className="text-[10px] text-emerald-500 block">
-                                    ● Connected
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Bitcoin Wallet Card */}
-                            {btcWallet && (
-                              <div className="p-2.5 bg-(--ed-bg) hover:bg-(--ed-hover) rounded-xl border border-(--ed-border) transition-colors flex items-center justify-between">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="size-7 rounded-lg bg-[#F7931A]/20 border border-[#F7931A]/40 flex items-center justify-center text-xs text-[#F7931A] font-mono font-bold shrink-0">
-                                    ₿
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="text-xs font-semibold block">
-                                      Bitcoin Wallet
-                                    </span>
-                                    <span className="text-[10px] font-mono text-(--ed-muted) block truncate">
-                                      {btcWallet.address.slice(0, 6)}...
-                                      {btcWallet.address.slice(-4)}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="text-right font-mono shrink-0 pl-2">
-                                  <span className="text-xs font-semibold block">
-                                    {balances?.assets.find((a) => a.coin === "BTC")
-                                      ?.balanceFormatted || "0.00"}{" "}
-                                    BTC
-                                  </span>
-                                  <span className="text-[10px] text-emerald-500 block">
-                                    ● SegWit
-                                  </span>
-                                </div>
-                              </div>
-                            )}
+                            <div className="flex items-baseline justify-between">
+                              <span className="text-lg font-bold font-mono text-amber-400">
+                                {nscBalance.toFixed(2)} NSC
+                              </span>
+                              <span className="text-[11px] font-mono text-(--ed-muted)">
+                                ≈ £{nscBalance.toFixed(2)} GBP
+                              </span>
+                            </div>
+                            <div className="text-[10px] font-mono text-(--ed-muted) pt-0.5 flex justify-between">
+                              <span>Total Vault Value:</span>
+                              <span className="text-(--ed-text) font-semibold">
+                                ${balances?.totalUsd ? balances.totalUsd.toFixed(2) : "0.00"} USD
+                              </span>
+                            </div>
                           </div>
 
-                          {/* Presale Spotlight Card */}
-                          {presaleConfig.status === "active" && (
-                            <div className="mb-2.5 p-3 rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-500">
-                                  <Flame className="size-3.5 fill-amber-500 animate-pulse" />
-                                  NSC Presale Live
-                                </span>
-                                <span className="text-[10px] font-mono text-(--ed-muted)">
-                                  1:1 Peg
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-(--ed-muted) leading-tight">
-                                Early-bird token allocation at $1.00 USD. Zero gas on internal
-                                ledger.
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setWalletFlyoutOpen(false);
-                                  setPresaleModalOpen(true);
-                                }}
-                                className="w-full py-1.5 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                              >
-                                <Sparkles className="size-3.5" />
-                                <span>Swap for NSC Tokens</span>
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Action Links */}
-                          <div className="space-y-1 pt-2.5 border-t border-(--ed-divider) text-xs">
+                          {/* Quick Actions Row */}
+                          <div className="grid grid-cols-3 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setWalletFlyoutOpen(false);
+                                setPresaleModalOpen(true);
+                              }}
+                              className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-400 text-[11px] font-semibold transition-colors cursor-pointer"
+                            >
+                              <Flame className="size-3.5 mb-0.5 fill-amber-500/30 animate-pulse" />
+                              <span>Buy NSC</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
                                 setWalletFlyoutOpen(false);
                                 setConnectModalOpen(true);
                               }}
-                              className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-(--ed-text) hover:bg-(--ed-hover) transition-colors text-left cursor-pointer"
+                              className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-(--ed-bg) hover:bg-(--ed-hover) border border-(--ed-border) text-(--ed-text) text-[11px] font-medium transition-colors cursor-pointer"
                             >
-                              <span>Link Wallet / Deposit Crypto</span>
-                              <ArrowUpRight className="size-3.5 text-(--ed-muted)" />
+                              <ArrowDownToLine className="size-3.5 mb-0.5 text-(--ed-muted)" />
+                              <span>Deposit</span>
                             </button>
                             <button
                               type="button"
@@ -812,24 +670,174 @@ export function EditionsShell({
                                 setWalletFlyoutOpen(false);
                                 navigate("/account?tab=vault");
                               }}
-                              className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-(--ed-text) hover:bg-(--ed-hover) transition-colors text-left cursor-pointer"
+                              className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-(--ed-bg) hover:bg-(--ed-hover) border border-(--ed-border) text-(--ed-text) text-[11px] font-medium transition-colors cursor-pointer"
                             >
-                              <span>Manage Wallets & Settlement Vault</span>
-                              <ArrowUpRight className="size-3.5 text-(--ed-muted)" />
+                              <Wallet className="size-3.5 mb-0.5 text-(--ed-muted)" />
+                              <span>Vault</span>
                             </button>
-                            {user && (
+                          </div>
+
+                          {/* Connected Multi-Chain Holdings List */}
+                          <div className="space-y-1 pt-1">
+                            <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-(--ed-muted) px-1">
+                              <span>Connected Assets</span>
+                              <span>Balance</span>
+                            </div>
+
+                            <div className="space-y-1 max-h-36 overflow-y-auto pr-0.5 [scrollbar-width:none]">
+                              {/* EVM */}
+                              {evmWallet && (
+                                <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-(--ed-bg) text-xs">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="size-5 rounded-full bg-[#627EEA]/20 text-[#627EEA] flex items-center justify-center text-[10px] font-bold shrink-0">
+                                      ⟠
+                                    </span>
+                                    <div className="min-w-0">
+                                      <span className="font-semibold block truncate text-[11px]">
+                                        Ethereum / Base
+                                      </span>
+                                      <span className="text-[9px] font-mono text-(--ed-muted) block">
+                                        {shortHex(evmWallet.address)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right font-mono text-[11px] shrink-0">
+                                    <span className="font-semibold block">
+                                      {balances?.assets.find((a) => a.coin === "ETH")
+                                        ?.balanceFormatted || "0.00"}{" "}
+                                      ETH
+                                    </span>
+                                    <span className="text-[9px] text-emerald-500 block">
+                                      ● Connected
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* TRON */}
+                              {tronWallet && (
+                                <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-(--ed-bg) text-xs">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="size-5 rounded-full bg-[#26A17B]/20 text-[#26A17B] flex items-center justify-center text-[10px] font-bold shrink-0">
+                                      ₮
+                                    </span>
+                                    <div className="min-w-0">
+                                      <span className="font-semibold block truncate text-[11px]">
+                                        TRON (TRC-20)
+                                      </span>
+                                      <span className="text-[9px] font-mono text-(--ed-muted) block">
+                                        {tronWallet.address.slice(0, 4)}...
+                                        {tronWallet.address.slice(-4)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right font-mono text-[11px] shrink-0">
+                                    <span className="font-semibold block">
+                                      {balances?.assets.find(
+                                        (a) => a.coin === "USDT" && a.network.includes("TRC"),
+                                      )?.balanceFormatted ||
+                                        balances?.assets.find((a) => a.coin === "USDT")
+                                          ?.balanceFormatted ||
+                                        "0.00"}{" "}
+                                      USDT
+                                    </span>
+                                    <span className="text-[9px] text-emerald-500 block">
+                                      ● Connected
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Solana */}
+                              {solanaWallet && (
+                                <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-(--ed-bg) text-xs">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="size-5 rounded-full bg-[#14F195]/20 text-[#14F195] flex items-center justify-center text-[10px] font-bold shrink-0">
+                                      ◎
+                                    </span>
+                                    <div className="min-w-0">
+                                      <span className="font-semibold block truncate text-[11px]">
+                                        Solana
+                                      </span>
+                                      <span className="text-[9px] font-mono text-(--ed-muted) block">
+                                        {solanaWallet.address.slice(0, 4)}...
+                                        {solanaWallet.address.slice(-4)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right font-mono text-[11px] shrink-0">
+                                    <span className="font-semibold block">
+                                      {balances?.assets.find((a) => a.coin === "SOL")
+                                        ?.balanceFormatted || "0.00"}{" "}
+                                      SOL
+                                    </span>
+                                    <span className="text-[9px] text-emerald-500 block">
+                                      ● Connected
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Bitcoin */}
+                              {btcWallet && (
+                                <div className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-(--ed-bg) text-xs">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="size-5 rounded-full bg-[#F7931A]/20 text-[#F7931A] flex items-center justify-center text-[10px] font-bold shrink-0">
+                                      ₿
+                                    </span>
+                                    <div className="min-w-0">
+                                      <span className="font-semibold block truncate text-[11px]">
+                                        Bitcoin
+                                      </span>
+                                      <span className="text-[9px] font-mono text-(--ed-muted) block">
+                                        {btcWallet.address.slice(0, 4)}...
+                                        {btcWallet.address.slice(-4)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="text-right font-mono text-[11px] shrink-0">
+                                    <span className="font-semibold block">
+                                      {balances?.assets.find((a) => a.coin === "BTC")
+                                        ?.balanceFormatted || "0.00"}{" "}
+                                      BTC
+                                    </span>
+                                    <span className="text-[9px] text-emerald-500 block">
+                                      ● SegWit
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Footer Navigation */}
+                          <div className="pt-2 border-t border-(--ed-divider) flex items-center justify-between text-[11px]">
+                            {user ? (
                               <button
                                 type="button"
                                 onClick={() => {
                                   setWalletFlyoutOpen(false);
                                   navigate(creatorHref(user.slug || user.id));
                                 }}
-                                className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-(--ed-text) hover:bg-(--ed-hover) transition-colors text-left cursor-pointer"
+                                className="text-(--ed-muted) hover:text-(--ed-text) flex items-center gap-1 transition-colors cursor-pointer"
                               >
-                                <span>Profile & Provenance Portfolio</span>
-                                <ArrowUpRight className="size-3.5 text-(--ed-muted)" />
+                                <span>Collector Profile</span>
+                                <ArrowUpRight className="size-3" />
                               </button>
+                            ) : (
+                              <span />
                             )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setWalletFlyoutOpen(false);
+                                navigate("/account?tab=vault");
+                              }}
+                              className="text-(--ed-primary) hover:underline flex items-center gap-1 font-medium cursor-pointer"
+                            >
+                              <span>Manage Vault</span>
+                              <ArrowUpRight className="size-3" />
+                            </button>
                           </div>
                         </motion.div>
                       )}
