@@ -362,6 +362,20 @@ export function EditionsShell({
                 to="/editions/studio"
                 active={activeRail === "studio"}
               />
+              {presaleConfig.status === "active" && (
+                <button
+                  type="button"
+                  onClick={() => setPresaleModalOpen(true)}
+                  title="NSC Token Presale (1:1 Swap)"
+                  aria-label="NSC Token Presale"
+                  className="group relative flex size-9 items-center justify-center rounded-lg text-amber-500 hover:bg-amber-500/15 transition-colors cursor-pointer"
+                >
+                  <Flame className="size-5 fill-amber-500/30 group-hover:fill-amber-500 transition-colors animate-pulse" />
+                  <span className="pointer-events-none absolute left-full ml-3 hidden whitespace-nowrap rounded-md border border-(--ed-border) bg-(--ed-surface) px-2 py-1 font-mono text-xs text-(--ed-text) shadow-md group-hover:block z-50">
+                    NSC Presale 1:1
+                  </span>
+                </button>
+              )}
             </nav>
             <div className="flex flex-col items-center gap-2">
               <RailItem label="Account settings" icon={navSettingsIcon} to="/account" />
@@ -494,11 +508,12 @@ export function EditionsShell({
                   <button
                     type="button"
                     onClick={() => setPresaleModalOpen(true)}
-                    className="hidden md:flex items-center gap-1.5 h-10 px-3.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-xs font-semibold tracking-[-0.1px] transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-xs font-semibold tracking-[-0.1px] transition-colors cursor-pointer shrink-0"
                     title="Participate in NSC Token Presale"
                   >
-                    <Flame className="size-3.5 fill-amber-500 animate-pulse" />
-                    <span>NSC Presale 1:1</span>
+                    <Flame className="size-3.5 fill-amber-500 animate-pulse shrink-0" />
+                    <span className="hidden sm:inline">NSC Presale 1:1</span>
+                    <span className="sm:hidden">Presale</span>
                   </button>
                 )}
                 {headerActions ?? (

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { ArrowUpRight, Copy } from "lucide-react";
+import { ArrowUpRight, Copy, Flame, Sparkles } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -10,10 +10,12 @@ import {
   getStoredActivity,
   purchaseEdition,
   isEditionsPublic,
+  getPresaleConfig,
   EDITIONS_VISIBILITY_EVENT,
   type DigitalEdition,
   type EditionOwnership,
 } from "../data/editions";
+import { PresaleBuyModal } from "../components/PresaleBuyModal";
 import { CertificateOfAuthenticityModal } from "../components/CertificateOfAuthenticityModal";
 import { useWeb3Activation } from "../components/editions/useWeb3Activation";
 import { NsCapturesLogoBadge } from "../components/NsCapturesLogoBadge";
@@ -57,7 +59,6 @@ import { useEditionsTheme } from "../components/editions/useEditionsTheme";
 import { useAuth } from "../context/AuthContext";
 import { copyToClipboard } from "../../lib/clipboard";
 import { generateQrSvg } from "../../lib/qrcode";
-import contentCopyIcon from "../../assets/edition-detail/content-copy.svg";
 import chevronLeftIcon from "../../assets/edition-detail/chevron-left.svg";
 
 const CATEGORY_FILTERS = [
@@ -104,8 +105,10 @@ const formatCompactGbp = (value: number) =>
 export function Editions() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, logout } = useAuth();
-  const { wallets, balances } = useEditionVault();
+  const { user } = useAuth();
+  const { wallets, refresh: refreshVault } = useEditionVault();
+  const [isPresaleModalOpen, setIsPresaleModalOpen] = useState(false);
+  const presaleConfig = useMemo(() => getPresaleConfig(), []);
   const { theme } = useEditionsTheme();
   const reduceMotion = useReducedMotion();
 
@@ -131,8 +134,6 @@ export function Editions() {
   const [currencyMode, setCurrencyMode] = useState<"eth" | "gbp">("eth");
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
   const [heroPaused, setHeroPaused] = useState(false);
-  const [isWalletMenuOpen, setIsWalletMenuOpen] = useState(false);
-  const walletMenuRef = useRef<HTMLDivElement>(null);
   const catalogRef = useRef<HTMLElement>(null);
 
   // Modals
@@ -158,25 +159,6 @@ export function Editions() {
       navigate("/editions/studio?section=create", { replace: true });
     }
   }, [searchParams, navigate]);
-
-  // Close the wallet menu on outside click or Escape
-  useEffect(() => {
-    if (!isWalletMenuOpen) return;
-    const handlePointerDown = (e: MouseEvent) => {
-      if (!walletMenuRef.current?.contains(e.target as Node)) setIsWalletMenuOpen(false);
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsWalletMenuOpen(false);
-    };
-    document.addEventListener("mousedown", handlePointerDown);
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isWalletMenuOpen]);
-
-  const totalWalletUsd = balances ? `$${(balances.totalGbp * 1.28).toFixed(2)}` : null;
 
   // Featured Editions for Hero Carousel
   const featuredEditions = useMemo(() => {
@@ -341,148 +323,6 @@ export function Editions() {
 
   const activeDepositWallet = wallets[depositWalletIndex] ?? wallets[0];
 
-  const walletControl = (
-    <div ref={walletMenuRef} className="relative hidden sm:block">
-      <button
-        type="button"
-        onClick={() => {
-          if (wallets.length === 0) navigate(user ? "/account?tab=vault" : "/signin");
-          else setIsWalletMenuOpen((open) => !open);
-        }}
-        aria-haspopup={wallets.length > 0 ? "menu" : undefined}
-        aria-expanded={wallets.length > 0 ? isWalletMenuOpen : undefined}
-        className="flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium tracking-[-0.15px] text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
-      >
-        {wallets.length === 0 ? (
-          "Connect Wallet"
-        ) : (
-          <>
-            <span className="font-mono">{totalWalletUsd ?? shortHex(wallets[0].address)}</span>
-            <MaskIcon
-              src={chevronLeftIcon}
-              className={`size-4 text-(--ed-muted) transition-transform ${isWalletMenuOpen ? "rotate-90" : "-rotate-90"}`}
-            />
-          </>
-        )}
-      </button>
-
-      <AnimatePresence>
-        {isWalletMenuOpen && wallets.length > 0 && (
-          <motion.div
-            role="menu"
-            initial={{ opacity: 0, scale: 0.96, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.1 } }}
-            transition={{ type: "spring", duration: 0.25, bounce: 0 }}
-            style={{ transformOrigin: "top right" }}
-            className="absolute right-0 top-12 z-40 w-80 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-2 shadow-(--ed-shadow)"
-          >
-            <div className="flex items-center gap-3 border-b border-(--ed-border) px-2 pb-3 pt-1">
-              <span className="flex size-9 items-center justify-center rounded-full bg-(--ed-raised) text-xs font-medium text-(--ed-text)">
-                {initials(user?.name ?? "NS")}
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-(--ed-text)">
-                  {user?.name ?? "Collector"}
-                </p>
-                <p className="font-mono text-xs text-(--ed-muted)">
-                  {wallets.length} wallet{wallets.length === 1 ? "" : "s"}
-                  {totalWalletUsd ? ` · ${totalWalletUsd}` : ""}
-                </p>
-              </div>
-            </div>
-
-            <ul className="flex flex-col gap-0.5 py-2">
-              {wallets.map((wallet) => {
-                const asset = balances?.assets.find((a) => a.coin === wallet.coin);
-                return (
-                  <li
-                    key={`${wallet.coin}-${wallet.network}-${wallet.address}`}
-                    className="flex items-center justify-between gap-3 rounded-md px-2 py-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm text-(--ed-text)">
-                        {wallet.coin}
-                        <span className="pl-1.5 text-xs text-(--ed-muted)">{wallet.network}</span>
-                      </p>
-                      <div className="flex items-center gap-1.5 font-mono text-xs text-(--ed-muted)">
-                        <span>{shortHex(wallet.address)}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(wallet.address, `${wallet.coin} address`)}
-                          aria-label={`Copy ${wallet.coin} address`}
-                          className="transition-colors hover:text-(--ed-text)"
-                        >
-                          <MaskIcon src={contentCopyIcon} className="size-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    <p className="shrink-0 font-mono text-sm text-(--ed-text)">
-                      {asset?.balanceFormatted ?? `0 ${wallet.coin}`}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <div className="flex flex-col gap-0.5 border-t border-(--ed-border) pt-2">
-              {[
-                {
-                  label: "Deposit crypto",
-                  onSelect: () => {
-                    setDepositWalletIndex(0);
-                    setIsDepositModalOpen(true);
-                  },
-                },
-                { label: "Manage wallets & vault", onSelect: () => navigate("/account?tab=vault") },
-                {
-                  label: "Your editions",
-                  onSelect: () => {
-                    const owned = getStoredOwnerships().filter(
-                      (o) => o.ownerId === user?.id,
-                    ).length;
-                    toast.info(
-                      owned === 0
-                        ? "You haven't acquired any digital editions yet."
-                        : `You own ${owned} fine-art digital edition${owned === 1 ? "" : "s"}.`,
-                    );
-                  },
-                },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setIsWalletMenuOpen(false);
-                    item.onSelect();
-                  }}
-                  className="rounded-md px-2 py-2 text-left text-sm text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
-                >
-                  {item.label}
-                </button>
-              ))}
-              {user && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={async () => {
-                    setIsWalletMenuOpen(false);
-                    await logout();
-                    toast.success("Disconnected Web3 session");
-                  }}
-                  className="rounded-md px-2 py-2 text-left text-sm text-(--ed-negative) transition-colors hover:bg-(--ed-negative)/10"
-                >
-                  Log out
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-
   const priceFor = (edition: DigitalEdition) =>
     currencyMode === "eth" ? formatEth(edition.priceEth) : formatGbp(edition.priceGbp);
 
@@ -491,7 +331,6 @@ export function Editions() {
       activeRail={catalogTab === "activity" ? "activity" : "discover"}
       onActivity={openActivity}
       onCertificates={() => editions[0] && openCertificate(editions[0])}
-      headerActions={walletControl}
       banner={adminBanner}
     >
       <main className="flex flex-1 flex-col gap-10 px-4 pb-16 pt-6 sm:px-6">
@@ -625,6 +464,56 @@ export function Editions() {
               </motion.div>
             </AnimatePresence>
           </section>
+        )}
+
+        {/* ============================================================ */}
+        {/* NSC PRESALE BANNER SPOTLIGHT                                  */}
+        {/* ============================================================ */}
+        {presaleConfig.status === "active" && (
+          <motion.section
+            {...sectionReveal}
+            aria-label="NSC token presale"
+            className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 via-(--ed-surface) to-(--ed-bg) p-5 sm:p-6 shadow-(--ed-shadow)"
+          >
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-start gap-4">
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/20 text-amber-500 shadow-inner">
+                  <Flame className="size-6 animate-pulse fill-amber-500" />
+                </span>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs font-semibold uppercase tracking-wider text-amber-500">
+                      Official Presale Live
+                    </span>
+                    <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 font-mono text-[11px] font-medium text-emerald-400">
+                      1:1 Parity ($1.00 USD)
+                    </span>
+                    <span className="rounded-full border border-(--ed-border) bg-(--ed-bg)/60 px-2 py-0.5 font-mono text-[11px] text-(--ed-muted)">
+                      Listing Target: $1.30
+                    </span>
+                  </div>
+                  <h2 className="mt-1 text-lg font-medium text-(--ed-text) sm:text-xl">
+                    NSC Platform Coin & Native Fuel
+                  </h2>
+                  <p className="mt-1 max-w-xl text-sm leading-6 text-(--ed-muted)">
+                    Zero-gas native fuel for minting, Web3 vault activation, and collector
+                    acquisitions. Swap ETH, USDT, TRX, SOL, or BTC directly into NSC tokens with
+                    immediate treasury routing.
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPresaleModalOpen(true)}
+                  className="flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-5 font-mono text-xs font-bold uppercase tracking-wider text-black shadow-lg shadow-amber-500/20 transition-transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                >
+                  <Sparkles className="size-4" />
+                  <span>Join NSC Presale</span>
+                </button>
+              </div>
+            </div>
+          </motion.section>
         )}
 
         {/* ============================================================ */}
@@ -1037,6 +926,17 @@ export function Editions() {
           edition={activeCertData.edition}
           ownership={activeCertData.ownership}
           onClose={() => setActiveCertData(null)}
+        />
+      )}
+
+      {isPresaleModalOpen && (
+        <PresaleBuyModal
+          isOpen={isPresaleModalOpen}
+          onClose={() => setIsPresaleModalOpen(false)}
+          onSuccess={() => {
+            setIsPresaleModalOpen(false);
+            refreshVault();
+          }}
         />
       )}
     </EditionsShell>
