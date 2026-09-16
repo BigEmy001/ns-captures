@@ -1,7 +1,7 @@
 import { useState, type ComponentType } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { CheckCircle2, Circle, Gem, Palette, Sparkles } from "lucide-react";
+import { CheckCircle2, Circle, Gem, Palette } from "lucide-react";
 import type { AuthUser } from "../../context/AuthContext";
 import { PresaleBuyModal } from "../PresaleBuyModal";
 import { hasCreatorAccess } from "../../data/roles";
@@ -332,7 +332,6 @@ export function Web3OnboardingFlow({
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-3.5">
               <div className="space-y-0.5">
                 <p className="text-xs font-medium text-(--ed-text) flex items-center gap-1.5">
-                  <Sparkles className="size-3.5 text-(--ed-muted)" />
                   Activate Vault with NSC or ETH
                 </p>
                 <p className="text-[11px] text-(--ed-muted)">
@@ -345,7 +344,6 @@ export function Web3OnboardingFlow({
                 onClick={() => setIsSwapOpen(true)}
                 className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-(--ed-primary) px-3.5 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 shrink-0"
               >
-                <Sparkles className="size-3.5" />
                 Swap ETH to NSC
               </button>
             </div>

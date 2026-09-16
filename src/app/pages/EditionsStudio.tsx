@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { MintEditionModal } from "../components/MintEditionModal";
 import { EditionsShell } from "../components/editions/EditionsShell";
@@ -206,9 +206,6 @@ export function EditionsStudio() {
               className={`${surfaceCardClass} flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between`}
             >
               <div className="flex items-start gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-(--ed-primary)/15 text-(--ed-primary)">
-                  <Sparkles aria-hidden className="size-5" />
-                </span>
                 <div>
                   <p className="text-base font-medium text-(--ed-text)">Create editions too</p>
                   <p className="mt-1 text-sm leading-6 text-(--ed-muted)">

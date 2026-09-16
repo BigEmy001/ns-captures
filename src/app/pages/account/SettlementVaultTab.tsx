@@ -528,7 +528,6 @@ export function SettlementVaultTab() {
                 onClick={() => setIsPresaleModalOpen(true)}
                 className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black px-5 py-3 text-xs font-semibold transition cursor-pointer shadow-md"
               >
-                <Sparkles className="size-4" />
                 <span>Participate in Presale</span>
               </button>
             </div>
@@ -685,7 +684,6 @@ export function SettlementVaultTab() {
                     onClick={() => setIsPresaleModalOpen(true)}
                     className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-[#1e4a3f] hover:bg-emerald-100 transition cursor-pointer"
                   >
-                    <Sparkles className="size-3.5 text-emerald-600" />
                     <span>Buy Presale (1:1)</span>
                   </button>
                 </div>

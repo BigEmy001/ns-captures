@@ -650,7 +650,6 @@ export function EditionsShell({
                               }}
                               className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-(--ed-bg) hover:bg-(--ed-hover) border border-(--ed-border) text-(--ed-text) text-[11px] font-medium transition-colors cursor-pointer"
                             >
-                              <Sparkles className="size-3.5 mb-0.5 text-(--ed-muted)" />
                               <span>Buy NSC</span>
                             </button>
                             <button

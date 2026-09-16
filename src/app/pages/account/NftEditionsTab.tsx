@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
-import { AlertCircle, ArrowUpRight, ChevronRight, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowUpRight, ChevronRight } from "lucide-react";
 import { Eyebrow } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { EDITIONS_CHANGED_EVENT, editionReviewStatus } from "../../data/editions";
@@ -81,7 +81,6 @@ export function NftEditionsTab({ canCreate }: { canCreate: boolean }) {
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="max-w-xl">
             <p className="flex items-center gap-1.5 font-mono text-xs uppercase text-[#acadae]">
-              <Sparkles aria-hidden className="size-3.5" />
               NS CAPTURES Web3
             </p>
             <h2 id="nft-studio-card" className="mt-3 text-2xl font-medium text-white">
