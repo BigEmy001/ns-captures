@@ -41,6 +41,7 @@ export const DEFAULT_EXCHANGE_RATES: Record<string, { usd: number; gbp: number }
   BTC: { usd: 64500.0, gbp: 50950.0 },
   ETH: { usd: 3450.0, gbp: 2725.0 },
   SOL: { usd: 145.0, gbp: 114.5 },
+  TRX: { usd: 0.25, gbp: 0.2 },
 };
 
 /**
@@ -182,6 +183,52 @@ export async function fetchTronUsdtBalance(address: string): Promise<number> {
     }
   } catch {
     // all fallbacks completed
+  }
+
+  return 0;
+}
+
+/**
+ * Fetch live TRON TRX (native coin) balance from TronGrid or Tronscan.
+ */
+export async function fetchTronTrxBalance(address: string): Promise<number> {
+  if (!address || !address.startsWith("T")) return 0;
+
+  try {
+    const { signal, cleanup } = createTimeoutSignal(3500);
+    const res = await fetch(`https://api.trongrid.io/v1/accounts/${address}`, {
+      headers: { Accept: "application/json" },
+      signal,
+    });
+    cleanup();
+
+    if (res.ok) {
+      const data = await res.json();
+      const account = data?.data?.[0];
+      if (account && typeof account.balance === "number") {
+        return account.balance / 1_000_000;
+      }
+    }
+  } catch {
+    // Proceed to fallback
+  }
+
+  try {
+    const { signal, cleanup } = createTimeoutSignal(3500);
+    const res = await fetch(`https://apilist.tronscanapi.com/api/account?address=${address}`, {
+      headers: { Accept: "application/json" },
+      signal,
+    });
+    cleanup();
+
+    if (res.ok) {
+      const data = await res.json();
+      if (typeof data.balance === "number") {
+        return data.balance / 1_000_000;
+      }
+    }
+  } catch {
+    // fallback completed
   }
 
   return 0;
@@ -441,6 +488,10 @@ export async function fetchMultiChainVaultBalances(
           balance = 0;
           status = "unfunded";
         }
+      } else if (coin === "TRX") {
+        balance = await fetchTronTrxBalance(w.address);
+        status = balance > 0 ? "live" : "unfunded";
+        if (balance > 0) anyLiveSuccess = true;
       } else if (network.includes("TRC") || (coin === "USDT" && network === "TRC20")) {
         balance = await fetchTronUsdtBalance(w.address);
         status = balance > 0 ? "live" : "unfunded";

@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { Check, Copy, ExternalLink, Search } from "lucide-react";
+import { Check, Copy, ExternalLink, Search, Flame, Coins } from "lucide-react";
 import { Badge } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { copyToClipboard } from "../../../lib/clipboard";
@@ -13,6 +13,9 @@ import {
   EDITIONS_CHANGED_EVENT,
   getCollectedMintingFees,
   getDepositConfig,
+  getPresaleConfig,
+  updatePresaleConfig,
+  getPresaleMetrics,
   getStoredEditions,
   getStoredOwnerships,
   isEditionPublished,
@@ -25,9 +28,10 @@ import {
   type DepositGateConfig,
   type DigitalEdition,
   type EditionReviewStatus,
+  type NscPresaleConfig,
 } from "../../data/editions";
 
-type PanelTab = "review" | "catalogue" | "rules" | "certificates";
+type PanelTab = "review" | "catalogue" | "rules" | "presale" | "certificates";
 type NoteTarget = { editionId: string; from: "queue" | "decisions" | "catalogue" } | null;
 
 // Shared admin console styling (Users, Moderation, Collections)
@@ -48,6 +52,7 @@ const TABS: { id: PanelTab; label: string }[] = [
   { id: "review", label: "Review queue" },
   { id: "catalogue", label: "Catalogue" },
   { id: "rules", label: "Minting fees & rules" },
+  { id: "presale", label: "Token Presale & Treasury" },
   { id: "certificates", label: "Certificates" },
 ];
 
@@ -60,11 +65,27 @@ const REVIEW_TONE: Record<EditionReviewStatus, "green" | "muted" | "red"> = {
 
 type ThresholdKey = keyof Pick<
   DepositGateConfig,
-  "ethThreshold" | "solThreshold" | "usdtThreshold" | "usdcThreshold" | "btcThreshold"
+  | "nscThreshold"
+  | "ethThreshold"
+  | "solThreshold"
+  | "usdtThreshold"
+  | "usdcThreshold"
+  | "btcThreshold"
 >;
 
 const DEPOSIT_FIELDS: { key: ThresholdKey; label: string; step: string; hint: string }[] = [
-  { key: "ethThreshold", label: "Ethereum (ETH)", step: "0.001", hint: "Default 0.006 ETH" },
+  {
+    key: "nscThreshold",
+    label: "NSC Platform Token (NSC)",
+    step: "1",
+    hint: "Default 20 NSC (Native Fuel)",
+  },
+  {
+    key: "ethThreshold",
+    label: "Ethereum (ETH)",
+    step: "0.001",
+    hint: "Default 0.006 ETH (Primary EVM)",
+  },
   { key: "solThreshold", label: "Solana (SOL)", step: "0.05", hint: "Default 0.15 SOL" },
   { key: "usdtThreshold", label: "Tether (USDT)", step: "5", hint: "Default 20 USDT" },
   { key: "usdcThreshold", label: "USD Coin (USDC)", step: "5", hint: "Default 20 USDC" },
@@ -199,8 +220,23 @@ export function EditionsPanel() {
   const [catalogueSearch, setCatalogueSearch] = useState("");
   const [catalogueFilter, setCatalogueFilter] = useState<"all" | EditionReviewStatus>("all");
   const [copiedWallet, setCopiedWallet] = useState<string | null>(null);
+  const [presaleConfig, setPresaleConfig] = useState<NscPresaleConfig>(() => getPresaleConfig());
+  const [savingPresaleConfig, setSavingPresaleConfig] = useState(false);
 
   const mintingRevenue = getCollectedMintingFees();
+  const presaleMetrics = getPresaleMetrics();
+
+  const handleSavePresaleConfig = () => {
+    setSavingPresaleConfig(true);
+    try {
+      updatePresaleConfig(presaleConfig);
+      toast.success("NSC token presale configuration updated successfully");
+    } catch {
+      toast.error("Failed to save presale settings");
+    } finally {
+      setSavingPresaleConfig(false);
+    }
+  };
 
   const handleCopyWallet = async (addr: string, label: string) => {
     const ok = await copyToClipboard(addr);
@@ -794,21 +830,23 @@ export function EditionsPanel() {
           <div className={`${card} max-w-3xl space-y-6`}>
             <div>
               <h3 className="font-serif text-lg text-[#18211f]">
-                Platform Minting Fees & Treasury Rules
+                Vault Activation & Platform Minting Fees
               </h3>
               <p className="mt-1 text-sm text-[#6b716d]">
-                Creators pay an archival certification & platform minting fee before editions can be
-                minted or submitted for curatorial review. Collected fees are automatically
-                transferred into the NS CAPTURES Platform Treasury.
+                Configure the required fees for Web3 Vault Activation and Archival Edition Minting
+                Certification. Users pay with NSC or supported crypto; all collected fees and swaps
+                route directly to the NS CAPTURES Platform Treasury.
               </p>
             </div>
 
             <div className="flex items-center justify-between gap-4 rounded-xl bg-[#FAF9F5] p-4">
               <div>
-                <p className="text-sm font-semibold text-[#18211f]">Require platform minting fee</p>
+                <p className="text-sm font-semibold text-[#18211f]">
+                  Require vault activation & platform minting fee
+                </p>
                 <p className="mt-0.5 text-xs text-[#6b716d]">
-                  When active, creators must hold enough balance in their Web3 vault to pay the fee
-                  upon certification.
+                  When active, users must hold or pay the required fee to activate their Web3 vault
+                  and submit fine-art editions.
                 </p>
               </div>
               <Toggle
@@ -819,14 +857,15 @@ export function EditionsPanel() {
                     enforceDepositGate: !prev.enforceDepositGate,
                   }))
                 }
-                label="Require a platform minting fee to mint"
+                label="Require vault activation & platform minting fee"
               />
             </div>
 
             <div>
               <p className="text-sm font-semibold text-[#18211f]">Fee per Cryptocurrency</p>
               <p className="mt-0.5 text-xs text-[#6b716d]">
-                Creators can pay the minting fee with any one of these supported coins.
+                Users can settle fees using NSC native platform token, ETH (Primary EVM), or other
+                supported crypto.
               </p>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 {DEPOSIT_FIELDS.map((field) => (
@@ -996,6 +1035,460 @@ export function EditionsPanel() {
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-[#8a8f89]">
                           <span className="inline-block max-w-[140px] truncate">{act.txHash}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ================= Token Presale & Treasury ================= */}
+      {activeTab === "presale" && (
+        <div className="space-y-6">
+          {/* Section 1: Presale Configuration */}
+          <div className={`${card} max-w-3xl space-y-5`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#ececec] pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold border border-amber-500/25">
+                    <Flame className="size-3.5 fill-amber-600 animate-pulse" />
+                    NSC Token Presale Engine
+                  </span>
+                  <span className="text-xs font-mono text-[#758078]">1:1 Peg</span>
+                </div>
+                <h3 className="font-serif text-lg text-[#18211f] mt-1">Presale Rules & Pricing</h3>
+                <p className="mt-0.5 text-xs text-[#6b716d]">
+                  Configure early-bird token rates, fundraising targets, and presale visibility.
+                </p>
+              </div>
+
+              {/* Status Switcher */}
+              <div className="flex items-center gap-1 p-1 bg-[#FAF9F5] border border-[#ececec] rounded-full">
+                {(["active", "paused", "ended"] as const).map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setPresaleConfig((prev) => ({ ...prev, status: st }))}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold capitalize transition cursor-pointer ${
+                      presaleConfig.status === st
+                        ? st === "active"
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : st === "paused"
+                            ? "bg-amber-500 text-black shadow-sm"
+                            : "bg-[#758078] text-white shadow-sm"
+                        : "text-[#758078] hover:text-[#18211f]"
+                    }`}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className={labelClass}>Presale Token Price (USD)</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0.01}
+                  step={0.05}
+                  value={presaleConfig.priceUsd}
+                  onChange={(e) =>
+                    setPresaleConfig((prev) => ({
+                      ...prev,
+                      priceUsd: parseFloat(e.target.value) || 1.0,
+                    }))
+                  }
+                  className={`${fieldClass} font-mono`}
+                />
+                <span className="mt-1 block text-[11px] text-[#8a8f89]">
+                  Default 1.00 ($1.00 USD / £1.00 GBP = 1 NSC)
+                </span>
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Hard Cap Allocation (NSC)</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={10000}
+                  step={100000}
+                  value={presaleConfig.hardCapNsc}
+                  onChange={(e) =>
+                    setPresaleConfig((prev) => ({
+                      ...prev,
+                      hardCapNsc: parseInt(e.target.value, 10) || 1000000,
+                    }))
+                  }
+                  className={`${fieldClass} font-mono`}
+                />
+                <span className="mt-1 block text-[11px] text-[#8a8f89]">
+                  Default 1,000,000 NSC ($1,000,000 USD raise target)
+                </span>
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Minimum Purchase (USD)</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step={5}
+                  value={presaleConfig.minPurchaseUsd}
+                  onChange={(e) =>
+                    setPresaleConfig((prev) => ({
+                      ...prev,
+                      minPurchaseUsd: parseFloat(e.target.value) || 10,
+                    }))
+                  }
+                  className={`${fieldClass} font-mono`}
+                />
+                <span className="mt-1 block text-[11px] text-[#8a8f89]">
+                  Minimum order threshold per swap
+                </span>
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Maximum Purchase (USD)</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={100}
+                  step={1000}
+                  value={presaleConfig.maxPurchaseUsd}
+                  onChange={(e) =>
+                    setPresaleConfig((prev) => ({
+                      ...prev,
+                      maxPurchaseUsd: parseFloat(e.target.value) || 50000,
+                    }))
+                  }
+                  className={`${fieldClass} font-mono`}
+                />
+                <span className="mt-1 block text-[11px] text-[#8a8f89]">
+                  Whale protection cap per transaction
+                </span>
+              </label>
+            </div>
+
+            {/* Platform Feature & Visibility Toggles */}
+            <div className="border-t border-[#ececec] pt-4 space-y-3">
+              <span className="text-xs font-semibold text-[#18211f] block">
+                NSC Token Platform Controls &amp; Visibility
+              </span>
+
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[#ececec] bg-[#FAF9F5] p-3.5">
+                <div>
+                  <p className="text-xs font-semibold text-[#18211f]">
+                    Show NSC Token Card in User Settlement Vault
+                  </p>
+                  <p className="text-[11px] text-[#6b716d]">
+                    Display the dedicated NSC native token card (live balance, GBP/USD valuation,
+                    Convert Web2 to NSC, and Withdraw) in /account?tab=web3.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPresaleConfig((prev) => ({
+                      ...prev,
+                      showNscTokenCardInVault: !prev.showNscTokenCardInVault,
+                    }))
+                  }
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                    presaleConfig.showNscTokenCardInVault ? "bg-[#1e4a3f]" : "bg-[#ececec]"
+                  }`}
+                  role="switch"
+                  aria-checked={presaleConfig.showNscTokenCardInVault}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      presaleConfig.showNscTokenCardInVault ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[#ececec] bg-[#FAF9F5] p-3.5">
+                <div>
+                  <p className="text-xs font-semibold text-[#18211f]">Enable Admin NSC Gifting</p>
+                  <p className="text-[11px] text-[#6b716d]">
+                    Show the &ldquo;Gift NSC&rdquo; button in Admin &rarr; Users &rarr; Web3 Vault
+                    to grant platform promotional or settlement tokens to users.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPresaleConfig((prev) => ({
+                      ...prev,
+                      enableAdminNscGifting: !prev.enableAdminNscGifting,
+                    }))
+                  }
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                    presaleConfig.enableAdminNscGifting ? "bg-[#1e4a3f]" : "bg-[#ececec]"
+                  }`}
+                  role="switch"
+                  aria-checked={presaleConfig.enableAdminNscGifting}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      presaleConfig.enableAdminNscGifting ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end border-t border-[#ececec] pt-4">
+              <button
+                type="button"
+                onClick={handleSavePresaleConfig}
+                disabled={savingPresaleConfig}
+                className={primaryButton}
+              >
+                {savingPresaleConfig ? "Saving…" : "Save Presale Settings"}
+              </button>
+            </div>
+          </div>
+
+          {/* Section 2: Real-Time Fundraising Analytics */}
+          <div className={`${card} max-w-3xl space-y-4`}>
+            <div>
+              <h3 className="font-serif text-lg text-[#18211f]">Presale Progress & Raised Funds</h3>
+              <p className="mt-0.5 text-xs text-[#6b716d]">
+                Live aggregation of all crypto payments routed to platform treasury.
+              </p>
+            </div>
+
+            {/* KPI Row */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-[#ececec] bg-[#FAF9F5] p-4">
+                <span className="font-mono text-[10px] tracking-wider text-[#758078] uppercase">
+                  Total Raised (USD)
+                </span>
+                <p className="mt-1 font-serif text-2xl font-light text-[#1e4a3f]">
+                  $
+                  {presaleMetrics.totalUsdRaised.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+                <span className="text-[11px] text-[#758078]">
+                  From {presaleMetrics.ordersCount} total purchase orders
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-[#ececec] bg-[#FAF9F5] p-4">
+                <span className="font-mono text-[10px] tracking-wider text-[#758078] uppercase">
+                  Tokens Allocated (NSC)
+                </span>
+                <p className="mt-1 font-serif text-2xl font-light text-[#18211f]">
+                  {presaleMetrics.totalNscSold.toLocaleString()} NSC
+                </p>
+                <span className="text-[11px] text-[#758078]">
+                  Of {presaleConfig.hardCapNsc.toLocaleString()} NSC hard cap
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-[#ececec] bg-[#FAF9F5] p-4">
+                <span className="font-mono text-[10px] tracking-wider text-[#758078] uppercase">
+                  Hard Cap Filled
+                </span>
+                <p className="mt-1 font-serif text-2xl font-light text-emerald-600">
+                  {presaleMetrics.percentFilled}%
+                </p>
+                <span className="text-[11px] text-[#758078]">
+                  {(presaleConfig.hardCapNsc - presaleMetrics.totalNscSold).toLocaleString()} NSC
+                  remaining
+                </span>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="space-y-1">
+              <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#ececec]">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 via-emerald-500 to-teal-500 transition-all duration-500"
+                  style={{ width: `${Math.max(2, presaleMetrics.percentFilled)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Currency Breakdown */}
+            <div className="pt-2">
+              <span className="text-xs font-semibold text-[#18211f] block mb-2">
+                Intake by Payment Asset
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {Object.entries(presaleMetrics.breakdown).map(([c, data]) => (
+                  <div
+                    key={c}
+                    className="p-2.5 rounded-xl border border-[#ececec] bg-white text-center"
+                  >
+                    <span className="text-xs font-mono font-bold text-[#18211f] block">{c}</span>
+                    <span className="text-sm font-semibold text-[#1e4a3f] block mt-0.5">
+                      {data.amount > 0
+                        ? c === "ETH" || c === "SOL" || c === "BTC"
+                          ? data.amount.toFixed(4)
+                          : data.amount.toFixed(2)
+                        : "0.00"}
+                    </span>
+                    <span className="text-[10px] font-mono text-[#758078] block">
+                      ≈ ${data.usd.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Platform Treasury Receiving Wallets */}
+          <div className={`${card} max-w-3xl space-y-4`}>
+            <div>
+              <h3 className="font-serif text-lg text-[#18211f]">
+                Presale Treasury Receiving Wallets
+              </h3>
+              <p className="mt-0.5 text-xs text-[#6b716d]">
+                Official platform custody addresses accumulating crypto raised from the presale.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                {
+                  label: "EVM Treasury (ETH, USDC, Base)",
+                  network: "ERC20 / Base",
+                  address: PLATFORM_TREASURY_WALLETS.evm,
+                },
+                {
+                  label: "TRON Treasury (USDT TRC20)",
+                  network: "TRC20",
+                  address: PLATFORM_TREASURY_WALLETS.usdtTrc20,
+                },
+                {
+                  label: "Bitcoin Treasury (Native SegWit)",
+                  network: "Native SegWit",
+                  address: PLATFORM_TREASURY_WALLETS.btc,
+                },
+                {
+                  label: "Solana Treasury (SPL)",
+                  network: "Solana",
+                  address: PLATFORM_TREASURY_WALLETS.sol,
+                },
+              ].map((tw) => {
+                const isCopied = copiedWallet === tw.address;
+                return (
+                  <div
+                    key={tw.label}
+                    className="flex flex-col justify-between rounded-xl border border-[#ececec] bg-[#FAF9F5] p-3.5 space-y-2"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[#18211f]">{tw.label}</span>
+                        <span className="rounded bg-[#1e4a3f]/10 px-2 py-0.5 font-mono text-[10px] font-medium text-[#1e4a3f]">
+                          {tw.network}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 select-all break-all rounded border border-[#ececec] bg-white p-2 font-mono text-xs text-[#18211f]">
+                        {tw.address}
+                      </p>
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyWallet(tw.address, tw.label)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#1e4a3f] hover:underline cursor-pointer"
+                      >
+                        {isCopied ? (
+                          <>
+                            <Check className="size-3 text-emerald-600" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="size-3" />
+                            <span>Copy address</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 4: Presale Orders Audit Trail Table */}
+          <div className={`${card} max-w-3xl space-y-4`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="font-serif text-lg text-[#18211f]">Presale Orders Audit Trail</h3>
+                <p className="mt-0.5 text-xs text-[#6b716d]">
+                  Complete ledger of all buyers, payments received, and credited NSC tokens.
+                </p>
+              </div>
+              <span className="rounded-full bg-[#FAF9F5] border border-[#ececec] px-3 py-1 text-xs font-mono text-[#758078]">
+                {presaleMetrics.ordersCount} Orders
+              </span>
+            </div>
+
+            {presaleMetrics.orders.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#ececec] bg-[#FAF9F5] p-8 text-center space-y-2">
+                <Coins className="size-8 text-[#758078] mx-auto opacity-60" />
+                <p className="text-sm font-medium text-[#18211f]">No Presale Orders Yet</p>
+                <p className="text-xs text-[#758078] max-w-sm mx-auto">
+                  When collectors and investors swap crypto for NSC, each order will appear here
+                  with its cryptographic transaction reference.
+                </p>
+              </div>
+            ) : (
+              <div className={tableWrap}>
+                <table className="w-full text-left text-sm">
+                  <thead className={tableHead}>
+                    <tr>
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3">Buyer</th>
+                      <th className="px-4 py-3">Paid Asset</th>
+                      <th className="px-4 py-3">NSC Credited</th>
+                      <th className="px-4 py-3">Tx Hash</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#ececec]">
+                    {presaleMetrics.orders.map((ord) => (
+                      <tr key={ord.id} className="hover:bg-[#faf9f5]">
+                        <td className="px-4 py-3 text-xs text-[#6b716d]">
+                          {new Date(ord.createdAt).toLocaleDateString()}{" "}
+                          <span className="text-[10px] block opacity-75">
+                            {new Date(ord.createdAt).toLocaleTimeString()}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="font-medium text-[#18211f] block text-xs">
+                            {ord.userName || "Collector"}
+                          </span>
+                          <span className="text-[11px] text-[#758078] block truncate max-w-[130px]">
+                            {ord.userEmail || ord.userId}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs">
+                          <span className="font-semibold text-[#18211f] block">
+                            {ord.amountPaid} {ord.coinPaid}
+                          </span>
+                          <span className="text-[10px] text-[#758078] block">
+                            ≈ ${ord.fiatValueUsd.toFixed(2)} USD
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs font-bold text-emerald-600">
+                          +{ord.nscAmount.toLocaleString()} NSC
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-[#8a8f89]">
+                          <span className="inline-block max-w-[120px] truncate" title={ord.txHash}>
+                            {ord.txHash}
+                          </span>
                         </td>
                       </tr>
                     ))}

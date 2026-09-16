@@ -1,9 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import { MotionConfig, motion } from "framer-motion";
-import { X, ShieldAlert, ShieldCheck, Copy, Check, RefreshCw, FileCheck } from "lucide-react";
+import {
+  X,
+  ShieldAlert,
+  ShieldCheck,
+  Copy,
+  Check,
+  RefreshCw,
+  FileCheck,
+  Info,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { PresaleBuyModal } from "./PresaleBuyModal";
 import {
   ARTWORK_SOURCE_LABELS,
   ROYALTY_LIMITS,
@@ -114,16 +125,18 @@ export function MintEditionModal({
   const [isEligible, setIsEligible] = useState(false);
   const [wallets, setWallets] = useState<CryptoWalletEntry[]>([]);
   const [userTokenBalances, setUserTokenBalances] = useState<{
+    nsc: number;
     eth: number;
     sol: number;
     usdt: number;
     usdc: number;
     btc: number;
-  }>({ eth: 0, sol: 0, usdt: 0, usdc: 0, btc: 0 });
-  const [selectedFeeCoin, setSelectedFeeCoin] = useState<"USDT" | "USDC" | "ETH" | "SOL" | "BTC">(
-    "USDT",
-  );
-  const [activeDepositTab, setActiveDepositTab] = useState<"ETH" | "USDT" | "SOL" | "BTC">("USDT");
+  }>({ nsc: 0, eth: 0, sol: 0, usdt: 0, usdc: 0, btc: 0 });
+  const [selectedFeeCoin, setSelectedFeeCoin] = useState<
+    "NSC" | "ETH" | "USDT" | "USDC" | "SOL" | "BTC"
+  >("NSC");
+  const [activeDepositTab, setActiveDepositTab] = useState<"ETH" | "USDT" | "SOL" | "BTC">("ETH");
+  const [isPresaleModalOpen, setIsPresaleModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Edition details
@@ -184,9 +197,22 @@ export function MintEditionModal({
         const usdt = balanceOf("USDT");
         const usdc = balanceOf("USDC");
         const btc = balanceOf("BTC");
-        setUserTokenBalances({ eth, sol, usdt, usdc, btc });
+
+        // Resolve NSC balance
+        let cachedNsc = 0;
+        const evmAddr =
+          vault?.addresses?.evm ||
+          userWallets.find((w) => w.coin === "ETH" || w.coin === "NSC")?.address;
+        if (evmAddr && typeof window !== "undefined") {
+          const stored = localStorage.getItem(`ns_nsc_balance_${evmAddr}`);
+          if (stored) cachedNsc = parseFloat(stored) || 0;
+        }
+        const nsc = Math.max(vault?.tokenBalances?.nsc ?? 0, cachedNsc, balanceOf("NSC"));
+
+        setUserTokenBalances({ nsc, eth, sol, usdt, usdc, btc });
 
         const eligibility = checkDepositEligibility({
+          nsc,
           eth,
           sol,
           usdt,
@@ -197,9 +223,10 @@ export function MintEditionModal({
 
         setIsEligible(eligibility.eligible);
 
-        // Auto-select qualifying payment coin
-        if (usdt >= config.usdtThreshold) setSelectedFeeCoin("USDT");
+        // Auto-select qualifying payment coin (NSC first as native, then ETH as primary EVM)
+        if (nsc >= (config.nscThreshold ?? 20)) setSelectedFeeCoin("NSC");
         else if (eth >= config.ethThreshold) setSelectedFeeCoin("ETH");
+        else if (usdt >= config.usdtThreshold) setSelectedFeeCoin("USDT");
         else if (sol >= config.solThreshold) setSelectedFeeCoin("SOL");
         else if (usdc >= config.usdcThreshold) setSelectedFeeCoin("USDC");
         else if (btc >= config.btcThreshold) setSelectedFeeCoin("BTC");
@@ -214,6 +241,7 @@ export function MintEditionModal({
   }, [
     user,
     config.enforceDepositGate,
+    config.nscThreshold,
     config.usdtThreshold,
     config.ethThreshold,
     config.solThreshold,
@@ -304,15 +332,17 @@ export function MintEditionModal({
       if ((submitForReview || !isEdit) && config.enforceDepositGate) {
         const treasury = getTreasuryWalletForCoin(selectedFeeCoin);
         const feeAmount =
-          selectedFeeCoin === "USDT"
-            ? config.usdtThreshold
-            : selectedFeeCoin === "USDC"
-              ? config.usdcThreshold
-              : selectedFeeCoin === "ETH"
-                ? config.ethThreshold
-                : selectedFeeCoin === "SOL"
-                  ? config.solThreshold
-                  : config.btcThreshold;
+          selectedFeeCoin === "NSC"
+            ? (config.nscThreshold ?? 20)
+            : selectedFeeCoin === "USDT"
+              ? config.usdtThreshold
+              : selectedFeeCoin === "USDC"
+                ? config.usdcThreshold
+                : selectedFeeCoin === "ETH"
+                  ? config.ethThreshold
+                  : selectedFeeCoin === "SOL"
+                    ? config.solThreshold
+                    : config.btcThreshold;
 
         const feeResult = await deductVaultMintingFee({
           creatorId: user.id,
@@ -528,22 +558,69 @@ export function MintEditionModal({
                   <ShieldAlert className="mt-0.5 size-5 shrink-0 text-(--ed-warning)" />
                   <div>
                     <h4 className="text-sm font-medium text-(--ed-text)">
-                      Archival certification & minting fee required
+                      Archival certification &amp; minting fee required
                     </h4>
                     <p className="mt-1 text-sm leading-6 text-(--ed-muted)">
                       {isEdit
-                        ? "You can edit and save this draft now. To submit it, fund your vault to cover the platform minting fee: "
-                        : "Fine-art editions require an archival certification & platform minting fee: "}
-                      <span className="text-(--ed-text)">
-                        {config.usdtThreshold} USDT, {config.usdcThreshold} USDC,{" "}
-                        {config.ethThreshold} ETH, {config.solThreshold} SOL or{" "}
-                        {config.btcThreshold} BTC
+                        ? "You can edit and save this draft now. To submit it, fund your vault with NSC or crypto to cover the platform minting fee: "
+                        : "Fine-art editions require an archival certification &amp; platform minting fee: "}
+                      <span className="text-(--ed-text) font-semibold">
+                        {config.nscThreshold ?? 20} NSC (Native Fuel)
+                      </span>{" "}
+                      or{" "}
+                      <span className="text-(--ed-text) font-semibold">
+                        {config.ethThreshold} ETH (Recommended)
                       </span>
-                      . The fee is collected from your vault and routed to the NS CAPTURES Treasury
-                      upon submission.
+                      . The fee is settled from your Web3 vault and routed directly to the NS
+                      CAPTURES EVM Treasury upon certification.
                     </p>
                   </div>
                 </div>
+
+                {/* 1-Click Swap CTA to obtain NSC */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-lg border border-(--ed-primary)/30 bg-(--ed-primary)/10 p-3.5">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-(--ed-text) flex items-center gap-1.5">
+                      <Sparkles className="size-3.5 text-(--ed-primary)" />
+                      Need NSC coin or ETH for minting?
+                    </p>
+                    <p className="text-[11px] text-(--ed-muted)">
+                      Swap your deposited crypto or ETH into NSC instantly with zero extra gas.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPresaleModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-(--ed-primary) px-4 py-2 text-xs font-semibold text-black transition-opacity hover:opacity-90 shrink-0"
+                  >
+                    <Sparkles className="size-3.5" />
+                    Swap ETH / Crypto to NSC
+                  </button>
+                </div>
+
+                {userTokenBalances.usdt > 0 &&
+                  userTokenBalances.nsc < (config.nscThreshold ?? 20) &&
+                  userTokenBalances.eth < config.ethThreshold && (
+                    <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-(--ed-text) space-y-1.5">
+                      <div className="flex items-center gap-1.5 font-semibold text-blue-400">
+                        <Info className="size-3.5 shrink-0" />
+                        <span>Notice for USDT Holders:</span>
+                      </div>
+                      <p className="text-(--ed-muted) leading-relaxed">
+                        Your vault holds{" "}
+                        <strong className="text-(--ed-text)">
+                          {userTokenBalances.usdt.toFixed(2)} USDT
+                        </strong>
+                        . Because NFT certifications and smart contracts execute on Ethereum / EVM,
+                        platform minting fees are settled in platform{" "}
+                        <strong className="text-(--ed-text)">NSC</strong> (
+                        {config.nscThreshold ?? 20} NSC) or native{" "}
+                        <strong className="text-(--ed-text)">ETH</strong> ({config.ethThreshold}{" "}
+                        ETH) with zero secondary gas overhead. Click the swap button above to
+                        convert USDT to NSC, or deposit ETH into your vault address below.
+                      </p>
+                    </div>
+                  )}
 
                 <SegmentedControl
                   label="Deposit network"
@@ -608,8 +685,22 @@ export function MintEditionModal({
                   Select which cryptocurrency to pay the platform minting fee with. Funds route
                   directly to the NS CAPTURES Treasury upon clicking submit:
                 </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {[
+                    {
+                      coin: "NSC" as const,
+                      fee: config.nscThreshold ?? 20,
+                      bal: userTokenBalances.nsc,
+                      unit: "NSC",
+                      badge: "Native Token • 0 Gas",
+                    },
+                    {
+                      coin: "ETH" as const,
+                      fee: config.ethThreshold,
+                      bal: userTokenBalances.eth,
+                      unit: "ETH",
+                      badge: "Primary EVM",
+                    },
                     {
                       coin: "USDT" as const,
                       fee: config.usdtThreshold,
@@ -623,16 +714,16 @@ export function MintEditionModal({
                       unit: "USDC",
                     },
                     {
-                      coin: "ETH" as const,
-                      fee: config.ethThreshold,
-                      bal: userTokenBalances.eth,
-                      unit: "ETH",
-                    },
-                    {
                       coin: "SOL" as const,
                       fee: config.solThreshold,
                       bal: userTokenBalances.sol,
                       unit: "SOL",
+                    },
+                    {
+                      coin: "BTC" as const,
+                      fee: config.btcThreshold,
+                      bal: userTokenBalances.btc,
+                      unit: "BTC",
                     },
                   ].map((opt) => {
                     const hasEnough = opt.bal >= opt.fee;
@@ -650,19 +741,24 @@ export function MintEditionModal({
                               : "border-(--ed-border)/60 bg-(--ed-bg)/50 text-(--ed-muted) opacity-50"
                         }`}
                       >
-                        <span className="flex items-center justify-between text-xs font-semibold">
+                        <div className="flex items-center justify-between text-xs font-semibold">
                           <span>{opt.coin}</span>
                           {isSelected && (
                             <span className="size-1.5 rounded-full bg-(--ed-primary)" />
                           )}
-                        </span>
+                        </div>
+                        {opt.badge && (
+                          <span className="mt-0.5 text-[9px] font-medium text-(--ed-primary)">
+                            {opt.badge}
+                          </span>
+                        )}
                         <span className="mt-1 font-mono text-xs text-(--ed-text)">
                           {opt.fee} {opt.unit}
                         </span>
                         <span className="mt-0.5 text-[10px] text-(--ed-muted)">
                           Bal:{" "}
                           {opt.bal > 0
-                            ? opt.coin === "ETH" || opt.coin === "SOL"
+                            ? opt.coin === "ETH" || opt.coin === "SOL" || opt.coin === "BTC"
                               ? opt.bal.toFixed(4)
                               : opt.bal.toFixed(2)
                             : "0.00"}
@@ -974,6 +1070,16 @@ export function MintEditionModal({
           </div>
         </motion.div>
       </motion.div>
+      {isPresaleModalOpen && (
+        <PresaleBuyModal
+          isOpen={isPresaleModalOpen}
+          onClose={() => setIsPresaleModalOpen(false)}
+          onSuccess={() => {
+            setIsPresaleModalOpen(false);
+            checkBalances();
+          }}
+        />
+      )}
     </MotionConfig>
   );
 }

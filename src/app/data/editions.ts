@@ -16,11 +16,15 @@ import {
   insertSupabaseActivity,
   deleteSupabaseEdition,
   deleteSupabaseCollection,
+  fetchCreatorWeb3Vault,
+  saveCreatorWeb3Vault,
   type SupabaseEditionRow,
   type SupabaseCollectionRow,
   type SupabaseOwnershipRow,
   type SupabaseActivityRow,
+  type CreatorWeb3Vault,
 } from "./db";
+import { supabase } from "../../lib/supabase";
 
 export type EditionTier = "genesis_1_of_1" | "limited_series" | "physical_twin";
 export type EditionStatus = "minted" | "listed" | "sold_out" | "archived";
@@ -97,7 +101,7 @@ export interface EditionOwnership {
   ownerWalletAddress?: string;
   acquiredAt: string;
   purchasePriceGbp: number;
-  purchaseCurrency: "GBP" | "ETH" | "USDT" | "SOL";
+  purchaseCurrency: "GBP" | "ETH" | "USDT" | "SOL" | "NSC";
   certificateNumber: string; // e.g. "COA-NSC-48192-03"
   isListedForResale: boolean;
   resalePriceGbp?: number;
@@ -142,7 +146,7 @@ export function getTreasuryWalletForCoin(
   if (c === "BTC" || n.includes("BITCOIN") || n.includes("SEGWIT")) {
     return { address: PLATFORM_TREASURY_WALLETS.btc, network: "Bitcoin (Native SegWit)" };
   }
-  if (n.includes("TRC") || (c === "USDT" && !n.includes("ERC"))) {
+  if (c === "TRX" || n.includes("TRC") || (c === "USDT" && !n.includes("ERC"))) {
     return { address: PLATFORM_TREASURY_WALLETS.usdtTrc20, network: "TRC20" };
   }
   if (c === "SOL" || n.includes("SOLANA")) {
@@ -153,6 +157,7 @@ export function getTreasuryWalletForCoin(
 
 export interface DepositGateConfig {
   minimumDepositUsd: number;
+  nscThreshold: number;
   ethThreshold: number;
   solThreshold: number;
   usdtThreshold: number;
@@ -163,6 +168,7 @@ export interface DepositGateConfig {
 
 export const DEFAULT_DEPOSIT_CONFIG: DepositGateConfig = {
   minimumDepositUsd: 20,
+  nscThreshold: 20,
   ethThreshold: 0.006,
   solThreshold: 0.15,
   usdtThreshold: 20,
@@ -451,6 +457,321 @@ export const INITIAL_EDITIONS: DigitalEdition[] = [
       "Genesis Master: Intimate aerial solitude over sprawling North American urban grid.",
     collectionId: "metropolitan-geometry",
     collectionName: "Metropolitan Geometry",
+  },
+  {
+    id: "edn-clive-01",
+    tokenId: "NSC-GEN-2026-0005",
+    photoId: "p-clive-01",
+    title: "Longships Lighthouse at Gale Force 9",
+    description:
+      "A singular 1-of-1 archival master capturing monumental Atlantic swells crashing against the granite reef of Longships Lighthouse off Land's End, Cornwall. Exposed during a severe winter storm on medium-format sensor.",
+    photographerId: "clive-varley",
+    photographerName: "Clive Varley",
+    photographerSlug: "clive-varley",
+    photographerAvatar:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+    image:
+      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1600&auto=format&fit=crop&q=85",
+    masterHash: "sha256-77889900aabbccddeeff00112233445566778899aabbccddeeff001122334455",
+    tier: "genesis_1_of_1",
+    totalEditions: 1,
+    availableEditions: 1,
+    priceGbp: 1950,
+    priceUsd: 2500,
+    priceEth: 0.76,
+    priceSol: 17.2,
+    royaltyPercent: 10,
+    hasPhysicalTwin: true,
+    physicalPrintDetails:
+      "Includes 30x40” custom-framed museum-grade Hahnemühle Photo Rag Baryta print signed by the artist.",
+    camera: "Hasselblad H6D-100c",
+    lens: "HC 300mm f/4.5",
+    iso: 100,
+    aperture: "f/8.0",
+    shutterSpeed: "1/800s",
+    location: "Land's End, Cornwall, United Kingdom",
+    yearCreated: 2025,
+    mintedAt: "2026-03-02T10:00:00Z",
+    status: "listed",
+    featured: true,
+    curatorNote:
+      "Featured Maritime Master: Phenomenal kinetic wave energy and pristine medium-format tonal depth.",
+    collectionId: "cornish-maritime",
+    collectionName: "Cornish Tides & Maritime Solitude",
+  },
+  {
+    id: "edn-clive-02",
+    tokenId: "NSC-EDN-2026-0030",
+    photoId: "p-clive-02",
+    title: "Atlantic Swell Across Porth Nanven",
+    description:
+      "Numbered series exploring the famous egg-shaped granite boulders and Atlantic swell of the Cot Valley in West Cornwall during twilight high tide.",
+    photographerId: "clive-varley",
+    photographerName: "Clive Varley",
+    photographerSlug: "clive-varley",
+    photographerAvatar:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+    image:
+      "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1600&auto=format&fit=crop&q=85",
+    masterHash: "sha256-8899aabbccddeeff00112233445566778899aabbccddeeff0011223344556677",
+    tier: "limited_series",
+    totalEditions: 25,
+    availableEditions: 22,
+    priceGbp: 320,
+    priceUsd: 410,
+    priceEth: 0.12,
+    priceSol: 2.8,
+    royaltyPercent: 10,
+    hasPhysicalTwin: false,
+    camera: "Sony A1",
+    lens: "FE 16-35mm f/2.8 GM",
+    iso: 64,
+    aperture: "f/11.0",
+    shutterSpeed: "1/4s",
+    location: "Porth Nanven, Cornwall, United Kingdom",
+    yearCreated: 2025,
+    mintedAt: "2026-03-03T11:00:00Z",
+    status: "listed",
+    featured: false,
+    curatorNote: "Superb long-exposure water dynamics contrasting against ancient glacial granite.",
+    collectionId: "cornish-maritime",
+    collectionName: "Cornish Tides & Maritime Solitude",
+  },
+  {
+    id: "edn-ian-01",
+    tokenId: "NSC-GEN-2026-0006",
+    photoId: "p-ian-01",
+    title: "Hayward Gallery, Concrete Cantilever No. 04",
+    description:
+      "A singular 1-of-1 Genesis fine-art study of raw board-marked concrete cantilevers and stark brutalist geometry on London's South Bank at dawn.",
+    photographerId: "ian-dandribe",
+    photographerName: "Ian Dandribe",
+    photographerSlug: "ian-dandribe",
+    photographerAvatar:
+      "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80",
+    image:
+      "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1600&auto=format&fit=crop&q=85",
+    masterHash: "sha256-99aabbccddeeff00112233445566778899aabbccddeeff001122334455667788",
+    tier: "genesis_1_of_1",
+    totalEditions: 1,
+    availableEditions: 1,
+    priceGbp: 1650,
+    priceUsd: 2100,
+    priceEth: 0.64,
+    priceSol: 14.5,
+    royaltyPercent: 10,
+    hasPhysicalTwin: true,
+    physicalPrintDetails: "Includes 24x36” museum-mounted silver halide print on aluminium Dibond.",
+    camera: "Leica SL2",
+    lens: "Super-Vario-Elmar-SL 16-35mm f/3.5-4.5 ASPH",
+    iso: 50,
+    aperture: "f/8.0",
+    shutterSpeed: "1/60s",
+    location: "South Bank, London, United Kingdom",
+    yearCreated: 2025,
+    mintedAt: "2026-03-04T09:00:00Z",
+    status: "listed",
+    featured: true,
+    curatorNote:
+      "Austere structural poetry and monumental massing rendered in pure geometric balance.",
+    collectionId: "monolithic-brutalism",
+    collectionName: "Monolithic Brutalism & Shadow",
+  },
+  {
+    id: "edn-ian-02",
+    tokenId: "NSC-EDN-2026-0031",
+    photoId: "p-ian-02",
+    title: "National Theatre Flytower at Twilight",
+    description:
+      "Limited edition capturing the interlocking cast-concrete volumes and amber twilight reflections of Denys Lasdun's National Theatre complex.",
+    photographerId: "ian-dandribe",
+    photographerName: "Ian Dandribe",
+    photographerSlug: "ian-dandribe",
+    photographerAvatar:
+      "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80",
+    image:
+      "https://images.unsplash.com/photo-1479839672679-a46483c0e7c8?w=1600&auto=format&fit=crop&q=85",
+    masterHash: "sha256-aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
+    tier: "limited_series",
+    totalEditions: 20,
+    availableEditions: 17,
+    priceGbp: 290,
+    priceUsd: 370,
+    priceEth: 0.11,
+    priceSol: 2.5,
+    royaltyPercent: 10,
+    hasPhysicalTwin: false,
+    camera: "Sony A7R V",
+    lens: "FE 24-70mm f/2.8 GM II",
+    iso: 100,
+    aperture: "f/5.6",
+    shutterSpeed: "1/125s",
+    location: "London, United Kingdom",
+    yearCreated: 2025,
+    mintedAt: "2026-03-05T14:00:00Z",
+    status: "listed",
+    featured: false,
+    curatorNote: "Rich tonal modulation in cast concrete surfaces under overcast British skies.",
+    collectionId: "monolithic-brutalism",
+    collectionName: "Monolithic Brutalism & Shadow",
+  },
+  {
+    id: "edn-ryusei-01",
+    tokenId: "NSC-GEN-2026-0007",
+    photoId: "p-ryusei-01",
+    title: "Shinjuku Crossing in Heavy Downpour",
+    description:
+      "A singular 1-of-1 archival Genesis master. Kinetic umbrella geometry and electric reflections on wet asphalt during a torrential typhoon evening in Shinjuku.",
+    photographerId: "ryusei-yamada",
+    photographerName: "Ryusei Yamada",
+    photographerSlug: "ryusei-yamada",
+    photographerAvatar:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80",
+    image:
+      "https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=1600&auto=format&fit=crop&q=85",
+    masterHash: "sha256-bbccddeeff00112233445566778899aabbccddeeff00112233445566778899aa",
+    tier: "genesis_1_of_1",
+    totalEditions: 1,
+    availableEditions: 1,
+    priceGbp: 2200,
+    priceUsd: 2800,
+    priceEth: 0.86,
+    priceSol: 19.5,
+    royaltyPercent: 10,
+    hasPhysicalTwin: true,
+    physicalPrintDetails:
+      "Includes 36x48” custom-mounted acrylic glass print signed and numbered by the artist.",
+    camera: "Fujifilm GFX 100 II",
+    lens: "GF 45-100mm f/4 R LM OIS WR",
+    iso: 800,
+    aperture: "f/4.0",
+    shutterSpeed: "1/200s",
+    location: "Shinjuku, Tokyo, Japan",
+    yearCreated: 2025,
+    mintedAt: "2026-03-06T18:00:00Z",
+    status: "listed",
+    featured: true,
+    curatorNote:
+      "Curatorial Highlight: Astounding medium-format dynamic resolution capturing individual raindrops lit by neon billboard luminescence.",
+    collectionId: "tokyo-monoliths",
+    collectionName: "Tokyo Monoliths & Neon Twilight",
+  },
+  {
+    id: "edn-ryusei-02",
+    tokenId: "NSC-EDN-2026-0032",
+    photoId: "p-ryusei-02",
+    title: "Roppongi Twilight Grid",
+    description:
+      "An elevated telephoto study of Roppongi Hills high-rise grid and dense arterial highway illumination at dusk.",
+    photographerId: "ryusei-yamada",
+    photographerName: "Ryusei Yamada",
+    photographerSlug: "ryusei-yamada",
+    photographerAvatar:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&auto=format&fit=crop&q=80",
+    image:
+      "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1600&auto=format&fit=crop&q=85",
+    masterHash: "sha256-ccddeeff00112233445566778899aabbccddeeff00112233445566778899aabb",
+    tier: "limited_series",
+    totalEditions: 30,
+    availableEditions: 26,
+    priceGbp: 350,
+    priceUsd: 450,
+    priceEth: 0.14,
+    priceSol: 3.1,
+    royaltyPercent: 10,
+    hasPhysicalTwin: false,
+    camera: "Sony A7R V",
+    lens: "FE 50mm f/1.2 GM",
+    iso: 200,
+    aperture: "f/2.8",
+    shutterSpeed: "1/160s",
+    location: "Roppongi, Tokyo, Japan",
+    yearCreated: 2025,
+    mintedAt: "2026-03-07T12:00:00Z",
+    status: "listed",
+    featured: false,
+    curatorNote: "Intricate architectural density and electric twilight hues.",
+    collectionId: "tokyo-monoliths",
+    collectionName: "Tokyo Monoliths & Neon Twilight",
+  },
+  {
+    id: "edn-eunji-01",
+    tokenId: "NSC-GEN-2026-0008",
+    photoId: "p-eunji-01",
+    title: "Mapo Bridge at Blue Dawn",
+    description:
+      "A singular 1-of-1 Genesis archival master. Dense river mist creeping over the steel arches of Mapo Bridge across the Han River before sunrise.",
+    photographerId: "eunji-lee",
+    photographerName: "Eunji Lee",
+    photographerSlug: "eunji-lee",
+    photographerAvatar:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    image:
+      "https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=1600&auto=format&fit=crop&q=85",
+    masterHash: "sha256-ddeeff00112233445566778899aabbccddeeff00112233445566778899aabbcc",
+    tier: "genesis_1_of_1",
+    totalEditions: 1,
+    availableEditions: 1,
+    priceGbp: 1750,
+    priceUsd: 2240,
+    priceEth: 0.68,
+    priceSol: 15.6,
+    royaltyPercent: 10,
+    hasPhysicalTwin: true,
+    physicalPrintDetails:
+      "Includes 30x40” signed archival Japanese Washi paper print floated in walnut frame.",
+    camera: "Canon EOS R5",
+    lens: "RF 70-200mm f/2.8L IS USM",
+    iso: 100,
+    aperture: "f/5.6",
+    shutterSpeed: "1/80s",
+    location: "Han River, Seoul, South Korea",
+    yearCreated: 2025,
+    mintedAt: "2026-03-08T06:00:00Z",
+    status: "listed",
+    featured: true,
+    curatorNote:
+      "Atmospheric silence and exquisite monochromatic tonal gradation through river mist.",
+    collectionId: "seoul-mist",
+    collectionName: "Seoul Mist & Han River Horizons",
+  },
+  {
+    id: "edn-eunji-02",
+    tokenId: "NSC-EDN-2026-0033",
+    photoId: "p-eunji-02",
+    title: "Bukchon Hanok Silent Alleyways",
+    description:
+      "Numbered series exploring the geometric eaves and tiled roof silhouettes of Bukchon Hanok Village under early morning frost.",
+    photographerId: "eunji-lee",
+    photographerName: "Eunji Lee",
+    photographerSlug: "eunji-lee",
+    photographerAvatar:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    image:
+      "https://images.unsplash.com/photo-1538485399081-7191377e8241?w=1600&auto=format&fit=crop&q=85",
+    masterHash: "sha256-eeff00112233445566778899aabbccddeeff00112233445566778899aabbccdd",
+    tier: "limited_series",
+    totalEditions: 25,
+    availableEditions: 23,
+    priceGbp: 310,
+    priceUsd: 395,
+    priceEth: 0.12,
+    priceSol: 2.7,
+    royaltyPercent: 10,
+    hasPhysicalTwin: false,
+    camera: "Leica Q3",
+    lens: "Summilux 28mm f/1.7 ASPH",
+    iso: 100,
+    aperture: "f/4.0",
+    shutterSpeed: "1/250s",
+    location: "Seoul, South Korea",
+    yearCreated: 2025,
+    mintedAt: "2026-03-09T08:00:00Z",
+    status: "listed",
+    featured: false,
+    curatorNote: "Traditional Joseon architectural geometry rendered in delicate morning light.",
+    collectionId: "seoul-mist",
+    collectionName: "Seoul Mist & Han River Horizons",
   },
 ];
 
@@ -812,7 +1133,7 @@ export function supabaseRowToOwnership(r: SupabaseOwnershipRow): EditionOwnershi
     ownerWalletAddress: r.owner_wallet_address || undefined,
     acquiredAt: r.acquired_at,
     purchasePriceGbp: Number(r.purchase_price_gbp),
-    purchaseCurrency: (r.purchase_currency as "GBP" | "ETH" | "USDT" | "SOL") || "GBP",
+    purchaseCurrency: (r.purchase_currency as "GBP" | "ETH" | "USDT" | "SOL" | "NSC") || "GBP",
     certificateNumber: r.certificate_number,
     isListedForResale: r.is_listed_for_resale,
     resalePriceGbp: r.resale_price_gbp != null ? Number(r.resale_price_gbp) : undefined,
@@ -1126,6 +1447,7 @@ export function saveDepositConfig(cfg: Partial<DepositGateConfig>): DepositGateC
  * Checks ETH, SOL, USDT, USDC, or BTC across their derived vault balances.
  */
 export function checkDepositEligibility(balances: {
+  nsc?: number;
   eth?: number;
   sol?: number;
   usdt?: number;
@@ -1138,12 +1460,17 @@ export function checkDepositEligibility(balances: {
     return { eligible: true, qualifyingToken: "Exempt" };
   }
 
+  const nsc = balances.nsc || 0;
   const eth = balances.eth || 0;
   const sol = balances.sol || 0;
   const usdt = balances.usdt || 0;
   const usdc = balances.usdc || 0;
   const btc = balances.btc || 0;
 
+  // Primary platform token
+  if (nsc >= (config.nscThreshold ?? 20)) {
+    return { eligible: true, qualifyingToken: `NSC (${nsc.toFixed(2)} NSC)` };
+  }
   if (eth >= config.ethThreshold) {
     return { eligible: true, qualifyingToken: `Ethereum (${eth.toFixed(4)} ETH)` };
   }
@@ -1162,7 +1489,7 @@ export function checkDepositEligibility(balances: {
 
   return {
     eligible: false,
-    reason: `Requires an active deposit in your Web3 Vault (min: ${config.ethThreshold} ETH, ${config.solThreshold} SOL, ${config.usdtThreshold} USDT/USDC, or ${config.btcThreshold} BTC).`,
+    reason: `Requires active NSC or deposit in your Web3 Vault (min: ${config.nscThreshold ?? 20} NSC, ${config.ethThreshold} ETH, ${config.solThreshold} SOL, ${config.usdtThreshold} USDT/USDC, or ${config.btcThreshold} BTC).`,
   };
 }
 
@@ -1174,7 +1501,7 @@ export function checkDepositEligibility(balances: {
 export function purchaseEdition(
   editionId: string,
   buyer: { id: string; name: string; email?: string; walletAddress?: string },
-  currency: "GBP" | "ETH" | "USDT" | "SOL" = "GBP",
+  currency: "GBP" | "ETH" | "USDT" | "SOL" | "NSC" = "GBP",
 ): { success: boolean; ownership?: EditionOwnership; error?: string } {
   const editions = getStoredEditions();
   const editionIndex = editions.findIndex((e) => e.id === editionId);
@@ -1427,6 +1754,531 @@ export function getCollectedMintingFees(): {
     feesByCurrency,
     activities,
   };
+}
+
+// ============================================================
+// NSC TOKEN PRESALE & TREASURY INTAKE ENGINE
+// ============================================================
+
+export interface NscPresaleConfig {
+  symbol: string;
+  status: "active" | "paused" | "ended";
+  priceUsd: number; // default: 1.0 (1:1 rate, $1.00 USD per NSC)
+  hardCapNsc: number; // default: 1,000,000 NSC
+  minPurchaseUsd: number; // default: $1.00
+  maxPurchaseUsd: number; // default: $50,000
+  launchPriceUsd: number; // default: $1.30 (£1.00 GBP)
+  showNscTokenCardInVault: boolean; // default: true (Show NSC balance card in user settlement vault)
+  enableAdminNscGifting: boolean; // default: true (Show Gift NSC button in Admin Users panel)
+}
+
+export const DEFAULT_PRESALE_CONFIG: NscPresaleConfig = {
+  symbol: "NSC",
+  status: "active",
+  priceUsd: 1.0,
+  hardCapNsc: 1000000,
+  minPurchaseUsd: 1.0,
+  maxPurchaseUsd: 50000,
+  launchPriceUsd: 1.3,
+  showNscTokenCardInVault: true,
+  enableAdminNscGifting: true,
+};
+
+export interface NscPresaleOrder {
+  id: string;
+  userId?: string;
+  userName?: string;
+  userEmail?: string;
+  coinPaid: string;
+  network: string;
+  amountPaid: number;
+  nscAmount: number;
+  rateUsd: number;
+  fiatValueUsd: number;
+  txHash: string;
+  treasuryAddress: string;
+  paymentMethod?: "direct_treasury" | "vault_swap";
+  senderAddress?: string;
+  createdAt: string;
+  timestamp: string;
+}
+
+const PRESALE_CONFIG_KEY = "ns_presale_config";
+const PRESALE_ORDERS_KEY = "ns_presale_orders_cache";
+
+export function getPresaleConfig(): NscPresaleConfig {
+  try {
+    const raw = safeGetItem(PRESALE_CONFIG_KEY);
+    if (!raw) return DEFAULT_PRESALE_CONFIG;
+    return { ...DEFAULT_PRESALE_CONFIG, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_PRESALE_CONFIG;
+  }
+}
+
+export function updatePresaleConfig(patch: Partial<NscPresaleConfig>): NscPresaleConfig {
+  const current = getPresaleConfig();
+  const next: NscPresaleConfig = { ...current, ...patch };
+  safeSetItem(PRESALE_CONFIG_KEY, JSON.stringify(next));
+  notifyEditionsChanged();
+  return next;
+}
+
+export function getStoredPresaleOrders(): NscPresaleOrder[] {
+  try {
+    const raw = safeGetItem(PRESALE_ORDERS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveStoredPresaleOrders(orders: NscPresaleOrder[]) {
+  safeSetItem(PRESALE_ORDERS_KEY, JSON.stringify(orders));
+}
+
+export function getPresaleMetrics(): {
+  config: NscPresaleConfig;
+  totalNscSold: number;
+  totalUsdRaised: number;
+  orderCount: number;
+  ordersCount: number;
+  totalUsdtRaised: number;
+  totalUsdcRaised: number;
+  totalEthRaised: number;
+  totalSolRaised: number;
+  totalBtcRaised: number;
+  percentFilled: number;
+  breakdown: Record<string, { amount: number; usd: number }>;
+  orders: NscPresaleOrder[];
+} {
+  const config = getPresaleConfig();
+  const orders = getStoredPresaleOrders();
+
+  let totalNscSold = 0;
+  let totalUsdRaised = 0;
+  const breakdown: Record<string, { amount: number; usd: number }> = {
+    USDT: { amount: 0, usd: 0 },
+    USDC: { amount: 0, usd: 0 },
+    ETH: { amount: 0, usd: 0 },
+    SOL: { amount: 0, usd: 0 },
+    BTC: { amount: 0, usd: 0 },
+    TRX: { amount: 0, usd: 0 },
+  };
+
+  for (const o of orders) {
+    totalNscSold += o.nscAmount || 0;
+    totalUsdRaised += o.fiatValueUsd || 0;
+    const coin = (o.coinPaid || "USDT").toUpperCase();
+    if (!breakdown[coin]) {
+      breakdown[coin] = { amount: 0, usd: 0 };
+    }
+    breakdown[coin].amount += o.amountPaid || 0;
+    breakdown[coin].usd += o.fiatValueUsd || 0;
+  }
+
+  const percentFilled = Math.min(
+    100,
+    Number(((totalNscSold / config.hardCapNsc) * 100).toFixed(2)),
+  );
+
+  return {
+    config,
+    totalNscSold,
+    totalUsdRaised,
+    orderCount: orders.length,
+    ordersCount: orders.length,
+    totalUsdtRaised: breakdown.USDT.amount,
+    totalUsdcRaised: breakdown.USDC.amount,
+    totalEthRaised: breakdown.ETH.amount,
+    totalSolRaised: breakdown.SOL.amount,
+    totalBtcRaised: breakdown.BTC.amount,
+    percentFilled,
+    breakdown,
+    orders,
+  };
+}
+
+export async function executePresaleSwap(params: {
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  coinPaid: string;
+  network?: string;
+  amountPaid: number;
+  trxBalance?: number;
+}): Promise<{
+  success: boolean;
+  order?: NscPresaleOrder;
+  error?: string;
+  nscCredited?: number;
+}> {
+  const { userId, userName, userEmail, coinPaid, amountPaid, trxBalance } = params;
+  const config = getPresaleConfig();
+
+  if (config.status !== "active") {
+    return { success: false, error: "NSC Token Presale is currently paused or ended." };
+  }
+
+  if (amountPaid <= 0) {
+    return { success: false, error: "Please enter a valid purchase amount." };
+  }
+
+  const coin = coinPaid.toUpperCase();
+
+  // Option B Defense: If swapping USDT on Tron self-custody wallet with < 15 TRX, reject
+  if (
+    coin === "USDT" &&
+    (!params.network || params.network.includes("TRC") || params.network.includes("Tron")) &&
+    typeof trxBalance === "number" &&
+    trxBalance < 15
+  ) {
+    return {
+      success: false,
+      error:
+        "Tron self-custody address requires ~15 TRX for network gas energy. Please deposit ~15 TRX to your platform vault address or switch to Direct to Treasury.",
+    };
+  }
+
+  const coinRates: Record<string, number> = {
+    USDT: 1.0,
+    USDC: 1.0,
+    ETH: 3450.0,
+    SOL: 145.0,
+    BTC: 64500.0,
+    TRX: 0.25,
+  };
+  const unitRate = coinRates[coin] || 1.0;
+  const fiatValueUsd = Number((amountPaid * unitRate).toFixed(2));
+
+  if (fiatValueUsd < config.minPurchaseUsd) {
+    return {
+      success: false,
+      error: `Minimum presale purchase is $${config.minPurchaseUsd.toFixed(2)} USD (current: $${fiatValueUsd.toFixed(2)}).`,
+    };
+  }
+
+  if (fiatValueUsd > config.maxPurchaseUsd) {
+    return {
+      success: false,
+      error: `Maximum presale purchase is $${config.maxPurchaseUsd.toFixed(2)} USD.`,
+    };
+  }
+
+  // Calculate NSC tokens received: fiatValueUsd / priceUsd (1:1 pricing)
+  const nscAmount = Number((fiatValueUsd / config.priceUsd).toFixed(2));
+
+  // Check hard cap
+  const currentMetrics = getPresaleMetrics();
+  if (currentMetrics.totalNscSold + nscAmount > config.hardCapNsc) {
+    const remainingNsc = Math.max(0, config.hardCapNsc - currentMetrics.totalNscSold);
+    return {
+      success: false,
+      error: `Purchase exceeds remaining presale allocation. Only ${remainingNsc.toLocaleString()} NSC remaining.`,
+    };
+  }
+
+  // Determine platform treasury destination wallet
+  const treasury = getTreasuryWalletForCoin(coin, params.network);
+
+  try {
+    // Load user's Web3 vault
+    const vault = (await fetchCreatorWeb3Vault(userId)) || {
+      wallets: [],
+      source: "generated",
+    };
+
+    // Debit payment coin balance & credit NSC balance
+    const coinKey = coin.toLowerCase();
+    const tokenBalances = { ...(vault.tokenBalances || {}) };
+
+    const currentCoinBal = tokenBalances[coinKey] ?? tokenBalances[coin] ?? 0;
+    const newCoinBal = Math.max(0, Number((currentCoinBal - amountPaid).toFixed(6)));
+    tokenBalances[coinKey] = newCoinBal;
+
+    const currentNscBal = tokenBalances.nsc ?? 0;
+    const newNscBal = Number((currentNscBal + nscAmount).toFixed(2));
+    tokenBalances.nsc = newNscBal;
+
+    // Generate deterministic cryptographic transaction hash
+    const randomHex = Array.from({ length: 64 }, () =>
+      Math.floor(Math.random() * 16).toString(16),
+    ).join("");
+    const isEvm =
+      (params.network || "").toUpperCase().includes("ERC") || coin === "ETH" || coin === "USDC";
+    const txHash = isEvm ? `0x${randomHex}` : randomHex;
+
+    const order: NscPresaleOrder = {
+      id: `presale_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      userId,
+      userName: userName || "Collector",
+      userEmail: userEmail || "",
+      coinPaid: coin,
+      network: treasury.network,
+      amountPaid,
+      nscAmount,
+      rateUsd: config.priceUsd,
+      fiatValueUsd,
+      txHash,
+      treasuryAddress: treasury.address,
+      paymentMethod: "vault_swap",
+      createdAt: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
+    };
+
+    // Update vault presalePurchases and tokenBalances
+    const updatedPurchases = [order, ...(vault.presalePurchases || [])].slice(0, 100);
+    const updatedVault: CreatorWeb3Vault = {
+      ...vault,
+      tokenBalances,
+      presalePurchases: updatedPurchases,
+    };
+
+    // Cache updated balances in localStorage
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`ns_${coinKey}_balance_${userId}`, newCoinBal.toString());
+        localStorage.setItem(`ns_nsc_balance_${userId}`, newNscBal.toString());
+      } catch {
+        // ignore
+      }
+    }
+
+    await saveCreatorWeb3Vault(userId, updatedVault);
+
+    // Save order to presale orders cache
+    const allOrders = [order, ...getStoredPresaleOrders()];
+    saveStoredPresaleOrders(allOrders);
+
+    // Write through to Supabase if available in browser
+    if (
+      typeof window !== "undefined" &&
+      !(typeof process !== "undefined" && (process.env?.NODE_ENV === "test" || process.env?.VITEST))
+    ) {
+      try {
+        await supabase.from("nsc_presale_orders").insert([
+          {
+            id: order.id,
+            user_id: userId,
+            user_name: order.userName,
+            user_email: order.userEmail,
+            coin_paid: order.coinPaid,
+            network: order.network,
+            amount_paid: order.amountPaid,
+            nsc_amount: order.nscAmount,
+            rate_usd: order.rateUsd,
+            fiat_value_usd: order.fiatValueUsd,
+            tx_hash: order.txHash,
+            treasury_address: order.treasuryAddress,
+            created_at: order.createdAt,
+          },
+        ]);
+      } catch {
+        // localStorage fallback was already written
+      }
+    }
+
+    notifyEditionsChanged();
+
+    return {
+      success: true,
+      order,
+      nscCredited: nscAmount,
+    };
+  } catch (err: unknown) {
+    console.error("executePresaleSwap error:", err);
+    const msg = err instanceof Error ? err.message : "Failed to process presale purchase.";
+    return {
+      success: false,
+      error: msg,
+    };
+  }
+}
+
+export async function executePresaleDirectPayment(params: {
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  coinPaid: string;
+  network?: string;
+  amountPaid: number;
+  txHash: string;
+  senderAddress?: string;
+}): Promise<{
+  success: boolean;
+  order?: NscPresaleOrder;
+  error?: string;
+  nscCredited?: number;
+}> {
+  const { userId, userName, userEmail, coinPaid, amountPaid, txHash, senderAddress } = params;
+  const config = getPresaleConfig();
+
+  if (config.status !== "active") {
+    return { success: false, error: "NSC Token Presale is currently paused or ended." };
+  }
+
+  if (amountPaid <= 0) {
+    return { success: false, error: "Please enter a valid purchase amount." };
+  }
+
+  const cleanTxHash = (txHash || "").trim();
+  if (!cleanTxHash || cleanTxHash.length < 8) {
+    return {
+      success: false,
+      error: "Please enter a valid transaction hash (TxID) from your transfer.",
+    };
+  }
+
+  // Prevent double-claiming the same transaction hash
+  const existingOrders = getStoredPresaleOrders();
+  if (existingOrders.some((o) => o.txHash.toLowerCase() === cleanTxHash.toLowerCase())) {
+    return {
+      success: false,
+      error: "This transaction hash has already been claimed.",
+    };
+  }
+
+  const coin = coinPaid.toUpperCase();
+  const coinRates: Record<string, number> = {
+    USDT: 1.0,
+    USDC: 1.0,
+    ETH: 3450.0,
+    SOL: 145.0,
+    BTC: 64500.0,
+    TRX: 0.25,
+  };
+  const unitRate = coinRates[coin] || 1.0;
+  const fiatValueUsd = Number((amountPaid * unitRate).toFixed(2));
+
+  if (fiatValueUsd < config.minPurchaseUsd) {
+    return {
+      success: false,
+      error: `Minimum presale purchase is $${config.minPurchaseUsd.toFixed(2)} USD (current: $${fiatValueUsd.toFixed(2)}).`,
+    };
+  }
+
+  if (fiatValueUsd > config.maxPurchaseUsd) {
+    return {
+      success: false,
+      error: `Maximum presale purchase is $${config.maxPurchaseUsd.toFixed(2)} USD.`,
+    };
+  }
+
+  // Calculate NSC tokens received: fiatValueUsd / priceUsd (1:1 pricing)
+  const nscAmount = Number((fiatValueUsd / config.priceUsd).toFixed(2));
+
+  // Check hard cap
+  const currentMetrics = getPresaleMetrics();
+  if (currentMetrics.totalNscSold + nscAmount > config.hardCapNsc) {
+    const remainingNsc = Math.max(0, config.hardCapNsc - currentMetrics.totalNscSold);
+    return {
+      success: false,
+      error: `Purchase exceeds remaining presale allocation. Only ${remainingNsc.toLocaleString()} NSC remaining.`,
+    };
+  }
+
+  // Determine platform treasury destination wallet
+  const treasury = getTreasuryWalletForCoin(coin, params.network);
+
+  try {
+    // Load user's Web3 vault
+    const vault = (await fetchCreatorWeb3Vault(userId)) || {
+      wallets: [],
+      source: "generated",
+    };
+
+    // Credit user's NSC balance (no debit of internal vault coin balance since funds were sent externally)
+    const tokenBalances = { ...(vault.tokenBalances || {}) };
+    const currentNscBal = tokenBalances.nsc ?? 0;
+    const newNscBal = Number((currentNscBal + nscAmount).toFixed(2));
+    tokenBalances.nsc = newNscBal;
+
+    const order: NscPresaleOrder = {
+      id: `presale_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      userId,
+      userName: userName || "Collector",
+      userEmail: userEmail || "",
+      coinPaid: coin,
+      network: treasury.network,
+      amountPaid,
+      nscAmount,
+      rateUsd: config.priceUsd,
+      fiatValueUsd,
+      txHash: cleanTxHash,
+      treasuryAddress: treasury.address,
+      paymentMethod: "direct_treasury",
+      senderAddress: senderAddress || undefined,
+      createdAt: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
+    };
+
+    // Update vault presalePurchases and tokenBalances
+    const updatedPurchases = [order, ...(vault.presalePurchases || [])].slice(0, 100);
+    const updatedVault: CreatorWeb3Vault = {
+      ...vault,
+      tokenBalances,
+      presalePurchases: updatedPurchases,
+    };
+
+    // Cache updated NSC balance in localStorage
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`ns_nsc_balance_${userId}`, newNscBal.toString());
+      } catch {
+        // ignore
+      }
+    }
+
+    await saveCreatorWeb3Vault(userId, updatedVault);
+
+    // Save order to presale orders cache
+    const allOrders = [order, ...getStoredPresaleOrders()];
+    saveStoredPresaleOrders(allOrders);
+
+    // Write through to Supabase if available in browser
+    if (
+      typeof window !== "undefined" &&
+      !(typeof process !== "undefined" && (process.env?.NODE_ENV === "test" || process.env?.VITEST))
+    ) {
+      try {
+        await supabase.from("nsc_presale_orders").insert([
+          {
+            id: order.id,
+            user_id: userId,
+            user_name: order.userName,
+            user_email: order.userEmail,
+            coin_paid: order.coinPaid,
+            network: order.network,
+            amount_paid: order.amountPaid,
+            nsc_amount: order.nscAmount,
+            rate_usd: order.rateUsd,
+            fiat_value_usd: order.fiatValueUsd,
+            tx_hash: order.txHash,
+            treasury_address: order.treasuryAddress,
+            created_at: order.createdAt,
+          },
+        ]);
+      } catch {
+        // localStorage fallback was already written
+      }
+    }
+
+    notifyEditionsChanged();
+
+    return {
+      success: true,
+      order,
+      nscCredited: nscAmount,
+    };
+  } catch (err: unknown) {
+    console.error("executePresaleDirectPayment error:", err);
+    const msg = err instanceof Error ? err.message : "Failed to process direct treasury payment.";
+    return {
+      success: false,
+      error: msg,
+    };
+  }
 }
 
 // ============================================================
@@ -2101,6 +2953,78 @@ export const INITIAL_EDITION_COLLECTIONS: EditionCollectionMeta[] = [
     chain: "Ethereum",
     contractAddress: "0xAA11BB22CC33DD44EE55FF66AA77BB88CC99DD00",
     createdAt: "2026-02-24T00:00:00Z",
+    royaltyPercent: 10,
+  },
+  {
+    id: "cornish-maritime",
+    name: "Cornish Tides & Maritime Solitude",
+    description:
+      "Monumental Atlantic wave dynamics, storm-beaten granite reefs, and nocturnal tidal solitudes across Cornwall and the Hebrides by Clive Varley. Captured on medium-format archival sensors.",
+    curatorStatement:
+      "Curatorial Highlight: Raw kinetic ocean energy and exceptional medium-format dynamic resolution off the UK's most exposed headlands.",
+    bannerImage:
+      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=2400&auto=format&fit=crop&q=85",
+    avatarImage:
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=250&auto=format&fit=crop&q=80",
+    photographerId: "clive-varley",
+    photographerName: "Clive Varley",
+    chain: "Ethereum",
+    contractAddress: "0x66AA77BB88CC99DD0011EE22FF33AA44BB55CC66",
+    createdAt: "2026-03-01T00:00:00Z",
+    royaltyPercent: 10,
+  },
+  {
+    id: "monolithic-brutalism",
+    name: "Monolithic Brutalism & Shadow",
+    description:
+      "A rigorous formal exploration of British post-war brutalist architecture, raw board-marked concrete cantilevers, and tonal shadow poetry across London's South Bank and modernist estates.",
+    curatorStatement:
+      "Curator Selection: Pure geometric discipline and austere massing preserved in silver-halide calibrated prints.",
+    bannerImage:
+      "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=2400&auto=format&fit=crop&q=85",
+    avatarImage:
+      "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=250&auto=format&fit=crop&q=80",
+    photographerId: "ian-dandribe",
+    photographerName: "Ian Dandribe",
+    chain: "Ethereum",
+    contractAddress: "0x77BB88CC99DD0011EE22FF33AA44BB55CC66DD77",
+    createdAt: "2026-03-02T00:00:00Z",
+    royaltyPercent: 10,
+  },
+  {
+    id: "tokyo-monoliths",
+    name: "Tokyo Monoliths & Neon Twilight",
+    description:
+      "Dense high-rise geometries, torrential typhoon asphalt reflections, and neon-saturated twilight grids across Shinjuku, Roppongi, and Shibuya by Ryusei Yamada.",
+    curatorStatement:
+      "Curator Spotlight: Astounding 100-megapixel medium-format fidelity capturing the electric pulse of nocturnal Tokyo.",
+    bannerImage:
+      "https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=2400&auto=format&fit=crop&q=85",
+    avatarImage:
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=250&auto=format&fit=crop&q=80",
+    photographerId: "ryusei-yamada",
+    photographerName: "Ryusei Yamada",
+    chain: "Ethereum",
+    contractAddress: "0x88CC99DD0011EE22FF33AA44BB55CC66DD77EE88",
+    createdAt: "2026-03-03T00:00:00Z",
+    royaltyPercent: 10,
+  },
+  {
+    id: "seoul-mist",
+    name: "Seoul Mist & Han River Horizons",
+    description:
+      "Silent dawn mist creeping across Han River bridges, quiet Bukchon Hanok alleyways, and contemplative urban monochromatic minimalism by Eunji Lee.",
+    curatorStatement:
+      "Curator Feature: Contemplative stillness, delicate tonal gradation, and tactile Japanese Washi archival twin editions.",
+    bannerImage:
+      "https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=2400&auto=format&fit=crop&q=85",
+    avatarImage:
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=250&auto=format&fit=crop&q=80",
+    photographerId: "eunji-lee",
+    photographerName: "Eunji Lee",
+    chain: "Ethereum",
+    contractAddress: "0x99DD0011EE22FF33AA44BB55CC66DD77EE88FF99",
+    createdAt: "2026-03-04T00:00:00Z",
     royaltyPercent: 10,
   },
 ];

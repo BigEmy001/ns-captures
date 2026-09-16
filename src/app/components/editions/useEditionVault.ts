@@ -16,6 +16,7 @@ export function useEditionVault() {
   const { user } = useAuth();
   const [wallets, setWallets] = useState<CryptoWalletEntry[]>([]);
   const [balances, setBalances] = useState<MultiChainVaultBalance | null>(null);
+  const [nscBalance, setNscBalance] = useState(0);
   const [refreshIndex, setRefreshIndex] = useState(0);
   const depositConfig = useMemo(() => getDepositConfig(), []);
 
@@ -31,9 +32,33 @@ export function useEditionVault() {
         if (!vault?.wallets?.length && user.slug && user.slug !== user.id) {
           vault = await fetchCreatorWeb3Vault(user.slug);
         }
-        if (!active) return;
-        const list = vault?.wallets || [];
+        const list = [...(vault?.wallets || [])];
+        const hasTrx = list.some((w) => w.coin.toUpperCase() === "TRX");
+        const tronEntry = list.find(
+          (w) => w.network?.includes("TRC") || w.address?.startsWith("T"),
+        );
+        if (!hasTrx && tronEntry) {
+          list.push({
+            coin: "TRX",
+            network: "TRC20",
+            name: "TRON (Native TRX)",
+            address: tronEntry.address,
+            derivationPath: tronEntry.derivationPath,
+          });
+        }
         setWallets(list);
+
+        const nscInVault = vault?.tokenBalances?.nsc ?? 0;
+        let cachedNsc = 0;
+        const evmAddr =
+          vault?.addresses?.evm || list.find((w) => w.coin === "ETH" || w.coin === "NSC")?.address;
+        if (evmAddr && typeof window !== "undefined") {
+          const stored = localStorage.getItem(`ns_nsc_balance_${evmAddr}`);
+          if (stored) cachedNsc = parseFloat(stored) || 0;
+        }
+        const resolvedNsc = Math.max(nscInVault, cachedNsc);
+        if (active) setNscBalance(resolvedNsc);
+
         if (list.length > 0) {
           const next = await fetchMultiChainVaultBalances(list, {
             tokenBalances: vault?.tokenBalances,
@@ -66,6 +91,7 @@ export function useEditionVault() {
   const checkPurchaseGate = () => {
     const balanceOf = (coin: string) => balances?.assets.find((a) => a.coin === coin)?.balance || 0;
     return checkDepositEligibility({
+      nsc: nscBalance || balanceOf("NSC"),
       eth: balanceOf("ETH"),
       sol: balanceOf("SOL"),
       usdt: balanceOf("USDT"),
@@ -79,6 +105,7 @@ export function useEditionVault() {
     user,
     wallets,
     balances,
+    nscBalance,
     depositConfig,
     primaryEvmAddress,
     walletLabel,

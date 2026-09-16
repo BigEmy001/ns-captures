@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  Flame,
   LogOut,
   Moon,
   Sparkles,
@@ -18,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
 import {
+  getPresaleConfig,
   getPublicEditionCollections,
   getPublishedEditions,
   isWeb3Activated,
@@ -27,6 +29,7 @@ import { MaskIcon } from "../MaskIcon";
 import { NsCapturesLogoBadge } from "../NsCapturesLogoBadge";
 import { SpaceSwitch } from "../SpaceSwitch";
 import { ConnectWalletModal } from "../ConnectWalletModal";
+import { PresaleBuyModal } from "../PresaleBuyModal";
 import { creatorHref, formatEth, shortHex } from "./editionsFormat";
 import { useEditionsTheme } from "./useEditionsTheme";
 import { useEditionVault } from "./useEditionVault";
@@ -162,14 +165,17 @@ export function EditionsShell({
   const {
     wallets,
     balances,
+    nscBalance,
     primaryEvmAddress,
     walletLabel: vaultWalletLabel,
     refresh: refreshVault,
   } = useEditionVault();
   const [walletFlyoutOpen, setWalletFlyoutOpen] = useState(false);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [presaleModalOpen, setPresaleModalOpen] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const walletFlyoutRef = useRef<HTMLDivElement>(null);
+  const presaleConfig = useMemo(() => getPresaleConfig(), []);
 
   // Close the wallet flyout on outside click or Escape
   useEffect(() => {
@@ -483,7 +489,18 @@ export function EditionsShell({
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1.5">
+                {presaleConfig.status === "active" && (
+                  <button
+                    type="button"
+                    onClick={() => setPresaleModalOpen(true)}
+                    className="hidden md:flex items-center gap-1.5 h-10 px-3.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 text-xs font-semibold tracking-[-0.1px] transition-colors cursor-pointer"
+                    title="Participate in NSC Token Presale"
+                  >
+                    <Flame className="size-3.5 fill-amber-500 animate-pulse" />
+                    <span>NSC Presale 1:1</span>
+                  </button>
+                )}
                 {headerActions ?? (
                   <div ref={walletFlyoutRef} className="relative">
                     <button
@@ -500,6 +517,10 @@ export function EditionsShell({
                       {hasLinkedWallets ? (
                         <>
                           <span className="size-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                          <span className="font-mono text-xs font-semibold text-amber-400">
+                            {nscBalance > 0 ? `${nscBalance.toFixed(0)} NSC` : "0 NSC"}
+                          </span>
+                          <span className="text-(--ed-border-strong)">·</span>
                           <span className="font-mono text-xs">{displayWalletLabel}</span>
                           <ChevronDown
                             className={`size-3.5 text-(--ed-muted) transition-transform duration-200 ${
@@ -559,7 +580,7 @@ export function EditionsShell({
                                   )}
                                 </div>
                                 <span className="text-[11px] font-mono text-(--ed-muted) block truncate">
-                                  {wallets.length} Wallets Linked • $
+                                  {nscBalance.toFixed(0)} NSC • {wallets.length} Wallets Linked • $
                                   {balances?.totalUsd ? balances.totalUsd.toFixed(2) : "0.00"}
                                 </span>
                               </div>
@@ -579,6 +600,34 @@ export function EditionsShell({
 
                           {/* Sub-Wallets List */}
                           <div className="space-y-2 py-3">
+                            {/* NSC Native Platform Coin Card */}
+                            <div className="p-2.5 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent hover:from-amber-500/20 rounded-xl border border-amber-500/30 transition-colors flex items-center justify-between">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="size-7 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xs text-amber-400 font-mono font-bold shrink-0">
+                                  🪙
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-semibold block">NSC Coin</span>
+                                    <span className="rounded bg-amber-500/20 px-1 py-0.2 font-mono text-[9px] font-semibold text-amber-400">
+                                      Native Fuel
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] font-mono text-(--ed-muted) block">
+                                    Universal Platform Currency
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right font-mono shrink-0 pl-2">
+                                <span className="text-xs font-bold block text-amber-400">
+                                  {nscBalance.toFixed(2)} NSC
+                                </span>
+                                <span className="text-[10px] text-(--ed-muted) block">
+                                  ≈ £{nscBalance.toFixed(2)} GBP
+                                </span>
+                              </div>
+                            </div>
+
                             {/* EVM Wallet Card */}
                             {evmWallet && (
                               <div className="p-2.5 bg-(--ed-bg) hover:bg-(--ed-hover) rounded-xl border border-(--ed-border) transition-colors flex items-center justify-between">
@@ -698,6 +747,36 @@ export function EditionsShell({
                               </div>
                             )}
                           </div>
+
+                          {/* Presale Spotlight Card */}
+                          {presaleConfig.status === "active" && (
+                            <div className="mb-2.5 p-3 rounded-xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-amber-500">
+                                  <Flame className="size-3.5 fill-amber-500 animate-pulse" />
+                                  NSC Presale Live
+                                </span>
+                                <span className="text-[10px] font-mono text-(--ed-muted)">
+                                  1:1 Peg
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-(--ed-muted) leading-tight">
+                                Early-bird token allocation at $1.00 USD. Zero gas on internal
+                                ledger.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setWalletFlyoutOpen(false);
+                                  setPresaleModalOpen(true);
+                                }}
+                                className="w-full py-1.5 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                              >
+                                <Sparkles className="size-3.5" />
+                                <span>Swap for NSC Tokens</span>
+                              </button>
+                            </div>
+                          )}
 
                           {/* Action Links */}
                           <div className="space-y-1 pt-2.5 border-t border-(--ed-divider) text-xs">
@@ -860,6 +939,14 @@ export function EditionsShell({
           refreshVault();
           toast.success("Wallet synchronized successfully");
           setConnectModalOpen(false);
+        }}
+      />
+
+      <PresaleBuyModal
+        isOpen={presaleModalOpen}
+        onClose={() => setPresaleModalOpen(false)}
+        onSuccess={() => {
+          refreshVault();
         }}
       />
     </MotionConfig>

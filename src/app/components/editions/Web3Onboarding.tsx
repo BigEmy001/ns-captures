@@ -1,8 +1,9 @@
 import { useState, type ComponentType } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
-import { ArrowUpRight, CheckCircle2, Circle, Gem, Palette } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Circle, Gem, Palette, Sparkles } from "lucide-react";
 import type { AuthUser } from "../../context/AuthContext";
+import { PresaleBuyModal } from "../PresaleBuyModal";
 import { hasCreatorAccess } from "../../data/roles";
 import {
   CREATOR_PROFILE_LIMITS,
@@ -115,6 +116,7 @@ export function Web3OnboardingFlow({
   const [avatar, setAvatar] = useState(resolveCreatorIdentity(user, profile).avatar ?? "");
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSwapOpen, setIsSwapOpen] = useState(false);
 
   if (role === "creator" && !canCreate) {
     const isPhotographer = user.role === "Photographer" || user.role === "Contributor";
@@ -323,11 +325,34 @@ export function Web3OnboardingFlow({
             />
             <StatusRow
               done={depositMet}
-              title="Minimum vault deposit"
-              body={`Hold at least ${depositConfig.ethThreshold} ETH, ${depositConfig.solThreshold} SOL, ${depositConfig.usdtThreshold} USDT, ${depositConfig.usdcThreshold} USDC or ${depositConfig.btcThreshold} BTC. The funds stay yours.`}
-              action={depositMet ? undefined : { label: "Deposit", to: "/account?tab=web3" }}
+              title="Vault activation & deposit"
+              body={`Hold at least ${depositConfig.nscThreshold ?? 20} NSC or ${depositConfig.ethThreshold} ETH (or equivalent crypto). NSC is the native platform coin used for Web3 activation, minting fees and acquiring editions.`}
+              action={depositMet ? undefined : { label: "Activate vault", to: "/account?tab=web3" }}
             />
           </ul>
+
+          {!depositMet && (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 rounded-lg border border-(--ed-primary)/30 bg-(--ed-primary)/10 p-3.5">
+              <div className="space-y-0.5">
+                <p className="text-xs font-semibold text-(--ed-text) flex items-center gap-1.5">
+                  <Sparkles className="size-3.5 text-(--ed-primary)" />
+                  Activate Vault with NSC or ETH
+                </p>
+                <p className="text-[11px] text-(--ed-muted)">
+                  Swap ETH or crypto to NSC instantly with zero extra gas. Funds route to NS
+                  CAPTURES Treasury and your vault is credited.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSwapOpen(true)}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-(--ed-primary) px-3.5 py-1.5 text-xs font-semibold text-black transition-opacity hover:opacity-90 shrink-0"
+              >
+                <Sparkles className="size-3.5" />
+                Swap ETH to NSC
+              </button>
+            </div>
+          )}
           <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-4">
             <input
               type="checkbox"
@@ -400,6 +425,14 @@ export function Web3OnboardingFlow({
           </button>
         )}
       </div>
+
+      {isSwapOpen && (
+        <PresaleBuyModal
+          isOpen={isSwapOpen}
+          onClose={() => setIsSwapOpen(false)}
+          onSuccess={() => setIsSwapOpen(false)}
+        />
+      )}
     </div>
   );
 }

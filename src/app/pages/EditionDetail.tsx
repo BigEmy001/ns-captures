@@ -10,6 +10,7 @@ import {
   getEditionCollection,
   isWeb3Activated,
   purchaseEdition,
+  PLATFORM_TREASURY_WALLETS,
   EDITION_REVIEW_LABELS,
   editionReviewStatus,
   isEditionCreator,
@@ -18,6 +19,8 @@ import {
   type EditionOwnership,
   type EditionActivity,
 } from "../data/editions";
+import { deductNscFromVault, deductVaultMintingFee } from "../data/db";
+import { PresaleBuyModal } from "../components/PresaleBuyModal";
 import { CertificateOfAuthenticityModal } from "../components/CertificateOfAuthenticityModal";
 import { MaskIcon } from "../components/MaskIcon";
 import { ArtworkLightbox, ArtworkPreview } from "../components/editions/ArtworkViewer";
@@ -93,8 +96,15 @@ const panelMotion = {
 export function EditionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, walletLabel, primaryEvmAddress, depositConfig, checkPurchaseGate } =
-    useEditionVault();
+  const {
+    user,
+    walletLabel,
+    primaryEvmAddress,
+    depositConfig,
+    checkPurchaseGate,
+    nscBalance,
+    refresh,
+  } = useEditionVault();
   const { requireWeb3, activationModal } = useWeb3Activation();
 
   const [editions, setEditions] = useState<DigitalEdition[]>(() => getStoredEditions());
@@ -156,6 +166,7 @@ export function EditionDetail() {
   const [coaModalOpen, setCoaModalOpen] = useState(false);
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+  const [isPresaleModalOpen, setIsPresaleModalOpen] = useState(false);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [offerAmount, setOfferAmount] = useState("");
@@ -293,7 +304,7 @@ export function EditionDetail() {
   };
 
   // Execute Direct Purchase with Deposit Check
-  const handleExecuteBuy = () => {
+  const handleExecuteBuy = async () => {
     if (!edition) return;
     if (!user) {
       toast.error("Please sign in or create an account to acquire digital editions.");
@@ -309,7 +320,9 @@ export function EditionDetail() {
     const gateCheck = checkPurchaseGate();
     if (!gateCheck.eligible) {
       toast.error("Deposit Verification Required", {
-        description: gateCheck.reason || "Please deposit crypto into your Web3 address first.",
+        description:
+          gateCheck.reason ||
+          "Please deposit crypto or swap for NSC tokens in your Web3 address first.",
       });
       setPurchaseModalOpen(true);
       return;
@@ -317,6 +330,26 @@ export function EditionDetail() {
 
     setIsPurchasing(true);
     try {
+      // Currency settlement: prefer NSC if buyer has sufficient balance, else pay with ETH
+      const hasSufficientNsc = (nscBalance || 0) >= edition.priceGbp;
+      const currency = hasSufficientNsc ? "NSC" : "ETH";
+
+      if (currency === "NSC") {
+        await deductNscFromVault(user.id, edition.priceGbp).catch((err) =>
+          console.error("Failed to deduct NSC from vault:", err),
+        );
+      } else {
+        await deductVaultMintingFee({
+          creatorId: user.id,
+          coin: "ETH",
+          network: "ERC20 / Base",
+          amount: edition.priceEth,
+          treasuryAddress: PLATFORM_TREASURY_WALLETS.evm,
+          editionId: edition.id,
+          editionTitle: edition.title,
+        }).catch((err) => console.error("Failed to route ETH purchase fee to treasury:", err));
+      }
+
       const res = purchaseEdition(
         edition.id,
         {
@@ -325,16 +358,17 @@ export function EditionDetail() {
           email: user.email,
           walletAddress: primaryEvmAddress || undefined,
         },
-        "ETH",
+        currency,
       );
 
       if (res.success && res.ownership) {
         toast.success(`Successfully Acquired: ${edition.title}`, {
-          description: `Edition Serial: ${res.ownership.serialDisplay} • Cryptographic COA Issued`,
+          description: `Edition Serial: ${res.ownership.serialDisplay} • Paid via ${currency} • Cryptographic COA Issued`,
         });
         setEditions(getStoredEditions());
         setOwnerships(getStoredOwnerships());
         setActivities(getStoredActivity());
+        refresh();
         openCoa(res.ownership);
       } else {
         toast.error(res.error || "Purchase failed.");
@@ -644,7 +678,7 @@ export function EditionDetail() {
                         {formatEth(edition.priceEth)}
                       </span>
                       <span className="font-mono text-sm text-(--ed-muted)">
-                        ≈ {formatGbp(edition.priceGbp)}
+                        ≈ {formatGbp(edition.priceGbp)} · {edition.priceGbp.toLocaleString()} NSC
                       </span>
                       <Chip>
                         {isSoldOut
@@ -1107,6 +1141,16 @@ export function EditionDetail() {
               >
                 Close
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPurchaseModalOpen(false);
+                  setIsPresaleModalOpen(true);
+                }}
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-none bg-(--ed-gold) px-4 font-mono text-xs font-semibold uppercase tracking-wider text-black transition-opacity hover:opacity-90"
+              >
+                Swap ETH to NSC
+              </button>
               <Link to="/account?tab=vault" className={`${primaryButtonClass} h-10 px-5 text-sm`}>
                 Go to vault deposit
               </Link>
@@ -1119,9 +1163,10 @@ export function EditionDetail() {
                 <Coins className="size-5" />
               </span>
               <p className="text-sm leading-6 text-(--ed-muted)">
-                To acquire on-platform digital editions, an active crypto deposit is required in
-                your Web3 vault (min: {depositConfig.ethThreshold} ETH, {depositConfig.solThreshold}{" "}
-                SOL, or {depositConfig.usdtThreshold} USDT).
+                To acquire on-platform digital editions, an active crypto deposit or NSC token
+                balance is required in your Web3 vault (min: {depositConfig.nscThreshold} NSC,{" "}
+                {depositConfig.ethThreshold} ETH, {depositConfig.solThreshold} SOL, or{" "}
+                {depositConfig.usdtThreshold} USDT).
               </p>
             </div>
 
@@ -1148,6 +1193,16 @@ export function EditionDetail() {
             )}
           </div>
         </EditionsModal>
+      )}
+      {isPresaleModalOpen && (
+        <PresaleBuyModal
+          isOpen={isPresaleModalOpen}
+          onClose={() => setIsPresaleModalOpen(false)}
+          onSuccess={() => {
+            setIsPresaleModalOpen(false);
+            refresh();
+          }}
+        />
       )}
       {activationModal}
     </EditionsShell>

@@ -85,7 +85,7 @@ import { SettlementNoticeModal } from "./admin/SettlementNoticeModal";
 import { ViewAsPanel } from "./admin/ViewAsPanel";
 import { CollectionsPanel } from "./admin/CollectionsPanel";
 import { EditionsPanel } from "./admin/EditionsPanel";
-import { editionReviewStatus, getStoredEditions } from "../data/editions";
+import { editionReviewStatus, getStoredEditions, getPresaleConfig } from "../data/editions";
 import { isEditionsPublic, setEditionsPublic, EDITIONS_VISIBILITY_EVENT } from "../data/editions";
 import { CryptoQrCodeModal } from "../components/CryptoQrCodeModal";
 import { GiftNscModal } from "../components/GiftNscModal";
@@ -7031,7 +7031,17 @@ function AdminUserModal({
                         </span>
                       </button>
                     )}
-                    {/* Gift NSC is hidden for now until token launch is finalized */}
+                    {getPresaleConfig().enableAdminNscGifting !== false && (
+                      <button
+                        type="button"
+                        onClick={() => setIsGiftModalOpen(true)}
+                        className="flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 transition cursor-pointer shrink-0"
+                        title="Gift promotional or settlement NSC tokens to this user's vault"
+                      >
+                        <Gift className="size-3 text-emerald-700" />
+                        <span>Gift NSC</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 

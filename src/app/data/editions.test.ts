@@ -38,6 +38,13 @@ import {
   getTreasuryWalletForCoin,
   getDepositConfig,
   saveDepositConfig,
+  getPresaleConfig,
+  updatePresaleConfig,
+  getStoredPresaleOrders,
+  saveStoredPresaleOrders,
+  getPresaleMetrics,
+  executePresaleSwap,
+  executePresaleDirectPayment,
 } from "./editions";
 
 describe("Digital Editions Data Engine", () => {
@@ -50,7 +57,13 @@ describe("Digital Editions Data Engine", () => {
     it("rejects zero or low balances when gate is enforced", () => {
       const result = checkDepositEligibility({});
       expect(result.eligible).toBe(false);
-      expect(result.reason).toContain("Requires an active deposit");
+      expect(result.reason).toContain("Requires active NSC or deposit");
+    });
+
+    it("qualifies when NSC platform token threshold is met", () => {
+      const result = checkDepositEligibility({ nsc: 25 });
+      expect(result.eligible).toBe(true);
+      expect(result.qualifyingToken).toContain("NSC");
     });
 
     it("qualifies when ETH threshold is met", () => {
@@ -124,6 +137,21 @@ describe("Digital Editions Data Engine", () => {
       const updated = getStoredEditions().find((e) => e.id === "edn-genesis-01");
       expect(updated?.availableEditions).toBe(0);
       expect(updated?.status).toBe("sold_out");
+    });
+
+    it("purchases an edition denominated in NSC", () => {
+      const result = purchaseEdition(
+        "edn-numbered-03",
+        {
+          id: "buyer-nsc-01",
+          name: "NSC Collector",
+          walletAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
+        },
+        "NSC",
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.ownership?.purchaseCurrency).toBe("NSC");
     });
   });
 
@@ -507,6 +535,10 @@ describe("Digital Editions Data Engine", () => {
         "metropolitan-geometry",
         "namibian-horizons",
         "kyoto-nocturnes",
+        "cornish-maritime",
+        "monolithic-brutalism",
+        "tokyo-monoliths",
+        "seoul-mist",
       ];
 
       for (const id of platformCollectionIds) {
@@ -633,6 +665,252 @@ describe("Digital Editions Data Engine", () => {
 
       // Restore defaults
       saveDepositConfig({ usdtThreshold: 20, ethThreshold: 0.006 });
+    });
+  });
+
+  describe("NSC Token Presale & Treasury Engine", () => {
+    beforeEach(() => {
+      // Reset presale config and orders to clean slate
+      updatePresaleConfig({
+        priceUsd: 1.0,
+        hardCapNsc: 1_000_000,
+        status: "active",
+        minPurchaseUsd: 1.0,
+        maxPurchaseUsd: 50_000.0,
+      });
+      saveStoredPresaleOrders([]);
+    });
+
+    it("initializes with 1:1 pricing ($1.00 USD / 1 NSC) and 1M NSC hard cap", () => {
+      const config = getPresaleConfig();
+      expect(config.priceUsd).toBe(1.0);
+      expect(config.hardCapNsc).toBe(1_000_000);
+      expect(config.status).toBe("active");
+      expect(config.symbol).toBe("NSC");
+      expect(config.minPurchaseUsd).toBe(1.0);
+    });
+
+    it("allows admin to update presale settings and status", () => {
+      const updated = updatePresaleConfig({
+        priceUsd: 1.0,
+        status: "paused",
+        minPurchaseUsd: 10.0,
+      });
+      expect(updated.status).toBe("paused");
+      expect(updated.minPurchaseUsd).toBe(10.0);
+
+      const readBack = getPresaleConfig();
+      expect(readBack.status).toBe("paused");
+    });
+
+    it("blocks purchases when presale is paused", async () => {
+      updatePresaleConfig({ status: "paused" });
+      const result = await executePresaleSwap({
+        userId: "test-user-01",
+        coinPaid: "USDT",
+        amountPaid: 50,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("paused or ended");
+    });
+
+    it("enforces minimum purchase USD limit", async () => {
+      const result = await executePresaleSwap({
+        userId: "test-user-01",
+        coinPaid: "USDT",
+        amountPaid: 0.5, // Below $1 min
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Minimum presale purchase");
+    });
+
+    it("executes 1:1 swap for USDT and routes to platform treasury", async () => {
+      const result = await executePresaleSwap({
+        userId: "test-user-buyer",
+        userName: "Elena Rostova",
+        userEmail: "elena@example.com",
+        coinPaid: "USDT",
+        network: "TRC20",
+        amountPaid: 100,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.nscCredited).toBe(100);
+      expect(result.order).toBeDefined();
+      expect(result.order?.coinPaid).toBe("USDT");
+      expect(result.order?.nscAmount).toBe(100);
+      expect(result.order?.treasuryAddress).toBe(PLATFORM_TREASURY_WALLETS.usdtTrc20);
+      expect(result.order?.txHash).toBeTruthy();
+
+      // Check stored orders
+      const orders = getStoredPresaleOrders();
+      expect(orders.length).toBe(1);
+      expect(orders[0].id).toBe(result.order?.id);
+
+      // Check metrics
+      const metrics = getPresaleMetrics();
+      expect(metrics.totalUsdRaised).toBe(100);
+      expect(metrics.totalNscSold).toBe(100);
+      expect(metrics.orderCount).toBe(1);
+      expect(metrics.totalUsdtRaised).toBe(100);
+    });
+
+    it("executes crypto conversion swap (ETH) into NSC tokens at market valuation", async () => {
+      // 0.1 ETH @ $3,450/ETH = $345 USD -> 345 NSC (1:1)
+      const result = await executePresaleSwap({
+        userId: "test-user-eth",
+        userName: "Crypto Collector",
+        coinPaid: "ETH",
+        network: "ERC20",
+        amountPaid: 0.1,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.nscCredited).toBe(345);
+      expect(result.order?.treasuryAddress).toBe(PLATFORM_TREASURY_WALLETS.evm);
+      expect(result.order?.txHash?.startsWith("0x")).toBe(true);
+
+      const metrics = getPresaleMetrics();
+      expect(metrics.totalEthRaised).toBe(0.1);
+      expect(metrics.totalUsdRaised).toBe(345);
+      expect(metrics.totalNscSold).toBe(345);
+    });
+
+    it("enforces hard cap limit on presale allocation", async () => {
+      // Set hard cap to 500 NSC for testing
+      updatePresaleConfig({ hardCapNsc: 500 });
+
+      // First buy 400 NSC
+      const buy1 = await executePresaleSwap({
+        userId: "test-user-cap-1",
+        coinPaid: "USDT",
+        amountPaid: 400,
+      });
+      expect(buy1.success).toBe(true);
+
+      // Attempt to buy 200 NSC (400 + 200 = 600 > 500 hard cap)
+      const buy2 = await executePresaleSwap({
+        userId: "test-user-cap-2",
+        coinPaid: "USDT",
+        amountPaid: 200,
+      });
+      expect(buy2.success).toBe(false);
+      expect(buy2.error).toContain("Purchase exceeds remaining presale allocation");
+      expect(buy2.error).toContain("100 NSC remaining");
+    });
+
+    it("records direct treasury transfer from Binance/external wallet without requiring vault balance", async () => {
+      const txHash = "0x9876543210abcdef9876543210abcdef9876543210abcdef9876543210abcdef";
+      const result = await executePresaleDirectPayment({
+        userId: "test-direct-buyer",
+        userName: "Marcus Aurelius",
+        userEmail: "marcus@rome.art",
+        coinPaid: "USDT",
+        network: "TRC20",
+        amountPaid: 250,
+        txHash,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.nscCredited).toBe(250);
+      expect(result.order?.paymentMethod).toBe("direct_treasury");
+      expect(result.order?.txHash).toBe(txHash);
+      expect(result.order?.treasuryAddress).toBe(PLATFORM_TREASURY_WALLETS.usdtTrc20);
+
+      // Verify stored order and metrics
+      const orders = getStoredPresaleOrders();
+      expect(orders.length).toBe(1);
+      expect(orders[0].paymentMethod).toBe("direct_treasury");
+
+      const metrics = getPresaleMetrics();
+      expect(metrics.totalUsdRaised).toBe(250);
+      expect(metrics.totalNscSold).toBe(250);
+    });
+
+    it("prevents double-claiming the same transaction hash", async () => {
+      const duplicateTx = "0xduplicatehash1234567890abcdef1234567890abcdef1234567890abcdef";
+
+      // First claim succeeds
+      const res1 = await executePresaleDirectPayment({
+        userId: "buyer-one",
+        coinPaid: "USDT",
+        amountPaid: 100,
+        txHash: duplicateTx,
+      });
+      expect(res1.success).toBe(true);
+
+      // Second claim with same TxHash fails
+      const res2 = await executePresaleDirectPayment({
+        userId: "buyer-two",
+        coinPaid: "USDT",
+        amountPaid: 100,
+        txHash: duplicateTx,
+      });
+      expect(res2.success).toBe(false);
+      expect(res2.error).toContain("already been claimed");
+    });
+
+    it("rejects USDT vault swap when self-custody Tron address has insufficient TRX for gas (Option B)", async () => {
+      // Abraham has 10 USDT in vault, but 0 TRX on-chain for gas
+      const result = await executePresaleSwap({
+        userId: "abraham-user-id",
+        coinPaid: "USDT",
+        network: "TRC20",
+        amountPaid: 10,
+        trxBalance: 0, // 0 TRX detected on-chain
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Tron self-custody address requires ~15 TRX");
+      expect(result.error).toContain("Direct to Treasury");
+    });
+
+    it("routes TRX payments to platform Tron treasury and credits NSC based on assigned rate", async () => {
+      // 1. Verify treasury route for TRX is TRC20 treasury
+      const treasury = getTreasuryWalletForCoin("TRX");
+      expect(treasury.address).toBe(PLATFORM_TREASURY_WALLETS.usdtTrc20);
+      expect(treasury.network).toBe("TRC20");
+
+      // 2. Direct payment in TRX (100 TRX @ $0.25 = $25 USD = 25 NSC)
+      const txHash = "0xtrxhash1234567890abcdef1234567890abcdef1234567890abcdef12345678";
+      const result = await executePresaleDirectPayment({
+        userId: "abraham-trx-buyer",
+        coinPaid: "TRX",
+        network: "TRC20",
+        amountPaid: 100,
+        txHash,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.nscCredited).toBe(25);
+      expect(result.order?.fiatValueUsd).toBe(25);
+      expect(result.order?.treasuryAddress).toBe(PLATFORM_TREASURY_WALLETS.usdtTrc20);
+    });
+
+    it("updates and persists admin toggles for NSC vault card and admin gifting", () => {
+      const initial = getPresaleConfig();
+      expect(initial.showNscTokenCardInVault).toBe(true);
+      expect(initial.enableAdminNscGifting).toBe(true);
+
+      // Toggle off
+      updatePresaleConfig({
+        showNscTokenCardInVault: false,
+        enableAdminNscGifting: false,
+      });
+
+      const updated = getPresaleConfig();
+      expect(updated.showNscTokenCardInVault).toBe(false);
+      expect(updated.enableAdminNscGifting).toBe(false);
+
+      // Toggle back on
+      updatePresaleConfig({
+        showNscTokenCardInVault: true,
+        enableAdminNscGifting: true,
+      });
+
+      const restored = getPresaleConfig();
+      expect(restored.showNscTokenCardInVault).toBe(true);
+      expect(restored.enableAdminNscGifting).toBe(true);
     });
   });
 });

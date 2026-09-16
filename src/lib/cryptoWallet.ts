@@ -217,6 +217,14 @@ export function deriveMultiChainWalletFromMnemonic(mnemonic: string): MultiChain
       address: tronAddress,
       derivationPath: tronPath,
     },
+    // TRON (TRX) - Native gas & payment currency
+    {
+      coin: "TRX",
+      network: "TRC20",
+      name: "TRON (Native TRX)",
+      address: tronAddress,
+      derivationPath: tronPath,
+    },
     {
       coin: "USDT",
       network: "Solana",

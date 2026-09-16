@@ -22,6 +22,7 @@ import {
   Sparkles,
   FileText,
   ArrowRight,
+  Flame,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
@@ -43,13 +44,17 @@ import { CryptoQrCodeModal } from "../../components/CryptoQrCodeModal";
 import { ConnectWalletModal } from "../../components/ConnectWalletModal";
 import { TransferCryptoModal } from "../../components/TransferCryptoModal";
 import { ConvertBalanceModal } from "../../components/ConvertBalanceModal";
+import { PresaleBuyModal } from "../../components/PresaleBuyModal";
 import { CertificateOfAuthenticityModal } from "../../components/CertificateOfAuthenticityModal";
 import {
   getStoredEditions,
   getStoredOwnerships,
   isEditionsPublic,
+  getPresaleConfig,
+  EDITIONS_CHANGED_EVENT,
   type DigitalEdition,
   type EditionOwnership,
+  type NscPresaleConfig,
 } from "../../data/editions";
 import {
   sendCryptoDepositNotification,
@@ -105,7 +110,17 @@ export function SettlementVaultTab() {
 
   const [vaultData, setVaultData] = useState<CreatorWeb3Vault | null>(null);
   const [isConvertModalOpen, setIsConvertModalOpen] = useState(false);
+  const [isPresaleModalOpen, setIsPresaleModalOpen] = useState(false);
   const [availableWeb2Balance, setAvailableWeb2Balance] = useState<number>(0);
+  const [presaleConfig, setPresaleConfig] = useState<NscPresaleConfig>(() => getPresaleConfig());
+
+  useEffect(() => {
+    const handleSync = () => {
+      setPresaleConfig(getPresaleConfig());
+    };
+    window.addEventListener(EDITIONS_CHANGED_EVENT, handleSync);
+    return () => window.removeEventListener(EDITIONS_CHANGED_EVENT, handleSync);
+  }, []);
 
   // Digital Editions Collection State
   const [selectedCert, setSelectedCert] = useState<{
@@ -183,6 +198,21 @@ export function SettlementVaultTab() {
       const payoutReqs = await fetchPayoutRequests(photographerTargetId);
       const netAvailable = withdrawableFrom(user?.payoutBalance ?? 0, payoutReqs);
       setAvailableWeb2Balance(netAvailable);
+
+      // Ensure Tron address includes a native TRX entry so user can see and deposit TRX directly
+      const hasTrx = existingWallets.some((w) => w.coin.toUpperCase() === "TRX");
+      const tronEntry = existingWallets.find(
+        (w) => w.network?.includes("TRC") || w.address?.startsWith("T"),
+      );
+      if (!hasTrx && tronEntry) {
+        existingWallets.push({
+          coin: "TRX",
+          network: "TRC20",
+          name: "TRON (Native TRX)",
+          address: tronEntry.address,
+          derivationPath: tronEntry.derivationPath,
+        });
+      }
 
       setWallets(existingWallets);
       setRecoveryPhrase(phrase);
@@ -354,6 +384,17 @@ export function SettlementVaultTab() {
 
         {hasVault && (
           <div className="flex flex-wrap items-center gap-2">
+            {presaleConfig.status === "active" && (
+              <button
+                type="button"
+                onClick={() => setIsPresaleModalOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 text-xs font-semibold transition cursor-pointer shadow-sm"
+              >
+                <Flame className="size-3.5 fill-black animate-pulse" />
+                <span>Buy NSC Presale (1:1)</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() =>
@@ -460,6 +501,39 @@ export function SettlementVaultTab() {
 
       {hasVault && (
         <>
+          {/* NSC Presale Spotlight Banner */}
+          {presaleConfig.status === "active" && (
+            <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1 max-w-xl">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600 text-xs font-semibold border border-amber-500/30">
+                    <Flame className="size-3.5 fill-amber-600 animate-pulse" />
+                    NSC Token Presale Active • 1:1 Peg
+                  </span>
+                  <span className="text-xs font-mono text-[#758078]">
+                    $1.00 USD / £1.00 GBP = 1 NSC
+                  </span>
+                </div>
+                <h3 className="text-lg font-serif font-medium text-[#18211f]">
+                  Acquire Native NSC Tokens with Zero Gas Fees
+                </h3>
+                <p className="text-xs text-[#758078] leading-relaxed">
+                  Early-bird token allocation directly through your self-custody settlement vault.
+                  Swap USDT, USDC, ETH, SOL, or BTC with instant vault credit and platform treasury
+                  settlement.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPresaleModalOpen(true)}
+                className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black px-5 py-3 text-xs font-semibold transition cursor-pointer shadow-md"
+              >
+                <Sparkles className="size-4" />
+                <span>Participate in Presale</span>
+              </button>
+            </div>
+          )}
+
           {/* Portfolio Overview Card */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2 rounded-2xl border border-[#ececec] bg-white p-6 flex flex-col justify-between min-h-[160px]">
@@ -534,7 +608,90 @@ export function SettlementVaultTab() {
             </div>
           </div>
 
-          {/* NSC Native Platform Token Card is hidden for now until token deployment is finalized */}
+          {/* NSC Native Platform Token & Web2 Bridge Card */}
+          {presaleConfig.showNscTokenCardInVault !== false && (
+            <div className="rounded-2xl border border-[#dce8df] bg-gradient-to-br from-[#ffffff] via-[#FAF9F5] to-[#f4f7f5] p-6">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#1e4a3f]/10 text-[#1e4a3f] px-2.5 py-0.5 text-[10px] font-mono font-semibold tracking-wider uppercase">
+                      <Coins className="size-3 text-[#1e4a3f]" />
+                      Official Platform Utility Token
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[10px] font-mono font-medium border border-emerald-200">
+                      1:1 Peg
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-3">
+                    <h3 className="text-3xl font-serif font-light text-[#18211f]">
+                      {(vaultData?.tokenBalances?.nsc || 0).toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      <span className="text-xl font-normal text-[#1e4a3f]">NSC</span>
+                    </h3>
+                    <span className="text-sm font-mono text-[#758078]">
+                      ≈ £
+                      {(vaultData?.tokenBalances?.nsc || 0).toLocaleString("en-GB", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      GBP / $
+                      {(vaultData?.tokenBalances?.nsc || 0).toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      USD
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#5f6762] leading-relaxed max-w-xl">
+                    Hold, stake, or redeem NSC across NS Captures for print orders, licenses, and
+                    NFT drops, or transfer internally to another creator.
+                  </p>
+                  {vaultData?.giftHistory && vaultData.giftHistory.length > 0 && (
+                    <p className="text-[11px] text-[#1e4a3f] font-medium pt-0.5">
+                      🎁 Latest Gift: +{vaultData.giftHistory[0].amount} NSC (
+                      {vaultData.giftHistory[0].reason})
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsConvertModalOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#1e4a3f] px-4 py-2.5 text-xs font-semibold text-white hover:bg-[#123b31] transition cursor-pointer"
+                  >
+                    <ArrowRightLeft className="size-3.5" />
+                    <span>Convert Web2 to NSC</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTransferModal({
+                        isOpen: true,
+                        coin: "NSC",
+                        network: "Base",
+                      })
+                    }
+                    disabled={(vaultData?.tokenBalances?.nsc || 0) <= 0}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#dce8df] bg-white px-4 py-2.5 text-xs font-medium text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer disabled:opacity-40"
+                  >
+                    <ArrowUpRight className="size-3.5 text-[#1e4a3f]" />
+                    <span>Withdraw NSC</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPresaleModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-[#1e4a3f] hover:bg-emerald-100 transition cursor-pointer"
+                  >
+                    <Sparkles className="size-3.5 text-emerald-600" />
+                    <span>Buy Presale (1:1)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Master 12-Word Recovery Phrase Card */}
           {recoveryPhrase && (
@@ -998,6 +1155,15 @@ export function SettlementVaultTab() {
         userEmail={user?.email || ""}
         vaultEvmAddress={wallets.find((w) => w.coin === "ETH" || w.coin === "NSC")?.address}
         onConverted={() => {
+          loadVault();
+        }}
+      />
+
+      {/* Presale Buy Modal */}
+      <PresaleBuyModal
+        isOpen={isPresaleModalOpen}
+        onClose={() => setIsPresaleModalOpen(false)}
+        onSuccess={() => {
           loadVault();
         }}
       />
