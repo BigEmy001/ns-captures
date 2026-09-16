@@ -52,7 +52,7 @@ Common scale (measured from existing pages):
 - Page container: `mx-auto w-full max-w-[1440px] px-5 sm:px-8 lg:px-12`, vertical rhythm `py-12`–`py-24`.
 - Narrow reading content: `max-w-2xl` / `max-w-3xl`.
 - Account and admin: `bg-[#FAF9F5]` ground, `SideNav` on the left, content column with an `Eyebrow` + serif `h1`, panels inside `mt-8`.
-- Navbar and Footer render for every route except `/editions/*` and `/photo/:id` (see `RootLayout`). The Navbar has no plain "Editions" link: the `SpaceSwitch` sits right after the logo from `md` up (condensed from `lg` up: less padding and no Web3 tag; the header search hides between `lg` and `xl` to make room), in a full-width row under the header on phones, and at the top of the phone menu. It only shows when the admin has the Editions marketplace switched on (always for admins). `/photo/:id` has no Navbar, so it puts the switch in its own top bar (after "Back to library" from `md` up, a full-width row above it on phones). Any new page that hides the Navbar needs the switch too.
+- Navbar and Footer render for every route except `/editions/*` (see `RootLayout`). The Navbar has no plain "Editions" link: the `SpaceSwitch` sits right after the logo from `md` up (condensed from `lg` up: less padding and no Web3 tag; the header search hides between `lg` and `xl` to make room), in a full-width row under the header on phones, and at the top of the phone menu. It only shows when the admin has the Editions marketplace switched on (always for admins). Any new page that hides the Navbar needs its own switch.
 
 ### Shape and depth
 

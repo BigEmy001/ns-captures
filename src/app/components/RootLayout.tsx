@@ -29,7 +29,6 @@ export function RootLayout() {
   }, []);
 
   const isEditions = spaceForPath(pathname) === "editions";
-  const isPhotoDetail = pathname.startsWith("/photo/");
 
   return (
     <AuthProvider>
@@ -45,13 +44,13 @@ export function RootLayout() {
           >
             Skip to content
           </a>
-          {!isEditions && !isPhotoDetail && <Navbar />}
+          {!isEditions && <Navbar />}
           <main id="main-content" className="flex-1" tabIndex={-1}>
             {/* Don't key this by side: a remount shows the lazy-route "Loading..." fallback
                 inside the SpaceSwitch view transition instead of the new page */}
             <Outlet />
           </main>
-          {!isEditions && !isPhotoDetail && <Footer />}
+          {!isEditions && <Footer />}
           <VerificationWelcomeModal />
           <Toaster position="bottom-right" />
         </div>

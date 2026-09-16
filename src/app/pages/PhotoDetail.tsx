@@ -10,17 +10,16 @@ import {
   MapPin,
   Camera,
   Aperture,
-  Sparkles,
   ArrowRight,
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PhotoCard } from "../components/PhotoCard";
-import { Eyebrow, Button, Badge } from "../components/ui";
-import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
 import {
   fetchPhoto,
   fetchPhotographer,
+  fetchPhotosByPhotographer,
+  fetchPhotosPaginated,
   type Photo,
   type Photographer,
   getOptimizedImageUrl,
@@ -39,7 +38,6 @@ import {
 } from "../data/editions";
 import { MintEditionModal } from "../components/MintEditionModal";
 import { useWeb3Activation } from "../components/editions/useWeb3Activation";
-import { SpaceSwitch } from "../components/SpaceSwitch";
 
 interface LicenseOption {
   id: string;
@@ -62,6 +60,8 @@ export function PhotoDetail() {
   const [showMintModal, setShowMintModal] = useState(false);
   const { requireWeb3, activationModal } = useWeb3Activation();
   const [editions, setEditions] = useState<DigitalEdition[]>(() => getStoredEditions());
+  const [moreByPhotographer, setMoreByPhotographer] = useState<Photo[]>([]);
+  const [moreLikeThis, setMoreLikeThis] = useState<Photo[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -91,6 +91,41 @@ export function PhotoDetail() {
     if (!id) return;
     incrementPhotoViews(id);
   }, [id]);
+
+  // Related work: this photographer's other photographs, and more in the same category.
+  // Both are best-effort — the page still reads fine without them.
+  useEffect(() => {
+    if (!photo) return;
+    let active = true;
+    const withoutThisOne = (list: Photo[]) => list.filter((p) => p.id !== photo.id).slice(0, 4);
+
+    fetchPhotosByPhotographer(photo.photographerId)
+      .then((list) => {
+        if (active) setMoreByPhotographer(withoutThisOne(list));
+      })
+      .catch(() => {});
+
+    fetchPhotosPaginated(
+      {
+        query: "",
+        category: photo.category,
+        licenses: [],
+        orientation: null,
+        maxPrice: 10000,
+        sort: "popular",
+      },
+      0,
+      8,
+    )
+      .then(({ photos }) => {
+        if (active) setMoreLikeThis(withoutThisOne(photos));
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [photo]);
 
   if (loading) {
     return (
@@ -146,33 +181,36 @@ export function PhotoDetail() {
   ];
 
   const current = options.find((o) => o.id === selected)!;
-  const related: Photo[] = [];
+  const likeThis = moreLikeThis
+    .filter((p) => !moreByPhotographer.some((m) => m.id === p.id))
+    .slice(0, 4);
   const categoryHref = `/search?cat=${encodeURIComponent(photo.category)}`;
   const photographerHref = `/photographer/${photo.photographerId}`;
-  // The Photography | Editions switch follows the admin's marketplace visibility setting
-  const showSpaceSwitch = isEditionsPublic() || user?.role === "Admin";
 
   const imageSrc = getOptimizedImageUrl(photo.image || "", 1200);
 
   return (
     <div className="mx-auto min-h-screen max-w-[1600px] px-4 py-8 sm:px-8 lg:px-10">
-      {/* This page has no Navbar, so the Photography | Editions switch lives in its top bar */}
-      {showSpaceSwitch && (
-        <div className="mb-4 md:hidden">
-          <SpaceSwitch tone="light" size="sm" fullWidth />
-        </div>
-      )}
+      <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-2 text-xs text-[#6b716d]">
+        <Link to="/search" className="hover:text-[#1e4a3f]">
+          Library
+        </Link>
+        <span aria-hidden>/</span>
+        <Link to={categoryHref} className="hover:text-[#1e4a3f]">
+          {photo.category}
+        </Link>
+        <span aria-hidden>/</span>
+        <span className="max-w-[240px] truncate text-[#18211f]">{photo.title}</span>
+      </nav>
+
       <div className="mb-6 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/search"
-            className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-medium text-[#1e4a3f] hover:underline"
-          >
-            <ArrowRight className="size-4 rotate-180" />
-            Back to library
-          </Link>
-          {showSpaceSwitch && <SpaceSwitch tone="light" className="hidden md:inline-flex" />}
-        </div>
+        <Link
+          to="/search"
+          className="inline-flex items-center gap-2 whitespace-nowrap text-sm font-medium text-[#1e4a3f] hover:underline"
+        >
+          <ArrowRight className="size-4 rotate-180" />
+          Back to library
+        </Link>
 
         <div className="flex items-center gap-2">
           <button
@@ -219,7 +257,7 @@ export function PhotoDetail() {
 
       <div className="grid gap-8 xl:grid-cols-[1.5fr_0.85fr] xl:items-start">
         <div>
-          <div className="overflow-hidden rounded-[28px] border border-[#e7e1d9] bg-[#f5f1ea] shadow-[0_18px_60px_rgba(17,15,13,0.04)]">
+          <div className="overflow-hidden bg-[#f5f1ea]">
             <img src={imageSrc} alt={photo.title} className="w-full max-h-[82vh] object-cover" />
           </div>
 
@@ -240,7 +278,7 @@ export function PhotoDetail() {
           </div>
         </div>
 
-        <aside className="rounded-[28px] border border-[#e7e1d9] bg-[#faf7f2] p-5 shadow-[0_18px_60px_rgba(17,15,13,0.03)] sm:p-6">
+        <aside className="rounded-[28px] border border-[#e7e1d9] bg-[#faf7f2] p-5 shadow-[0_18px_60px_rgba(17,15,13,0.03)] sm:p-6 xl:col-start-2 xl:row-span-2 xl:row-start-1">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#5f655e]">
             {photo.category} / Archive
           </p>
@@ -253,6 +291,10 @@ export function PhotoDetail() {
               {photo.photographer}
             </Link>
           </p>
+
+          {photo.description && (
+            <p className="mt-4 text-sm leading-6 text-[#4c514d]">{photo.description}</p>
+          )}
 
           <div className="mt-6 rounded-2xl border border-[#e7e1d9] bg-white p-4">
             <div className="flex items-center justify-between gap-3 border-b border-[#efe9e3] pb-3">
@@ -348,44 +390,53 @@ export function PhotoDetail() {
             </div>
           )}
         </aside>
-      </div>
 
-      <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          { icon: Camera, label: "Camera body", value: photo.camera },
-          { icon: Aperture, label: "Lens", value: photo.lens },
-          { icon: null, label: "ISO", value: photo.iso ? String(photo.iso) : "" },
-          { icon: null, label: "Aperture", value: photo.aperture },
-          { icon: null, label: "Shutter", value: photo.shutterSpeed },
-          { icon: null, label: "Focal length", value: photo.focalLength },
-          { icon: null, label: "Rights", value: photo.license },
-        ]
-          .filter((entry) => entry.value)
-          .map((entry) => (
-            <div key={entry.label} className="rounded-2xl border border-[#e7e1d9] bg-[#faf7f2] p-4">
-              <div className="mb-2 flex items-center gap-2 text-[#58615d]">
-                {entry.icon && <entry.icon className="size-4" />}
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em]">
-                  {entry.label}
-                </span>
-              </div>
-              <p className="text-sm text-[#171513]">{entry.value}</p>
+        {/* On wide screens these sit under the photo in the left column, so a tall
+            licence panel doesn't leave a gap beside it */}
+        <div className="xl:col-start-1 xl:row-start-2">
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {[
+              { icon: Camera, label: "Camera body", value: photo.camera },
+              { icon: Aperture, label: "Lens", value: photo.lens },
+              { icon: null, label: "ISO", value: photo.iso ? String(photo.iso) : "" },
+              { icon: null, label: "Aperture", value: photo.aperture },
+              { icon: null, label: "Shutter", value: photo.shutterSpeed },
+              { icon: null, label: "Focal length", value: photo.focalLength },
+              { icon: null, label: "Rights", value: photo.license },
+            ]
+              .filter((entry) => entry.value)
+              .map((entry) => (
+                <div
+                  key={entry.label}
+                  className="rounded-2xl border border-[#e7e1d9] bg-[#faf7f2] p-4"
+                >
+                  <div className="mb-2 flex items-center gap-2 text-[#58615d]">
+                    {entry.icon && <entry.icon className="size-4" />}
+                    <span className="font-mono text-[10px] uppercase tracking-[0.14em]">
+                      {entry.label}
+                    </span>
+                  </div>
+                  <p className="text-sm text-[#171513]">{entry.value}</p>
+                </div>
+              ))}
+          </div>
+
+          <div className="mt-8">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#5f655e]">
+              Keywords
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(photo.keywords || []).map((k) => (
+                <Link
+                  key={k}
+                  to={`/search?q=${encodeURIComponent(k)}`}
+                  className="rounded-full border border-[#e7e1d9] bg-[#faf7f2] px-3 py-1.5 text-xs text-[#4a534e] hover:border-[#1e4a3f]"
+                >
+                  {k}
+                </Link>
+              ))}
             </div>
-          ))}
-      </div>
-
-      <div className="mt-8">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#5f655e]">Keywords</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {(photo.keywords || []).map((k) => (
-            <Link
-              key={k}
-              to={`/search?q=${encodeURIComponent(k)}`}
-              className="rounded-full border border-[#e7e1d9] bg-[#faf7f2] px-3 py-1.5 text-xs text-[#4a534e] hover:border-[#1e4a3f]"
-            >
-              {k}
-            </Link>
-          ))}
+          </div>
         </div>
       </div>
 
@@ -409,7 +460,6 @@ export function PhotoDetail() {
               />
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1.5 font-mono text-xs uppercase leading-[15px] text-[#acadae]">
-                  <Sparkles className="size-3.5" />
                   Digital edition ·{" "}
                   {matchingEdition.tier === "genesis_1_of_1"
                     ? "Genesis 1 of 1"
@@ -442,7 +492,6 @@ export function PhotoDetail() {
           return (
             <div className="mt-10 rounded-xl border border-[#26272d] bg-[#101011] p-5 text-white sm:p-6">
               <p className="flex items-center gap-1.5 font-mono text-xs uppercase leading-[15px] text-[#acadae]">
-                <Sparkles className="size-3.5" />
                 Fine-art digital edition
               </p>
               <p className="mt-3 max-w-xl text-sm leading-6 text-[#acadae]">
@@ -461,6 +510,44 @@ export function PhotoDetail() {
 
         return null;
       })()}
+
+      {moreByPhotographer.length > 0 && (
+        <section className="mt-14">
+          <div className="flex items-end justify-between gap-4">
+            <h2 className="font-serif text-2xl text-[#18211f]">More from {photo.photographer}</h2>
+            <Link
+              to={photographerHref}
+              className="whitespace-nowrap text-sm font-medium text-[#1e4a3f] hover:underline"
+            >
+              View profile
+            </Link>
+          </div>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {moreByPhotographer.map((p) => (
+              <PhotoCard key={p.id} item={p} ratio="aspect-[4/5]" />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {likeThis.length > 0 && (
+        <section className="mt-14">
+          <div className="flex items-end justify-between gap-4">
+            <h2 className="font-serif text-2xl text-[#18211f]">More like this</h2>
+            <Link
+              to={categoryHref}
+              className="whitespace-nowrap text-sm font-medium text-[#1e4a3f] hover:underline"
+            >
+              See all {photo.category}
+            </Link>
+          </div>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {likeThis.map((p) => (
+              <PhotoCard key={p.id} item={p} ratio="aspect-[4/5]" />
+            ))}
+          </div>
+        </section>
+      )}
 
       {activationModal}
       {showMintModal && (

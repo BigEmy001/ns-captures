@@ -6,7 +6,8 @@ import { Photo } from "../data/photos";
 import { useAuth } from "../context/AuthContext";
 import { toggleSave, hasUserSavedPhoto, getOptimizedImageUrl } from "../data/db";
 
-export function PhotoCard({ item }: { item: Photo }) {
+/** `ratio` overrides the photo's own aspect class, for grids that want one even row. */
+export function PhotoCard({ item, ratio }: { item: Photo; ratio?: string }) {
   const { user } = useAuth();
   const [saved, setSaved] = useState(false);
 
@@ -16,7 +17,10 @@ export function PhotoCard({ item }: { item: Photo }) {
 
   const handleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!user) { toast.error("Sign in to save photos"); return; }
+    if (!user) {
+      toast.error("Sign in to save photos");
+      return;
+    }
     const nowSaved = await toggleSave(user.id, item.id);
     setSaved(nowSaved);
     toast(nowSaved ? `Saved "${item.title}"` : `Removed "${item.title}" from saved`);
@@ -26,7 +30,7 @@ export function PhotoCard({ item }: { item: Photo }) {
 
   return (
     <article className="group">
-      <div className={`relative overflow-hidden bg-[#d7d8d2] ${item.ratio}`}>
+      <div className={`relative overflow-hidden bg-[#d7d8d2] ${ratio ?? item.ratio}`}>
         <Link to={`/photo/${item.id}`} className="block size-full">
           <img
             src={getOptimizedImageUrl(item.image, 600)}
@@ -49,10 +53,16 @@ export function PhotoCard({ item }: { item: Photo }) {
       </div>
       <div className="flex items-start justify-between gap-4 pt-3">
         <div>
-          <Link to={`/photo/${item.id}`} className="font-serif text-lg leading-none hover:underline">
+          <Link
+            to={`/photo/${item.id}`}
+            className="font-serif text-lg leading-none hover:underline"
+          >
             {item.title}
           </Link>
-          <Link to={photographerHref} className="mt-1.5 block text-xs text-[#6b716d] hover:text-[#1e4a3f]">
+          <Link
+            to={photographerHref}
+            className="mt-1.5 block text-xs text-[#6b716d] hover:text-[#1e4a3f]"
+          >
             by {item.photographer}
           </Link>
         </div>
