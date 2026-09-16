@@ -103,7 +103,8 @@ export function Web3OnboardingFlow({
   onComplete: (role: Web3Role) => void;
   onCancel?: () => void;
 }) {
-  const { wallets, depositConfig, checkPurchaseGate, primaryEvmAddress } = useEditionVault();
+  const { wallets, depositConfig, checkPurchaseGate, primaryEvmAddress, refresh } =
+    useEditionVault();
   const canCreate = hasCreatorAccess(user.role, user.verificationStatus);
   const profile = getEditionCreatorProfile(user.id);
 
@@ -430,7 +431,10 @@ export function Web3OnboardingFlow({
         <PresaleBuyModal
           isOpen={isSwapOpen}
           onClose={() => setIsSwapOpen(false)}
-          onSuccess={() => setIsSwapOpen(false)}
+          onSuccess={() => {
+            setIsSwapOpen(false);
+            refresh();
+          }}
         />
       )}
     </div>

@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { fetchCreatorWeb3Vault, type CryptoWalletEntry } from "../../data/db";
-import { checkDepositEligibility, getDepositConfig } from "../../data/editions";
+import {
+  checkDepositEligibility,
+  getDepositConfig,
+  EDITIONS_CHANGED_EVENT,
+} from "../../data/editions";
 import {
   fetchMultiChainVaultBalances,
   type MultiChainVaultBalance,
@@ -21,6 +25,19 @@ export function useEditionVault() {
   const depositConfig = useMemo(() => getDepositConfig(), []);
 
   const refresh = () => setRefreshIndex((i) => i + 1);
+
+  // Auto-refresh vault data when editions/presale events fire or user switches back to tab
+  useEffect(() => {
+    const handleSync = () => setRefreshIndex((i) => i + 1);
+    window.addEventListener(EDITIONS_CHANGED_EVENT, handleSync);
+    window.addEventListener("focus", handleSync);
+    window.addEventListener("storage", handleSync);
+    return () => {
+      window.removeEventListener(EDITIONS_CHANGED_EVENT, handleSync);
+      window.removeEventListener("focus", handleSync);
+      window.removeEventListener("storage", handleSync);
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
