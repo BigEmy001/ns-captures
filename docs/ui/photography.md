@@ -89,6 +89,16 @@ Model new admin tabs on Users, Moderation and Collections (and `pages/admin/Edit
 - **Empty state:** dashed-border card with a `font-serif text-2xl` message.
 - Side nav badges come from `pendingCounts` in `Admin.tsx`.
 
+### Licensing and prices
+
+`src/app/data/licensing.ts` is the only place licence prices come from — the photo page, the upload form, the portfolio and checkout all use it. Never multiply `photo.price` by hand.
+
+- Buyers choose **Commercial, Editorial, Extended or Exclusive** (`LICENSE_TIERS`, with the usage, restrictions, duration and coverage copy).
+- `photos.price` is the Commercial price. `photos.license_prices` (migration 085) holds a photographer's own Editorial, Extended and Exclusive prices; when it's empty NS CAPTURES derives them (Editorial 70%, Extended 2.4×, Exclusive 6×). `resolveLicensePrices(photo)` gives what buyers pay; `licensePriceFor(photo, licence)` is `null` when a licence isn't offered.
+- `offeredTiers(photo)`: "Editorial only" photos, and photos showing people or property without a signed release, sell under **Editorial only**, at `photos.price`. "Exclusive" photos are only sold outright.
+- Editing: `LicensePricingFields` ("Set by NS CAPTURES" or "Set my own") in the upload form and the portfolio's "Licence prices" panel, with `newPricingValue`, `pricingValueFromPhoto`, `checkPricing` and `pricingToSave`. Save with `updatePhotoPrice` + `saveLicensePrices`.
+- Checkout re-prices every cart item from the photo before submitting and stops if a price changed or a licence is no longer offered. It is a client-side check; purchases still wait for admin approval.
+
 ### Account tabs
 
 Tabs are declared per role in `Account.tsx` (`{ id, label, icon }`) and rendered by `active`. Creator-only tabs check `canCreate`. Match `pages/account/NftEditionsTab.tsx` for a checklist + list layout.

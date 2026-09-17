@@ -27,7 +27,8 @@ import {
 import { Monogram } from "./ui";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Dropdown, DropdownItem } from "./Dropdown";
-import { getCart, removeFromCart, clearCart, CartItem } from "../data/cart";
+import { getCart, removeFromCart, clearCart, updateCartItemPrice, CartItem } from "../data/cart";
+import { licensePriceFor } from "../data/licensing";
 import { NotificationBell } from "./NotificationBell";
 import {
   createPurchaseWithMethod,
@@ -330,6 +331,29 @@ export function Navbar() {
       return;
     }
     setIsPaying(true);
+
+    // Price every item from the photograph itself before submitting payment: a cart can be days
+    // old, and photographers can change their licence prices at any time.
+    const checked = await Promise.all(
+      cartItems.map(async (item) => {
+        const photo = await fetchPhoto(item.photoId);
+        return { item, price: photo ? licensePriceFor(photo, item.license) : null };
+      }),
+    );
+    const unavailable = checked.filter((c) => c.price === null);
+    const repriced = checked.filter((c) => c.price !== null && c.price !== c.item.price);
+    if (unavailable.length > 0 || repriced.length > 0) {
+      unavailable.forEach((c) => removeFromCart(c.item.id));
+      repriced.forEach((c) => updateCartItemPrice(c.item.id, c.price as number));
+      setIsPaying(false);
+      toast.error("Your cart has changed", {
+        description:
+          unavailable.length > 0
+            ? "Some licences are no longer offered and were removed. Review your cart and check out again."
+            : "Some prices changed since you added them. Review the new total and check out again.",
+      });
+      return;
+    }
 
     const now = new Date().toISOString();
 

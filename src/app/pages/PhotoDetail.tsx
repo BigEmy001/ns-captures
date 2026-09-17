@@ -38,15 +38,7 @@ import {
 } from "../data/editions";
 import { MintEditionModal } from "../components/MintEditionModal";
 import { useWeb3Activation } from "../components/editions/useWeb3Activation";
-
-interface LicenseOption {
-  id: string;
-  price: number;
-  usage: string;
-  restrictions: string;
-  duration: string;
-  coverage: string;
-}
+import { offeredTiers, resolveLicensePrices, tierInfo } from "../data/licensing";
 
 export function PhotoDetail() {
   const { id } = useParams();
@@ -145,42 +137,13 @@ export function PhotoDetail() {
 
   if (!photo) return <NotFound />;
 
-  const options: LicenseOption[] = [
-    {
-      id: "COMMERCIAL",
-      price: Math.max(photo.price, 0),
-      usage: "Ads, packaging, web & social for a business.",
-      restrictions: "No resale as stock.",
-      duration: "Perpetual",
-      coverage: "Worldwide",
-    },
-    {
-      id: "EDITORIAL",
-      price: Math.max(Math.round(photo.price * 0.7), 0),
-      usage: "News, blogs, education & non-commercial.",
-      restrictions: "No commercial promotion.",
-      duration: "Perpetual",
-      coverage: "Worldwide",
-    },
-    {
-      id: "EXTENDED",
-      price: Math.max(Math.round(photo.price * 2.4), 0),
-      usage: "Merchandise for resale, unlimited prints.",
-      restrictions: "None.",
-      duration: "Perpetual",
-      coverage: "Worldwide",
-    },
-    {
-      id: "EXCLUSIVE",
-      price: Math.max(Math.round(photo.price * 6), 0),
-      usage: "Sole rights — removed from the library.",
-      restrictions: "Buyer owns exclusive use.",
-      duration: "Perpetual",
-      coverage: "Worldwide",
-    },
-  ];
-
-  const current = options.find((o) => o.id === selected)!;
+  // Every licence this photo is sold under, priced by data/licensing.ts (checkout uses the same)
+  const licensePrices = resolveLicensePrices(photo);
+  const options = offeredTiers(photo).map((tier) => ({
+    ...tierInfo(tier),
+    price: licensePrices[tier] ?? 0,
+  }));
+  const current = options.find((o) => o.id === selected) ?? options[0];
   const likeThis = moreLikeThis
     .filter((p) => !moreByPhotographer.some((m) => m.id === p.id))
     .slice(0, 4);

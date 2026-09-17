@@ -1,6 +1,8 @@
 // Shared mock data for the NS CAPTURES platform.
 // Images are real photography sourced from Unsplash with attribution.
 
+import type { LicensePrices } from "./licensing";
+
 export type License = "COMMERCIAL" | "EDITORIAL" | "ROYALTY FREE" | "EXCLUSIVE";
 export type Orientation = "portrait" | "landscape" | "square";
 
@@ -15,7 +17,10 @@ export interface Photo {
   color: string;
   orientation: Orientation;
   ratio: string; // tailwind aspect ratio class
+  /** Commercial licence price (or the only licence's price); see data/licensing.ts */
   price: number;
+  /** The photographer's own Editorial / Extended / Exclusive prices, when they set them */
+  licensePrices?: LicensePrices;
   downloads: number;
   views: number;
   likes: number;

@@ -28,6 +28,17 @@ import {
 } from "recharts";
 import exifr from "exifr";
 import { Eyebrow, Badge } from "../../components/ui";
+import { LicensePricingFields } from "../../components/LicensePricingFields";
+import {
+  hasCustomPrices,
+  newPricingValue,
+  offeredTiers,
+  pricingToSave,
+  pricingValueFromPhoto,
+  saveLicensePrices,
+  tierInfo,
+  type LicensePricingValue,
+} from "../../data/licensing";
 import { type Orientation, type Photographer } from "../../data/photos";
 import {
   fetchPhotos,
@@ -173,6 +184,9 @@ export function CreatorTabs({
   const [downloadsData, setDownloadsData] = useState<{ m: string; v: number }[]>([]);
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editingPriceValue, setEditingPriceValue] = useState<string>("");
+  const [pricingPhotoId, setPricingPhotoId] = useState<string | null>(null);
+  const [pricingDraft, setPricingDraft] = useState<LicensePricingValue>(() => newPricingValue());
+  const [savingPricing, setSavingPricing] = useState(false);
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [editingTitleValue, setEditingTitleValue] = useState<string>("");
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
@@ -397,7 +411,7 @@ export function CreatorTabs({
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadCategory, setUploadCategory] = useState("Portrait");
   const [uploadLocation, setUploadLocation] = useState("");
-  const [uploadPrice, setUploadPrice] = useState("1000");
+  const [uploadPricing, setUploadPricing] = useState<LicensePricingValue>(() => newPricingValue());
   const [uploadDescription, setUploadDescription] = useState("");
   const [uploadKeywords, setUploadKeywords] = useState("");
   const [uploadLicense, setUploadLicense] = useState("COMMERCIAL");
@@ -447,6 +461,46 @@ export function CreatorTabs({
       toast.error("Failed to update price");
     }
     setEditingPriceId(null);
+  };
+
+  const openPricingEditor = (photo: Photo) => {
+    setPricingDraft(pricingValueFromPhoto(photo));
+    setPricingPhotoId(photo.id);
+  };
+
+  const handlePricingSave = async (photo: Photo) => {
+    const pricing = pricingToSave(pricingDraft, photo);
+    if (!pricing) {
+      toast.error("Every licence needs a price of at least £1");
+      return;
+    }
+    setSavingPricing(true);
+    const [priceSaved, licencePricesSaved] = await Promise.all([
+      updatePhotoPrice(photo.id, pricing.price),
+      saveLicensePrices(photo.id, pricing.licensePrices),
+    ]);
+    setSavingPricing(false);
+    setPortfolioPhotos((prev) =>
+      prev.map((p) =>
+        p.id === photo.id
+          ? {
+              ...p,
+              price: priceSaved ? pricing.price : p.price,
+              licensePrices: licencePricesSaved
+                ? (pricing.licensePrices ?? undefined)
+                : p.licensePrices,
+            }
+          : p,
+      ),
+    );
+    if (priceSaved && licencePricesSaved) {
+      toast.success("Licence prices updated");
+      setPricingPhotoId(null);
+    } else {
+      toast.error("Some prices weren't saved", {
+        description: "Check your connection and try again.",
+      });
+    }
   };
 
   const handleTitleUpdate = async (photoId: string) => {
@@ -701,6 +755,18 @@ export function CreatorTabs({
       return;
     }
 
+    const pricing = pricingToSave(uploadPricing, {
+      license: uploadLicense as Photo["license"],
+      modelRelease,
+      propertyRelease,
+    });
+    if (!pricing) {
+      toast.error("Check your licence prices", {
+        description: "Every licence needs a price of at least £1.",
+      });
+      return;
+    }
+
     setUploadStep(3);
     setUploadProgress(0);
 
@@ -725,7 +791,7 @@ export function CreatorTabs({
         color: uploadColor,
         orientation: uploadOrientation,
         ratio: uploadRatio,
-        price: Number(uploadPrice) || 1000,
+        price: pricing.price,
         downloads: 0,
         views: 0,
         likes: 0,
@@ -745,7 +811,20 @@ export function CreatorTabs({
 
       const saved = await createPhoto(newPhotoItem);
       if (saved) {
-        setPortfolioPhotos((prev) => [saved, ...prev]);
+        // Own licence prices go on after the photo exists; a failure only means the platform's
+        // automatic prices apply until the photographer sets them again from the portfolio.
+        let listed = saved;
+        if (pricing.licensePrices) {
+          if (await saveLicensePrices(saved.id, pricing.licensePrices)) {
+            listed = { ...saved, licensePrices: pricing.licensePrices };
+          } else {
+            toast.warning("Your own licence prices weren't saved", {
+              description:
+                "NS CAPTURES' automatic prices apply for now. Set yours again from your portfolio.",
+            });
+          }
+        }
+        setPortfolioPhotos((prev) => [listed, ...prev]);
 
         if (photoStatus === "pending_review") {
           // The photograph's own status is what puts it in front of the review
@@ -791,7 +870,7 @@ export function CreatorTabs({
     setUploadTitle("");
     setUploadCategory("Portrait");
     setUploadLocation("");
-    setUploadPrice("1000");
+    setUploadPricing(newPricingValue());
     setUploadDescription("");
     setUploadKeywords("");
     setUploadLicense("COMMERCIAL");
@@ -1294,29 +1373,16 @@ export function CreatorTabs({
                         </label>
                         <label className="block">
                           <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
-                            Single License price (£)
+                            Shooting Location
                           </span>
                           <input
-                            required
-                            type="number"
-                            value={uploadPrice}
-                            onChange={(e) => setUploadPrice(e.target.value)}
+                            value={uploadLocation}
+                            onChange={(e) => setUploadLocation(e.target.value)}
+                            placeholder="e.g. Arizona, USA"
                             className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
                           />
                         </label>
                       </div>
-
-                      <label className="block">
-                        <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
-                          Shooting Location
-                        </span>
-                        <input
-                          value={uploadLocation}
-                          onChange={(e) => setUploadLocation(e.target.value)}
-                          placeholder="e.g. Arizona, USA"
-                          className="mt-2 w-full border border-[#ececec] rounded-xl bg-white px-4 py-2.5 text-sm outline-none transition focus:border-[#1e4a3f] focus:ring-2 focus:ring-[#1e4a3f]/10 shadow-sm"
-                        />
-                      </label>
 
                       <label className="block">
                         <span className="font-mono text-[9px] tracking-wider text-[#758078] uppercase">
@@ -1396,12 +1462,22 @@ export function CreatorTabs({
                       </div>
 
                       {(modelRelease === "none" || propertyRelease === "none") &&
-                        uploadLicense === "COMMERCIAL" && (
+                        uploadLicense !== "EDITORIAL" && (
                           <p className="rounded-xl bg-[#f6ecd8] p-3 text-xs text-[#7a5a17]">
-                            Without a release, commercial licensing may not be possible. NS CAPTURES
-                            may restrict this photograph to editorial use.
+                            Without a signed release, this photograph can only be licensed for
+                            editorial use.
                           </p>
                         )}
+
+                      <LicensePricingFields
+                        value={uploadPricing}
+                        onChange={setUploadPricing}
+                        rights={{
+                          license: uploadLicense as Photo["license"],
+                          modelRelease,
+                          propertyRelease,
+                        }}
+                      />
 
                       <div className="rounded-xl border border-[#1e4a3f]/20 bg-[#f2f7f4] p-4">
                         <p className="font-mono text-[9px] tracking-wider text-[#1e4a3f] uppercase">
@@ -1846,6 +1922,56 @@ export function CreatorTabs({
                           <span>{getDisplayViews(photo)} views</span>
                         </div>
                       </div>
+
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span className="font-mono text-[10px] text-[#758078]">
+                          {offeredTiers(photo).length === 1
+                            ? `${tierInfo(offeredTiers(photo)[0]).label} licence only`
+                            : hasCustomPrices(photo)
+                              ? "Your own licence prices"
+                              : "Licence prices set by NS CAPTURES"}
+                        </span>
+                        <button
+                          type="button"
+                          aria-expanded={pricingPhotoId === photo.id}
+                          onClick={() =>
+                            pricingPhotoId === photo.id
+                              ? setPricingPhotoId(null)
+                              : openPricingEditor(photo)
+                          }
+                          className="text-[11px] font-medium text-[#1e4a3f] hover:underline"
+                        >
+                          {pricingPhotoId === photo.id ? "Close" : "Licence prices"}
+                        </button>
+                      </div>
+
+                      {pricingPhotoId === photo.id && (
+                        <div className="mt-3 space-y-3">
+                          <LicensePricingFields
+                            value={pricingDraft}
+                            onChange={setPricingDraft}
+                            rights={photo}
+                            compact
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPricingPhotoId(null)}
+                              className="rounded-full border border-[#ececec] px-3 py-1.5 text-xs font-medium text-[#4a534e] transition-colors hover:bg-[#FAF9F5]"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              disabled={savingPricing}
+                              onClick={() => handlePricingSave(photo)}
+                              className="rounded-full bg-[#1e4a3f] px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#123b31] disabled:opacity-60"
+                            >
+                              {savingPricing ? "Saving…" : "Save prices"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

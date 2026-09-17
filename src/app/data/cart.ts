@@ -40,6 +40,12 @@ export function removeFromCart(id: string) {
   window.dispatchEvent(new Event("cart-updated"));
 }
 
+export function updateCartItemPrice(id: string, price: number) {
+  const cart = getCart().map((i) => (i.id === id ? { ...i, price } : i));
+  localStorage.setItem("ns-cart", JSON.stringify(cart));
+  window.dispatchEvent(new Event("cart-updated"));
+}
+
 export function clearCart() {
   localStorage.removeItem("ns-cart");
   window.dispatchEvent(new Event("cart-updated"));
