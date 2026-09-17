@@ -70,7 +70,7 @@ import { copyToClipboard } from "../../../lib/clipboard";
 import { groupWalletsByAsset } from "../../../lib/walletGroups";
 
 export function SettlementVaultTab() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -235,6 +235,19 @@ export function SettlementVaultTab() {
   useEffect(() => {
     loadVault();
   }, [loadVault]);
+
+  useEffect(() => {
+    const handleBalanceUpdate = () => {
+      refreshProfile?.();
+      loadVault();
+    };
+    window.addEventListener("profile-balance-updated", handleBalanceUpdate);
+    window.addEventListener("nsc-balance-updated", handleBalanceUpdate);
+    return () => {
+      window.removeEventListener("profile-balance-updated", handleBalanceUpdate);
+      window.removeEventListener("nsc-balance-updated", handleBalanceUpdate);
+    };
+  }, [loadVault, refreshProfile]);
 
   // Refresh live balances
   const handleRefreshBalances = async () => {
@@ -1152,7 +1165,8 @@ export function SettlementVaultTab() {
         userName={user?.name || "Collector"}
         userEmail={user?.email || ""}
         vaultEvmAddress={wallets.find((w) => w.coin === "ETH" || w.coin === "NSC")?.address}
-        onConverted={() => {
+        onConverted={async () => {
+          await refreshProfile?.();
           loadVault();
         }}
       />

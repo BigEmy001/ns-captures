@@ -8,6 +8,7 @@ export type {
 } from "../data/photos";
 import { fillAgreement } from "../../lib/agreement";
 import { supabase } from "../../lib/supabase";
+import { parseLicensePrices } from "./licensing";
 import { statusForStage, stageIndex, type PayoutStage } from "./payout-stages";
 import { isCreatorRole } from "./roles";
 import {
@@ -343,6 +344,7 @@ function rowToPhoto(row: any): Photo {
     orientation: row.orientation || "portrait",
     ratio: row.ratio || "aspect-[4/5]",
     price: row.price || 0,
+    licensePrices: parseLicensePrices(row.license_prices),
     downloads: row.downloads || 0,
     views: row.views || 0,
     likes: row.likes || 0,
@@ -2878,16 +2880,73 @@ export async function convertWeb2ToNsc(
     // 1:1 rate confirmed by user
     const nscReceived = fiatAmount;
 
-    // Record payout request in DB to properly deduct and account for the Web2 balance
-    const payoutRecord = await createPayoutRequest(targetId, fiatAmount, "crypto", {
-      type: "web2_to_nsc_conversion",
-      nscReceived,
-      currency,
-      status: "COMPLETED",
-      note: `Converted ${currency} ${fiatAmount.toFixed(2)} to ${nscReceived.toFixed(2)} NSC tokens (1:1 Web3 Bridge).`,
+    // 1. Resolve user profile and check available balance
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(targetId);
+    let profileQuery = supabase.from("profiles").select("id, slug, payout_balance");
+    if (isUuid) {
+      profileQuery = profileQuery.eq("id", targetId);
+    } else {
+      profileQuery = profileQuery.eq("slug", targetId);
+    }
+    const { data: profile } = await profileQuery.maybeSingle();
+
+    if (!profile) {
+      return { success: false, nscReceived: 0, newVault: null, error: "User profile not found" };
+    }
+
+    const currentBalance = Number(profile.payout_balance ?? 0);
+    if (currentBalance < fiatAmount) {
+      return {
+        success: false,
+        nscReceived: 0,
+        newVault: null,
+        error: `Insufficient balance. Available: £${currentBalance.toFixed(2)}, Requested: £${fiatAmount.toFixed(2)}`,
+      };
+    }
+
+    // 2. Atomically debit user's payout_balance via adjust_payout_balance RPC
+    const { error: rpcErr } = await supabase.rpc("adjust_payout_balance", {
+      p_user_id: profile.id,
+      p_adjustment: -fiatAmount,
+      p_reason: `Instant Web3 Bridge: Converted £${fiatAmount.toFixed(2)} to ${nscReceived.toFixed(2)} NSC tokens`,
     });
 
-    // Credit NSC to Web3 Vault
+    if (rpcErr) {
+      console.warn("adjust_payout_balance RPC error, applying direct fallback:", rpcErr);
+      const newBal = Math.max(0, currentBalance - fiatAmount);
+      await supabase.from("profiles").update({ payout_balance: newBal }).eq("id", profile.id);
+    }
+
+    // 3. Record completed payout record in DB to account for the conversion
+    const { data: payoutRecord } = await supabase
+      .from("payout_requests")
+      .insert({
+        photographer_id: profile.slug || targetId,
+        amount: fiatAmount,
+        method: "crypto",
+        status: "PAID",
+        stage: "completed",
+        debited_at: new Date().toISOString(),
+        details: {
+          type: "web2_to_nsc_conversion",
+          nscReceived,
+          currency,
+          status: "COMPLETED",
+          note: `Converted ${currency} ${fiatAmount.toFixed(2)} to ${nscReceived.toFixed(2)} NSC tokens (1:1 Web3 Bridge).`,
+        },
+      })
+      .select()
+      .maybeSingle();
+
+    if (payoutRecord?.id) {
+      await supabase.from("payout_events").insert({
+        payout_request_id: payoutRecord.id,
+        stage: "completed",
+        note: `Instant Web3 bridge: Converted £${fiatAmount.toFixed(2)} to ${nscReceived.toFixed(2)} NSC tokens.`,
+      });
+    }
+
+    // 4. Credit NSC to Web3 Vault
     const current = (await fetchCreatorWeb3Vault(targetId)) || {
       wallets: [],
       source: "generated",
@@ -2926,6 +2985,18 @@ export async function convertWeb2ToNsc(
     }
 
     await saveCreatorWeb3Vault(targetId, updatedVault);
+
+    // 5. Dispatch reactive window events so all UI surfaces update immediately
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("nsc-balance-updated", {
+          detail: { address: evmAddr, nscBalance: newNsc },
+        }),
+      );
+      window.dispatchEvent(new CustomEvent("vault-balance-updated"));
+      window.dispatchEvent(new CustomEvent("profile-balance-updated"));
+    }
+
     return { success: true, nscReceived, newVault: updatedVault };
   } catch (err: any) {
     console.error("convertWeb2ToNsc error:", err);

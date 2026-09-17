@@ -13,6 +13,7 @@ import {
   Wallet,
   Building2,
   ClipboardPaste,
+  ArrowRightLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
@@ -30,6 +31,7 @@ import {
   getTreasuryWalletForCoin,
   type NscPresaleOrder,
 } from "../data/editions";
+import { convertWeb2ToNsc } from "../data/db";
 import { CryptoQrCodeModal } from "./CryptoQrCodeModal";
 import { generateQrSvg } from "../../lib/qrcode";
 import { fetchTronTrxBalance } from "../../lib/onChainBalance";
@@ -106,7 +108,7 @@ const SUPPORTED_COINS: Array<{
 ];
 
 export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalProps) {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const { wallets, balances, refresh: refreshVault } = useEditionVault();
   useBodyScrollLock(isOpen);
 
@@ -120,8 +122,8 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Mode: "direct_treasury" (Primary/Recommended) vs "vault_swap" (Internal balance)
-  const [paymentMode, setPaymentMode] = useState<"direct_treasury" | "vault_swap">(
+  // Mode: "direct_treasury" (External transfer) vs "vault_swap" (Vault crypto) vs "main_balance" (Cash £)
+  const [paymentMode, setPaymentMode] = useState<"direct_treasury" | "vault_swap" | "main_balance">(
     "direct_treasury",
   );
   const [selectedCoin, setSelectedCoin] = useState<"ETH" | "USDT" | "USDC" | "SOL" | "BTC" | "TRX">(
@@ -474,6 +476,68 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
     }
   };
 
+  // Submit Main Balance (Web2 Cash £) Conversion
+  const handleMainBalanceConvert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error("Please sign in to convert your main balance.");
+      return;
+    }
+
+    if (parsedAmount <= 0) {
+      toast.error("Please enter the amount you want to convert.");
+      return;
+    }
+
+    const available = user.payoutBalance || 0;
+    if (parsedAmount > available) {
+      toast.error(`Insufficient balance. Available: £${available.toFixed(2)} GBP`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await convertWeb2ToNsc(user.slug || user.id, parsedAmount, "GBP");
+      if (!res.success) {
+        throw new Error(res.error || "Failed to convert balance");
+      }
+
+      await refreshProfile?.();
+      refreshVault();
+
+      const nowIso = new Date().toISOString();
+      const order: NscPresaleOrder = {
+        id: `conv_${Date.now()}`,
+        userId: user.slug || user.id,
+        userName: user.name,
+        userEmail: user.email,
+        paymentMethod: "vault_swap",
+        coinPaid: "GBP",
+        network: "Web2 Platform Bridge",
+        amountPaid: parsedAmount,
+        rateUsd: 1.0,
+        fiatValueUsd: parsedAmount,
+        nscAmount: parsedAmount,
+        txHash: "internal_bridge_settled",
+        treasuryAddress: "Internal Settlement Bridge",
+        senderAddress: userVaultAddress,
+        createdAt: nowIso,
+        timestamp: nowIso,
+      };
+
+      setCompletedOrder(order);
+      toast.success(
+        `Successfully converted £${parsedAmount.toFixed(2)} to ${parsedAmount.toFixed(2)} NSC!`,
+      );
+      if (onSuccess) onSuccess(order);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Conversion failed";
+      toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
@@ -544,7 +608,9 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                   vault
                 </h3>
                 <p className="mx-auto max-w-xs text-sm leading-6 text-(--ed-muted)">
-                  Your {completedOrder.amountPaid} {completedOrder.coinPaid} reached the treasury.
+                  {completedOrder.coinPaid === "GBP"
+                    ? `Converted £${completedOrder.amountPaid.toFixed(2)} from your main balance directly into NSC.`
+                    : `Your ${completedOrder.amountPaid} ${completedOrder.coinPaid} reached the treasury.`}
                 </p>
               </div>
 
@@ -555,7 +621,9 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                   <span className="text-(--ed-text)">
                     {completedOrder.paymentMethod === "direct_treasury"
                       ? "Transfer to treasury"
-                      : "Vault balance"}
+                      : completedOrder.coinPaid === "GBP"
+                        ? "Main Balance (Cash £)"
+                        : "Vault balance"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3 text-(--ed-muted)">
@@ -573,16 +641,19 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                 <div className="flex items-center justify-between gap-3 text-(--ed-muted)">
                   <span>You paid</span>
                   <span className="text-(--ed-text)">
-                    {completedOrder.amountPaid} {completedOrder.coinPaid} ($
-                    {completedOrder.fiatValueUsd.toFixed(2)})
+                    {completedOrder.coinPaid === "GBP"
+                      ? `£${completedOrder.amountPaid.toFixed(2)} GBP`
+                      : `${completedOrder.amountPaid} ${completedOrder.coinPaid} ($${completedOrder.fiatValueUsd.toFixed(2)})`}
                   </span>
                 </div>
-                <div className="flex items-center justify-between gap-3 text-(--ed-muted)">
-                  <span>Treasury</span>
-                  <span className="max-w-[160px] truncate text-(--ed-text)">
-                    {completedOrder.treasuryAddress}
-                  </span>
-                </div>
+                {completedOrder.treasuryAddress && (
+                  <div className="flex items-center justify-between gap-3 text-(--ed-muted)">
+                    <span>Treasury</span>
+                    <span className="max-w-[160px] truncate text-(--ed-text)">
+                      {completedOrder.treasuryAddress}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-3 border-t border-(--ed-divider) pt-1.5 text-(--ed-muted)">
                   <span>Transaction</span>
                   <div className="flex items-center gap-1">
@@ -631,10 +702,13 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
             /* PRESALE FORM */
             <div className="space-y-3.5">
               {/* Segmented Mode Switcher */}
-              <div className="grid grid-cols-2 gap-1 rounded-xl bg-(--ed-bg) p-1 border border-(--ed-border)">
+              <div className="grid grid-cols-3 gap-1 rounded-xl bg-(--ed-bg) p-1 border border-(--ed-border)">
                 <button
                   type="button"
-                  onClick={() => setPaymentMode("direct_treasury")}
+                  onClick={() => {
+                    setPaymentMode("direct_treasury");
+                    setPayAmount("");
+                  }}
                   className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     paymentMode === "direct_treasury"
                       ? "bg-(--ed-surface) text-(--ed-text) shadow-sm border border-(--ed-border)"
@@ -642,11 +716,14 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                   }`}
                 >
                   <Building2 aria-hidden className="size-3.5 shrink-0 text-(--ed-muted)" />
-                  <span className="whitespace-nowrap">Direct to treasury</span>
+                  <span className="truncate">Send crypto</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPaymentMode("vault_swap")}
+                  onClick={() => {
+                    setPaymentMode("vault_swap");
+                    setPayAmount("");
+                  }}
                   className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                     paymentMode === "vault_swap"
                       ? "bg-(--ed-surface) text-(--ed-text) shadow-sm border border-(--ed-border)"
@@ -654,112 +731,202 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                   }`}
                 >
                   <Wallet aria-hidden className="size-3.5 shrink-0 text-(--ed-muted)" />
-                  <span className="whitespace-nowrap">Pay from vault</span>
+                  <span className="truncate">Vault crypto</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaymentMode("main_balance");
+                    setPayAmount("");
+                  }}
+                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                    paymentMode === "main_balance"
+                      ? "bg-(--ed-surface) text-(--ed-text) shadow-sm border border-(--ed-border)"
+                      : "text-(--ed-muted) hover:text-(--ed-text)"
+                  }`}
+                >
+                  <ArrowRightLeft aria-hidden className="size-3.5 shrink-0 text-(--ed-muted)" />
+                  <span className="truncate">Main balance (£)</span>
                 </button>
               </div>
 
-              {/* Modern Horizontal Token Selector Pill Bar */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between gap-3">
-                  <span className={monoLabelClass}>Pay with</span>
-                  <span className="font-mono text-xs text-(--ed-muted)">
-                    1 {selectedCoin} = ${activeCoinMeta.rateUsd.toLocaleString()}
-                  </span>
+              {/* Horizontal Token Selector Pill Bar (Only for crypto modes) */}
+              {paymentMode !== "main_balance" && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={monoLabelClass}>Pay with</span>
+                    <span className="font-mono text-xs text-(--ed-muted)">
+                      1 {selectedCoin} = ${activeCoinMeta.rateUsd.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] pb-0.5">
+                    {SUPPORTED_COINS.map((c) => {
+                      const isSelected = selectedCoin === c.coin;
+                      return (
+                        <button
+                          key={c.coin}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCoin(c.coin);
+                            setShowInlineQr(false);
+                          }}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono transition-all shrink-0 cursor-pointer ${
+                            isSelected
+                              ? "border-(--ed-border-strong) bg-(--ed-raised) text-(--ed-text) shadow-sm font-semibold"
+                              : "border-(--ed-border) bg-(--ed-bg) text-(--ed-muted) hover:bg-(--ed-hover) hover:text-(--ed-text)"
+                          }`}
+                        >
+                          <span style={{ color: c.color }} className="font-bold text-xs">
+                            {c.iconSymbol}
+                          </span>
+                          <span>{c.coin}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] pb-0.5">
-                  {SUPPORTED_COINS.map((c) => {
-                    const isSelected = selectedCoin === c.coin;
-                    return (
-                      <button
-                        key={c.coin}
-                        type="button"
-                        onClick={() => {
-                          setSelectedCoin(c.coin);
-                          setShowInlineQr(false);
-                        }}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono transition-all shrink-0 cursor-pointer ${
-                          isSelected
-                            ? "border-(--ed-border-strong) bg-(--ed-raised) text-(--ed-text) shadow-sm font-semibold"
-                            : "border-(--ed-border) bg-(--ed-bg) text-(--ed-muted) hover:bg-(--ed-hover) hover:text-(--ed-text)"
-                        }`}
-                      >
-                        <span style={{ color: c.color }} className="font-bold text-xs">
-                          {c.iconSymbol}
-                        </span>
-                        <span>{c.coin}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              )}
 
               {/* DEX-Style Swap Input Card */}
-              <div className="rounded-2xl border border-(--ed-border) bg-(--ed-bg) p-3 space-y-2.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className={monoLabelClass}>
-                    {paymentMode === "direct_treasury" ? "You send" : "You pay from vault"}
-                  </span>
-                  {paymentMode === "vault_swap" ? (
+              {paymentMode === "main_balance" ? (
+                <div className="rounded-2xl border border-(--ed-border) bg-(--ed-bg) p-3 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={monoLabelClass}>You pay from Main Balance</span>
                     <div className="flex items-center gap-1.5 font-mono text-xs">
-                      <span className="text-(--ed-muted)">Vault</span>
-                      <span className="text-(--ed-text)">
-                        {userVaultCoinBalance.toFixed(4)} {selectedCoin}
+                      <span className="text-(--ed-muted)">Available</span>
+                      <span className="text-(--ed-text) font-semibold">
+                        £{(user?.payoutBalance || 0).toFixed(2)}
                       </span>
-                      {userTronAddress && selectedCoin === "USDT" && (
-                        <span className="rounded border border-(--ed-border) bg-(--ed-raised) px-1.5 py-0.5 font-mono text-xs text-(--ed-muted)">
-                          {isCheckingTrx ? "Checking…" : `${tronTrxBalance ?? 0} TRX`}
-                        </span>
-                      )}
                       <button
                         type="button"
-                        onClick={handleSetMaxVault}
-                        className="rounded px-1.5 py-0.5 font-mono text-xs font-medium text-(--ed-primary) transition-colors hover:bg-(--ed-hover)"
+                        onClick={() => {
+                          const bal = user?.payoutBalance || 0;
+                          if (bal > 0) {
+                            setPayAmount(bal.toString());
+                          } else {
+                            toast.error("Your main balance is £0.00.");
+                          }
+                        }}
+                        className="rounded px-1.5 py-0.5 font-mono text-xs font-medium text-(--ed-primary) transition-colors hover:bg-(--ed-hover) cursor-pointer"
                       >
                         Max
                       </button>
                     </div>
-                  ) : (
-                    <span className="font-mono text-xs text-(--ed-muted)">External transfer</span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between gap-2">
-                  <input
-                    type="number"
-                    step="any"
-                    min="0"
-                    placeholder="0.00"
-                    value={payAmount}
-                    onChange={(e) => setPayAmount(e.target.value)}
-                    className="w-full bg-transparent font-mono text-xl font-medium text-(--ed-text) placeholder:text-(--ed-muted)/40 focus:outline-none"
-                  />
-                  <div className="flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-xl bg-(--ed-surface) border border-(--ed-border) font-mono text-xs font-semibold">
-                    <span style={{ color: activeCoinMeta.color }}>{activeCoinMeta.iconSymbol}</span>
-                    <span>{selectedCoin}</span>
                   </div>
-                </div>
 
-                {/* Quick Presets & Valuation */}
-                <div className="flex items-center justify-between gap-3 border-t border-(--ed-divider)/50 pt-2 text-xs">
-                  <div className="flex items-center gap-1">
-                    {[25, 50, 100, 250, 500].map((val) => (
-                      <button
-                        key={val}
-                        type="button"
-                        onClick={() => handleAddPresetUsd(val)}
-                        className="rounded border border-(--ed-border) bg-(--ed-surface) px-2 py-1 font-mono text-xs text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
-                      >
-                        ${val}
-                      </button>
-                    ))}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-0 top-0.5 text-lg font-serif text-(--ed-muted)">
+                        £
+                      </span>
+                      <input
+                        type="number"
+                        step="any"
+                        min="0.01"
+                        placeholder="0.00"
+                        value={payAmount}
+                        onChange={(e) => setPayAmount(e.target.value)}
+                        className="w-full bg-transparent pl-5 font-mono text-xl font-medium text-(--ed-text) placeholder:text-(--ed-muted)/40 focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-xl bg-(--ed-surface) border border-(--ed-border) font-mono text-xs font-semibold">
+                      <span>GBP</span>
+                    </div>
                   </div>
-                  {selectedCoin !== "USDT" && parsedAmount > 0 && (
+
+                  {/* Quick Percentages */}
+                  <div className="flex items-center justify-between gap-3 border-t border-(--ed-divider)/50 pt-2 text-xs">
+                    <div className="flex items-center gap-1">
+                      {[25, 50, 75, 100].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => {
+                            const bal = user?.payoutBalance || 0;
+                            const val = Number(((bal * pct) / 100).toFixed(2));
+                            setPayAmount(val > 0 ? val.toString() : "");
+                          }}
+                          className="rounded border border-(--ed-border) bg-(--ed-surface) px-2 py-1 font-mono text-xs text-(--ed-text) transition-colors hover:bg-(--ed-hover) cursor-pointer"
+                        >
+                          {pct === 100 ? "Max" : `${pct}%`}
+                        </button>
+                      ))}
+                    </div>
                     <span className="font-mono text-xs text-(--ed-muted)">
-                      ≈ ${fiatValueUsd.toFixed(2)}
+                      1.00 GBP = 1.00 NSC (1:1)
                     </span>
-                  )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-2xl border border-(--ed-border) bg-(--ed-bg) p-3 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={monoLabelClass}>
+                      {paymentMode === "direct_treasury" ? "You send" : "You pay from vault"}
+                    </span>
+                    {paymentMode === "vault_swap" ? (
+                      <div className="flex items-center gap-1.5 font-mono text-xs">
+                        <span className="text-(--ed-muted)">Vault</span>
+                        <span className="text-(--ed-text)">
+                          {userVaultCoinBalance.toFixed(4)} {selectedCoin}
+                        </span>
+                        {userTronAddress && selectedCoin === "USDT" && (
+                          <span className="rounded border border-(--ed-border) bg-(--ed-raised) px-1.5 py-0.5 font-mono text-xs text-(--ed-muted)">
+                            {isCheckingTrx ? "Checking…" : `${tronTrxBalance ?? 0} TRX`}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handleSetMaxVault}
+                          className="rounded px-1.5 py-0.5 font-mono text-xs font-medium text-(--ed-primary) transition-colors hover:bg-(--ed-hover)"
+                        >
+                          Max
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="font-mono text-xs text-(--ed-muted)">External transfer</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      placeholder="0.00"
+                      value={payAmount}
+                      onChange={(e) => setPayAmount(e.target.value)}
+                      className="w-full bg-transparent font-mono text-xl font-medium text-(--ed-text) placeholder:text-(--ed-muted)/40 focus:outline-none"
+                    />
+                    <div className="flex items-center gap-1.5 shrink-0 px-2.5 py-1 rounded-xl bg-(--ed-surface) border border-(--ed-border) font-mono text-xs font-semibold">
+                      <span style={{ color: activeCoinMeta.color }}>
+                        {activeCoinMeta.iconSymbol}
+                      </span>
+                      <span>{selectedCoin}</span>
+                    </div>
+                  </div>
+
+                  {/* Quick Presets & Valuation */}
+                  <div className="flex items-center justify-between gap-3 border-t border-(--ed-divider)/50 pt-2 text-xs">
+                    <div className="flex items-center gap-1">
+                      {[25, 50, 100, 250, 500].map((val) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => handleAddPresetUsd(val)}
+                          className="rounded border border-(--ed-border) bg-(--ed-surface) px-2 py-1 font-mono text-xs text-(--ed-text) transition-colors hover:bg-(--ed-hover)"
+                        >
+                          ${val}
+                        </button>
+                      ))}
+                    </div>
+                    {selectedCoin !== "USDT" && parsedAmount > 0 && (
+                      <span className="font-mono text-xs text-(--ed-muted)">
+                        ≈ ${fiatValueUsd.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Conversion Preview Card */}
               <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-(--ed-bg) border border-(--ed-border)">
@@ -769,16 +936,52 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
                 </div>
                 <div className="flex items-center gap-2 font-mono">
                   <span className="text-base font-medium text-(--ed-text)">
-                    {nscToReceive.toLocaleString()} {presaleConfig.symbol}
+                    {paymentMode === "main_balance"
+                      ? parsedAmount > 0
+                        ? parsedAmount.toFixed(2)
+                        : "0.00"
+                      : nscToReceive.toLocaleString()}{" "}
+                    {presaleConfig.symbol}
                   </span>
                   <span className="rounded-full border border-(--ed-border) bg-(--ed-surface) px-2 py-0.5 text-xs text-(--ed-muted)">
-                    No gas
+                    {paymentMode === "main_balance" ? "Zero fee" : "No gas"}
                   </span>
                 </div>
               </div>
 
-              {/* DIRECT TO TREASURY ROUTE DETAILS */}
-              {paymentMode === "direct_treasury" ? (
+              {/* ROUTE SPECIFIC SUBMISSION FORMS */}
+              {paymentMode === "main_balance" ? (
+                <form onSubmit={handleMainBalanceConvert} className="space-y-3 pt-1">
+                  <button
+                    type="submit"
+                    disabled={
+                      isSubmitting || parsedAmount <= 0 || parsedAmount > (user?.payoutBalance || 0)
+                    }
+                    className={`${primaryButtonClass} h-11 w-full px-4 text-sm cursor-pointer`}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 aria-hidden className="size-4 animate-spin" />
+                        <span>Converting…</span>
+                      </>
+                    ) : parsedAmount > (user?.payoutBalance || 0) ? (
+                      <span>Insufficient main balance</span>
+                    ) : (
+                      <>
+                        <span>
+                          Convert {parsedAmount > 0 ? `£${parsedAmount.toFixed(2)}` : ""} to NSC
+                        </span>
+                        <ArrowRight aria-hidden className="size-4" />
+                      </>
+                    )}
+                  </button>
+
+                  <p className="flex items-center justify-center gap-1.5 text-center text-xs text-(--ed-muted)">
+                    <ShieldCheck aria-hidden className="size-3" />
+                    Instant bridge · debited from cash earnings · credited directly to your vault
+                  </p>
+                </form>
+              ) : paymentMode === "direct_treasury" ? (
                 <form onSubmit={handleDirectTreasurySubmit} className="space-y-3 pt-1">
                   {/* Treasury Destination Card */}
                   <div className="rounded-xl border border-(--ed-border) bg-(--ed-bg) p-2.5 space-y-2 text-xs">
