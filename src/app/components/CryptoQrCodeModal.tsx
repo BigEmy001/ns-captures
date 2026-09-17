@@ -5,6 +5,7 @@ import { generateQrSvg } from "../../lib/qrcode";
 import { getExplorerUrl } from "../../lib/onChainBalance";
 import { copyToClipboard } from "../../lib/clipboard";
 import { useBodyScrollLock } from "./editions/useBodyScrollLock";
+import { useEditionsTheme } from "./editions/useEditionsTheme";
 import {
   monoLabelClass,
   primaryButtonClass,
@@ -28,6 +29,8 @@ export function CryptoQrCodeModal({
 }: CryptoQrCodeModalProps) {
   const [copied, setCopied] = useState(false);
   useBodyScrollLock(isOpen);
+  // Opens from the vault and the presale modal, so it carries the editions theme itself
+  const { theme } = useEditionsTheme();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -56,6 +59,7 @@ export function CryptoQrCodeModal({
 
   return (
     <div
+      data-ed-theme={theme}
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
@@ -132,8 +136,8 @@ export function CryptoQrCodeModal({
             </a>
           </div>
 
-          <div className="flex items-start gap-2 rounded-lg border border-(--ed-warning)/30 bg-(--ed-warning)/10 p-3 text-xs leading-6 text-(--ed-text)">
-            <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-(--ed-warning)" />
+          <div className="flex items-start gap-2 rounded-lg border border-(--ed-border) bg-(--ed-bg) p-3 text-xs leading-6 text-(--ed-muted)">
+            <ShieldAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-(--ed-text)" />
             <span>
               Send only {coin} on {network} to this address. Anything else is lost. Deposits appear
               once the network confirms them.

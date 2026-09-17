@@ -282,12 +282,12 @@ export function TransferCryptoModal({
         {/* Success View */}
         {txResult ? (
           <div className="space-y-6 text-center py-4 animate-in zoom-in-95 duration-200">
-            <div className="size-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="size-8" />
+            <div className="size-14 rounded-full bg-[#18211f]/5 border border-[#18211f]/10 text-[#18211f] flex items-center justify-center mx-auto">
+              <CheckCircle2 className="size-7" />
             </div>
 
             <div className="space-y-1">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100/80 text-emerald-800 text-[11px] font-semibold">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-[#dce8df] bg-[#FAF9F5] text-[#59645f] text-[11px] font-mono">
                 Blockchain Broadcast Confirmed
               </span>
               <h3 className="text-2xl font-serif text-[#18211f]">Transfer Dispatched</h3>
@@ -331,7 +331,7 @@ export function TransferCryptoModal({
                     title="Copy TxHash"
                   >
                     {copiedTx ? (
-                      <Check className="size-3.5 text-emerald-600" />
+                      <Check className="size-3.5 text-[#18211f]" />
                     ) : (
                       <Copy className="size-3.5" />
                     )}
@@ -364,8 +364,8 @@ export function TransferCryptoModal({
           <form onSubmit={handleExecuteTransfer} className="space-y-5">
             {/* Header */}
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#1e4a3f]/10 text-[#1e4a3f] text-xs font-semibold mb-1">
-                <ShieldCheck className="size-3.5" />
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#dce8df] bg-[#FAF9F5] text-[#59645f] text-xs font-mono mb-1">
+                <ShieldCheck className="size-3.5 text-[#18211f]" />
                 <span>Non-Custodial Vault Transfer</span>
               </div>
               <h3 className="text-xl font-serif text-[#18211f]">Transfer & Withdraw Crypto</h3>
@@ -440,8 +440,8 @@ export function TransferCryptoModal({
                 required
               />
               {recipientAddress && !addressValidation.valid && (
-                <p className="mt-1 flex items-center gap-1 text-[11px] text-amber-700">
-                  <AlertCircle className="size-3 shrink-0" />
+                <p className="mt-1 flex items-center gap-1 text-[11px] text-[#758078]">
+                  <AlertCircle className="size-3 shrink-0 text-[#18211f]" />
                   <span>{addressValidation.message}</span>
                 </p>
               )}

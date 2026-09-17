@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, Gift, Coins, ShieldCheck, Mail, Loader2, CheckCircle2, Sparkles } from "lucide-react";
+import { X, Gift, Coins, ShieldCheck, Mail, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { creditNscToVault, type CreatorWeb3Vault } from "../data/db";
 import { sendNscGiftNotification } from "../../lib/email";
@@ -147,11 +147,11 @@ export function GiftNscModal({ isOpen, onClose, prefilledUser, onGiftSuccess }: 
 
         {successResult ? (
           <div className="py-8 text-center space-y-4">
-            <div className="size-14 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="size-8" />
+            <div className="size-14 rounded-full bg-[#18211f]/5 border border-[#18211f]/10 text-[#18211f] flex items-center justify-center mx-auto">
+              <CheckCircle2 className="size-7" />
             </div>
             <div className="space-y-1">
-              <h3 className="font-serif text-2xl text-[#18211f]">NSC Tokens Gifted!</h3>
+              <h3 className="font-serif text-2xl text-[#18211f]">NSC Tokens Gifted</h3>
               <p className="text-xs text-[#758078]">
                 Successfully credited <strong>{successResult.amount} NSC</strong> (≈ £
                 {successResult.amount.toFixed(2)}) to {successResult.recipient}.
@@ -165,7 +165,7 @@ export function GiftNscModal({ isOpen, onClose, prefilledUser, onGiftSuccess }: 
               </div>
               <div className="flex justify-between">
                 <span className="text-[#758078]">Pegged Value (1:1):</span>
-                <span className="font-mono text-[#1e4a3f]">£{successResult.amount.toFixed(2)}</span>
+                <span className="font-mono text-[#18211f]">£{successResult.amount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#758078]">New Vault NSC Total:</span>
@@ -173,7 +173,7 @@ export function GiftNscModal({ isOpen, onClose, prefilledUser, onGiftSuccess }: 
               </div>
               <div className="flex justify-between">
                 <span className="text-[#758078]">Email Notice:</span>
-                <span className="text-emerald-700 font-medium">Dispatched</span>
+                <span className="text-[#18211f] font-mono font-medium">Dispatched</span>
               </div>
             </div>
 
@@ -204,8 +204,8 @@ export function GiftNscModal({ isOpen, onClose, prefilledUser, onGiftSuccess }: 
             <div className="rounded-xl border border-[#ececec] bg-[#FAF9F5] p-3.5 space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[#758078] font-mono uppercase text-[10px]">Recipient</span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                  <ShieldCheck className="size-3" />
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-[#59645f] bg-white px-2 py-0.5 rounded-full border border-[#dce8df]">
+                  <ShieldCheck className="size-3 text-[#18211f]" />
                   Web3 Vault Ready
                 </span>
               </div>

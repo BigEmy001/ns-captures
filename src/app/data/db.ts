@@ -3724,7 +3724,7 @@ export async function approvePurchase(
   // Fetch purchase + photo + settings to compute photographer share
   const { data: purchase } = await supabase
     .from("purchases")
-    .select("price, status")
+    .select("price, status, license")
     .eq("id", purchaseId)
     .single();
 
@@ -3784,6 +3784,11 @@ export async function approvePurchase(
 
   if (licenses && licenses.length > 0) {
     await supabase.from("licenses").update({ expires_at: "Lifetime" }).eq("id", licenses[0].id);
+  }
+
+  // An exclusive licence grants sole ownership; remove the photograph from the library
+  if (purchase?.license === "EXCLUSIVE" && photoId) {
+    await supabase.from("photos").update({ status: "archived" }).eq("id", photoId);
   }
 
   return true;

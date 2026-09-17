@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { useEditionVault } from "./editions/useEditionVault";
 import { useBodyScrollLock } from "./editions/useBodyScrollLock";
+import { useEditionsTheme } from "./editions/useEditionsTheme";
 import {
   monoLabelClass,
   primaryButtonClass,
@@ -111,6 +112,8 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
   const { user, refreshProfile } = useAuth();
   const { wallets, balances, refresh: refreshVault } = useEditionVault();
   useBodyScrollLock(isOpen);
+  // Opens from the shell header, the vault and other modals, so it carries the theme itself
+  const { theme } = useEditionsTheme();
 
   // Close on Escape key
   useEffect(() => {
@@ -540,6 +543,7 @@ export function PresaleBuyModal({ isOpen, onClose, onSuccess }: PresaleBuyModalP
 
   return (
     <div
+      data-ed-theme={theme}
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200"
       onClick={onClose}
     >

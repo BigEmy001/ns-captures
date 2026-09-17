@@ -17,12 +17,10 @@ import {
   ShieldAlert,
   Link2,
   ArrowUpRight,
-  Mail,
   ArrowRightLeft,
-  Sparkles,
+  ImageIcon,
   FileText,
   ArrowRight,
-  Flame,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
@@ -56,10 +54,7 @@ import {
   type EditionOwnership,
   type NscPresaleConfig,
 } from "../../data/editions";
-import {
-  sendCryptoDepositNotification,
-  sendCryptoWithdrawalNotification,
-} from "../../../lib/email";
+import { sendCryptoDepositNotification } from "../../../lib/email";
 import {
   Accordion,
   AccordionContent,
@@ -401,9 +396,8 @@ export function SettlementVaultTab() {
               <button
                 type="button"
                 onClick={() => setIsPresaleModalOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 text-xs font-semibold transition cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#dce8df] bg-white px-4 py-2 text-xs font-semibold text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer shadow-xs"
               >
-                <Flame className="size-3.5 fill-black animate-pulse" />
                 <span>Buy NSC Presale (1:1)</span>
               </button>
             )}
@@ -419,7 +413,7 @@ export function SettlementVaultTab() {
               }
               className="inline-flex items-center gap-1.5 rounded-full bg-[#18211f] px-4 py-2 text-xs font-semibold text-white hover:bg-[#12231f] transition cursor-pointer"
             >
-              <ArrowUpRight className="size-3.5 text-emerald-400" />
+              <ArrowUpRight className="size-3.5 text-white/70" />
               <span>Transfer / Withdraw</span>
             </button>
 
@@ -516,11 +510,10 @@ export function SettlementVaultTab() {
         <>
           {/* NSC Presale Spotlight Banner */}
           {presaleConfig.status === "active" && (
-            <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="rounded-2xl border border-[#dce8df] bg-[#FAF9F5] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1 max-w-xl">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600 text-xs font-semibold border border-amber-500/30">
-                    <Flame className="size-3.5 fill-amber-600 animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-[#dce8df] bg-white text-[#18211f] text-xs font-medium font-mono">
                     NSC Token Presale Active • 1:1 Peg
                   </span>
                   <span className="text-xs font-mono text-[#758078]">
@@ -539,7 +532,7 @@ export function SettlementVaultTab() {
               <button
                 type="button"
                 onClick={() => setIsPresaleModalOpen(true)}
-                className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black px-5 py-3 text-xs font-semibold transition cursor-pointer shadow-md"
+                className="shrink-0 inline-flex items-center justify-center gap-2 rounded-xl bg-[#18211f] hover:bg-[#12231f] text-white px-5 py-3 text-xs font-semibold transition cursor-pointer shadow-xs"
               >
                 <span>Participate in Presale</span>
               </button>
@@ -630,7 +623,7 @@ export function SettlementVaultTab() {
                       <Coins className="size-3 text-[#1e4a3f]" />
                       Official Platform Utility Token
                     </span>
-                    <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[10px] font-mono font-medium border border-emerald-200">
+                    <span className="inline-flex items-center rounded-full border border-[#dce8df] bg-[#FAF9F5] text-[#59645f] px-2 py-0.5 text-[10px] font-mono font-medium">
                       1:1 Peg
                     </span>
                   </div>
@@ -695,7 +688,7 @@ export function SettlementVaultTab() {
                   <button
                     type="button"
                     onClick={() => setIsPresaleModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-[#1e4a3f] hover:bg-emerald-100 transition cursor-pointer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#dce8df] bg-white px-4 py-2.5 text-xs font-medium text-[#18211f] hover:bg-[#FAF9F5] transition cursor-pointer"
                   >
                     <span>Buy Presale (1:1)</span>
                   </button>
@@ -725,7 +718,7 @@ export function SettlementVaultTab() {
                           Connected by User
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium border border-emerald-200">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-[#dce8df] bg-[#FAF9F5] text-[#59645f] text-[10px] font-mono font-medium">
                           System Generated
                         </span>
                       )}
@@ -805,12 +798,12 @@ export function SettlementVaultTab() {
                     ))}
                   </div>
 
-                  <div className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed">
-                    <ShieldAlert className="size-4 shrink-0 text-amber-600 mt-0.5" />
+                  <div className="flex items-start gap-2 p-3 rounded-xl bg-[#FAF9F5] border border-[#dce8df] text-[#4a534e] text-[11px] leading-relaxed">
+                    <ShieldAlert className="size-4 shrink-0 text-[#18211f] mt-0.5" />
                     <span>
-                      <strong>Warning:</strong> Never share these 12 words with anyone. Store them
-                      offline in a secure location. Anyone who possesses this phrase can access and
-                      transfer all digital assets in this vault.
+                      <strong>Security notice:</strong> Never share these 12 words with anyone.
+                      Store them offline in a secure location. Anyone who possesses this phrase can
+                      access and transfer digital assets in this vault.
                     </span>
                   </div>
                 </div>
@@ -987,7 +980,7 @@ export function SettlementVaultTab() {
                                         title="Copy address"
                                       >
                                         {copiedIndex === walletIndex ? (
-                                          <Check className="size-3.5 text-emerald-600" />
+                                          <Check className="size-3.5 text-[#18211f]" />
                                         ) : (
                                           <Copy className="size-3.5" />
                                         )}
@@ -1046,7 +1039,7 @@ export function SettlementVaultTab() {
               <div className="mt-5">
                 {userOwnerships.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-[#26272d] bg-[#141415] px-6 py-8 text-center">
-                    <Sparkles className="mx-auto size-5 text-[#acadae]" />
+                    <ImageIcon className="mx-auto size-5 text-[#acadae]" />
                     <h4 className="mt-3 text-sm font-medium text-white">
                       No digital editions collected yet
                     </h4>

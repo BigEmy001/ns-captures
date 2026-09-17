@@ -26,6 +26,7 @@ import {
   CreatorWeb3Vault,
 } from "../data/db";
 import { useBodyScrollLock } from "./editions/useBodyScrollLock";
+import { useEditionsTheme } from "./editions/useEditionsTheme";
 import {
   monoLabelClass,
   primaryButtonClass,
@@ -55,6 +56,8 @@ export function ConnectWalletModal({
   const [showPhrase, setShowPhrase] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   useBodyScrollLock(isOpen);
+  // Opens outside the shell's themed subtree (and on photography pages), so it carries the theme itself
+  const { theme } = useEditionsTheme();
 
   // Close on Escape, like every other editions modal
   useEffect(() => {
@@ -306,6 +309,7 @@ export function ConnectWalletModal({
 
   return (
     <div
+      data-ed-theme={theme}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
       onClick={onClose}
     >

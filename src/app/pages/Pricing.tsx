@@ -1,36 +1,22 @@
 import { Eyebrow, Button } from "../components/ui";
 import { Link } from "react-router";
+import { LICENSE_TIERS, type LicenseTier } from "../data/licensing";
 
-const licenseRows = [
-  {
-    license: "Editorial",
-    usage: "News, education, blogs, non-commercial purposes",
-    from: 130,
-    details:
-      "Allowed: Editorial uses like newspapers, textbooks, documentaries, personal blogs. Not allowed: Any advertising, commercial promotions, or business branding.",
-  },
-  {
-    license: "Commercial",
-    usage: "Advertising, business web, social media, marketing",
-    from: 180,
-    details:
-      "Allowed: Corporate websites, advertisements, promotional campaigns, social media posts for business. Not allowed: Merchandise resale or printing on physical products for sale.",
-  },
-  {
-    license: "Extended",
-    usage: "Merchandise, print-on-demand, packaging, physical products",
-    from: 450,
-    details:
-      "Allowed: Printing on merchandise (t-shirts, mugs, prints), physical product packaging, books for resale, unlimited prints. Not allowed: Exclusive ownership.",
-  },
-  {
-    license: "Exclusive",
-    usage: "Sole ownership rights, item removed from archive",
-    from: 1200,
-    details:
-      "Allowed: Complete and exclusive usage rights. Once purchased, the image is permanently deleted from the NS CAPTURES archive and cannot be licensed by others.",
-  },
-];
+// Starting Commercial rate across the archive catalog
+const BASE_COMMERCIAL_RATE = 180;
+
+// Order from lowest tier to exclusive sole rights
+const TIER_ORDER: LicenseTier[] = ["EDITORIAL", "COMMERCIAL", "EXTENDED", "EXCLUSIVE"];
+
+const licenseRows = TIER_ORDER.map((tierId) => {
+  const tier = LICENSE_TIERS.find((t) => t.id === tierId)!;
+  return {
+    license: tier.label,
+    usage: tier.usage,
+    from: Math.round(BASE_COMMERCIAL_RATE * tier.multiplier),
+    details: `Duration: ${tier.duration} · Coverage: ${tier.coverage}. Restrictions: ${tier.restrictions}`,
+  };
+});
 
 export function Pricing() {
   return (
