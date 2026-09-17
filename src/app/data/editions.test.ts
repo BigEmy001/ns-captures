@@ -25,6 +25,8 @@ import {
   getCreatorSalesSummary,
   getPublicEditionCollections,
   pricesFromGbp,
+  gbpToNsc,
+  NSC_PER_GBP,
   resolveCreatorIdentity,
   saveEditionCreatorProfile,
   setEditionSalesPaused,
@@ -912,5 +914,25 @@ describe("Digital Editions Data Engine", () => {
       expect(restored.showNscTokenCardInVault).toBe(true);
       expect(restored.enableAdminNscGifting).toBe(true);
     });
+  });
+});
+
+describe("NSC pricing", () => {
+  it("values 1 NSC at £1, so an edition's NSC price matches its list price", () => {
+    expect(NSC_PER_GBP).toBe(1);
+    const { priceGbp } = pricesFromGbp(250);
+    expect(gbpToNsc(priceGbp)).toBe(250);
+  });
+
+  it("rounds NSC amounts to two decimal places", () => {
+    expect(gbpToNsc(0.5)).toBe(0.5);
+    expect(gbpToNsc(19.999)).toBe(20);
+    expect(gbpToNsc(1850)).toBe(1850);
+  });
+
+  it("prices every seed edition in NSC at its £ list price", () => {
+    for (const edition of INITIAL_EDITIONS) {
+      expect(gbpToNsc(edition.priceGbp)).toBe(edition.priceGbp);
+    }
   });
 });

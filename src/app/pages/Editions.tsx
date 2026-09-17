@@ -12,6 +12,7 @@ import {
   isEditionsPublic,
   getPresaleConfig,
   EDITIONS_VISIBILITY_EVENT,
+  NSC_PER_GBP,
   type DigitalEdition,
   type EditionOwnership,
 } from "../data/editions";
@@ -35,9 +36,11 @@ import {
 } from "../components/editions/editionsUi";
 import {
   collectionHrefFor,
-  formatEth,
   formatGbp,
+  formatPrice,
   initials,
+  PRICE_CURRENCY_OPTIONS,
+  type PriceCurrency,
   monoLabelClass,
   primaryButtonClass,
   sampleOwnershipFor,
@@ -80,11 +83,6 @@ const CHAIN_FILTERS = [
 ] as const;
 
 const HERO_INTERVAL_MS = 6000;
-
-const CURRENCY_OPTIONS = [
-  { id: "eth", label: "ETH" },
-  { id: "gbp", label: "GBP" },
-] as const;
 
 const PAYMENT_CURRENCIES = [
   { id: "ETH", label: "ETH" },
@@ -131,7 +129,7 @@ export function Editions() {
   const [selectedChain, setSelectedChain] = useState<string>("all");
   const [catalogTab, setCatalogTab] = useState<"items" | "activity">("items");
   const [timeframe, setTimeframe] = useState<Timeframe>("24h");
-  const [currencyMode, setCurrencyMode] = useState<"eth" | "gbp">("eth");
+  const [currencyMode, setCurrencyMode] = useState<PriceCurrency>("nsc");
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
   const [heroPaused, setHeroPaused] = useState(false);
   const catalogRef = useRef<HTMLElement>(null);
@@ -323,8 +321,7 @@ export function Editions() {
 
   const activeDepositWallet = wallets[depositWalletIndex] ?? wallets[0];
 
-  const priceFor = (edition: DigitalEdition) =>
-    currencyMode === "eth" ? formatEth(edition.priceEth) : formatGbp(edition.priceGbp);
+  const priceFor = (edition: DigitalEdition) => formatPrice(edition, currencyMode);
 
   return (
     <EditionsShell
@@ -509,6 +506,10 @@ export function Editions() {
                       value: `$${presaleConfig.minPurchaseUsd.toFixed(2)}`,
                     },
                     {
+                      label: "Value on editions",
+                      value: `£${(1 / NSC_PER_GBP).toFixed(2)} per ${presaleConfig.symbol}`,
+                    },
+                    {
                       label: "Allocation",
                       value: `${presaleConfig.hardCapNsc.toLocaleString()} ${presaleConfig.symbol}`,
                     },
@@ -611,7 +612,10 @@ export function Editions() {
                       </Link>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-(--ed-text)">
-                      {currencyMode === "eth" ? formatEth(col.floorEth) : formatGbp(col.floorGbp)}
+                      {formatPrice(
+                        { priceGbp: col.floorGbp, priceEth: col.floorEth },
+                        currencyMode,
+                      )}
                     </td>
                     <td className="hidden whitespace-nowrap px-4 py-3 text-right font-mono text-(--ed-positive) min-[480px]:table-cell">
                       +{col.change.toFixed(1)}%
@@ -649,7 +653,7 @@ export function Editions() {
             trailing={
               <SegmentedControl
                 label="Price currency"
-                options={CURRENCY_OPTIONS}
+                options={PRICE_CURRENCY_OPTIONS}
                 value={currencyMode}
                 onChange={setCurrencyMode}
               />
@@ -702,7 +706,7 @@ export function Editions() {
                   <div className="md:hidden">
                     <SegmentedControl
                       label="Price currency"
-                      options={CURRENCY_OPTIONS}
+                      options={PRICE_CURRENCY_OPTIONS}
                       value={currencyMode}
                       onChange={setCurrencyMode}
                     />

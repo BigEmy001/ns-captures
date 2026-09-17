@@ -1,6 +1,7 @@
 import type { Variants } from "framer-motion";
 import {
   getEditionCollection,
+  gbpToNsc,
   type DigitalEdition,
   type EditionActivity,
   type EditionOwnership,
@@ -55,6 +56,35 @@ export const fadeUpVariants: Variants = {
 
 export const formatEth = (value: number) => `${Number(value.toFixed(3))} ETH`;
 export const formatGbp = (value: number) => `£${value.toLocaleString("en-GB")}`;
+export const formatNsc = (value: number) =>
+  `${value.toLocaleString("en-GB", { maximumFractionDigits: 2 })} NSC`;
+
+/**
+ * Currencies a collector can view prices in. NSC leads (it's what checkout charges first), then
+ * GBP (the list price every other figure comes from), then ETH (a fixed conversion).
+ */
+export type PriceCurrency = "nsc" | "gbp" | "eth";
+export const PRICE_CURRENCY_OPTIONS = [
+  { id: "nsc", label: "NSC" },
+  { id: "gbp", label: "GBP" },
+  { id: "eth", label: "ETH" },
+] as const satisfies readonly { id: PriceCurrency; label: string }[];
+
+type Priced = { priceGbp: number; priceEth: number };
+
+/** A price in one currency, derived from the £ list price (ETH uses the stored conversion). */
+export const formatPrice = (price: Priced, currency: PriceCurrency) =>
+  currency === "nsc"
+    ? formatNsc(gbpToNsc(price.priceGbp))
+    : currency === "gbp"
+      ? formatGbp(price.priceGbp)
+      : formatEth(price.priceEth);
+
+/** The other two currencies, in NSC → GBP → ETH order, for the line under a price. */
+export const formatOtherPrices = (price: Priced, currency: PriceCurrency) =>
+  `≈ ${PRICE_CURRENCY_OPTIONS.filter((option) => option.id !== currency)
+    .map((option) => formatPrice(price, option.id))
+    .join(" · ")}`;
 export const formatPercent = (value: number) =>
   value < 1 ? `${value.toFixed(2)}%` : `${Math.round(value)}%`;
 export const formatDate = (iso: string) =>

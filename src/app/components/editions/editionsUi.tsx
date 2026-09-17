@@ -7,14 +7,16 @@ import { MaskIcon } from "../MaskIcon";
 import {
   ACTIVITY_LABELS,
   formatDate,
-  formatEth,
   formatGbp,
+  formatOtherPrices,
+  formatPrice,
   iconButtonClass,
   monoLabelClass,
   primaryButtonClass,
   shortHex,
   tableHeadClass,
   tierLabel,
+  type PriceCurrency,
 } from "./editionsFormat";
 import { useBodyScrollLock } from "./useBodyScrollLock";
 import "./editions.css";
@@ -389,12 +391,12 @@ export function EditionsModal({
 
 export function EditionCard({
   edition,
-  currency = "eth",
+  currency = "nsc",
   onBuy,
   onInspectCertificate,
 }: {
   edition: DigitalEdition;
-  currency?: "eth" | "gbp";
+  currency?: PriceCurrency;
   onBuy?: (edition: DigitalEdition) => void;
   onInspectCertificate?: (edition: DigitalEdition) => void;
 }) {
@@ -441,7 +443,10 @@ export function EditionCard({
           <div className="min-w-0">
             <p className={monoLabelClass}>Price</p>
             <p className="truncate pt-1 font-mono text-sm font-medium text-(--ed-text)">
-              {currency === "eth" ? formatEth(edition.priceEth) : formatGbp(edition.priceGbp)}
+              {formatPrice(edition, currency)}
+            </p>
+            <p className="truncate font-mono text-xs text-(--ed-muted)">
+              {formatOtherPrices(edition, currency)}
             </p>
           </div>
           <p className="shrink-0 font-mono text-xs text-(--ed-muted)">

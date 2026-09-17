@@ -24,14 +24,15 @@ import {
 } from "../components/editions/editionsUi";
 import { useEditionVault } from "../components/editions/useEditionVault";
 import {
-  formatEth,
-  formatGbp,
+  formatPrice,
   iconButtonClass,
   inputClass,
   primaryButtonClass,
   secondaryButtonClass,
   selectClass,
   tableHeadClass,
+  PRICE_CURRENCY_OPTIONS,
+  type PriceCurrency,
 } from "../components/editions/editionsFormat";
 import {
   TIMEFRAMES,
@@ -43,6 +44,7 @@ import {
 } from "../components/editions/collectionStats";
 import {
   EDITIONS_CHANGED_EVENT,
+  gbpToNsc,
   getPublishedEditions,
   getStoredOwnerships,
 } from "../data/editions";
@@ -93,11 +95,6 @@ const VOLUME_UNITS = [{ id: "gbp", label: "GBP" }] as const;
 const inRange = (value: number, range: RangeValue | null) =>
   !range ||
   ((range.min === null || value >= range.min) && (range.max === null || value <= range.max));
-
-const CURRENCY_OPTIONS = [
-  { id: "eth", label: "ETH" },
-  { id: "gbp", label: "GBP" },
-] as const;
 
 const WATCHLIST_KEY = "ns_editions_watchlist_v1";
 const DESKTOP_QUERY = "(min-width: 1024px)";
@@ -399,7 +396,7 @@ export function EditionCollectionsIndex() {
   const [ownerships, setOwnerships] = useState(() => getStoredOwnerships());
   const [ranking, setRanking] = useState<Ranking>("trending");
   const [timeframe, setTimeframe] = useState<Timeframe>("24h");
-  const [currency, setCurrency] = useState<"eth" | "gbp">("eth");
+  const [currency, setCurrency] = useState<PriceCurrency>("nsc");
   const [view, setView] = useState<"table" | "grid">("table");
   const [sortOverride, setSortOverride] = useState<SortState | null>(null);
   const [query, setQuery] = useState("");
@@ -464,7 +461,14 @@ export function EditionCollectionsIndex() {
             matchesEditionType(row, editionType) &&
             (chain === "all" || row.meta.chain === chain) &&
             (standard === "all" || row.standards.includes(standard)) &&
-            inRange(floorRange?.unit === "gbp" ? row.floorGbp : row.floorEth, floorRange) &&
+            inRange(
+              floorRange?.unit === "eth"
+                ? row.floorEth
+                : floorRange?.unit === "gbp"
+                  ? row.floorGbp
+                  : gbpToNsc(row.floorGbp),
+              floorRange,
+            ) &&
             inRange(row.volumeGbp, volumeRange) &&
             (!verifiedOnly || row.verified) &&
             (!curatedOnly || row.curated) &&
@@ -571,7 +575,7 @@ export function EditionCollectionsIndex() {
   };
 
   const floorLabel = (row: CollectionRow) =>
-    currency === "eth" ? formatEth(row.floorEth) : formatGbp(row.floorGbp);
+    formatPrice({ priceGbp: row.floorGbp, priceEth: row.floorEth }, currency);
 
   const filterContent = (
     <>
@@ -623,7 +627,7 @@ export function EditionCollectionsIndex() {
         <RangeFilter
           key={`floor-${rangeResetKey}`}
           label="Floor price"
-          units={CURRENCY_OPTIONS}
+          units={PRICE_CURRENCY_OPTIONS}
           value={floorRange}
           onApply={setFloorRange}
         />
@@ -781,7 +785,7 @@ export function EditionCollectionsIndex() {
               <div className="hidden sm:block">
                 <SegmentedControl
                   label="Price currency"
-                  options={CURRENCY_OPTIONS}
+                  options={PRICE_CURRENCY_OPTIONS}
                   value={currency}
                   onChange={setCurrency}
                 />

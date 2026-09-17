@@ -2453,6 +2453,18 @@ export function pricesFromGbp(
   };
 }
 
+/**
+ * What 1 NSC is worth wherever it is spent or credited: edition prices, checkout and converting
+ * an account's £ balance all use 1 NSC = £1. The presale sells NSC below this
+ * (`NscPresaleConfig.priceUsd`), which is the presale discount.
+ */
+export const NSC_PER_GBP = 1;
+
+/** A pound amount in NSC, rounded to 2 decimal places. GBP stays the list price. */
+export function gbpToNsc(gbp: number): number {
+  return Math.round(gbp * NSC_PER_GBP * 100) / 100;
+}
+
 /** Whether a collector can buy this edition right now. */
 export function isEditionForSale(edition: DigitalEdition): boolean {
   return isEditionPublished(edition) && !edition.salesPaused && edition.availableEditions > 0;

@@ -8,6 +8,7 @@ import {
   getEditionCollection,
   getEditionsByCollection,
   getPublicEditionCollections,
+  gbpToNsc,
   isCollectionCreator,
   isEditionForSale,
   isWeb3Activated,
@@ -33,7 +34,7 @@ import {
 import {
   creatorHref,
   fadeUpVariants,
-  formatEth,
+  formatNsc,
   inputClass,
   monoLabelClass,
   primaryButtonClass,
@@ -41,6 +42,8 @@ import {
   secondaryButtonClass,
   selectClass,
   shortHex,
+  PRICE_CURRENCY_OPTIONS,
+  type PriceCurrency,
 } from "../components/editions/editionsFormat";
 import { useEditionVault } from "../components/editions/useEditionVault";
 import { useWeb3Activation } from "../components/editions/useWeb3Activation";
@@ -70,11 +73,6 @@ const STATUS_OPTIONS = [
   { id: "all", label: "All" },
   { id: "buy_now", label: "Buy now" },
   { id: "has_offers", label: "Offers" },
-] as const;
-
-const PRICE_CURRENCIES = [
-  { id: "ETH", label: "ETH" },
-  { id: "GBP", label: "GBP" },
 ] as const;
 
 const TIER_OPTIONS = [
@@ -207,7 +205,7 @@ function CollectionPage({ collection }: { collection: EditionCollectionMeta }) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-  const [priceCurrency, setPriceCurrency] = useState<"ETH" | "GBP">("ETH");
+  const [priceCurrency, setPriceCurrency] = useState<PriceCurrency>("nsc");
   const [selectedCameras, setSelectedCameras] = useState<string[]>([]);
   const [selectedLenses, setSelectedLenses] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
@@ -238,10 +236,11 @@ function CollectionPage({ collection }: { collection: EditionCollectionMeta }) {
     const totalItems = editions.length;
     const available = editions.filter((e) => e.availableEditions > 0);
     const listedPercent = totalItems > 0 ? Math.round((available.length / totalItems) * 100) : 0;
-    const floorEth = available.length > 0 ? Math.min(...available.map((e) => e.priceEth)) : 0.72;
-    const bestOfferEth = Number((floorEth * 0.9).toFixed(2));
-    const totalVolumeEth = editions.reduce(
-      (sum, e) => sum + (e.totalEditions - e.availableEditions) * e.priceEth,
+    // In NSC from the £ list prices. No floor when nothing is for sale, and volume is only what
+    // has actually sold (these used to fall back to made-up ETH figures).
+    const floorGbp = available.length > 0 ? Math.min(...available.map((e) => e.priceGbp)) : null;
+    const soldGbp = editions.reduce(
+      (sum, e) => sum + (e.totalEditions - e.availableEditions) * e.priceGbp,
       0,
     );
     const ownerIds = new Set(
@@ -253,9 +252,9 @@ function CollectionPage({ collection }: { collection: EditionCollectionMeta }) {
     return {
       totalItems,
       listedPercent,
-      floorEth,
-      bestOfferEth,
-      totalVolumeEth: totalVolumeEth > 0 ? totalVolumeEth.toFixed(1) : "142.5",
+      floorNsc: floorGbp !== null ? gbpToNsc(floorGbp) : null,
+      bestOfferNsc: floorGbp !== null ? gbpToNsc(floorGbp * 0.9) : null,
+      totalVolumeNsc: gbpToNsc(soldGbp),
       uniqueOwnersCount: Math.max(ownerIds.size, 14),
     };
   }, [editions]);
@@ -288,7 +287,12 @@ function CollectionPage({ collection }: { collection: EditionCollectionMeta }) {
         if (statusFilter === "buy_now" && !isEditionForSale(item)) return false;
         if (statusFilter === "has_offers" && item.tier !== "genesis_1_of_1") return false;
 
-        const price = priceCurrency === "ETH" ? item.priceEth : item.priceGbp;
+        const price =
+          priceCurrency === "eth"
+            ? item.priceEth
+            : priceCurrency === "gbp"
+              ? item.priceGbp
+              : gbpToNsc(item.priceGbp);
         if (minPrice && price < parseFloat(minPrice)) return false;
         if (maxPrice && price > parseFloat(maxPrice)) return false;
 
@@ -305,8 +309,8 @@ function CollectionPage({ collection }: { collection: EditionCollectionMeta }) {
         return true;
       })
       .sort((a, b) => {
-        if (sortBy === "price_asc") return a.priceEth - b.priceEth;
-        if (sortBy === "price_desc") return b.priceEth - a.priceEth;
+        if (sortBy === "price_asc") return a.priceGbp - b.priceGbp;
+        if (sortBy === "price_desc") return b.priceGbp - a.priceGbp;
         if (sortBy === "scarcity") return a.totalEditions - b.totalEditions;
         return b.yearCreated - a.yearCreated;
       });
@@ -351,7 +355,7 @@ function CollectionPage({ collection }: { collection: EditionCollectionMeta }) {
       ? [
           {
             key: "price",
-            label: `${minPrice || "0"}–${maxPrice || "∞"} ${priceCurrency}`,
+            label: `${minPrice || "0"}–${maxPrice || "∞"} ${priceCurrency.toUpperCase()}`,
             onRemove: () => {
               setMinPrice("");
               setMaxPrice("");
@@ -580,9 +584,15 @@ function CollectionPage({ collection }: { collection: EditionCollectionMeta }) {
             variants={fadeUpVariants}
             className="mt-6 grid grid-cols-2 gap-4 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-4 sm:grid-cols-3 lg:grid-cols-6"
           >
-            <Stat label="Floor price" value={formatEth(stats.floorEth)} />
-            <Stat label="Best offer" value={formatEth(stats.bestOfferEth)} />
-            <Stat label="Total volume" value={`${stats.totalVolumeEth} ETH`} />
+            <Stat
+              label="Floor price"
+              value={stats.floorNsc !== null ? formatNsc(stats.floorNsc) : "—"}
+            />
+            <Stat
+              label="Best offer"
+              value={stats.bestOfferNsc !== null ? formatNsc(stats.bestOfferNsc) : "—"}
+            />
+            <Stat label="Total volume" value={formatNsc(stats.totalVolumeNsc)} />
             <Stat label="Listed" value={`${stats.listedPercent}%`} />
             <Stat label="Owners" value={stats.uniqueOwnersCount} />
             <Stat label="Items" value={stats.totalItems} />
@@ -780,7 +790,7 @@ function CollectionPage({ collection }: { collection: EditionCollectionMeta }) {
                         <SegmentedControl
                           label="Price currency"
                           fullWidth
-                          options={PRICE_CURRENCIES}
+                          options={PRICE_CURRENCY_OPTIONS}
                           value={priceCurrency}
                           onChange={setPriceCurrency}
                         />
@@ -900,7 +910,7 @@ function CollectionPage({ collection }: { collection: EditionCollectionMeta }) {
                         <EditionCard
                           key={item.id}
                           edition={item}
-                          currency={priceCurrency === "ETH" ? "eth" : "gbp"}
+                          currency={priceCurrency}
                           onBuy={handleInstantCollect}
                           onInspectCertificate={openCertificate}
                         />

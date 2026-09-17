@@ -15,7 +15,7 @@ import {
 import {
   fadeUpVariants,
   formatDate,
-  formatEth,
+  formatNsc,
   iconButtonClass,
   monoLabelClass,
 } from "../components/editions/editionsFormat";
@@ -26,7 +26,7 @@ import {
   surfaceCardClass,
 } from "../components/editions/studioFormat";
 import { useEditionVault } from "../components/editions/useEditionVault";
-import { getCreatorPageData } from "../data/editions";
+import { gbpToNsc, getCreatorPageData } from "../data/editions";
 import { copyToClipboard } from "../../lib/clipboard";
 
 type ProfileTab = "created" | "collections" | "collected";
@@ -68,7 +68,7 @@ export function EditionsCreator() {
     tab ?? (isCreator ? "created" : page.collected.length > 0 ? "collected" : "created");
   const banner =
     page.collections[0]?.bannerImage ?? page.created[0]?.image ?? page.collected[0]?.edition.image;
-  const floor = isCreator ? Math.min(...page.created.map((e) => e.priceEth)) : null;
+  const floor = isCreator ? gbpToNsc(Math.min(...page.created.map((e) => e.priceGbp))) : null;
 
   const tabs: { id: ProfileTab; label: string; count: number }[] = [
     { id: "created", label: "Created", count: page.created.length },
@@ -145,7 +145,7 @@ export function EditionsCreator() {
             >
               <Stat label="Editions" value={page.created.length} />
               <Stat label="Collections" value={page.collections.length} />
-              <Stat label="Floor" value={floor !== null ? formatEth(floor) : "—"} />
+              <Stat label="Floor" value={floor !== null ? formatNsc(floor) : "—"} />
               <Stat label="Collectors" value={page.collectors} />
             </dl>
           </motion.div>

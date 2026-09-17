@@ -8,6 +8,7 @@ import {
   getStoredOwnerships,
   getStoredActivity,
   getEditionCollection,
+  gbpToNsc,
   isWeb3Activated,
   purchaseEdition,
   PLATFORM_TREASURY_WALLETS,
@@ -43,6 +44,8 @@ import {
   formatDate,
   formatEth,
   formatGbp,
+  formatNsc,
+  formatOtherPrices,
   formatPercent,
   initials,
   inputClass,
@@ -331,11 +334,12 @@ export function EditionDetail() {
     setIsPurchasing(true);
     try {
       // Currency settlement: prefer NSC if buyer has sufficient balance, else pay with ETH
-      const hasSufficientNsc = (nscBalance || 0) >= edition.priceGbp;
+      const nscDue = gbpToNsc(edition.priceGbp);
+      const hasSufficientNsc = (nscBalance || 0) >= nscDue;
       const currency = hasSufficientNsc ? "NSC" : "ETH";
 
       if (currency === "NSC") {
-        await deductNscFromVault(user.id, edition.priceGbp).catch((err) =>
+        await deductNscFromVault(user.id, nscDue).catch((err) =>
           console.error("Failed to deduct NSC from vault:", err),
         );
       } else {
@@ -433,9 +437,10 @@ export function EditionDetail() {
   const ownerIsArtist = !latestOwner || latestOwner.ownerId === edition.photographerId;
   const extraOwners = Math.max(editionOwnerships.length - 1, 0);
 
-  const collectionFloorEth = Math.min(
-    edition.priceEth,
-    ...(relatedEditions.fromCollection ? relatedEditions.items.map((e) => e.priceEth) : []),
+  const priceNsc = gbpToNsc(edition.priceGbp);
+  const collectionFloorGbp = Math.min(
+    edition.priceGbp,
+    ...(relatedEditions.fromCollection ? relatedEditions.items.map((e) => e.priceGbp) : []),
   );
   const sales = editionActivity.filter((a) => a.type === "purchased");
 
@@ -659,12 +664,12 @@ export function EditionDetail() {
             <motion.div variants={fadeUpVariants} className="pt-2">
               <div className="flex flex-col gap-4 rounded-lg border border-(--ed-border) bg-(--ed-surface) p-4">
                 <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <Stat label="Best offer" value={formatEth(edition.priceEth * 0.85)} />
+                  <Stat label="Best offer" value={formatNsc(gbpToNsc(edition.priceGbp * 0.85))} />
                   <Stat
                     label="Last sale"
-                    value={editionOwnerships.length > 0 ? formatEth(edition.priceEth) : "—"}
+                    value={editionOwnerships.length > 0 ? formatNsc(priceNsc) : "—"}
                   />
-                  <Stat label="Collection floor" value={formatEth(collectionFloorEth)} />
+                  <Stat label="Collection floor" value={formatNsc(gbpToNsc(collectionFloorGbp))} />
                   <Stat label="Royalty" value={`${edition.royaltyPercent}%`} muted alignEnd />
                 </dl>
 
@@ -675,10 +680,10 @@ export function EditionDetail() {
                     <span className={monoLabelClass}>Buy for</span>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className="font-mono text-[32px] font-medium leading-10 text-(--ed-text)">
-                        {formatEth(edition.priceEth)}
+                        {formatNsc(priceNsc)}
                       </span>
                       <span className="font-mono text-sm text-(--ed-muted)">
-                        ≈ {formatGbp(edition.priceGbp)} · {edition.priceGbp.toLocaleString()} NSC
+                        {formatOtherPrices(edition, "nsc")}
                       </span>
                       <Chip>
                         {isSoldOut
@@ -1087,8 +1092,8 @@ export function EditionDetail() {
         >
           <form onSubmit={handleMakeOffer} className="flex flex-col gap-4">
             <p className="text-sm leading-6 text-(--ed-muted)">
-              Offers go to {edition.photographerName}. The listed price is{" "}
-              {formatEth(edition.priceEth)}.
+              Offers go to {edition.photographerName}. The listed price is {formatNsc(priceNsc)} (
+              {formatEth(edition.priceEth)}).
             </p>
             <div>
               <label htmlFor="offer-amount" className={`${monoLabelClass} mb-2 block`}>
